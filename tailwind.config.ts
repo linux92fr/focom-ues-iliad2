@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -61,6 +62,16 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				// Couleurs militaires personnalisées
+				military: {
+					dark: '#0F1419',
+					charcoal: '#1A1F25',
+					steel: '#2D3748',
+					tactical: '#4A5568',
+					olive: '#38A169',
+					gold: '#D69E2E',
+					danger: '#E53E3E'
 				}
 			},
 			borderRadius: {
@@ -84,11 +95,48 @@ export default {
 					to: {
 						height: '0'
 					}
+				},
+				'fade-in': {
+					'0%': {
+						opacity: '0',
+						transform: 'translateY(20px)'
+					},
+					'100%': {
+						opacity: '1',
+						transform: 'translateY(0)'
+					}
+				},
+				'slide-in-left': {
+					'0%': {
+						opacity: '0',
+						transform: 'translateX(-30px)'
+					},
+					'100%': {
+						opacity: '1',
+						transform: 'translateX(0)'
+					}
+				},
+				'military-pulse': {
+					'0%, 100%': {
+						opacity: '1',
+						transform: 'scale(1)'
+					},
+					'50%': {
+						opacity: '0.8',
+						transform: 'scale(1.05)'
+					}
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'fade-in': 'fade-in 0.6s ease-out',
+				'slide-in-left': 'slide-in-left 0.8s ease-out',
+				'military-pulse': 'military-pulse 3s ease-in-out infinite'
+			},
+			backgroundImage: {
+				'military-gradient': 'linear-gradient(135deg, #0F1419 0%, #1A1F25 50%, #2D3748 100%)',
+				'tactical-gradient': 'linear-gradient(to right, #38A169, #2F855A)',
 			}
 		}
 	},
