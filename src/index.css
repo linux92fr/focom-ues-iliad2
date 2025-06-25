@@ -7,44 +7,44 @@
 
 @layer base {
   :root {
-    --background: 15 20 25;
+    --background: 30 41 59;
     --foreground: 248 250 252;
 
-    --card: 26 31 37;
+    --card: 51 65 85;
     --card-foreground: 248 250 252;
 
-    --popover: 26 31 37;
+    --popover: 51 65 85;
     --popover-foreground: 248 250 252;
 
-    --primary: 56 161 105;
-    --primary-foreground: 15 20 25;
+    --primary: 220 38 38;
+    --primary-foreground: 248 250 252;
 
-    --secondary: 45 55 72;
+    --secondary: 71 85 105;
     --secondary-foreground: 248 250 252;
 
-    --muted: 45 55 72;
+    --muted: 71 85 105;
     --muted-foreground: 160 174 192;
 
-    --accent: 214 158 46;
-    --accent-foreground: 15 20 25;
+    --accent: 245 158 11;
+    --accent-foreground: 30 41 59;
 
-    --destructive: 229 62 62;
+    --destructive: 239 68 68;
     --destructive-foreground: 248 250 252;
 
-    --border: 45 55 72;
-    --input: 45 55 72;
-    --ring: 56 161 105;
+    --border: 71 85 105;
+    --input: 71 85 105;
+    --ring: 220 38 38;
 
     --radius: 0.5rem;
 
-    --sidebar-background: 15 20 25;
+    --sidebar-background: 30 41 59;
     --sidebar-foreground: 248 250 252;
-    --sidebar-primary: 56 161 105;
-    --sidebar-primary-foreground: 15 20 25;
-    --sidebar-accent: 45 55 72;
+    --sidebar-primary: 220 38 38;
+    --sidebar-primary-foreground: 248 250 252;
+    --sidebar-accent: 71 85 105;
     --sidebar-accent-foreground: 248 250 252;
-    --sidebar-border: 45 55 72;
-    --sidebar-ring: 56 161 105;
+    --sidebar-border: 71 85 105;
+    --sidebar-ring: 220 38 38;
   }
 }
 
@@ -54,30 +54,30 @@
   }
 
   body {
-    @apply bg-military-dark text-foreground font-sans;
-    background: linear-gradient(135deg, #0F1419 0%, #1A1F25 50%, #2D3748 100%);
+    @apply bg-union-dark text-foreground font-sans;
+    background: linear-gradient(135deg, #1E293B 0%, #334155 50%, #475569 100%);
     min-height: 100vh;
   }
 }
 
 @layer components {
-  .military-card {
-    @apply bg-military-charcoal/50 backdrop-blur-sm border border-military-steel/30 rounded-lg shadow-xl;
+  .union-card {
+    @apply bg-union-slate/50 backdrop-blur-sm border border-union-steel/30 rounded-lg shadow-xl;
   }
   
-  .tactical-button {
-    @apply bg-tactical-gradient text-white font-semibold py-3 px-6 rounded-md 
+  .solidarity-button {
+    @apply bg-solidarity-gradient text-white font-semibold py-3 px-6 rounded-md 
            hover:shadow-lg hover:scale-105 transition-all duration-300 
-           border border-military-olive/30;
+           border border-union-red/30;
   }
   
-  .military-text {
+  .union-text {
     @apply text-gray-100 leading-relaxed;
   }
   
   .section-title {
-    @apply text-3xl md:text-4xl font-bold text-military-olive mb-6 
+    @apply text-3xl md:text-4xl font-bold text-union-red mb-6 
            relative after:content-[''] after:absolute after:bottom-0 after:left-0 
-           after:w-20 after:h-1 after:bg-military-gold after:rounded-full;
+           after:w-20 after:h-1 after:bg-union-gold after:rounded-full;
   }
 }
