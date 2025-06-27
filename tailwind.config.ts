@@ -1,4 +1,3 @@
-
 import type { Config } from "tailwindcss";
 
 export default {
@@ -63,17 +62,17 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
-				// Couleurs syndicales dominance rouge et blanc
+				// Couleurs syndicales dominance blanc avec accents rouges
 				union: {
 					dark: '#8B0000',     // Rouge foncé
 					slate: '#DC143C',    // Rouge cramoisi
 					blue: '#B22222',     // Rouge brique
-					steel: '#CD5C5C',    // Rouge indien
-					red: '#FF0000',      // Rouge pur
-					gold: '#FFD700',     // Or (accent)
-					green: '#228B22',    // Vert (accent minimal)
+					steel: '#6B7280',    // Gris neutre
+					red: '#DC143C',      // Rouge cramoisi principal
+					gold: '#F59E0B',     // Or (accent)
+					green: '#059669',    // Vert (accent minimal)
 					white: '#FFFFFF',    // Blanc pur
-					light: '#FFF5F5'     // Blanc cassé/rosé très léger
+					light: '#F8F9FA'     // Gris très clair
 				}
 			},
 			borderRadius: {
@@ -137,9 +136,9 @@ export default {
 				'union-pulse': 'union-pulse 3s ease-in-out infinite'
 			},
 			backgroundImage: {
-				'union-gradient': 'linear-gradient(135deg, #8B0000 0%, #DC143C 50%, #FF0000 100%)',
-				'solidarity-gradient': 'linear-gradient(to right, #FF0000, #DC143C)',
-				'white-gradient': 'linear-gradient(135deg, #FFFFFF 0%, #FFF5F5 100%)',
+				'union-gradient': 'linear-gradient(135deg, #FFFFFF 0%, #F8F9FA 50%, #FFF5F5 100%)',
+				'solidarity-gradient': 'linear-gradient(to right, #DC143C, #B91C1C)',
+				'white-gradient': 'linear-gradient(135deg, #FFFFFF 0%, #F8F9FA 100%)',
 			}
 		}
 	},

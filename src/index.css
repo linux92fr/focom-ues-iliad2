@@ -7,44 +7,44 @@
 
 @layer base {
   :root {
-    --background: 139 0 0;        /* Rouge foncé */
-    --foreground: 255 255 255;    /* Blanc */
+    --background: 255 255 255;        /* Blanc pur */
+    --foreground: 139 0 0;            /* Rouge foncé */
 
-    --card: 220 20 60;            /* Rouge cramoisi */
-    --card-foreground: 255 255 255;
+    --card: 255 255 255;              /* Blanc pur */
+    --card-foreground: 139 0 0;
 
-    --popover: 220 20 60;
-    --popover-foreground: 255 255 255;
+    --popover: 255 255 255;
+    --popover-foreground: 139 0 0;
 
-    --primary: 255 0 0;           /* Rouge pur */
+    --primary: 220 20 60;             /* Rouge cramoisi */
     --primary-foreground: 255 255 255;
 
-    --secondary: 205 92 92;       /* Rouge indien */
-    --secondary-foreground: 255 255 255;
+    --secondary: 248 249 250;         /* Gris très clair */
+    --secondary-foreground: 139 0 0;
 
-    --muted: 205 92 92;
-    --muted-foreground: 255 245 245;
+    --muted: 248 249 250;
+    --muted-foreground: 107 114 128;
 
-    --accent: 255 215 0;          /* Or */
-    --accent-foreground: 139 0 0;
+    --accent: 220 20 60;              /* Rouge cramoisi */
+    --accent-foreground: 255 255 255;
 
     --destructive: 255 0 0;
     --destructive-foreground: 255 255 255;
 
-    --border: 205 92 92;
-    --input: 178 34 34;
-    --ring: 255 0 0;
+    --border: 229 231 235;            /* Gris très clair */
+    --input: 255 255 255;
+    --ring: 220 20 60;
 
     --radius: 0.5rem;
 
-    --sidebar-background: 139 0 0;
-    --sidebar-foreground: 255 255 255;
-    --sidebar-primary: 255 0 0;
+    --sidebar-background: 255 255 255;
+    --sidebar-foreground: 139 0 0;
+    --sidebar-primary: 220 20 60;
     --sidebar-primary-foreground: 255 255 255;
-    --sidebar-accent: 205 92 92;
-    --sidebar-accent-foreground: 255 255 255;
-    --sidebar-border: 205 92 92;
-    --sidebar-ring: 255 0 0;
+    --sidebar-accent: 248 249 250;
+    --sidebar-accent-foreground: 139 0 0;
+    --sidebar-border: 229 231 235;
+    --sidebar-ring: 220 20 60;
   }
 }
 
@@ -54,25 +54,25 @@
   }
 
   body {
-    @apply bg-union-dark text-white font-sans;
-    background: linear-gradient(135deg, #8B0000 0%, #DC143C 50%, #FF0000 100%);
+    @apply bg-white text-union-dark font-sans;
+    background: linear-gradient(135deg, #FFFFFF 0%, #F8F9FA 50%, #FFF5F5 100%);
     min-height: 100vh;
   }
 }
 
 @layer components {
   .union-card {
-    @apply bg-white/95 backdrop-blur-sm border border-union-red/30 rounded-lg shadow-xl text-union-dark;
+    @apply bg-white backdrop-blur-sm border border-gray-200 rounded-lg shadow-lg text-union-dark;
   }
   
   .solidarity-button {
     @apply bg-solidarity-gradient text-white font-semibold py-3 px-6 rounded-md 
            hover:shadow-lg hover:scale-105 transition-all duration-300 
-           border border-white/30;
+           border border-union-red/20;
   }
   
   .union-text {
-    @apply text-union-dark leading-relaxed;
+    @apply text-gray-700 leading-relaxed;
   }
   
   .union-text-white {
@@ -80,8 +80,8 @@
   }
   
   .section-title {
-    @apply text-3xl md:text-4xl font-bold text-white mb-6 
+    @apply text-3xl md:text-4xl font-bold text-union-red mb-6 
            relative after:content-[''] after:absolute after:bottom-0 after:left-0 
-           after:w-20 after:h-1 after:bg-white after:rounded-full;
+           after:w-20 after:h-1 after:bg-union-red after:rounded-full;
   }
 }
