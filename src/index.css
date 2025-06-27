@@ -7,44 +7,44 @@
 
 @layer base {
   :root {
-    --background: 30 41 59;
-    --foreground: 248 250 252;
+    --background: 139 0 0;        /* Rouge foncé */
+    --foreground: 255 255 255;    /* Blanc */
 
-    --card: 51 65 85;
-    --card-foreground: 248 250 252;
+    --card: 220 20 60;            /* Rouge cramoisi */
+    --card-foreground: 255 255 255;
 
-    --popover: 51 65 85;
-    --popover-foreground: 248 250 252;
+    --popover: 220 20 60;
+    --popover-foreground: 255 255 255;
 
-    --primary: 220 38 38;
-    --primary-foreground: 248 250 252;
+    --primary: 255 0 0;           /* Rouge pur */
+    --primary-foreground: 255 255 255;
 
-    --secondary: 71 85 105;
-    --secondary-foreground: 248 250 252;
+    --secondary: 205 92 92;       /* Rouge indien */
+    --secondary-foreground: 255 255 255;
 
-    --muted: 71 85 105;
-    --muted-foreground: 160 174 192;
+    --muted: 205 92 92;
+    --muted-foreground: 255 245 245;
 
-    --accent: 245 158 11;
-    --accent-foreground: 30 41 59;
+    --accent: 255 215 0;          /* Or */
+    --accent-foreground: 139 0 0;
 
-    --destructive: 239 68 68;
-    --destructive-foreground: 248 250 252;
+    --destructive: 255 0 0;
+    --destructive-foreground: 255 255 255;
 
-    --border: 71 85 105;
-    --input: 71 85 105;
-    --ring: 220 38 38;
+    --border: 205 92 92;
+    --input: 178 34 34;
+    --ring: 255 0 0;
 
     --radius: 0.5rem;
 
-    --sidebar-background: 30 41 59;
-    --sidebar-foreground: 248 250 252;
-    --sidebar-primary: 220 38 38;
-    --sidebar-primary-foreground: 248 250 252;
-    --sidebar-accent: 71 85 105;
-    --sidebar-accent-foreground: 248 250 252;
-    --sidebar-border: 71 85 105;
-    --sidebar-ring: 220 38 38;
+    --sidebar-background: 139 0 0;
+    --sidebar-foreground: 255 255 255;
+    --sidebar-primary: 255 0 0;
+    --sidebar-primary-foreground: 255 255 255;
+    --sidebar-accent: 205 92 92;
+    --sidebar-accent-foreground: 255 255 255;
+    --sidebar-border: 205 92 92;
+    --sidebar-ring: 255 0 0;
   }
 }
 
@@ -54,30 +54,34 @@
   }
 
   body {
-    @apply bg-union-dark text-foreground font-sans;
-    background: linear-gradient(135deg, #1E293B 0%, #334155 50%, #475569 100%);
+    @apply bg-union-dark text-white font-sans;
+    background: linear-gradient(135deg, #8B0000 0%, #DC143C 50%, #FF0000 100%);
     min-height: 100vh;
   }
 }
 
 @layer components {
   .union-card {
-    @apply bg-union-slate/50 backdrop-blur-sm border border-union-steel/30 rounded-lg shadow-xl;
+    @apply bg-white/95 backdrop-blur-sm border border-union-red/30 rounded-lg shadow-xl text-union-dark;
   }
   
   .solidarity-button {
     @apply bg-solidarity-gradient text-white font-semibold py-3 px-6 rounded-md 
            hover:shadow-lg hover:scale-105 transition-all duration-300 
-           border border-union-red/30;
+           border border-white/30;
   }
   
   .union-text {
-    @apply text-gray-100 leading-relaxed;
+    @apply text-union-dark leading-relaxed;
+  }
+  
+  .union-text-white {
+    @apply text-white leading-relaxed;
   }
   
   .section-title {
-    @apply text-3xl md:text-4xl font-bold text-union-red mb-6 
+    @apply text-3xl md:text-4xl font-bold text-white mb-6 
            relative after:content-[''] after:absolute after:bottom-0 after:left-0 
-           after:w-20 after:h-1 after:bg-union-gold after:rounded-full;
+           after:w-20 after:h-1 after:bg-white after:rounded-full;
   }
 }

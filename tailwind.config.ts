@@ -63,15 +63,17 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
-				// Couleurs syndicales
+				// Couleurs syndicales dominance rouge et blanc
 				union: {
-					dark: '#1E293B',
-					slate: '#334155',
-					blue: '#475569',
-					steel: '#64748B',
-					red: '#DC2626',
-					gold: '#F59E0B',
-					green: '#059669'
+					dark: '#8B0000',     // Rouge foncé
+					slate: '#DC143C',    // Rouge cramoisi
+					blue: '#B22222',     // Rouge brique
+					steel: '#CD5C5C',    // Rouge indien
+					red: '#FF0000',      // Rouge pur
+					gold: '#FFD700',     // Or (accent)
+					green: '#228B22',    // Vert (accent minimal)
+					white: '#FFFFFF',    // Blanc pur
+					light: '#FFF5F5'     // Blanc cassé/rosé très léger
 				}
 			},
 			borderRadius: {
@@ -135,8 +137,9 @@ export default {
 				'union-pulse': 'union-pulse 3s ease-in-out infinite'
 			},
 			backgroundImage: {
-				'union-gradient': 'linear-gradient(135deg, #1E293B 0%, #334155 50%, #475569 100%)',
-				'solidarity-gradient': 'linear-gradient(to right, #DC2626, #B91C1C)',
+				'union-gradient': 'linear-gradient(135deg, #8B0000 0%, #DC143C 50%, #FF0000 100%)',
+				'solidarity-gradient': 'linear-gradient(to right, #FF0000, #DC143C)',
+				'white-gradient': 'linear-gradient(135deg, #FFFFFF 0%, #FFF5F5 100%)',
 			}
 		}
 	},
