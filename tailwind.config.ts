@@ -64,16 +64,20 @@ export default {
 				},
 				// Couleurs syndicales dominance blanc avec accents rouges
 				union: {
-					dark: '#8B0000',     // Rouge foncé
-					slate: '#DC143C',    // Rouge cramoisi
-					blue: '#B22222',     // Rouge brique
-					steel: '#6B7280',    // Gris neutre
-					red: '#DC143C',      // Rouge cramoisi principal
-					gold: '#F59E0B',     // Or (accent)
-					green: '#059669',    // Vert (accent minimal)
-					white: '#FFFFFF',    // Blanc pur
-					light: '#F8F9FA'     // Gris très clair
-				}
+					red: {
+        DEFAULT: '#E53E3E',  // Rouge principal (boutons, titres)
+        dark: '#C53030',     // Rouge foncé (hover)
+        light: '#FEE2E2',    // Fond rouge clair (ex: badges)
+      },
+      gray: {
+        dark: '#2D3748',     // Texte/bordures
+        light: '#F7FAFC',    // Fonds clairs
+      },
+      white: '#FFFFFF',
+      black: '#1A202C',      // Texte principal
+      blue: '#2563EB',       // Accents (optionnel)
+      green: '#10B981',      // Succès (ex: "200+ Victoires sociales")
+    },
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
