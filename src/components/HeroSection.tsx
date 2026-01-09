@@ -90,7 +90,7 @@ const HeroSection = () => {
 
             {/* Floating badge */}
             <div className="absolute -bottom-4 -left-4 bg-primary text-primary-foreground px-4 py-2 rounded-lg hero-shadow animate-slide-in" style={{ animationDelay: "0.4s" }}>
-              <p className="text-sm font-medium">+15 000 adhérents</p>
+              <p className="text-sm font-medium">+200 adhérents</p>
             </div>
           </div>
         </div>
