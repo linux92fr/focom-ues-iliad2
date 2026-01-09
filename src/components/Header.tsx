@@ -13,7 +13,7 @@ const Header = () => {
 
   const navLinks = [
     { label: "Actualités", href: "#actualites" },
-    { label: "Syndical", href: "#syndical" },
+    { label: "À propos", href: "/a-propos" },
     { label: "Vos Droits", href: "#droits" },
     { label: "Publications", href: "#publications" },
     { label: "Contact", href: "#contact" },
