@@ -79,7 +79,7 @@ const Footer = () => {
             </a>
             <a href="mailto:contact@focom-actu.fr" className="flex items-center gap-2 hover:text-primary transition-colors">
               <Mail className="h-4 w-4" />
-              contact@focom-actu.fr
+              contact@focomues-iliad.fr
             </a>
             <span className="flex items-center gap-2">
               <MapPin className="h-4 w-4" />
@@ -91,7 +91,7 @@ const Footer = () => {
         {/* Copyright */}
         <div className="border-t border-secondary-foreground/10 mt-8 pt-8 text-center">
           <p className="text-sm text-secondary-foreground/50">
-            © {new Date().getFullYear()} FOCOM Actu Espace. Tous droits réservés.
+            © {new Date().getFullYear()} FOCOM UES ILIAD Actu Espace. Tous droits réservés.
           </p>
           <div className="flex justify-center gap-4 mt-2 text-xs text-secondary-foreground/40">
             <a href="#" className="hover:text-secondary-foreground transition-colors">Mentions légales</a>
