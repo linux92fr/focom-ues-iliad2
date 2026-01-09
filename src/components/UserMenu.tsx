@@ -1,4 +1,6 @@
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useUserRole } from "@/hooks/useUserRole";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -9,10 +11,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { User, LogOut, Settings, FileText } from "lucide-react";
+import { User, LogOut, Settings, FileText, Shield } from "lucide-react";
 
 const UserMenu = () => {
+  const navigate = useNavigate();
   const { user, signOut } = useAuth();
+  const { isContentEditor } = useUserRole();
 
   if (!user) return null;
 
@@ -39,6 +43,12 @@ const UserMenu = () => {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        {isContentEditor && (
+          <DropdownMenuItem onClick={() => navigate("/admin")}>
+            <Shield className="mr-2 h-4 w-4" />
+            <span>Tableau de bord</span>
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem>
           <User className="mr-2 h-4 w-4" />
           <span>Mon profil</span>
