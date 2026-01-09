@@ -1,6 +1,7 @@
 import { ArrowRight, Calendar, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import logoFocom from "@/assets/logo-focom.png";
 
 const HeroSection = () => {
   return (
@@ -67,9 +68,11 @@ const HeroSection = () => {
               <div className="aspect-[4/3] bg-gradient-to-br from-secondary via-secondary/80 to-primary/60 relative">
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="text-center text-primary-foreground p-8">
-                    <div className="w-20 h-20 mx-auto mb-4 bg-primary-foreground/20 rounded-full flex items-center justify-center backdrop-blur">
-                      <span className="font-serif text-3xl font-bold">FO</span>
-                    </div>
+                    <img 
+                      src={logoFocom} 
+                      alt="Logo FOCOM" 
+                      className="w-32 h-32 mx-auto mb-4 object-contain"
+                    />
                     <p className="text-xl font-semibold">Force Ouvrière</p>
                     <p className="text-sm opacity-80">Communication</p>
                   </div>

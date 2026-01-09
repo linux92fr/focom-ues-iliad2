@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import AuthModal from "@/components/AuthModal";
 import UserMenu from "@/components/UserMenu";
+import logoFocom from "@/assets/logo-focom.png";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -26,12 +27,14 @@ const Header = () => {
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 gradient-hero rounded-lg flex items-center justify-center hero-shadow">
-                <span className="text-primary-foreground font-bold text-lg">FO</span>
-              </div>
+              <img 
+                src={logoFocom} 
+                alt="Logo FOCOM" 
+                className="w-12 h-12 object-contain"
+              />
               <div className="hidden sm:block">
                 <h1 className="font-serif text-xl font-bold text-foreground">FOCOM Actu</h1>
-                <p className="text-xs text-muted-foreground">Votre espace syndical</p>
+                <p className="text-xs text-muted-foreground">UES ILIAD - La force du syndicalisme</p>
               </div>
             </div>
 

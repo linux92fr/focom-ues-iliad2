@@ -1,4 +1,5 @@
 import { Facebook, Twitter, Linkedin, Youtube, Phone, Mail, MapPin } from "lucide-react";
+import logoFocom from "@/assets/logo-focom.png";
 
 const Footer = () => {
   const footerLinks = {
@@ -22,9 +23,11 @@ const Footer = () => {
           {/* Brand */}
           <div className="col-span-2 md:col-span-4 lg:col-span-1">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 gradient-hero rounded-lg flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-lg">FO</span>
-              </div>
+              <img 
+                src={logoFocom} 
+                alt="Logo FOCOM" 
+                className="w-14 h-14 object-contain"
+              />
               <div>
                 <h3 className="font-serif text-xl font-bold">FOCOM</h3>
                 <p className="text-xs text-secondary-foreground/70">Actu Espace</p>
