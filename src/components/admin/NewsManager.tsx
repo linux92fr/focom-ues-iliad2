@@ -33,6 +33,7 @@ import { Switch } from "@/components/ui/switch";
 import { Plus, Pencil, Trash2, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
+import { newsSchema, validateFormData } from "@/lib/validations";
 
 type News = Tables<"news">;
 type Category = Tables<"categories">;
@@ -44,6 +45,7 @@ const NewsManager = () => {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingNews, setEditingNews] = useState<News | null>(null);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   // Form state
   const [title, setTitle] = useState("");
@@ -93,6 +95,7 @@ const NewsManager = () => {
     setCategoryId("");
     setPublished(false);
     setEditingNews(null);
+    setFormErrors({});
   };
 
   const openEditDialog = (newsItem: News) => {
@@ -107,13 +110,31 @@ const NewsManager = () => {
   const handleSubmit = async () => {
     if (!user) return;
 
+    // Validate form data
+    const validation = validateFormData(newsSchema, {
+      title,
+      content,
+      category_id: categoryId || null,
+      published,
+    });
+
+    if (validation.success === false) {
+      setFormErrors(validation.errors);
+      const firstError = Object.values(validation.errors)[0];
+      if (firstError) toast.error(firstError);
+      return;
+    }
+
+    setFormErrors({});
+    const validData = validation.data;
+
     try {
       const newsData = {
-        title,
-        content,
-        category_id: categoryId || null,
-        published,
-        published_at: published ? new Date().toISOString() : null,
+        title: validData.title,
+        content: validData.content,
+        category_id: validData.category_id || null,
+        published: validData.published,
+        published_at: validData.published ? new Date().toISOString() : null,
         author_id: user.id,
       };
 
@@ -215,13 +236,18 @@ const NewsManager = () => {
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label htmlFor="title">Titre</Label>
+                <Label htmlFor="title">Titre *</Label>
                 <Input
                   id="title"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="Titre de l'actualité"
+                  maxLength={200}
+                  className={formErrors.title ? "border-destructive" : ""}
                 />
+                {formErrors.title && (
+                  <p className="text-sm text-destructive">{formErrors.title}</p>
+                )}
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="category">Catégorie</Label>
@@ -239,14 +265,19 @@ const NewsManager = () => {
                 </Select>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="content">Contenu</Label>
+                <Label htmlFor="content">Contenu *</Label>
                 <Textarea
                   id="content"
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
                   placeholder="Contenu de l'actualité"
                   rows={6}
+                  maxLength={100000}
+                  className={formErrors.content ? "border-destructive" : ""}
                 />
+                {formErrors.content && (
+                  <p className="text-sm text-destructive">{formErrors.content}</p>
+                )}
               </div>
               <div className="flex items-center justify-between">
                 <Label htmlFor="published">Publier</Label>

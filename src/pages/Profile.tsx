@@ -12,8 +12,9 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { User, Mail, Phone, Calendar, Hash, Building, Loader2, Save } from "lucide-react";
+import { profileSchema, validateFormData } from "@/lib/validations";
 
-interface Profile {
+interface ProfileData {
   id: string;
   user_id: string;
   email: string | null;
@@ -31,9 +32,10 @@ const Profile = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const [profile, setProfile] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [formData, setFormData] = useState({
     display_name: "",
     phone: "",
@@ -91,14 +93,37 @@ const Profile = () => {
     e.preventDefault();
     if (!user || !profile) return;
 
+    // Validate form data
+    const validation = validateFormData(profileSchema, {
+      display_name: formData.display_name || null,
+      phone: formData.phone || null,
+      section: formData.section || null,
+    });
+
+    if (validation.success === false) {
+      setFormErrors(validation.errors);
+      const firstError = Object.values(validation.errors)[0];
+      if (firstError) {
+        toast({
+          title: "Erreur de validation",
+          description: firstError,
+          variant: "destructive",
+        });
+      }
+      return;
+    }
+
+    setFormErrors({});
+    const validData = validation.data;
     setSaving(true);
+
     try {
       const { error } = await supabase
         .from("profiles")
         .update({
-          display_name: formData.display_name,
-          phone: formData.phone,
-          section: formData.section,
+          display_name: validData.display_name || null,
+          phone: validData.phone || null,
+          section: validData.section || null,
         })
         .eq("user_id", user.id);
 
@@ -211,10 +236,14 @@ const Profile = () => {
                           name="display_name"
                           value={formData.display_name}
                           onChange={handleInputChange}
-                          className="pl-10"
+                          className={`pl-10 ${formErrors.display_name ? "border-destructive" : ""}`}
                           placeholder="Votre nom"
+                          maxLength={100}
                         />
                       </div>
+                      {formErrors.display_name && (
+                        <p className="text-sm text-destructive">{formErrors.display_name}</p>
+                      )}
                     </div>
 
                     <div className="space-y-2">
@@ -242,10 +271,14 @@ const Profile = () => {
                           name="phone"
                           value={formData.phone}
                           onChange={handleInputChange}
-                          className="pl-10"
+                          className={`pl-10 ${formErrors.phone ? "border-destructive" : ""}`}
                           placeholder="06 12 34 56 78"
+                          maxLength={20}
                         />
                       </div>
+                      {formErrors.phone && (
+                        <p className="text-sm text-destructive">{formErrors.phone}</p>
+                      )}
                     </div>
 
                     <div className="space-y-2">
@@ -257,10 +290,14 @@ const Profile = () => {
                           name="section"
                           value={formData.section}
                           onChange={handleInputChange}
-                          className="pl-10"
+                          className={`pl-10 ${formErrors.section ? "border-destructive" : ""}`}
                           placeholder="Votre section"
+                          maxLength={100}
                         />
                       </div>
+                      {formErrors.section && (
+                        <p className="text-sm text-destructive">{formErrors.section}</p>
+                      )}
                     </div>
                   </div>
 

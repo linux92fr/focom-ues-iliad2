@@ -33,6 +33,7 @@ import { Switch } from "@/components/ui/switch";
 import { Plus, Pencil, Trash2, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
+import { articleSchema, validateFormData } from "@/lib/validations";
 
 type Article = Tables<"articles">;
 type Category = Tables<"categories">;
@@ -44,6 +45,7 @@ const ArticlesManager = () => {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingArticle, setEditingArticle] = useState<Article | null>(null);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   // Form state
   const [title, setTitle] = useState("");
@@ -99,6 +101,7 @@ const ArticlesManager = () => {
     setCoverImage("");
     setPublished(false);
     setEditingArticle(null);
+    setFormErrors({});
   };
 
   const generateSlug = (text: string) => {
@@ -132,16 +135,37 @@ const ArticlesManager = () => {
   const handleSubmit = async () => {
     if (!user) return;
 
+    // Validate form data
+    const validation = validateFormData(articleSchema, {
+      title,
+      slug,
+      excerpt: excerpt || null,
+      content,
+      cover_image: coverImage || null,
+      category_id: categoryId || null,
+      published,
+    });
+
+    if (validation.success === false) {
+      setFormErrors(validation.errors);
+      const firstError = Object.values(validation.errors)[0];
+      if (firstError) toast.error(firstError);
+      return;
+    }
+
+    setFormErrors({});
+    const validData = validation.data;
+
     try {
       const articleData = {
-        title,
-        slug,
-        excerpt: excerpt || null,
-        content,
-        category_id: categoryId || null,
-        cover_image: coverImage || null,
-        published,
-        published_at: published ? new Date().toISOString() : null,
+        title: validData.title,
+        slug: validData.slug,
+        excerpt: validData.excerpt || null,
+        content: validData.content,
+        category_id: validData.category_id || null,
+        cover_image: validData.cover_image || null,
+        published: validData.published,
+        published_at: validData.published ? new Date().toISOString() : null,
         author_id: user.id,
       };
 
@@ -243,22 +267,32 @@ const ArticlesManager = () => {
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label htmlFor="title">Titre</Label>
+                <Label htmlFor="title">Titre *</Label>
                 <Input
                   id="title"
                   value={title}
                   onChange={(e) => handleTitleChange(e.target.value)}
                   placeholder="Titre de l'article"
+                  maxLength={200}
+                  className={formErrors.title ? "border-destructive" : ""}
                 />
+                {formErrors.title && (
+                  <p className="text-sm text-destructive">{formErrors.title}</p>
+                )}
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="slug">Slug</Label>
+                <Label htmlFor="slug">Slug *</Label>
                 <Input
                   id="slug"
                   value={slug}
-                  onChange={(e) => setSlug(e.target.value)}
+                  onChange={(e) => setSlug(e.target.value.toLowerCase())}
                   placeholder="url-de-l-article"
+                  maxLength={200}
+                  className={formErrors.slug ? "border-destructive" : ""}
                 />
+                {formErrors.slug && (
+                  <p className="text-sm text-destructive">{formErrors.slug}</p>
+                )}
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="category">Catégorie</Label>
@@ -283,17 +317,27 @@ const ArticlesManager = () => {
                   onChange={(e) => setExcerpt(e.target.value)}
                   placeholder="Court résumé de l'article"
                   rows={2}
+                  maxLength={500}
+                  className={formErrors.excerpt ? "border-destructive" : ""}
                 />
+                {formErrors.excerpt && (
+                  <p className="text-sm text-destructive">{formErrors.excerpt}</p>
+                )}
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="content">Contenu</Label>
+                <Label htmlFor="content">Contenu *</Label>
                 <Textarea
                   id="content"
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
                   placeholder="Contenu de l'article"
                   rows={8}
+                  maxLength={100000}
+                  className={formErrors.content ? "border-destructive" : ""}
                 />
+                {formErrors.content && (
+                  <p className="text-sm text-destructive">{formErrors.content}</p>
+                )}
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="coverImage">Image de couverture (URL)</Label>
@@ -302,7 +346,11 @@ const ArticlesManager = () => {
                   value={coverImage}
                   onChange={(e) => setCoverImage(e.target.value)}
                   placeholder="https://..."
+                  className={formErrors.cover_image ? "border-destructive" : ""}
                 />
+                {formErrors.cover_image && (
+                  <p className="text-sm text-destructive">{formErrors.cover_image}</p>
+                )}
               </div>
               <div className="flex items-center justify-between">
                 <Label htmlFor="published">Publier</Label>
