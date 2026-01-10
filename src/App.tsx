@@ -8,6 +8,14 @@ import Index from "./pages/Index";
 import AdminDashboard from "./pages/AdminDashboard";
 import About from "./pages/About";
 import Profile from "./pages/Profile";
+import Settings from "./pages/Settings";
+import Actualites from "./pages/Actualites";
+import ActualiteDetail from "./pages/ActualiteDetail";
+import Publications from "./pages/Publications";
+import PublicationDetail from "./pages/PublicationDetail";
+import VosDroits from "./pages/VosDroits";
+import Contact from "./pages/Contact";
+import MentionsLegales from "./pages/MentionsLegales";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -23,8 +31,15 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/a-propos" element={<About />} />
             <Route path="/profil" element={<Profile />} />
+            <Route path="/parametres" element={<Settings />} />
+            <Route path="/actualites" element={<Actualites />} />
+            <Route path="/actualite/:id" element={<ActualiteDetail />} />
+            <Route path="/publications" element={<Publications />} />
+            <Route path="/publication/:slug" element={<PublicationDetail />} />
+            <Route path="/vos-droits" element={<VosDroits />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/mentions-legales" element={<MentionsLegales />} />
             <Route path="/admin" element={<AdminDashboard />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

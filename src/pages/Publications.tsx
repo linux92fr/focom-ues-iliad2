@@ -14,14 +14,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Calendar, Search, ArrowRight, Loader2 } from "lucide-react";
+import { Calendar, Search, ArrowRight, FileText, Loader2 } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 
-type News = Tables<"news">;
+type Article = Tables<"articles">;
 type Category = Tables<"categories">;
 
-const Actualites = () => {
-  const [news, setNews] = useState<News[]>([]);
+const Publications = () => {
+  const [articles, setArticles] = useState<Article[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -30,16 +30,16 @@ const Actualites = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [newsResponse, categoriesResponse] = await Promise.all([
+        const [articlesResponse, categoriesResponse] = await Promise.all([
           supabase
-            .from("news")
+            .from("articles")
             .select("*")
             .eq("published", true)
             .order("published_at", { ascending: false }),
           supabase.from("categories").select("*").order("name"),
         ]);
 
-        if (newsResponse.data) setNews(newsResponse.data);
+        if (articlesResponse.data) setArticles(articlesResponse.data);
         if (categoriesResponse.data) setCategories(categoriesResponse.data);
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -63,7 +63,7 @@ const Actualites = () => {
     return category?.color || "#dc2626";
   };
 
-  const filteredNews = news.filter((item) => {
+  const filteredArticles = articles.filter((item) => {
     const matchesSearch = item.title
       .toLowerCase()
       .includes(searchQuery.toLowerCase());
@@ -88,11 +88,12 @@ const Actualites = () => {
       {/* Hero */}
       <section className="py-16 gradient-hero">
         <div className="container mx-auto px-4 text-center">
+          <FileText className="h-16 w-16 text-primary-foreground mx-auto mb-4" />
           <h1 className="font-serif text-4xl md:text-5xl font-bold text-primary-foreground mb-4">
-            Actualités
+            Publications
           </h1>
           <p className="text-primary-foreground/90 max-w-2xl mx-auto">
-            Suivez les dernières nouvelles de FOCOM UES ILIAD
+            Tracts, communiqués et documents officiels de FOCOM
           </p>
         </div>
       </section>
@@ -104,7 +105,7 @@ const Actualites = () => {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Rechercher une actualité..."
+                placeholder="Rechercher une publication..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
@@ -127,58 +128,73 @@ const Actualites = () => {
         </div>
       </section>
 
-      {/* News List */}
+      {/* Articles List */}
       <main className="flex-grow py-12">
         <div className="container mx-auto px-4">
           {loading ? (
             <div className="flex justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
-          ) : filteredNews.length === 0 ? (
+          ) : filteredArticles.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-muted-foreground">
-                Aucune actualité trouvée
+                Aucune publication trouvée
               </p>
             </div>
           ) : (
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {filteredNews.map((item) => (
+            <div className="space-y-6">
+              {filteredArticles.map((article) => (
                 <Card
-                  key={item.id}
+                  key={article.id}
                   className="group overflow-hidden hover:shadow-lg transition-all duration-300"
                 >
                   <CardContent className="p-6">
-                    <div className="flex items-center gap-2 mb-3">
-                      {getCategoryName(item.category_id) && (
-                        <Badge
-                          style={{
-                            backgroundColor: getCategoryColor(item.category_id),
-                            color: "white",
-                          }}
-                        >
-                          {getCategoryName(item.category_id)}
-                        </Badge>
+                    <div className="flex flex-col md:flex-row gap-6">
+                      {article.cover_image && (
+                        <div className="w-full md:w-48 h-32 rounded-lg overflow-hidden flex-shrink-0">
+                          <img
+                            src={article.cover_image}
+                            alt={article.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                        </div>
                       )}
-                      <span className="text-xs text-muted-foreground flex items-center gap-1">
-                        <Calendar className="h-3 w-3" />
-                        {formatDate(item.published_at)}
-                      </span>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-3">
+                          {getCategoryName(article.category_id) && (
+                            <Badge
+                              style={{
+                                backgroundColor: getCategoryColor(article.category_id),
+                                color: "white",
+                              }}
+                            >
+                              {getCategoryName(article.category_id)}
+                            </Badge>
+                          )}
+                          <span className="text-xs text-muted-foreground flex items-center gap-1">
+                            <Calendar className="h-3 w-3" />
+                            {formatDate(article.published_at)}
+                          </span>
+                        </div>
+                        <h3 className="font-serif text-xl font-semibold text-foreground mb-2 group-hover:text-primary transition-colors">
+                          {article.title}
+                        </h3>
+                        {article.excerpt && (
+                          <p className="text-muted-foreground text-sm line-clamp-2 mb-4">
+                            {article.excerpt}
+                          </p>
+                        )}
+                        <Link to={`/publication/${article.slug}`}>
+                          <Button
+                            variant="link"
+                            className="p-0 h-auto text-primary font-medium group-hover:gap-3 transition-all"
+                          >
+                            Lire la suite
+                            <ArrowRight className="h-4 w-4 ml-1" />
+                          </Button>
+                        </Link>
+                      </div>
                     </div>
-                    <h3 className="font-serif text-xl font-semibold text-foreground mb-3 group-hover:text-primary transition-colors line-clamp-2">
-                      {item.title}
-                    </h3>
-                    <p className="text-muted-foreground text-sm line-clamp-3 mb-4">
-                      {item.content.substring(0, 150)}...
-                    </p>
-                    <Link to={`/actualite/${item.id}`}>
-                      <Button
-                        variant="link"
-                        className="p-0 h-auto text-primary font-medium group-hover:gap-3 transition-all"
-                      >
-                        Lire la suite
-                        <ArrowRight className="h-4 w-4 ml-1" />
-                      </Button>
-                    </Link>
                   </CardContent>
                 </Card>
               ))}
@@ -192,4 +208,4 @@ const Actualites = () => {
   );
 };
 
-export default Actualites;
+export default Publications;

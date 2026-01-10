@@ -3,10 +3,20 @@ import logoFocom from "@/assets/logo-focom.png";
 
 const Footer = () => {
   const footerLinks = {
-    "Syndicat": ["Qui sommes-nous ?", "Notre équipe", "Nos valeurs", "Adhérer"],
-    "Ressources": ["Actualités", "Publications", "Conventions", "FAQ"],
-    "Vos Droits": ["Code du travail", "Protection sociale", "Formation", "Retraite"],
-    "Contact": ["Nous contacter", "Permanences", "Antennes locales", "Urgences"],
+    "Syndicat": [
+      { label: "Qui sommes-nous ?", href: "/a-propos" },
+      { label: "Nos valeurs", href: "/a-propos" },
+      { label: "Contact", href: "/contact" },
+    ],
+    "Ressources": [
+      { label: "Actualités", href: "/actualites" },
+      { label: "Publications", href: "/publications" },
+      { label: "Vos Droits", href: "/vos-droits" },
+    ],
+    "Légal": [
+      { label: "Mentions légales", href: "/mentions-legales" },
+      { label: "Confidentialité", href: "/mentions-legales" },
+    ],
   };
 
   const socialLinks = [
@@ -58,10 +68,10 @@ const Footer = () => {
                 {links.map((link, index) => (
                   <li key={index}>
                     <a
-                      href="#"
+                      href={link.href}
                       className="text-sm text-secondary-foreground/70 hover:text-primary transition-colors"
                     >
-                      {link}
+                      {link.label}
                     </a>
                   </li>
                 ))}

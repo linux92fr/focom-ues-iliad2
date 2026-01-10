@@ -53,11 +53,7 @@ const UserMenu = () => {
           <User className="mr-2 h-4 w-4" />
           <span>Mon profil</span>
         </DropdownMenuItem>
-        <DropdownMenuItem>
-          <FileText className="mr-2 h-4 w-4" />
-          <span>Mes documents</span>
-        </DropdownMenuItem>
-        <DropdownMenuItem>
+        <DropdownMenuItem onClick={() => navigate("/parametres")}>
           <Settings className="mr-2 h-4 w-4" />
           <span>Paramètres</span>
         </DropdownMenuItem>

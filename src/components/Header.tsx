@@ -12,11 +12,11 @@ const Header = () => {
   const { user, loading } = useAuth();
 
   const navLinks = [
-    { label: "Actualités", href: "#actualites" },
+    { label: "Actualités", href: "/actualites" },
     { label: "À propos", href: "/a-propos" },
-    { label: "Vos Droits", href: "#droits" },
-    { label: "Publications", href: "#publications" },
-    { label: "Contact", href: "#contact" },
+    { label: "Vos Droits", href: "/vos-droits" },
+    { label: "Publications", href: "/publications" },
+    { label: "Contact", href: "/contact" },
   ];
 
   return (
