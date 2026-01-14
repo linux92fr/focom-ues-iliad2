@@ -10,6 +10,7 @@ const Footer = () => {
     ],
     "Ressources": [
       { label: "Actualités", href: "/actualites" },
+      { label: "Agenda", href: "/agenda" },
       { label: "Publications", href: "/publications" },
       { label: "Vos Droits", href: "/vos-droits" },
     ],

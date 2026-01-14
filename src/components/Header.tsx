@@ -13,7 +13,7 @@ const Header = () => {
 
   const navLinks = [
     { label: "Actualités", href: "/actualites" },
-    { label: "À propos", href: "/a-propos" },
+    { label: "Agenda", href: "/agenda" },
     { label: "Vos Droits", href: "/vos-droits" },
     { label: "Publications", href: "/publications" },
     { label: "Contact", href: "/contact" },
