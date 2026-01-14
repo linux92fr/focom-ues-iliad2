@@ -4,10 +4,11 @@ import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, FileText, Newspaper, Users, Shield } from "lucide-react";
+import { ArrowLeft, FileText, Newspaper, Users, Shield, Calendar } from "lucide-react";
 import ArticlesManager from "@/components/admin/ArticlesManager";
 import NewsManager from "@/components/admin/NewsManager";
 import UsersManager from "@/components/admin/UsersManager";
+import EventsManager from "@/components/admin/EventsManager";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -73,7 +74,7 @@ const AdminDashboard = () => {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
         <Tabs defaultValue="articles" className="space-y-6">
-          <TabsList className="grid w-full max-w-md grid-cols-3">
+          <TabsList className="grid w-full max-w-2xl grid-cols-4">
             <TabsTrigger value="articles" className="gap-2">
               <FileText className="h-4 w-4" />
               Articles
@@ -81,6 +82,10 @@ const AdminDashboard = () => {
             <TabsTrigger value="news" className="gap-2">
               <Newspaper className="h-4 w-4" />
               Actualités
+            </TabsTrigger>
+            <TabsTrigger value="events" className="gap-2">
+              <Calendar className="h-4 w-4" />
+              Événements
             </TabsTrigger>
             {isAdmin && (
               <TabsTrigger value="users" className="gap-2">
@@ -96,6 +101,10 @@ const AdminDashboard = () => {
 
           <TabsContent value="news">
             <NewsManager />
+          </TabsContent>
+
+          <TabsContent value="events">
+            <EventsManager />
           </TabsContent>
 
           {isAdmin && (
