@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import RichTextEditor from "@/components/ui/rich-text-editor";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -515,19 +516,14 @@ const ArticlesManager = () => {
                       </div>
 
                       <div className="grid gap-2">
-                        <Label htmlFor="content">Contenu *</Label>
-                        <Textarea
-                          id="content"
-                          value={content}
-                          onChange={(e) => setContent(e.target.value)}
-                          placeholder="Contenu de l'article..."
-                          rows={12}
-                          maxLength={100000}
+                        <Label>Contenu *</Label>
+                        <RichTextEditor
+                          content={content}
+                          onChange={setContent}
+                          placeholder="Rédigez le contenu de votre article..."
+                          minHeight="350px"
                           className={formErrors.content ? "border-destructive" : ""}
                         />
-                        <p className="text-xs text-muted-foreground">
-                          {content.length}/100 000 caractères
-                        </p>
                         {formErrors.content && (
                           <p className="text-sm text-destructive">{formErrors.content}</p>
                         )}
