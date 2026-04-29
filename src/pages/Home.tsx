@@ -262,20 +262,20 @@ export default function Home() {
                   {[
                     {
                       badge: "À LA UNE",
-                      title: "Négociation Annuelle Obligatoire 2024 : Nos revendications avancent",
-                      date: "16 mai 2024",
+                      title: "Négociation Annuelle Obligatoire 2026 : Nos revendications avancent",
+                      date: "29 octobre 2026",
                       category: "Négociations",
                       image: "https://images.unsplash.com/photo-1521791136064-7986c2920216?w=200&h=150&fit=crop",
                     },
                     {
-                      title: "Accord Télétravail : Un nouvel accord signé pour plus de flexibilité",
-                      date: "8 mai 2024",
-                      category: "Accord",
+                      title: "VOTEZ EN MASSE POUR FO COM JUSQU'AU 6 MAI 2026 ! VOTRE VOIX EST UN ATOUT",
+                      date: "29 octobre 2026",
+                      category: "Elections",
                       image: "https://images.unsplash.com/photo-1587560699334-cc4ff634909a?w=200&h=150&fit=crop",
                     },
                     {
-                      title: "Mobilisation réussie pour défendre nos droits et nos emplois",
-                      date: "30 avril 2024",
+                      title: "GEPP : POUR TOUT SAVOIR",
+                      date: "29 octobre 2026",
                       category: "Mobilisation",
                       image: "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=200&h=150&fit=crop",
                     },
@@ -346,7 +346,7 @@ export default function Home() {
               {/* Bilan de Mandat */}
               <section className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-base font-bold text-slate-900">BILAN DE MANDAT 2021–2024</h3>
+                  <h3 className="text-base font-bold text-slate-900">BILAN DE MANDAT 2022–2026</h3>
                   <a href="#" className="text-red-600 text-xs font-medium flex items-center gap-0.5">
                     Voir <ChevronRight className="w-3 h-3" />
                   </a>
@@ -464,7 +464,7 @@ export default function Home() {
                   <Mail className="w-5 h-5 text-red-600" />
                 </div>
                 <div>
-                  <p className="font-semibold text-sm text-slate-900">contact@focom-iliad.fr</p>
+                  <p className="font-semibold text-sm text-slate-900">contact@focomues-iliad.fr</p>
                   <p className="text-xs text-slate-500">Nous vous répondons rapidement</p>
                 </div>
               </div>
@@ -474,7 +474,7 @@ export default function Home() {
           {/* Footer */}
           <footer className="mt-8 py-6 border-t border-slate-200">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-              <p className="text-xs text-slate-500">© 2024 FOCOM UES ILIAD – Tous droits réservés</p>
+              <p className="text-xs text-slate-500">© 2026 FOCOM UES ILIAD – Tous droits réservés</p>
               <Button variant="outline" className="rounded-full text-sm border-red-200 text-red-600 hover:bg-red-50 px-5">
                 Nous contacter <ChevronRight className="w-4 h-4 ml-1" />
               </Button>
