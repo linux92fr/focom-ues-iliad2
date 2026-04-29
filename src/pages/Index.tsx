@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
+import Dashboard from '@/components/Dashboard';
 
 const Index = () => {
   return (
@@ -151,6 +152,9 @@ const Index = () => {
           </Button>
         </div>
       </section>
+
+      {/* Dashboard Section */}
+      <Dashboard />
     </div>
   );
 };
