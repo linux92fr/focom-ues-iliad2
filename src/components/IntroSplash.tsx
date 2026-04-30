@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import introBanner from "@/assets/intro-banner.jpeg";
+import HeroSection from "@/components/HeroSection";
 
-const STORAGE_KEY = "focom_intro_seen";
+const STORAGE_KEY = "focom_intro_seen_v2";
 const DISPLAY_MS = 3500;
 const FADE_MS = 800;
 
@@ -49,18 +49,16 @@ const IntroSplash = () => {
       }`}
       style={{ transitionDuration: `${FADE_MS}ms` }}
     >
-      {/* Background image with subtle zoom */}
-      <img
-        src={introBanner}
-        alt="FOCOM UES ILIAD - 4 ans de combat pour vos droits"
-        className="absolute inset-0 w-full h-full object-contain md:object-cover"
+      <div
+        className="absolute inset-0"
         style={{
-          transform: mounted ? "scale(1.05)" : "scale(1)",
-          transition: `transform 4000ms ease-out`,
+          transform: mounted ? "scale(1.015)" : "scale(1)",
+          transition: "transform 4000ms ease-out",
         }}
-      />
+      >
+        <HeroSection intro />
+      </div>
 
-      {/* Sweep light effect */}
       <div
         className="absolute inset-y-0 w-1/3 pointer-events-none"
         style={{
@@ -71,7 +69,6 @@ const IntroSplash = () => {
         }}
       />
 
-      {/* Bottom progress bar */}
       <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/10">
         <div
           className="h-full bg-primary"
@@ -82,7 +79,6 @@ const IntroSplash = () => {
         />
       </div>
 
-      {/* Skip hint */}
       <div
         className="absolute top-4 right-4 md:top-6 md:right-6 text-xs font-semibold text-foreground/60 bg-white/80 px-3 py-1.5 rounded-full backdrop-blur-sm"
         style={{
@@ -90,7 +86,7 @@ const IntroSplash = () => {
           transition: "opacity 500ms ease 1500ms",
         }}
       >
-        Cliquez pour passer →
+        Cliquez pour passer
       </div>
     </div>
   );

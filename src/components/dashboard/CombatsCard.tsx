@@ -1,35 +1,26 @@
-import { Shield, MessageSquare, Sparkles } from "lucide-react";
+import { MessageSquare, Shield, Sparkles } from "lucide-react";
+import { useSiteContent } from "@/lib/siteContent";
 
-const cols = [
-  {
-    icon: Shield,
-    title: "Défendre",
-    sub: "Nous défendons vos droits individuels et collectifs",
-    items: ["Respect des accords", "Égalité & non-discrimination", "Santé & sécurité", "Droit à la déconnexion"],
-  },
-  {
-    icon: MessageSquare,
-    title: "Négocier",
-    sub: "Nous négocions pour améliorer vos conditions de travail",
-    items: ["Salaires & primes", "Télétravail", "Organisation du temps de travail", "Formation"],
-  },
-  {
-    icon: Sparkles,
-    title: "Agir ensemble",
-    sub: "La solidarité est notre force",
-    items: ["Mobilisations", "Actions collectives", "Écoute & proximité", "Informations régulières"],
-  },
-];
+const iconMap = {
+  shield: Shield,
+  message: MessageSquare,
+  sparkles: Sparkles,
+};
 
 const CombatsCard = () => {
+  const section = useSiteContent("combats");
+  const content = section.content as {
+    columns: Array<{ icon: keyof typeof iconMap; title: string; sub: string; items: string[] }>;
+  };
+
   return (
     <div className="bg-card rounded-2xl border border-border card-shadow p-6">
-      <h2 className="font-display font-black text-primary text-lg tracking-wide mb-1">NOS COMBATS, VOS DROITS</h2>
-      <p className="text-sm text-muted-foreground mb-6">La FOCOM agit chaque jour pour défendre vos droits</p>
+      <h2 className="font-display font-black text-primary text-lg tracking-wide mb-1">{section.title}</h2>
+      <p className="text-sm text-muted-foreground mb-6">{section.subtitle}</p>
 
-      <div className="grid grid-cols-3 gap-6">
-        {cols.map((c) => {
-          const Icon = c.icon;
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+        {content.columns.map((c) => {
+          const Icon = iconMap[c.icon] || Shield;
           return (
             <div key={c.title}>
               <div className="w-14 h-14 rounded-full bg-secondary/10 flex items-center justify-center mb-3">

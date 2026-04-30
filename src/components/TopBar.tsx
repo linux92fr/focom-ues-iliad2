@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useNavigate, NavLink } from "react-router-dom";
-import { Home, Search, Users, Menu, X } from "lucide-react";
+import { Link, NavLink } from "react-router-dom";
+import { Home, Search, Users, Menu, X, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import AuthModal from "@/components/AuthModal";
@@ -20,7 +20,6 @@ const TopBar = () => {
   const [authOpen, setAuthOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const { user, loading } = useAuth();
-  const navigate = useNavigate();
 
   return (
     <>
@@ -63,6 +62,12 @@ const TopBar = () => {
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="icon" className="rounded-full border border-border">
               <Search className="h-4 w-4" />
+            </Button>
+            <Button asChild variant="outline" className="hidden sm:inline-flex rounded-full h-11 px-5 font-bold gap-2 border-secondary text-secondary hover:bg-secondary/10">
+              <Link to="/admin">
+                <Settings className="h-4 w-4" />
+                Admin
+              </Link>
             </Button>
             {!loading &&
               (user ? (

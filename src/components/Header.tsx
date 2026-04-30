@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Menu, X, Search, Bell, User } from "lucide-react";
+import { Menu, X, Search, Bell, User, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import AuthModal from "@/components/AuthModal";
@@ -59,6 +59,12 @@ const Header = () => {
               <Button variant="ghost" size="icon" className="hidden sm:flex relative">
                 <Bell className="h-5 w-5" />
                 <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full" />
+              </Button>
+              <Button asChild variant="outline" size="sm" className="hidden md:flex gap-2 border-secondary text-secondary hover:bg-secondary/10">
+                <a href="/admin">
+                  <Settings className="h-4 w-4" />
+                  <span>Admin</span>
+                </a>
               </Button>
               
               {!loading && (

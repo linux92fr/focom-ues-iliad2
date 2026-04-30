@@ -1,37 +1,43 @@
-import { Users } from "lucide-react";
+import { Handshake, Shield, TrendingUp, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import forceOuvriereLogo from "@/assets/force-ouvriere-logo.png";
 
-const HeroSection = () => {
+type HeroSectionProps = {
+  intro?: boolean;
+};
+
+const HeroSection = ({ intro = false }: HeroSectionProps) => {
   return (
-    <section className="relative overflow-hidden bg-white border-b border-border">
-      {/* Top-left red diagonal triangle */}
+    <section
+      className={`relative overflow-hidden bg-white border-b border-border ${
+        intro ? "w-full min-h-screen flex items-center" : ""
+      }`}
+    >
       <div
         className="absolute top-0 left-0 w-[55%] h-[180px] bg-primary"
         style={{ clipPath: "polygon(0 0, 100% 0, 0 100%)" }}
         aria-hidden
       />
-      {/* Bottom-right teal diagonal triangle */}
       <div
         className="absolute bottom-0 right-0 w-[35%] h-[140px] bg-secondary"
         style={{ clipPath: "polygon(100% 0, 100% 100%, 0 100%)" }}
         aria-hidden
       />
 
-      {/* FO badge top-left */}
-      <div className="absolute top-6 left-6 z-10 text-primary-foreground">
-        <div className="font-display text-4xl font-black leading-none">FO</div>
-        <div className="text-[10px] font-bold tracking-wider mt-1 uppercase">
-          La Force<br />Syndicale
-        </div>
+      <div className="absolute top-5 left-5 z-10 rounded-md bg-white/95 p-2 shadow-sm">
+        <img
+          src={forceOuvriereLogo}
+          alt="Force Ouvriere"
+          className="h-14 w-auto md:h-16"
+        />
       </div>
 
-      {/* iliad/free top-right */}
       <div className="absolute top-6 right-6 z-10 text-right">
         <div className="font-display text-2xl font-black text-accent">iliad</div>
         <div className="font-display text-xl font-black text-secondary italic">free</div>
       </div>
 
-      <div className="relative container mx-auto px-4 py-20 lg:py-28 z-[5]">
+      <div className={`relative container mx-auto px-4 z-[5] ${intro ? "py-24 lg:py-32" : "py-20 lg:py-28"}`}>
         <div className="text-center space-y-6 max-w-4xl mx-auto">
           <h1 className="font-display font-black leading-[0.95]">
             <span className="block text-5xl md:text-7xl text-primary tracking-tight">
@@ -45,7 +51,7 @@ const HeroSection = () => {
           <div className="flex items-center justify-center gap-3 pt-2">
             <div className="h-px w-16 bg-primary" />
             <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-              <span className="text-primary text-lg">✊</span>
+              <Users className="h-4 w-4 text-primary" />
             </div>
             <div className="h-px w-16 bg-secondary" />
           </div>
@@ -61,18 +67,16 @@ const HeroSection = () => {
             </Button>
           </div>
 
-          {/* Pillars */}
-          <div className="grid grid-cols-4 gap-4 pt-10 max-w-2xl mx-auto">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-10 max-w-2xl mx-auto">
             {[
-              { label: "DÉFENDRE", icon: "🛡️" },
-              { label: "REPRÉSENTER", icon: "👥" },
-              { label: "NÉGOCIER", icon: "🤝" },
-              { label: "AGIR", icon: "📈" },
-            ].map((p, i) => (
+              { label: "DEFENDRE", Icon: Shield },
+              { label: "REPRESENTER", Icon: Users },
+              { label: "NEGOCIER", Icon: Handshake },
+              { label: "AGIR", Icon: TrendingUp },
+            ].map((p) => (
               <div key={p.label} className="flex flex-col items-center gap-2 px-2">
-                <div className="text-2xl">{p.icon}</div>
+                <p.Icon className="h-6 w-6 text-secondary" />
                 <div className="text-xs font-bold tracking-wider text-accent">{p.label}</div>
-                {i < 3 && <div className="hidden md:block absolute" />}
               </div>
             ))}
           </div>
