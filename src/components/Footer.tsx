@@ -41,10 +41,10 @@ const Footer = () => {
               />
               <div>
                 <h3 className="font-serif text-xl font-bold">FOCOM</h3>
-                <p className="text-xs text-secondary-foreground/70">Actu Espace</p>
+                <p className="text-xs text-accent-foreground/70">Actu Espace</p>
               </div>
             </div>
-            <p className="text-sm text-secondary-foreground/70 mb-4">
+            <p className="text-sm text-accent-foreground/70 mb-4">
               Votre syndicat engagé pour la défense de vos droits et l'amélioration de vos conditions de travail.
             </p>
             <div className="flex gap-3">
@@ -53,7 +53,7 @@ const Footer = () => {
                   key={index}
                   href={social.href}
                   aria-label={social.label}
-                  className="w-9 h-9 rounded-lg bg-secondary-foreground/10 flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-colors"
+                  className="w-9 h-9 rounded-lg bg-accent-foreground/10 flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-colors"
                 >
                   <social.icon className="h-4 w-4" />
                 </a>
@@ -70,7 +70,7 @@ const Footer = () => {
                   <li key={index}>
                     <a
                       href={link.href}
-                      className="text-sm text-secondary-foreground/70 hover:text-primary transition-colors"
+                      className="text-sm text-accent-foreground/70 hover:text-primary transition-colors"
                     >
                       {link.label}
                     </a>
@@ -82,8 +82,8 @@ const Footer = () => {
         </div>
 
         {/* Contact info */}
-        <div className="border-t border-secondary-foreground/10 mt-10 pt-8">
-          <div className="flex flex-wrap gap-6 justify-center text-sm text-secondary-foreground/70">
+        <div className="border-t border-accent-foreground/10 mt-10 pt-8">
+          <div className="flex flex-wrap gap-6 justify-center text-sm text-accent-foreground/70">
             <a href="tel:+33123456789" className="flex items-center gap-2 hover:text-primary transition-colors">
               <Phone className="h-4 w-4" />
               01 23 45 67 89
@@ -100,14 +100,14 @@ const Footer = () => {
         </div>
 
         {/* Copyright */}
-        <div className="border-t border-secondary-foreground/10 mt-8 pt-8 text-center">
-          <p className="text-sm text-secondary-foreground/50">
+        <div className="border-t border-accent-foreground/10 mt-8 pt-8 text-center">
+          <p className="text-sm text-accent-foreground/50">
             © {new Date().getFullYear()} FOCOM UES ILIAD Actu Espace. Tous droits réservés.
           </p>
-          <div className="flex justify-center gap-4 mt-2 text-xs text-secondary-foreground/40">
-            <a href="#" className="hover:text-secondary-foreground transition-colors">Mentions légales</a>
-            <a href="#" className="hover:text-secondary-foreground transition-colors">Politique de confidentialité</a>
-            <a href="#" className="hover:text-secondary-foreground transition-colors">CGU</a>
+          <div className="flex justify-center gap-4 mt-2 text-xs text-accent-foreground/40">
+            <a href="#" className="hover:text-accent-foreground transition-colors">Mentions légales</a>
+            <a href="#" className="hover:text-accent-foreground transition-colors">Politique de confidentialité</a>
+            <a href="#" className="hover:text-accent-foreground transition-colors">CGU</a>
           </div>
         </div>
       </div>
