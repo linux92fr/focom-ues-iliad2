@@ -2,60 +2,61 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Montserrat:wght@600;700;800;900&display=swap');
 
 @layer base {
   :root {
-    /* Main brand colors - FO Red theme */
-    --background: 0 0% 98%;
-    --foreground: 222 47% 11%;
+    /* FOCOM UES ILIAD palette */
+    --background: 210 25% 98%;
+    --foreground: 224 47% 18%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 224 47% 18%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 224 47% 18%;
 
-    /* FO Red - Primary brand color */
-    --primary: 0 72% 51%;
+    /* FO Red */
+    --primary: 354 92% 46%;
     --primary-foreground: 0 0% 100%;
 
-    /* Navy blue - Secondary */
-    --secondary: 217 33% 17%;
+    /* Iliad Teal */
+    --secondary: 180 70% 36%;
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 47%;
+    --muted: 210 30% 95%;
+    --muted-foreground: 215 16% 45%;
 
-    /* Accent - Warm orange */
-    --accent: 25 95% 53%;
+    /* Navy */
+    --accent: 224 47% 24%;
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84% 60%;
+    --destructive: 354 92% 46%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 0 72% 51%;
+    --border: 214 25% 90%;
+    --input: 214 25% 90%;
+    --ring: 354 92% 46%;
 
     --radius: 0.75rem;
 
     /* Custom tokens */
-    --gradient-hero: linear-gradient(135deg, hsl(0 72% 51%) 0%, hsl(0 72% 40%) 100%);
-    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(210 40% 98%) 100%);
-    --shadow-card: 0 4px 20px -4px hsla(222, 47%, 11%, 0.1);
-    --shadow-hover: 0 8px 30px -8px hsla(222, 47%, 11%, 0.15);
-    --shadow-hero: 0 20px 60px -20px hsla(0, 72%, 51%, 0.3);
+    --gradient-hero: linear-gradient(135deg, hsl(354 92% 46%) 0%, hsl(354 92% 36%) 100%);
+    --gradient-teal: linear-gradient(135deg, hsl(180 70% 36%) 0%, hsl(180 70% 28%) 100%);
+    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(210 30% 98%) 100%);
+    --shadow-card: 0 2px 12px -2px hsla(224, 47%, 18%, 0.06);
+    --shadow-hover: 0 8px 30px -8px hsla(224, 47%, 18%, 0.12);
+    --shadow-hero: 0 20px 60px -20px hsla(354, 92%, 46%, 0.3);
 
-    /* Sidebar */
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 0 72% 51%;
+    /* Sidebar - white with red active */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 224 30% 30%;
+    --sidebar-primary: 180 70% 36%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 210 40% 96%;
-    --sidebar-accent-foreground: 222 47% 11%;
-    --sidebar-border: 214 32% 91%;
-    --sidebar-ring: 0 72% 51%;
+    --sidebar-accent: 180 70% 36%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 214 25% 92%;
+    --sidebar-ring: 354 92% 46%;
   }
 
   .dark {
@@ -108,8 +109,22 @@
     font-family: 'Inter', system-ui, sans-serif;
   }
 
-  h1, h2, h3 {
-    font-family: 'Playfair Display', serif;
+  h1, h2, h3, h4 {
+    font-family: 'Montserrat', 'Inter', sans-serif;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+  }
+}
+
+@layer utilities {
+  .gradient-teal {
+    background: var(--gradient-teal);
+  }
+  .text-teal {
+    color: hsl(var(--secondary));
+  }
+  .bg-navy {
+    background-color: hsl(var(--accent));
   }
 }
 
