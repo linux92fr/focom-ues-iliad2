@@ -12,6 +12,10 @@ import {
   ChevronRight,
   Bell,
   Shield,
+  BarChart3,
+  MessageSquare,
+  Home,
+  Eye,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAdminAuth } from "@/contexts/AdminAuthContext";
@@ -24,6 +28,11 @@ const navItems = [
   { path: "/admin/actualites", label: "Actualités", icon: Newspaper },
   { path: "/admin/documents", label: "Documents", icon: FileText },
   { path: "/admin/adherents", label: "Adhérents", icon: Users },
+  { path: "/admin/bilan", label: "Bilan", icon: BarChart3 },
+  { path: "/admin/droits", label: "Droits", icon: Shield },
+  { path: "/admin/faq", label: "FAQ", icon: Eye },
+  { path: "/admin/messages", label: "Messages", icon: MessageSquare },
+  { path: "/admin/home-edit", label: "Édition Home", icon: Home },
   { path: "/admin/parametres", label: "Paramètres", icon: Settings },
 ];
 
