@@ -1,40 +1,84 @@
-import { Newspaper, Plus, Search, Filter } from "lucide-react";
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
+import { toast } from "sonner";
+import { Newspaper, Plus, Search, Filter, Trash2, Edit2, Eye, EyeOff } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import AdminLayout, { AdminAuthGuard } from "@/components/admin/AdminLayout";
 
-const articles = [
-  {
-    id: 1,
-    title: "NAO 2026 : Résultats des négociations",
-    date: "28 avr. 2026",
-    status: "Publié",
-    category: "Social",
-  },
-  {
-    id: 2,
-    title: "Élections professionnelles : Mode d'emploi",
-    date: "25 avr. 2026",
-    status: "Publié",
-    category: "Élections",
-  },
-  {
-    id: 3,
-    title: "Bilan social 2025 : Les chiffres clés",
-    date: "20 avr. 2026",
-    status: "Brouillon",
-    category: "Bilan",
-  },
-];
-
-const statusColor: Record<string, string> = {
-  Publié: "bg-green-100 text-green-700",
-  Brouillon: "bg-amber-100 text-amber-700",
+const categoryLabels: Record<string, string> = {
+  actualite: "Actualité",
+  communique: "Communiqué",
+  evenement: "Événement",
+  victoire: "Victoire syndicale",
 };
 
 export default function AdminActualites() {
+  const queryClient = useQueryClient();
+  const [search, setSearch] = useState("");
+
+  const { data: articles, isLoading } = useQuery({
+    queryKey: ["admin-articles"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("articles")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const togglePublishMutation = useMutation({
+    mutationFn: async ({ id, is_published }: { id: string; is_published: boolean }) => {
+      const { error } = await supabase
+        .from("articles")
+        .update({
+          is_published: !is_published,
+          status: !is_published ? ("publie" as const) : ("brouillon" as const),
+          published_at: !is_published ? new Date().toISOString() : null,
+        })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-articles"] });
+      toast.success("Statut mis à jour");
+    },
+    onError: () => toast.error("Erreur lors de la mise à jour"),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("articles").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-articles"] });
+      toast.success("Article supprimé");
+    },
+    onError: () => toast.error("Erreur lors de la suppression"),
+  });
+
+  const handleDelete = (id: string) => {
+    if (window.confirm("Supprimer cet article définitivement ?")) {
+      deleteMutation.mutate(id);
+    }
+  };
+
+  const filtered = (articles || []).filter(
+    (a) =>
+      search === "" ||
+      a.title.toLowerCase().includes(search.toLowerCase()) ||
+      (a.category || "").toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
     <AdminAuthGuard>
       <AdminLayout title="Actualités" breadcrumb={["Administration", "Actualités"]}>
@@ -46,13 +90,17 @@ export default function AdminActualites() {
             </div>
             <div>
               <h2 className="text-lg font-bold text-slate-900">Gestion des actualités</h2>
-              <p className="text-sm text-slate-500">{articles.length} article{articles.length > 1 ? "s" : ""}</p>
+              <p className="text-sm text-slate-500">
+                {filtered.length} article{filtered.length > 1 ? "s" : ""}
+              </p>
             </div>
           </div>
-          <Button className="bg-red-600 hover:bg-red-700 text-white">
-            <Plus className="w-4 h-4 mr-2" />
-            Nouvel article
-          </Button>
+          <Link to="/actualites/nouveau">
+            <Button className="bg-red-600 hover:bg-red-700 text-white">
+              <Plus className="w-4 h-4 mr-2" />
+              Nouvel article
+            </Button>
+          </Link>
         </div>
 
         {/* Filters */}
@@ -61,11 +109,16 @@ export default function AdminActualites() {
             <div className="flex flex-col sm:flex-row gap-3">
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <Input placeholder="Rechercher un article..." className="pl-10" />
+                <Input
+                  placeholder="Rechercher un article..."
+                  className="pl-10"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
               </div>
-              <Button variant="outline" size="sm" className="gap-2">
+              <Button variant="outline" size="sm" className="gap-2" onClick={() => setSearch("")}>
                 <Filter className="w-4 h-4" />
-                Filtrer
+                Réinitialiser
               </Button>
             </div>
           </CardContent>
@@ -79,27 +132,82 @@ export default function AdminActualites() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {articles.map((article) => (
-                <div
-                  key={article.id}
-                  className="flex items-center justify-between p-4 rounded-lg border border-slate-100 hover:border-slate-200 hover:bg-slate-50 transition-all cursor-pointer"
-                >
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-slate-900 truncate">{article.title}</p>
-                    <div className="flex items-center gap-3 mt-1">
-                      <span className="text-xs text-slate-400">{article.date}</span>
-                      <Badge variant="secondary" className="text-[10px] px-2 py-0.5">
-                        {article.category}
-                      </Badge>
+            {isLoading ? (
+              <div className="space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="h-16 bg-slate-100 rounded-lg animate-pulse" />
+                ))}
+              </div>
+            ) : filtered.length === 0 ? (
+              <div className="text-center py-8 text-slate-400">
+                <Newspaper className="w-8 h-8 mx-auto mb-2 text-slate-300" />
+                <p className="text-sm">Aucun article trouvé</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {filtered.map((article) => (
+                  <div
+                    key={article.id}
+                    className="flex items-center justify-between p-4 rounded-lg border border-slate-100 hover:border-slate-200 hover:bg-slate-50 transition-all"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-slate-900 truncate">
+                        {article.title}
+                      </p>
+                      <div className="flex items-center gap-3 mt-1">
+                        <span className="text-xs text-slate-400">
+                          {format(new Date(article.created_at), "dd MMM yyyy", { locale: fr })}
+                        </span>
+                        {article.category && (
+                          <Badge variant="secondary" className="text-[10px] px-2 py-0.5">
+                            {categoryLabels[article.category] || article.category}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 ml-3 flex-shrink-0">
+                      <span
+                        className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
+                          article.is_published
+                            ? "bg-green-100 text-green-700"
+                            : "bg-amber-100 text-amber-700"
+                        }`}
+                      >
+                        {article.is_published ? "Publié" : "Brouillon"}
+                      </span>
+                      <button
+                        onClick={() =>
+                          togglePublishMutation.mutate({
+                            id: article.id,
+                            is_published: article.is_published,
+                          })
+                        }
+                        className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
+                        title={article.is_published ? "Dépublier" : "Publier"}
+                      >
+                        {article.is_published ? (
+                          <EyeOff className="w-4 h-4" />
+                        ) : (
+                          <Eye className="w-4 h-4" />
+                        )}
+                      </button>
+                      <Link
+                        to={`/actualites/${article.id}/editer`}
+                        className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </Link>
+                      <button
+                        onClick={() => handleDelete(article.id)}
+                        className="p-1.5 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-500 transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
-                  <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${statusColor[article.status]}`}>
-                    {article.status}
-                  </span>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </AdminLayout>
