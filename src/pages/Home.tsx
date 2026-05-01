@@ -30,6 +30,8 @@ import {
   Zap,
   BookOpen,
   Globe,
+  Bell,
+  User,
 } from "lucide-react";
 
 const HERO_IMAGE = "https://d2xsxph8kpxj0f.cloudfront.net/310519663612648040/CNuRjrgGqWcQ7xt7rtMbHT/hero-banner-VHxfVX6tjRfujGise9ibwf.webp";
@@ -141,24 +143,29 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Desktop Nav */}
-            <nav className="hidden xl:flex items-center gap-1">
-              {["Accueil", "Actualités", "Bilan de Mandat", "Espace Adhérent", "Vos Droits", "La FOCOM", "Contact"].map((item) => (
-                <a
-                  key={item}
-                  href="#"
-                  className="px-3 py-2 text-sm font-medium text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                >
-                  {item}
-                </a>
-              ))}
-            </nav>
-
-            {/* Actions */}
-            <div className="flex items-center gap-3">
-              <button className="p-2.5 hover:bg-slate-100 rounded-lg transition-colors">
+            {/* Quick Actions */}
+            <div className="flex items-center gap-2">
+              {/* Search */}
+              <button className="p-2.5 hover:bg-slate-100 rounded-lg transition-colors" title="Rechercher">
                 <Search className="w-5 h-5 text-slate-500" />
               </button>
+
+              {/* Notifications */}
+              <button className="p-2.5 hover:bg-slate-100 rounded-lg transition-colors relative" title="Notifications">
+                <Bell className="w-5 h-5 text-slate-500" />
+                <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
+              </button>
+
+              {/* Profile / Admin Login */}
+              <button
+                onClick={() => navigate("/admin/login")}
+                className="p-2.5 hover:bg-slate-100 rounded-lg transition-colors"
+                title="Connexion admin"
+              >
+                <User className="w-5 h-5 text-slate-500" />
+              </button>
+
+              {/* Join Button */}
               <Button className="bg-red-600 hover:bg-red-700 text-white rounded-full px-5 py-2.5 text-sm font-semibold shadow-md shadow-red-200 hidden sm:flex">
                 <Users className="w-4 h-4 mr-2" />
                 Nous rejoindre
