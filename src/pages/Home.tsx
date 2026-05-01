@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { HoverCardGrid } from "@/components/HoverCard";
 import {
@@ -104,6 +105,7 @@ function ProgressBar({ label, value, color = "bg-teal-500" }: { label: string; v
 }
 
 export default function Home() {
+  const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("accueil");
 
@@ -231,14 +233,14 @@ export default function Home() {
               alt="FO Com - Ensemble, connectés, plus forts"
               className="w-full h-64 sm:h-80 lg:h-96 object-cover"
             />
-            <div className="absolute inset-0 bg-gradient-to-r from-slate-900/70 via-slate-900/40 to-transparent" />
-            <div className="absolute inset-0 flex flex-col justify-center p-6 sm:p-10 lg:p-14">
-              <h2 className="text-2xl sm:text-4xl lg:text-5xl font-extrabold text-white leading-tight max-w-lg">
+            <div className="absolute inset-0 bg-slate-900/75" />
+            <div className="absolute inset-0 flex flex-col items-center justify-center p-6 sm:p-10 lg:p-14 text-center">
+              <h2 className="text-2xl sm:text-4xl lg:text-5xl font-extrabold text-white leading-tight">
                 Ensemble,<br />
                 <span className="text-teal-300">connectés,</span><br />
                 plus forts.
               </h2>
-              <p className="text-white/80 mt-3 text-sm sm:text-base max-w-md">
+              <p className="text-white/90 mt-3 text-sm sm:text-base max-w-lg">
                 Le syndicat des travailleurs et travailleuses des télécommunications. Notre force, c'est l'union.
               </p>
               <div className="flex gap-3 mt-5">
@@ -504,7 +506,10 @@ export default function Home() {
                   ))}
                 </div>
 
-                <Button className="w-full mt-5 bg-teal-600 hover:bg-teal-700 text-white rounded-lg py-3 text-sm font-semibold shadow-md shadow-teal-100">
+                <Button
+                  onClick={() => navigate("/admin/login")}
+                  className="w-full mt-5 bg-teal-600 hover:bg-teal-700 text-white rounded-lg py-3 text-sm font-semibold shadow-md shadow-teal-100"
+                >
                   <Lock className="w-4 h-4 mr-2" />
                   Se connecter à mon espace adhérent
                 </Button>
