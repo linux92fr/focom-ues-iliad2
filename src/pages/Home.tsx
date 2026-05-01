@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
+import { HoverCardGrid } from "@/components/HoverCard";
 import {
   Home as HomeIcon,
   FileText,
@@ -22,6 +23,12 @@ import {
   TrendingUp,
   Calendar,
   Handshake,
+  Award,
+  Target,
+  Heart,
+  Zap,
+  BookOpen,
+  Globe,
 } from "lucide-react";
 
 const HERO_IMAGE = "https://d2xsxph8kpxj0f.cloudfront.net/310519663612648040/CNuRjrgGqWcQ7xt7rtMbHT/hero-banner-VHxfVX6tjRfujGise9ibwf.webp";
@@ -243,6 +250,169 @@ export default function Home() {
                 </Button>
               </div>
             </div>
+          </section>
+
+          {/* Hover Cards Section */}
+          <section className="mb-8">
+            <div className="text-center mb-8">
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 mb-2">
+                Découvrez la <span className="text-teal-600">FOCOM</span>
+              </h2>
+              <p className="text-slate-500 max-w-2xl mx-auto">
+                Survolez nos cartes pour découvrir tout ce que nous offrons à nos adhérents
+              </p>
+            </div>
+            <HoverCardGrid
+              columns={3}
+              cards={[
+                {
+                  title: "Vos Droits",
+                  subtitle: "Protection & accompagnement",
+                  icon: <Shield className="w-6 h-6" />,
+                  variant: "default" as const,
+                  content: (
+                    <p className="text-sm text-slate-600">
+                      La FOCOM défend vos droits au quotidien auprès de la direction.
+                    </p>
+                  ),
+                  revealContent: (
+                    <ul className="space-y-2">
+                      {["Droit à la déconnexion", "Égalité professionnelle", "Santé & sécurité", "Protection sociale"].map((item, i) => (
+                        <li key={i} className="flex items-center gap-2 text-sm text-slate-700">
+                          <CheckCircle2 className="w-4 h-4 text-teal-600 flex-shrink-0" />
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                  ),
+                },
+                {
+                  title: "Négociations",
+                  subtitle: "Salaires & conditions",
+                  icon: <Handshake className="w-6 h-6" />,
+                  variant: "gradient" as const,
+                  gradientFrom: "from-red-600",
+                  gradientTo: "to-red-700",
+                  content: (
+                    <p className="text-sm text-white/80">
+                      Nous négocions les meilleurs accords pour tous les salariés.
+                    </p>
+                  ),
+                  revealContent: (
+                    <div className="space-y-3">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-white/70">NAO 2026</span>
+                        <span className="text-white font-semibold">En cours</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-white/70">Accords signés</span>
+                        <span className="text-white font-semibold">42</span>
+                      </div>
+                      <Button className="w-full bg-white/20 hover:bg-white/30 text-white border border-white/30 text-sm">
+                        Voir les détails
+                      </Button>
+                    </div>
+                  ),
+                },
+                {
+                  title: "Formation",
+                  subtitle: "Développement des compétences",
+                  icon: <BookOpen className="w-6 h-6" />,
+                  variant: "bordered" as const,
+                  content: (
+                    <p className="text-sm text-slate-600">
+                      Accédez à des formations professionnelles et syndicales.
+                    </p>
+                  ),
+                  revealContent: (
+                    <div className="space-y-2">
+                      {["Formations CPF", "Perfectionnement", "Préparation aux élections", "Formation syndicale"].map((item, i) => (
+                        <div key={i} className="flex items-center justify-between p-2 bg-slate-50 rounded-lg">
+                          <span className="text-sm text-slate-700">{item}</span>
+                          <ChevronRight className="w-4 h-4 text-teal-600" />
+                        </div>
+                      ))}
+                    </div>
+                  ),
+                },
+                {
+                  title: "Élections Professionnelles",
+                  subtitle: "Votre voix compte",
+                  icon: <Target className="w-6 h-6" />,
+                  variant: "image" as const,
+                  image: "https://images.unsplash.com/photo-1587560699334-cc4ff634909a?w=400&h=300&fit=crop",
+                  content: (
+                    <p className="text-sm text-white/80">
+                      Votez en masse jusqu'au 6 mai 2026 !
+                    </p>
+                  ),
+                  revealContent: (
+                    <div className="space-y-3">
+                      <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3">
+                        <p className="text-xs text-white/70 mb-1">Date limite</p>
+                        <p className="text-lg font-bold text-white">6 Mai 2026</p>
+                      </div>
+                      <Button className="w-full bg-red-600 hover:bg-red-700 text-white text-sm">
+                        Voter maintenant
+                      </Button>
+                    </div>
+                  ),
+                },
+                {
+                  title: "Avantages Adhérents",
+                  subtitle: "Des services exclusifs",
+                  icon: <Award className="w-6 h-6" />,
+                  variant: "default" as const,
+                  content: (
+                    <p className="text-sm text-slate-600">
+                      Découvrez tous les avantages réservés à nos adhérents.
+                    </p>
+                  ),
+                  revealContent: (
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        { icon: <Heart className="w-4 h-4" />, label: "Protection juridique" },
+                        { icon: <Zap className="w-4 h-4" />, label: "Assistance rapide" },
+                        { icon: <Globe className="w-4 h-4" />, label: "Réseau national" },
+                        { icon: <Users className="w-4 h-4" />, label: "Communauté active" },
+                      ].map((item, i) => (
+                        <div key={i} className="flex items-center gap-2 p-2 bg-teal-50 rounded-lg">
+                          <span className="text-teal-600">{item.icon}</span>
+                          <span className="text-xs text-slate-700">{item.label}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ),
+                },
+                {
+                  title: "Actualités",
+                  subtitle: "Restez informé",
+                  icon: <FileText className="w-6 h-6" />,
+                  variant: "gradient" as const,
+                  gradientFrom: "from-teal-600",
+                  gradientTo: "to-cyan-600",
+                  content: (
+                    <p className="text-sm text-white/80">
+                      Suivez les dernières nouvelles et actions de la FOCOM.
+                    </p>
+                  ),
+                  revealContent: (
+                    <div className="space-y-2">
+                      {[
+                        "NAO 2026 : Nos revendications",
+                        "Élections : Votez jusqu'au 6 mai",
+                        "GEPP : Tout savoir",
+                      ].map((item, i) => (
+                        <div key={i} className="flex items-center gap-2 p-2 bg-white/10 rounded-lg cursor-pointer hover:bg-white/20 transition-colors">
+                          <div className="w-2 h-2 rounded-full bg-red-400 flex-shrink-0" />
+                          <span className="text-sm text-white">{item}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ),
+                },
+              ]}
+            />
           </section>
 
           {/* Content Grid */}
