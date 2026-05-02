@@ -627,7 +627,18 @@ export default function Home() {
           {/* Footer */}
           <footer className="mt-8 py-6 border-t border-slate-200">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-              <p className="text-xs text-slate-500">© 2026 FOCOM UES ILIAD – Tous droits réservés</p>
+              <div className="flex flex-col sm:flex-row items-center gap-3">
+                <p className="text-xs text-slate-500">© 2026 FOCOM UES ILIAD – Tous droits réservés</p>
+                <span className="hidden sm:inline text-slate-300">|</span>
+                <div className="flex items-center gap-4">
+                  <Link to="/mentions-legales" className="text-xs text-slate-400 hover:text-slate-700 transition-colors underline-offset-2 hover:underline">
+                    Mentions légales
+                  </Link>
+                  <Link to="/rgpd" className="text-xs text-slate-400 hover:text-slate-700 transition-colors underline-offset-2 hover:underline">
+                    Politique de confidentialité (RGPD)
+                  </Link>
+                </div>
+              </div>
               <Link to="/contact">
                 <Button variant="outline" className="rounded-full text-sm border-red-200 text-red-600 hover:bg-red-50 px-5">
                   Nous contacter <ChevronRight className="w-4 h-4 ml-1" />
