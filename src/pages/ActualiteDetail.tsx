@@ -12,31 +12,31 @@ type News = Tables<"news">;
 type Category = Tables<"categories">;
 
 const ActualiteDetail = () => {
-  const { id } = useParams<{ id: string }>();
+  const { slug } = useParams<{ slug: string }>();
   const [news, setNews] = useState<News | null>(null);
   const [category, setCategory] = useState<Category | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchNews = async () => {
-      if (!id) return;
+      if (!slug) { setLoading(false); return; }
 
       try {
         const { data, error } = await supabase
           .from("news")
           .select("*")
-          .eq("id", id)
+          .eq("slug", slug)
           .eq("published", true)
           .single();
 
         if (error) throw error;
         setNews(data);
 
-        if (data?.category_id) {
+        if (data?.category) {
           const { data: catData } = await supabase
             .from("categories")
             .select("*")
-            .eq("id", data.category_id)
+            .eq("id", data.category)
             .single();
           setCategory(catData);
         }
@@ -48,7 +48,7 @@ const ActualiteDetail = () => {
     };
 
     fetchNews();
-  }, [id]);
+  }, [slug]);
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return "";
