@@ -10,6 +10,9 @@ import NotFound from "./pages/NotFound";
 import AdminLogin from "./pages/admin/AdminLogin";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminActualites from "./pages/admin/AdminActualites";
+import AdminDocuments from "./pages/admin/AdminDocuments";
+import AdminAdherents from "./pages/admin/AdminAdherents";
+import AdminParametres from "./pages/admin/AdminParametres";
 
 function App() {
   return (
@@ -25,6 +28,9 @@ function App() {
                 <Route path="/admin/login" element={<AdminLogin />} />
                 <Route path="/admin" element={<AdminDashboard />} />
                 <Route path="/admin/actualites" element={<AdminActualites />} />
+                <Route path="/admin/documents" element={<AdminDocuments />} />
+                <Route path="/admin/adherents" element={<AdminAdherents />} />
+                <Route path="/admin/parametres" element={<AdminParametres />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </AdminAuthProvider>
