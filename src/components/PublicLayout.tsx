@@ -7,7 +7,9 @@ export default function PublicLayout() {
   return (
     <div className="flex min-h-screen bg-background">
       <ScrollToTop />
-      <Sidebar />
+      <div className="sticky top-0 h-screen shrink-0">
+        <Sidebar />
+      </div>
       <div className="flex-1 min-w-0 flex flex-col">
         <PageHeader />
         <Outlet />
