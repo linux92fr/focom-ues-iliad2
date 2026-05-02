@@ -30,7 +30,7 @@ const Sidebar = () => {
   const location = useLocation();
 
   return (
-    <aside className="hidden lg:flex flex-col w-64 shrink-0 bg-card border-r border-border min-h-screen">
+    <aside className="hidden lg:flex flex-col w-64 shrink-0 bg-card border-r border-border self-start">
       {/* Logo block */}
       <div className="p-6 border-b border-border">
         <div className="flex items-center gap-3">
