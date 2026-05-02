@@ -1,4 +1,3 @@
-import PageShell from '@/components/PageShell';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge'
@@ -143,7 +142,7 @@ export default function AdminNao2026() {
   );
 
   return (
-    <PageShell subtitle="Admin NAO 2026">
+    <div className="p-4 lg:p-8">
 
       <main className="container mx-auto px-4 py-24 max-w-5xl">
 
@@ -378,6 +377,6 @@ export default function AdminNao2026() {
 
       </main>
 
-    </PageShell>
+    </div>
   );
 }

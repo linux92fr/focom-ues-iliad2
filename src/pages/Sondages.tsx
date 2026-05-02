@@ -1,4 +1,3 @@
-import PageShell from '@/components/PageShell';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -122,7 +121,7 @@ const Sondages = () => {
   };
 
   return (
-    <PageShell subtitle="Sondages">
+    <div className="p-4 lg:p-8">
       <main className="container mx-auto px-4 py-8 max-w-3xl">
         <div className="flex items-center gap-3 mb-6">
           <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
@@ -215,7 +214,7 @@ const Sondages = () => {
           </div>
         )}
       </main>
-    </PageShell>
+    </div>
   );
 };
 

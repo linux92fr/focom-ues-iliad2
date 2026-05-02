@@ -1,4 +1,3 @@
-import PageShell from '@/components/PageShell';
 import React from 'react';
 
 
@@ -27,7 +26,7 @@ const Adhesion = () => {
   ];
 
   return (
-    <PageShell subtitle="Adhésion">
+    <div className="p-4 lg:p-8">
 
       <main className="container mx-auto px-4 py-24">
         <div className="max-w-6xl mx-auto">
@@ -109,7 +108,7 @@ const Adhesion = () => {
         </div>
       </main>
 
-    </PageShell>
+    </div>
   );
 };
 

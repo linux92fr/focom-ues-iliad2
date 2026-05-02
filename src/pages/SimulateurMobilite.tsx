@@ -1,6 +1,5 @@
 
 import { useState, useCallback } from 'react';
-import PageShell from '@/components/PageShell';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -818,7 +817,7 @@ const SimulateurMobilite = () => {
   };
 
   return (
-    <PageShell subtitle="Simulateur Mobilité">
+    <div className="p-4 lg:p-8">
       <main className="container mx-auto px-4 py-24">
         <div className="max-w-screen-2xl mx-auto">
 
@@ -1080,7 +1079,7 @@ const SimulateurMobilite = () => {
           </div>
         </div>
       </main>
-    </PageShell>
+    </div>
   );
 };
 

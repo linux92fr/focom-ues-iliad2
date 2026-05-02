@@ -2,8 +2,6 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
@@ -69,7 +67,6 @@ const Settings = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      <Header />
 
       <main className="flex-grow bg-muted/30 py-12">
         <div className="container max-w-3xl mx-auto px-4">
@@ -217,7 +214,6 @@ const Settings = () => {
         </div>
       </main>
 
-      <Footer />
     </div>
   );
 };

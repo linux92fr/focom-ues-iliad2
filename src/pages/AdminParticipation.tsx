@@ -1,4 +1,3 @@
-import PageShell from '@/components/PageShell';
 import { useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -236,7 +235,7 @@ const AdminParticipation = () => {
   };
 
   return (
-    <PageShell subtitle="Participation">
+    <div className="p-4 lg:p-8">
       <div className="max-w-3xl mx-auto space-y-6">
 
         <div className="flex items-center gap-3">
@@ -421,7 +420,7 @@ const AdminParticipation = () => {
           {saving ? 'Enregistrement...' : '💾 Enregistrer ce relevé'}
         </Button>
       </div>
-    </PageShell>
+    </div>
   );
 };
 

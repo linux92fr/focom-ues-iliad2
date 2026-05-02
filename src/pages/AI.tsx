@@ -1,5 +1,4 @@
 import { useState, FormEvent } from 'react';
-import PageShell from '@/components/PageShell';
 
 type Mode = 'corriger' | 'reformuler' | 'simplifier';
 
@@ -39,7 +38,7 @@ export default function AI() {
   };
 
   return (
-    <PageShell subtitle="Assistant IA">
+    <div className="p-4 lg:p-8">
       <div className="max-w-2xl mx-auto py-6 space-y-6">
         <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm space-y-5">
           <div>
@@ -109,6 +108,6 @@ export default function AI() {
           )}
         </div>
       </div>
-    </PageShell>
+    </div>
   );
 }

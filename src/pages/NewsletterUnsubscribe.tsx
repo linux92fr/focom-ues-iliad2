@@ -1,4 +1,3 @@
-import PageShell from '@/components/PageShell';
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -42,7 +41,7 @@ const NewsletterUnsubscribe = () => {
   }, [searchParams]);
 
   return (
-    <PageShell subtitle="Newsletter">
+    <div className="p-4 lg:p-8">
 
       <div className="flex-grow flex items-center justify-center bg-gradient-to-b from-gray-50 to-white px-4 py-16">
         <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 text-center border border-gray-100">
@@ -94,7 +93,7 @@ const NewsletterUnsubscribe = () => {
         </div>
       </div>
 
-    </PageShell>
+    </div>
   );
 };
 

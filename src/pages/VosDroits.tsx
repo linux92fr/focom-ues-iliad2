@@ -1,6 +1,4 @@
 import { Link } from "react-router-dom";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -142,7 +140,6 @@ const VosDroits = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      <Header />
 
       {/* Hero */}
       <section className="py-16 gradient-hero">
@@ -211,7 +208,6 @@ const VosDroits = () => {
         </div>
       </main>
 
-      <Footer />
     </div>
   );
 };

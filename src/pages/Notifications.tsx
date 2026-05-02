@@ -1,4 +1,3 @@
-import PageShell from '@/components/PageShell';
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -193,7 +192,7 @@ const Notifications = () => {
   }
 
   return (
-    <PageShell subtitle="Notifications">
+    <div className="p-4 lg:p-8">
 
       <main className="container mx-auto px-4 pt-24 pb-16">
         <div className="max-w-4xl mx-auto">
@@ -413,7 +412,7 @@ const Notifications = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </PageShell>
+    </div>
   );
 };
 

@@ -2,8 +2,6 @@ import { Users, Target, Shield, Heart, Award, History, ArrowLeft } from "lucide-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "react-router-dom";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 import logoFocom from "@/assets/logo-focom.png";
 
 const About = () => {
@@ -62,7 +60,6 @@ const About = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
       
       {/* Hero Section */}
       <section className="relative py-20 overflow-hidden">
@@ -263,7 +260,6 @@ const About = () => {
         </div>
       </section>
 
-      <Footer />
     </div>
   );
 };

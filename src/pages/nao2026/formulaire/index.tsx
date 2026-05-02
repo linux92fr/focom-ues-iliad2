@@ -1,4 +1,3 @@
-import PageShell from '@/components/PageShell';
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -319,7 +318,7 @@ const FormulaireNao2026 = () => {
 
   if (envoye) {
     return (
-      <PageShell subtitle="NAO 2026 – Formulaire">
+      <div className="p-4 lg:p-8">
         <main className="container mx-auto px-4 py-24">
           <div className="max-w-lg mx-auto text-center space-y-6">
             <div className="w-20 h-20 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center mx-auto">
@@ -343,14 +342,14 @@ const FormulaireNao2026 = () => {
             </Button>
           </div>
         </main>
-      </PageShell>
+      </div>
     );
   }
 
   // ── Rendu principal ────────────────────────────────────────────────────────
 
   return (
-    <PageShell subtitle="NAO 2026 – Formulaire">
+    <div className="p-4 lg:p-8">
 
       <main className="container mx-auto px-4 py-24">
         <div className="max-w-2xl mx-auto space-y-8">
@@ -727,7 +726,7 @@ const FormulaireNao2026 = () => {
         </div>
       </main>
 
-    </PageShell>
+    </div>
   );
 };
 

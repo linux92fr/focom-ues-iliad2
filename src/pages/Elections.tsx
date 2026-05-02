@@ -1,4 +1,3 @@
-import PageShell from '@/components/PageShell';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -221,7 +220,7 @@ const latestT2Snap = t2ParticipationData[t2ParticipationData.length - 1] ?? null
   const autresDocuments  = documents.filter(d => d.document_type === 'autre');
 
   return (
-    <PageShell subtitle="Élections">
+    <div className="p-4 lg:p-8">
 
       <main className="pt-24 pb-16 px-4">
         <div className="container mx-auto max-w-5xl space-y-10">
@@ -1317,7 +1316,7 @@ const latestT2Snap = t2ParticipationData[t2ParticipationData.length - 1] ?? null
       </main>
 
       <ScrollToTop />
-    </PageShell>
+    </div>
   );
 };
 

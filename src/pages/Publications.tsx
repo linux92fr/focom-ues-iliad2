@@ -1,8 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -83,7 +81,6 @@ const Publications = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      <Header />
 
       {/* Hero */}
       <section className="py-16 gradient-hero">
@@ -203,7 +200,6 @@ const Publications = () => {
         </div>
       </main>
 
-      <Footer />
     </div>
   );
 };

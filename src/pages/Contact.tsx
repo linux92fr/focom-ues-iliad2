@@ -1,6 +1,4 @@
 import { useState } from "react";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -94,7 +92,6 @@ const Contact = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      <Header />
 
       {/* Hero */}
       <section className="py-16 gradient-hero">
@@ -232,7 +229,6 @@ const Contact = () => {
         </div>
       </main>
 
-      <Footer />
     </div>
   );
 };

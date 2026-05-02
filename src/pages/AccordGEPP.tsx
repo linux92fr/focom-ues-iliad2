@@ -1,4 +1,3 @@
-import PageShell from '@/components/PageShell';
 import ScrollToTop from '@/components/ScrollToTop';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -12,7 +11,7 @@ import {
 
 const AccordGEPP = () => {
   return (
-    <PageShell subtitle="Accord GEPP">
+    <div className="p-4 lg:p-8">
       <ScrollToTop />
 
       <main className="pt-24 pb-12 px-4">
@@ -296,7 +295,7 @@ const AccordGEPP = () => {
 
         </div>
       </main>
-    </PageShell>
+    </div>
   );
 };
 

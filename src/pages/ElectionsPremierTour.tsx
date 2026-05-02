@@ -1,4 +1,3 @@
-import PageShell from '@/components/PageShell';
 
 
 import ScrollToTop from '@/components/ScrollToTop';
@@ -259,7 +258,7 @@ const SyndicatRow = ({ s, type }: { s: SyndicatResult; type: 'titulaires' | 'sup
 
 // ── Page principale ────────────────────────────────────────────────────────────
 const ElectionsPremierTour = () => (
-  <PageShell subtitle="Élections – 1er tour">
+  <div className="p-4 lg:p-8">
 
     <main className="pt-24 pb-16 px-4">
       <div className="container mx-auto max-w-5xl space-y-10">
@@ -640,7 +639,7 @@ const ElectionsPremierTour = () => (
     </main>
 
     <ScrollToTop />
-  </PageShell>
+  </div>
 );
 
 export default ElectionsPremierTour;

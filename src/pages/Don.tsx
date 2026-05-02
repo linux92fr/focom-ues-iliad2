@@ -1,4 +1,3 @@
-import PageShell from "@/components/PageShell";
 import { Heart, Shield, Users, CreditCard } from "lucide-react";
 
 const AMOUNTS = [5, 10, 20, 50];
@@ -12,7 +11,7 @@ const Don = () => {
   const paypalUrl = import.meta.env.VITE_PAYPAL_ME_URL || "https://www.paypal.com/donate";
 
   return (
-    <PageShell subtitle="Faire un don">
+    <div className="p-4 lg:p-8">
       <div className="max-w-xl mx-auto py-8 space-y-6">
         {/* Hero */}
         <div className="text-center space-y-2">
@@ -71,7 +70,7 @@ const Don = () => {
           </p>
         </div>
       </div>
-    </PageShell>
+    </div>
   );
 };
 

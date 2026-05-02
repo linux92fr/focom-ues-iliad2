@@ -1,6 +1,4 @@
 import { Link } from "react-router-dom";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, FileText } from "lucide-react";
@@ -8,7 +6,6 @@ import { ArrowLeft, FileText } from "lucide-react";
 const MentionsLegales = () => {
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      <Header />
 
       {/* Hero */}
       <section className="py-12 gradient-hero">
@@ -155,7 +152,6 @@ const MentionsLegales = () => {
         </div>
       </main>
 
-      <Footer />
     </div>
   );
 };

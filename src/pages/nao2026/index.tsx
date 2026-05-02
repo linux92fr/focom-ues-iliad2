@@ -1,4 +1,3 @@
-import PageShell from '@/components/PageShell';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -348,7 +347,7 @@ const Nao2026 = () => {
   const categoriesUniques = Object.entries(CATEGORIES) as [keyof typeof CATEGORIES, typeof CATEGORIES[keyof typeof CATEGORIES]][];
 
   return (
-    <PageShell subtitle="NAO 2026">
+    <div className="p-4 lg:p-8">
 
       <main className="container mx-auto px-4 py-24">
         <div className="max-w-6xl mx-auto space-y-14">
@@ -700,7 +699,7 @@ const Nao2026 = () => {
         </div>
       </main>
 
-    </PageShell>
+    </div>
   );
 };
 
