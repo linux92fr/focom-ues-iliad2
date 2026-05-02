@@ -46,6 +46,7 @@ import Notifications from "./pages/Notifications";
 import AI from "./pages/AI";
 import Sondages from "./pages/Sondages";
 import Agenda from "./pages/Agenda";
+import Profile from "./pages/Profile";
 
 import AdminNao2026 from "./pages/AdminNao2026";
 import AdminParticipation from "./pages/AdminParticipation";
@@ -105,6 +106,7 @@ function App() {
                       <Route path="/ai" element={<AI />} />
                       <Route path="/sondages" element={<Sondages />} />
                       <Route path="/agenda" element={<Agenda />} />
+                      <Route path="/profil" element={<Profile />} />
                       <Route path="/admin/nao2026" element={<AdminNao2026 />} />
                       <Route path="/admin/participation" element={<AdminParticipation />} />
                     </Route>
