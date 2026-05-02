@@ -68,7 +68,7 @@ export function NewsletterSubscriptionForm() {
       });
       setIsSubscribed(true);
       setEmail('');
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (error instanceof z.ZodError) {
         toast({
           title: "Erreur de validation",
@@ -77,9 +77,10 @@ export function NewsletterSubscriptionForm() {
         });
       } else {
         console.error('Newsletter subscription error:', error);
+        const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue lors de l'abonnement.";
         toast({
           title: "Erreur",
-          description: error.message || "Une erreur est survenue lors de l'abonnement.",
+          description: errorMessage,
           variant: "destructive",
         });
       }
