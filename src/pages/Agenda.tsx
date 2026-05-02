@@ -14,10 +14,11 @@ interface Event {
   title: string;
   description: string | null;
   location: string | null;
-  event_date: string;
-  start_time: string | null;
-  end_time: string | null;
+  start_date: string;
+  end_date: string | null;
+  all_day: boolean;
   event_type: string | null;
+  is_public: boolean;
 }
 
 const eventTypeLabels: Record<string, { label: string; color: string }> = {
@@ -41,13 +42,13 @@ const Agenda = () => {
       const { data, error } = await supabase
         .from("events")
         .select("*")
-        .gte("event_date", format(start, "yyyy-MM-dd"))
-        .lte("event_date", format(end, "yyyy-MM-dd"))
-        .eq("published", true)
-        .order("event_date", { ascending: true });
+        .gte("start_date", format(start, "yyyy-MM-dd"))
+        .lte("start_date", format(end, "yyyy-MM-dd"))
+        .eq("is_public", true)
+        .order("start_date", { ascending: true });
 
       if (error) throw error;
-      return data as Event[];
+      return data as unknown as Event[];
     },
   });
 
@@ -60,14 +61,14 @@ const Agenda = () => {
   const paddingDays = startDayOfWeek === 0 ? 6 : startDayOfWeek - 1;
 
   const getEventsForDate = (date: Date) => {
-    return events.filter((event) => isSameDay(new Date(event.event_date), date));
+    return events.filter((event) => isSameDay(new Date(event.start_date), date));
   };
 
   const selectedDateEvents = selectedDate ? getEventsForDate(selectedDate) : [];
 
-  const formatTime = (time: string | null) => {
-    if (!time) return null;
-    return time.substring(0, 5);
+  const formatTime = (dateStr: string | null) => {
+    if (!dateStr) return null;
+    return format(new Date(dateStr), "HH:mm");
   };
 
   return (
@@ -220,12 +221,12 @@ const Agenda = () => {
                           )}
                           
                           <div className="space-y-1">
-                            {(event.start_time || event.end_time) && (
+                            {!event.all_day && (
                               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                 <Clock className="h-3.5 w-3.5" />
                                 <span>
-                                  {formatTime(event.start_time)}
-                                  {event.end_time && ` - ${formatTime(event.end_time)}`}
+                                  {formatTime(event.start_date)}
+                                  {event.end_date && ` - ${formatTime(event.end_date)}`}
                                 </span>
                               </div>
                             )}
