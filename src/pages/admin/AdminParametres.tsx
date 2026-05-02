@@ -1,144 +1,184 @@
-import { Settings, Save, Globe, Bell, Lock, Palette } from "lucide-react";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Settings, Save, ArrowLeft, Bell, Shield, Users, FileText, Mail, RotateCcw, Check } from "lucide-react";
+import AdminLayout, { AdminAuthGuard } from "@/components/admin/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import AdminLayout, { AdminAuthGuard } from "@/components/admin/AdminLayout";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "sonner";
+
+const defaultSettings = {
+  siteName: "FOCOM UES ILIAD",
+  siteEmail: "contact@focomues-iliad.fr",
+  sitePhone: "01 87 15 43 11",
+  maintenanceMode: false,
+  newRegistration: true,
+  emailNotifications: true,
+  defaultTheme: "light",
+  itemsPerPage: 10,
+  allowContactForm: true,
+  showStats: true,
+};
 
 export default function AdminParametres() {
+  const navigate = useNavigate();
+  const [settings, setSettings] = useState({ ...defaultSettings });
+  const [saved, setSaved] = useState(false);
+  const [confirmReset, setConfirmReset] = useState(false);
+
+  const handleSave = () => {
+    // In production: persist to Supabase / localStorage
+    setSaved(true);
+    toast.success("Paramètres enregistrés avec succès");
+    setTimeout(() => setSaved(false), 3000);
+  };
+
+  const handleReset = () => {
+    if (!confirmReset) {
+      setConfirmReset(true);
+      setTimeout(() => setConfirmReset(false), 4000);
+      return;
+    }
+    setSettings({ ...defaultSettings });
+    setConfirmReset(false);
+    toast.success("Paramètres réinitialisés aux valeurs par défaut");
+  };
+
+  const handleChange = (key: string, value: any) => {
+    setSettings((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const features = [
+    { key: "maintenanceMode", icon: Shield, label: "Mode maintenance", desc: "Désactiver l'accès public au site" },
+    { key: "newRegistration", icon: Users, label: "Nouvelles inscriptions", desc: "Autoriser les nouvelles adhésions" },
+    { key: "emailNotifications", icon: Mail, label: "Notifications email", desc: "Envoyer des notifications par email" },
+    { key: "allowContactForm", icon: FileText, label: "Formulaire de contact", desc: "Activer le formulaire de contact public" },
+    { key: "showStats", icon: Settings, label: "Afficher les statistiques", desc: "Afficher les stats sur le dashboard" },
+  ];
+
   return (
     <AdminAuthGuard>
       <AdminLayout title="Paramètres" breadcrumb={["Administration", "Paramètres"]}>
-        {/* Header */}
+        {/* ── Header ───────────────────────────────────────── */}
         <div className="flex items-center gap-3 mb-6">
-          <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center">
-            <Settings className="w-5 h-5 text-slate-700" />
+          <button onClick={() => navigate(-1)} className="p-2 rounded-lg hover:bg-slate-100">
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <div className="w-10 h-10 rounded-xl bg-slate-700 flex items-center justify-center">
+            <Settings className="w-5 h-5 text-white" />
           </div>
           <div>
             <h2 className="text-lg font-bold text-slate-900">Paramètres du site</h2>
-            <p className="text-sm text-slate-500">Configuration générale</p>
+            <p className="text-sm text-slate-500">Configuration générale et préférences</p>
           </div>
         </div>
 
-        <div className="space-y-6">
-          {/* Informations générales */}
+        {/* Maintenance mode warning banner */}
+        {settings.maintenanceMode && (
+          <div className="mb-6 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-center gap-3">
+            <Shield className="w-5 h-5 text-amber-600 flex-shrink-0" />
+            <div>
+              <p className="text-sm font-semibold text-amber-800">Mode maintenance actif</p>
+              <p className="text-xs text-amber-600">Le site public est actuellement inaccessible aux visiteurs.</p>
+            </div>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* ── Général ──────────────────────────────────── */}
           <Card className="border-slate-200 shadow-sm">
             <CardHeader className="pb-3">
               <CardTitle className="text-base font-semibold text-slate-900 flex items-center gap-2">
-                <Globe className="w-4 h-4 text-teal-600" />
-                Informations générales
+                <Settings className="w-4 h-4" />Général
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-slate-700">Nom du syndicat</label>
-                  <Input defaultValue="FOCOM UES ILIAD" />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-slate-700">Email de contact</label>
-                  <Input defaultValue="contact@focom-ues-iliad.fr" type="email" />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="siteName">Nom du site</Label>
+                <Input id="siteName" value={settings.siteName} onChange={(e) => handleChange("siteName", e.target.value)} />
               </div>
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-700">Description du site</label>
-                <Input defaultValue="Syndicat FOCOM — UES ILIAD" />
+              <div className="space-y-2">
+                <Label htmlFor="siteEmail">Email de contact</Label>
+                <Input id="siteEmail" type="email" value={settings.siteEmail} onChange={(e) => handleChange("siteEmail", e.target.value)} />
               </div>
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-700">URL du site</label>
-                <Input defaultValue="https://focom-ues-iliad.fr" />
+              <div className="space-y-2">
+                <Label htmlFor="sitePhone">Téléphone</Label>
+                <Input id="sitePhone" value={settings.sitePhone} onChange={(e) => handleChange("sitePhone", e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="defaultTheme">Thème par défaut</Label>
+                <Select value={settings.defaultTheme} onValueChange={(v) => handleChange("defaultTheme", v)}>
+                  <SelectTrigger id="defaultTheme"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="light">Clair</SelectItem>
+                    <SelectItem value="dark">Sombre</SelectItem>
+                    <SelectItem value="auto">Automatique</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </CardContent>
           </Card>
 
-          {/* Notifications */}
+          {/* ── Fonctionnalités ───────────────────────────── */}
           <Card className="border-slate-200 shadow-sm">
             <CardHeader className="pb-3">
               <CardTitle className="text-base font-semibold text-slate-900 flex items-center gap-2">
-                <Bell className="w-4 h-4 text-red-600" />
-                Notifications
+                <Bell className="w-4 h-4" />Fonctionnalités
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {[
-                { label: "Nouveaux messages de contact", description: "Recevoir un email à chaque nouveau message" },
-                { label: "Nouveaux formulaires d'adhésion", description: "Recevoir un email à chaque nouvelle adhésion" },
-                { label: "Rappels élections", description: "Recevoir des rappels avant les échéances électorales" },
-              ].map((item) => (
-                <div key={item.label} className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0">
-                  <div>
-                    <p className="text-sm font-medium text-slate-800">{item.label}</p>
-                    <p className="text-xs text-slate-400">{item.description}</p>
+            <CardContent className="space-y-3">
+              {features.map(({ key, icon: Icon, label, desc }) => (
+                <div key={key} className={`flex items-center justify-between p-3 rounded-lg transition-colors ${(settings as any)[key] && key === "maintenanceMode" ? "bg-amber-50 border border-amber-100" : "bg-slate-50"}`}>
+                  <div className="flex items-center gap-3">
+                    <Icon className="w-4 h-4 text-slate-600" />
+                    <div>
+                      <p className="text-sm font-medium text-slate-900">{label}</p>
+                      <p className="text-xs text-slate-500">{desc}</p>
+                    </div>
                   </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" defaultChecked className="sr-only peer" />
-                    <div className="w-10 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-600"></div>
-                  </label>
+                  <Switch checked={(settings as any)[key]} onCheckedChange={(v) => handleChange(key, v)} />
                 </div>
               ))}
             </CardContent>
           </Card>
 
-          {/* Sécurité */}
+          {/* ── Affichage ─────────────────────────────────── */}
           <Card className="border-slate-200 shadow-sm">
             <CardHeader className="pb-3">
               <CardTitle className="text-base font-semibold text-slate-900 flex items-center gap-2">
-                <Lock className="w-4 h-4 text-slate-600" />
-                Sécurité
+                <FileText className="w-4 h-4" />Affichage
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-slate-700">Nouveau mot de passe</label>
-                  <Input type="password" placeholder="••••••••" />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-slate-700">Confirmer le mot de passe</label>
-                  <Input type="password" placeholder="••••••••" />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="itemsPerPage">Éléments par page</Label>
+                <Select value={settings.itemsPerPage.toString()} onValueChange={(v) => handleChange("itemsPerPage", parseInt(v))}>
+                  <SelectTrigger id="itemsPerPage"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {[5, 10, 20, 50].map((n) => <SelectItem key={n} value={n.toString()}>{n}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
             </CardContent>
           </Card>
+        </div>
 
-          {/* Apparence */}
-          <Card className="border-slate-200 shadow-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base font-semibold text-slate-900 flex items-center gap-2">
-                <Palette className="w-4 h-4 text-purple-600" />
-                Apparence
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-3">
-                {[
-                  { label: "Rouge", color: "bg-red-600", active: true },
-                  { label: "Teal", color: "bg-teal-600", active: false },
-                  { label: "Bleu", color: "bg-blue-600", active: false },
-                  { label: "Ardoise", color: "bg-slate-700", active: false },
-                ].map((theme) => (
-                  <button
-                    key={theme.label}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 text-sm font-medium transition-all ${
-                      theme.active
-                        ? "border-slate-900 bg-slate-50"
-                        : "border-slate-200 hover:border-slate-300"
-                    }`}
-                  >
-                    <span className={`w-4 h-4 rounded-full ${theme.color}`} />
-                    {theme.label}
-                  </button>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Save button */}
-          <div className="flex justify-end">
-            <Button className="bg-red-600 hover:bg-red-700 text-white gap-2">
-              <Save className="w-4 h-4" />
-              Enregistrer les modifications
-            </Button>
-          </div>
+        {/* ── Actions ──────────────────────────────────────── */}
+        <div className="mt-6 flex gap-3 flex-wrap">
+          <Button onClick={handleSave} className={`gap-2 transition-colors ${saved ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"} text-white`}>
+            {saved ? <><Check className="w-4 h-4" />Enregistré !</> : <><Save className="w-4 h-4" />Enregistrer</>}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleReset}
+            className={`gap-2 border-slate-200 transition-colors ${confirmReset ? "border-amber-400 bg-amber-50 text-amber-700 hover:bg-amber-100" : ""}`}
+          >
+            <RotateCcw className={`w-4 h-4 ${confirmReset ? "animate-spin" : ""}`} />
+            {confirmReset ? "Confirmer la réinitialisation ?" : "Réinitialiser"}
+          </Button>
         </div>
       </AdminLayout>
     </AdminAuthGuard>

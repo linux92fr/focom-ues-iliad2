@@ -1,45 +1,114 @@
-import { Link } from 'react-router-dom';
-import { Mail, Phone, Globe } from 'lucide-react';
+import { Facebook, Twitter, Linkedin, Youtube, Phone, Mail, MapPin } from "lucide-react";
+import logoFocom from "@/assets/logo-focom.png";
 
 const Footer = () => {
+  const footerLinks = {
+    "Syndicat": [
+      { label: "Qui sommes-nous ?", href: "/a-propos" },
+      { label: "Nos valeurs", href: "/a-propos" },
+      { label: "Contact", href: "/contact" },
+    ],
+    "Ressources": [
+      { label: "Actualités", href: "/actualites" },
+      { label: "Agenda", href: "/agenda" },
+      { label: "Publications", href: "/publications" },
+      { label: "Vos Droits", href: "/vos-droits" },
+    ],
+    "Légal": [
+      { label: "Mentions légales", href: "/mentions-legales" },
+      { label: "Confidentialité", href: "/mentions-legales" },
+    ],
+  };
+
+  const socialLinks = [
+    { icon: Facebook, href: "#", label: "Facebook" },
+    { icon: Twitter, href: "#", label: "Twitter" },
+    { icon: Linkedin, href: "#", label: "LinkedIn" },
+    { icon: Youtube, href: "#", label: "YouTube" },
+  ];
+
   return (
-    <footer className="border-t border-slate-200 bg-white mt-auto">
-      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6">
-          <div>
-            <h3 className="font-bold text-slate-900 text-sm mb-2">FOCOM UES ILIAD</h3>
-            <p className="text-xs text-slate-500 leading-relaxed">
-              Syndicat affilié à Force Ouvrière — Défense des salariés du groupe Iliad.
+    <footer className="bg-accent text-accent-foreground">
+      <div className="container mx-auto px-4 py-12">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8">
+          {/* Brand */}
+          <div className="col-span-2 md:col-span-4 lg:col-span-1">
+            <div className="flex items-center gap-3 mb-4">
+              <img 
+                src={logoFocom} 
+                alt="Logo FOCOM" 
+                className="w-14 h-14 object-contain"
+              />
+              <div>
+                <h3 className="font-serif text-xl font-bold">FOCOM</h3>
+                <p className="text-xs text-accent-foreground/70">Actu Espace</p>
+              </div>
+            </div>
+            <p className="text-sm text-accent-foreground/70 mb-4">
+              Votre syndicat engagé pour la défense de vos droits et l'amélioration de vos conditions de travail.
             </p>
+            <div className="flex gap-3">
+              {socialLinks.map((social, index) => (
+                <a
+                  key={index}
+                  href={social.href}
+                  aria-label={social.label}
+                  className="w-9 h-9 rounded-lg bg-accent-foreground/10 flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-colors"
+                >
+                  <social.icon className="h-4 w-4" />
+                </a>
+              ))}
+            </div>
           </div>
-          <div>
-            <h3 className="font-bold text-slate-900 text-sm mb-2">Navigation</h3>
-            <ul className="space-y-1 text-xs text-slate-600">
-              <li><Link to="/" className="hover:text-red-600 transition-colors">Accueil</Link></li>
-              <li><Link to="/elections" className="hover:text-red-600 transition-colors">Élections 2026</Link></li>
-            </ul>
-          </div>
-          <div>
-            <h3 className="font-bold text-slate-900 text-sm mb-2">Contact</h3>
-            <ul className="space-y-1.5 text-xs text-slate-600">
-              <li className="flex items-center gap-2">
-                <Phone className="w-3.5 h-3.5 text-red-600 shrink-0" />
-                <a href="tel:0187154311" className="hover:text-red-600 transition-colors">01 87 15 43 11</a>
-              </li>
-              <li className="flex items-center gap-2">
-                <Mail className="w-3.5 h-3.5 text-red-600 shrink-0" />
-                <a href="mailto:contact@focomues-iliad.fr" className="hover:text-red-600 transition-colors truncate">contact@focomues-iliad.fr</a>
-              </li>
-              <li className="flex items-center gap-2">
-                <Globe className="w-3.5 h-3.5 text-red-600 shrink-0" />
-                <a href="https://focomues-iliad.fr/" target="_blank" rel="noopener noreferrer" className="hover:text-red-600 transition-colors">focomues-iliad.fr</a>
-              </li>
-            </ul>
+
+          {/* Links */}
+          {Object.entries(footerLinks).map(([title, links]) => (
+            <div key={title}>
+              <h4 className="font-semibold mb-4">{title}</h4>
+              <ul className="space-y-2">
+                {links.map((link, index) => (
+                  <li key={index}>
+                    <a
+                      href={link.href}
+                      className="text-sm text-accent-foreground/70 hover:text-primary transition-colors"
+                    >
+                      {link.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+
+        {/* Contact info */}
+        <div className="border-t border-accent-foreground/10 mt-10 pt-8">
+          <div className="flex flex-wrap gap-6 justify-center text-sm text-accent-foreground/70">
+            <a href="tel:+33123456789" className="flex items-center gap-2 hover:text-primary transition-colors">
+              <Phone className="h-4 w-4" />
+              01 23 45 67 89
+            </a>
+            <a href="mailto:contact@focom-actu.fr" className="flex items-center gap-2 hover:text-primary transition-colors">
+              <Mail className="h-4 w-4" />
+              contact@focomues-iliad.fr
+            </a>
+            <span className="flex items-center gap-2">
+              <MapPin className="h-4 w-4" />
+              Paris, France
+            </span>
           </div>
         </div>
-        <div className="pt-4 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <p className="text-xs text-slate-500">© 2026 FOCOM UES ILIAD — Tous droits réservés</p>
-          <p className="text-xs text-slate-400">Affilié à <strong>Force Ouvrière</strong></p>
+
+        {/* Copyright */}
+        <div className="border-t border-accent-foreground/10 mt-8 pt-8 text-center">
+          <p className="text-sm text-accent-foreground/50">
+            © {new Date().getFullYear()} FOCOM UES ILIAD Actu Espace. Tous droits réservés.
+          </p>
+          <div className="flex justify-center gap-4 mt-2 text-xs text-accent-foreground/40">
+            <a href="#" className="hover:text-accent-foreground transition-colors">Mentions légales</a>
+            <a href="#" className="hover:text-accent-foreground transition-colors">Politique de confidentialité</a>
+            <a href="#" className="hover:text-accent-foreground transition-colors">CGU</a>
+          </div>
         </div>
       </div>
     </footer>

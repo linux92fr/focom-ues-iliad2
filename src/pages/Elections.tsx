@@ -1,8 +1,10 @@
+import PageShell from '@/components/PageShell';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
+
+
 import ScrollToTop from '@/components/ScrollToTop';
+import ProfessionDeFoiT2 from '@/components/ProfessionDeFoiT2';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -81,17 +83,21 @@ const ResBar = ({ s, type }: { s: SyndicatResult; type: 'titulaires' | 'supplean
 
 const CandidateCard = ({ candidat, index }: { candidat: Candidat & { role?: string; fonction?: string }; index: number }) => {
   const [imgError, setImgError] = useState(false);
+  
+  // On récupère la fonction si elle existe
   const fonction = candidat.role || candidat.fonction;
 
   return (
     <div className="group flex items-center gap-3 p-3 rounded-lg border border-border bg-card hover:border-red-300 dark:hover:border-red-800/50 hover:shadow-lg hover:-translate-y-1 hover:scale-[1.02] transition-all duration-300 cursor-default">
+      
+      {/* Photo sans l'effet de zoom interne */}
       <div className="h-12 w-12 shrink-0 rounded-full overflow-hidden bg-gradient-to-br from-red-600 to-red-800 flex items-center justify-center shadow-sm">
         {candidat.photo && !imgError ? (
-          <img
-            src={candidat.photo}
-            alt={candidat.name}
-            className="h-full w-full object-cover"
-            onError={() => setImgError(true)}
+          <img 
+            src={candidat.photo} 
+            alt={candidat.name} 
+            className="h-full w-full object-cover" 
+            onError={() => setImgError(true)} 
           />
         ) : (
           <span className="text-white font-bold text-sm">
@@ -99,11 +105,13 @@ const CandidateCard = ({ candidat, index }: { candidat: Candidat & { role?: stri
           </span>
         )}
       </div>
-
+      
+      {/* Informations */}
       <div className="min-w-0 flex-1">
         <p className="font-semibold text-foreground text-sm truncate group-hover:text-red-700 dark:group-hover:text-red-400 transition-colors">
           {candidat.name}
         </p>
+        
         <div className="flex flex-col mt-0.5">
           {fonction && (
             <span className="text-xs text-muted-foreground truncate font-medium">
@@ -117,6 +125,7 @@ const CandidateCard = ({ candidat, index }: { candidat: Candidat & { role?: stri
           </div>
         </div>
       </div>
+
     </div>
   );
 };
@@ -192,27 +201,28 @@ const Elections = () => {
           return toTs(a.date, a.heure) - toTs(b.date, b.heure);
         })
       );
-      setLoading(false);
+      setLoading(false);      
     };
     fetchData();
   }, []);
 
   const t2ParticipationData = participationData.filter(snap => {
-    const parts = snap.date.split('/');
-    if (parts.length !== 3) return false;
-    const [day, month, year] = parts.map(Number);
-    return new Date(year, month - 1, day) >= new Date(2026, 3, 29);
-  });
-  const latestT2Snap = t2ParticipationData[t2ParticipationData.length - 1] ?? null;
+  const parts = snap.date.split('/');
+  if (parts.length !== 3) return false;
+  const [day, month, year] = parts.map(Number);
+  return new Date(year, month - 1, day) >= new Date(2026, 3, 29);
+});
+const latestT2Snap = t2ParticipationData[t2ParticipationData.length - 1] ?? null;
 
   // Documents partitioned by type
+  const foDocuments      = documents.filter(d => d.list_name?.toUpperCase().includes('FO') || !d.list_name);
   const professionsDeFoi = documents.filter(d => d.document_type === 'profession_de_foi');
   const tracts           = documents.filter(d => d.document_type === 'tract');
   const autresDocuments  = documents.filter(d => d.document_type === 'autre');
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
+    <PageShell subtitle="Élections">
+
       <main className="pt-24 pb-16 px-4">
         <div className="container mx-auto max-w-5xl space-y-10">
 
@@ -232,6 +242,7 @@ const Elections = () => {
                 Free SAS · Free Mobile · Free Réseau · ROF · Assunet · Iliad SA
               </p>
             </div>
+            {/* Statut résumé */}
             <div className="flex flex-wrap justify-center gap-2 pt-1">
               <span className="inline-flex items-center gap-1.5 rounded-full border border-green-200 bg-green-50 dark:bg-green-950/20 dark:border-green-800/40 px-3 py-1 text-xs font-medium text-green-700 dark:text-green-400">
                 <CheckCircle className="h-3 w-3" />1er tour terminé — 21 avr. 2026
@@ -250,9 +261,13 @@ const Elections = () => {
           <Tabs value={activeTab} onValueChange={val => setSearchParams({ tab: val })}>
             <div className="rounded-xl border border-border bg-muted/30 p-1.5">
               <TabsList className="w-full flex flex-wrap h-auto gap-1 bg-transparent p-0">
+
+                {/* Tab 1 : Vote */}
                 <TabsTrigger
                   value="vote"
-                  className="relative flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg data-[state=active]:bg-red-700 data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-muted/60"
+                  className="relative flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg
+                    data-[state=active]:bg-red-700 data-[state=active]:text-white data-[state=active]:shadow-sm
+                    data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-muted/60"
                 >
                   <Vote className="h-3.5 w-3.5 shrink-0" />
                   <span>2ème tour</span>
@@ -261,28 +276,43 @@ const Elections = () => {
                     <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-700" />
                   </span>
                 </TabsTrigger>
+
+                {/* Tab 2 : Notre programme */}
                 <TabsTrigger
                   value="programme"
-                  className="flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg data-[state=active]:bg-red-600 data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-red-600 dark:data-[state=inactive]:text-red-400 data-[state=inactive]:hover:bg-red-50 dark:data-[state=inactive]:hover:bg-red-950/20"
+                  className="flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg
+                    data-[state=active]:bg-red-600 data-[state=active]:text-white data-[state=active]:shadow-sm
+                    data-[state=inactive]:text-red-600 dark:data-[state=inactive]:text-red-400 data-[state=inactive]:hover:bg-red-50 dark:data-[state=inactive]:hover:bg-red-950/20"
                 >
                   <Megaphone className="h-3.5 w-3.5 shrink-0" /><span>Notre programme</span>
                 </TabsTrigger>
+
+                {/* Tab 3 : Résultats */}
                 <TabsTrigger
                   value="resultats"
-                  className="flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-muted/60"
+                  className="flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg
+                    data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-sm
+                    data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-muted/60"
                 >
-                  <Trophy className="h-3.5 w-3.5 shrink-0" /><span>Résultats &amp; Participation</span>
+                  <Trophy className="h-3.5 w-3.5 shrink-0" /><span>Résultats & Participation</span>
                 </TabsTrigger>
+
+                {/* Tab 4 : Calendrier & Règles */}
                 <TabsTrigger
                   value="calendrier"
-                  className="flex-1 flex items-center justify-center gap-1.5 text-xs font-medium px-3 py-2 rounded-lg data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-muted/60"
+                  className="flex-1 flex items-center justify-center gap-1.5 text-xs font-medium px-3 py-2 rounded-lg
+                    data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm
+                    data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-muted/60"
                 >
                   <CalendarDays className="h-3.5 w-3.5 shrink-0" /><span>Calendrier &amp; Règles</span>
                 </TabsTrigger>
+
               </TabsList>
             </div>
 
-            {/* TAB 1 : VOTE */}
+            {/* ════════════════════════════════════════════════════════════
+                TAB 1 : VOTE — 2ème tour, stripped to action essentials
+            ════════════════════════════════════════════════════════════ */}
             <TabsContent value="vote" className="space-y-8 mt-6">
               {loading ? (
                 <div className="flex justify-center py-16">
@@ -290,6 +320,7 @@ const Elections = () => {
                 </div>
               ) : (
                 <>
+                  {/* Bandeau statut */}
                   <div className="rounded-xl border border-red-200 dark:border-red-800/40 bg-red-50/80 dark:bg-red-950/20 px-5 py-4 flex flex-col sm:flex-row items-start sm:items-center gap-4">
                     <div className="w-10 h-10 rounded-lg bg-red-600 flex items-center justify-center shrink-0">
                       <Vote className="h-5 w-5 text-white" />
@@ -311,6 +342,7 @@ const Elections = () => {
                     </Button>
                   </div>
 
+                  {/* Dates clés */}
                   <div className="grid sm:grid-cols-2 gap-4">
                     <div className="rounded-xl border border-border bg-card p-5 space-y-2">
                       <div className="flex items-center gap-2 text-green-600 dark:text-green-400 font-semibold text-sm">
@@ -330,134 +362,141 @@ const Elections = () => {
                     </div>
                   </div>
 
-                  {/* Participation live T2 */}
-                  <section className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <TrendingUp className="h-5 w-5 text-purple-500" />
-                      <h2 className="text-base font-bold text-foreground">Participation en direct — 2e tour</h2>
-                      <span className="relative flex h-2 w-2 ml-1">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-500 opacity-60" />
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-purple-600" />
-                      </span>
+                  {/* ── Participation live T2 ── */}
+  <section className="space-y-3">
+    <div className="flex items-center gap-2">
+      <TrendingUp className="h-5 w-5 text-purple-500" />
+      <h2 className="text-base font-bold text-foreground">Participation en direct — 2e tour</h2>
+      <span className="relative flex h-2 w-2 ml-1">
+        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-500 opacity-60" />
+        <span className="relative inline-flex rounded-full h-2 w-2 bg-purple-600" />
+      </span>
+    </div>
+ 
+    {latestT2Snap ? (
+      <div className="rounded-xl border border-purple-200 dark:border-purple-800/40 bg-purple-50/40 dark:bg-purple-950/10 overflow-hidden">
+        {/* Header relevé */}
+        <div className="flex items-center justify-between flex-wrap gap-3 px-4 py-3 border-b border-purple-200 dark:border-purple-800/40">
+          <div className="flex items-center gap-2 text-muted-foreground text-xs">
+            <Clock className="h-3.5 w-3.5 shrink-0" />
+            <span>Relevé du <strong className="text-foreground">{latestT2Snap.date}</strong> à <strong className="text-foreground">{latestT2Snap.heure}</strong></span>
+          </div>
+          <div className="rounded-full bg-purple-600 px-3 py-1 text-white text-xs font-bold">
+            Établissement : {(latestT2Snap.taux_etablissement ?? 0).toFixed(2)} %
+          </div>
+        </div>
+ 
+        {/* Données collège Employés */}
+        {(() => {
+          const col = (latestT2Snap.participation_colleges ?? []).find(
+            c => c.nom?.toLowerCase().includes('techni') || c.nom?.toLowerCase().includes('employ')
+          );
+          if (!col) return (
+            <div className="px-4 py-6 text-center text-sm text-muted-foreground">
+              Aucune donnée de collège disponible.
+            </div>
+          );
+ 
+          const tauxTit = col.tit_taux ?? 0;
+          const tauxSup = col.sup_taux ?? 0;
+          const tauxCol = col.taux_college ?? 0;
+ 
+          return (
+            <div className="px-4 py-4 space-y-4">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <p className="font-semibold text-foreground text-sm">{col.nom}</p>
+                <Badge variant="outline" className="text-xs border-purple-300 dark:border-purple-700 text-purple-700 dark:text-purple-400">
+                  Taux : {tauxCol.toFixed(2)} %
+                </Badge>
+              </div>
+ 
+              {/* Barres de progression */}
+              <div className="space-y-3">
+                {/* Titulaires */}
+                <div className="space-y-1">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-muted-foreground">Titulaires</span>
+                    <span className="font-bold text-purple-700 dark:text-purple-400 tabular-nums">
+                      {tauxTit.toFixed(2)} % · {col.tit_votants ?? 0} / {col.tit_inscrits ?? 0}
+                    </span>
+                  </div>
+                  <div className="h-2 rounded-full bg-purple-100 dark:bg-purple-900/30 overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-purple-600 transition-all duration-700"
+                      style={{ width: `${Math.min(tauxTit, 100)}%` }}
+                    />
+                  </div>
+                </div>
+                {/* Suppléants */}
+                <div className="space-y-1">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-muted-foreground">Suppléants</span>
+                    <span className="font-bold text-purple-700 dark:text-purple-400 tabular-nums">
+                      {tauxSup.toFixed(2)} % · {col.sup_votants ?? 0} / {col.sup_inscrits ?? 0}
+                    </span>
+                  </div>
+                  <div className="h-2 rounded-full bg-purple-100 dark:bg-purple-900/30 overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-purple-400 transition-all duration-700"
+                      style={{ width: `${Math.min(tauxSup, 100)}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+ 
+              {/* Comparaison T1 */}
+              <div className="rounded-lg border border-purple-200 dark:border-purple-800/40 bg-white/60 dark:bg-purple-950/20 px-3 py-2 flex items-center gap-3 text-xs text-muted-foreground">
+                <Info className="h-3.5 w-3.5 shrink-0 text-purple-400" />
+                <span>
+                  Pour rappel, le taux au 1er tour était de{' '}
+                  <strong className="text-foreground">37,64 %</strong>.
+                  {tauxCol > 37.64
+                    ? <span className="text-emerald-600 dark:text-emerald-400 font-semibold"> Le 2e tour dépasse déjà ce seuil !</span>
+                    : <span> Le quorum n'est pas requis au 2e tour.</span>
+                  }
+                </span>
+              </div>
+            </div>
+          );
+        })()}
+ 
+        {/* Historique des relevés T2 */}
+        {t2ParticipationData.length > 1 && (
+          <div className="border-t border-purple-200 dark:border-purple-800/40 px-4 py-3">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+              Historique des relevés T2
+            </p>
+            <div className="space-y-1">
+              {[...t2ParticipationData].reverse().map((snap, i) => {
+                const empCol = (snap.participation_colleges ?? []).find(
+                  c => c.nom?.toLowerCase().includes('techni') || c.nom?.toLowerCase().includes('employ')
+                );
+                return (
+                  <div key={snap.id ?? i} className="flex items-center justify-between gap-4 rounded px-2 py-1.5 hover:bg-purple-100/50 dark:hover:bg-purple-900/20 transition-colors">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Clock className="h-3 w-3 shrink-0" />
+                      {snap.date} · {snap.heure}
                     </div>
-
-                    {latestT2Snap ? (
-                      <div className="rounded-xl border border-purple-200 dark:border-purple-800/40 bg-purple-50/40 dark:bg-purple-950/10 overflow-hidden">
-                        <div className="flex items-center justify-between flex-wrap gap-3 px-4 py-3 border-b border-purple-200 dark:border-purple-800/40">
-                          <div className="flex items-center gap-2 text-muted-foreground text-xs">
-                            <Clock className="h-3.5 w-3.5 shrink-0" />
-                            <span>Relevé du <strong className="text-foreground">{latestT2Snap.date}</strong> à <strong className="text-foreground">{latestT2Snap.heure}</strong></span>
-                          </div>
-                          <div className="rounded-full bg-purple-600 px-3 py-1 text-white text-xs font-bold">
-                            Établissement : {(latestT2Snap.taux_etablissement ?? 0).toFixed(2)} %
-                          </div>
-                        </div>
-
-                        {(() => {
-                          const col = (latestT2Snap.participation_colleges ?? []).find(
-                            c => c.nom?.toLowerCase().includes('techni') || c.nom?.toLowerCase().includes('employ')
-                          );
-                          if (!col) return (
-                            <div className="px-4 py-6 text-center text-sm text-muted-foreground">
-                              Aucune donnée de collège disponible.
-                            </div>
-                          );
-
-                          const tauxTit = col.tit_taux ?? 0;
-                          const tauxSup = col.sup_taux ?? 0;
-                          const tauxCol = col.taux_college ?? 0;
-
-                          return (
-                            <div className="px-4 py-4 space-y-4">
-                              <div className="flex items-center justify-between flex-wrap gap-2">
-                                <p className="font-semibold text-foreground text-sm">{col.nom}</p>
-                                <Badge variant="outline" className="text-xs border-purple-300 dark:border-purple-700 text-purple-700 dark:text-purple-400">
-                                  Taux : {tauxCol.toFixed(2)} %
-                                </Badge>
-                              </div>
-
-                              <div className="space-y-3">
-                                <div className="space-y-1">
-                                  <div className="flex justify-between items-center text-xs">
-                                    <span className="text-muted-foreground">Titulaires</span>
-                                    <span className="font-bold text-purple-700 dark:text-purple-400 tabular-nums">
-                                      {tauxTit.toFixed(2)} % · {col.tit_votants ?? 0} / {col.tit_inscrits ?? 0}
-                                    </span>
-                                  </div>
-                                  <div className="h-2 rounded-full bg-purple-100 dark:bg-purple-900/30 overflow-hidden">
-                                    <div
-                                      className="h-full rounded-full bg-purple-600 transition-all duration-700"
-                                      style={{ width: `${Math.min(tauxTit, 100)}%` }}
-                                    />
-                                  </div>
-                                </div>
-                                <div className="space-y-1">
-                                  <div className="flex justify-between items-center text-xs">
-                                    <span className="text-muted-foreground">Suppléants</span>
-                                    <span className="font-bold text-purple-700 dark:text-purple-400 tabular-nums">
-                                      {tauxSup.toFixed(2)} % · {col.sup_votants ?? 0} / {col.sup_inscrits ?? 0}
-                                    </span>
-                                  </div>
-                                  <div className="h-2 rounded-full bg-purple-100 dark:bg-purple-900/30 overflow-hidden">
-                                    <div
-                                      className="h-full rounded-full bg-purple-400 transition-all duration-700"
-                                      style={{ width: `${Math.min(tauxSup, 100)}%` }}
-                                    />
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div className="rounded-lg border border-purple-200 dark:border-purple-800/40 bg-white/60 dark:bg-purple-950/20 px-3 py-2 flex items-center gap-3 text-xs text-muted-foreground">
-                                <Info className="h-3.5 w-3.5 shrink-0 text-purple-400" />
-                                <span>
-                                  Pour rappel, le taux au 1er tour était de{' '}
-                                  <strong className="text-foreground">37,64 %</strong>.
-                                  {tauxCol > 37.64
-                                    ? <span className="text-emerald-600 dark:text-emerald-400 font-semibold"> Le 2e tour dépasse déjà ce seuil !</span>
-                                    : <span> Le quorum n'est pas requis au 2e tour.</span>
-                                  }
-                                </span>
-                              </div>
-                            </div>
-                          );
-                        })()}
-
-                        {t2ParticipationData.length > 1 && (
-                          <div className="border-t border-purple-200 dark:border-purple-800/40 px-4 py-3">
-                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-                              Historique des relevés T2
-                            </p>
-                            <div className="space-y-1">
-                              {[...t2ParticipationData].reverse().map((snap, i) => {
-                                const empCol = (snap.participation_colleges ?? []).find(
-                                  c => c.nom?.toLowerCase().includes('techni') || c.nom?.toLowerCase().includes('employ')
-                                );
-                                return (
-                                  <div key={snap.id ?? i} className="flex items-center justify-between gap-4 rounded px-2 py-1.5 hover:bg-purple-100/50 dark:hover:bg-purple-900/20 transition-colors">
-                                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                      <Clock className="h-3 w-3 shrink-0" />
-                                      {snap.date} · {snap.heure}
-                                    </div>
-                                    <div className="flex items-center gap-3 text-xs tabular-nums">
-                                      <span className="text-muted-foreground">Tit. <span className="font-bold text-foreground">{(empCol?.tit_taux ?? 0).toFixed(2)} %</span></span>
-                                      <span className="text-muted-foreground">Sup. <span className="font-bold text-foreground">{(empCol?.sup_taux ?? 0).toFixed(2)} %</span></span>
-                                      <span className="font-bold text-purple-700 dark:text-purple-400">{(snap.taux_etablissement ?? 0).toFixed(2)} % étab.</span>
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="rounded-xl border border-border bg-muted/20 px-5 py-7 text-center space-y-2">
-                        <TrendingUp className="h-7 w-7 text-muted-foreground/30 mx-auto" />
-                        <p className="text-sm text-muted-foreground">Aucun relevé disponible pour ce 2e tour.</p>
-                        <p className="text-xs text-muted-foreground/70">Les données apparaîtront ici dès la saisie du premier relevé.</p>
-                      </div>
-                    )}
-                  </section>
+                    <div className="flex items-center gap-3 text-xs tabular-nums">
+                      <span className="text-muted-foreground">Tit. <span className="font-bold text-foreground">{(empCol?.tit_taux ?? 0).toFixed(2)} %</span></span>
+                      <span className="text-muted-foreground">Sup. <span className="font-bold text-foreground">{(empCol?.sup_taux ?? 0).toFixed(2)} %</span></span>
+                      <span className="font-bold text-purple-700 dark:text-purple-400">{(snap.taux_etablissement ?? 0).toFixed(2)} % étab.</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    ) : (
+      <div className="rounded-xl border border-border bg-muted/20 px-5 py-7 text-center space-y-2">
+        <TrendingUp className="h-7 w-7 text-muted-foreground/30 mx-auto" />
+        <p className="text-sm text-muted-foreground">Aucun relevé disponible pour ce 2e tour.</p>
+        <p className="text-xs text-muted-foreground/70">Les données apparaîtront ici dès la saisie du premier relevé.</p>
+      </div>
+    )}
+  </section>
 
                   {/* Candidats 2ème tour */}
                   <section className="space-y-6">
@@ -470,6 +509,7 @@ const Elections = () => {
                       </Button>
                     </div>
 
+                    {/* Alerte vote de liste */}
                     <div className="rounded-lg border border-red-200 dark:border-red-800/40 bg-red-50/60 dark:bg-red-950/20 px-4 py-3 flex items-start gap-3">
                       <span className="text-xl shrink-0">🗳️</span>
                       <div>
@@ -481,6 +521,7 @@ const Elections = () => {
                       </div>
                     </div>
 
+                    {/* Titulaires */}
                     <div className="space-y-3">
                       <div className="flex items-center gap-2">
                         <span className="h-5 w-1 rounded-full bg-red-600 inline-block" />
@@ -494,6 +535,7 @@ const Elections = () => {
                       </div>
                     </div>
 
+                    {/* Suppléants */}
                     <div className="space-y-3">
                       <div className="flex items-center gap-2">
                         <span className="h-5 w-1 rounded-full bg-slate-400 inline-block" />
@@ -507,6 +549,7 @@ const Elections = () => {
                       </div>
                     </div>
 
+                    {/* CTA vote */}
                     <div className="rounded-xl bg-gradient-to-r from-red-700 to-red-800 p-5 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-md">
                       <div>
                         <p className="font-bold text-white text-base">🗳️ Votez FO COM UES ILIAD — 2ème tour !</p>
@@ -523,8 +566,13 @@ const Elections = () => {
               )}
             </TabsContent>
 
-            {/* TAB 2 : NOTRE PROGRAMME */}
+            {/* ════════════════════════════════════════════════════════════
+                TAB 2 : NOTRE PROGRAMME
+                Propagande + Profession de foi + documents Supabase FO
+            ════════════════════════════════════════════════════════════ */}
             <TabsContent value="programme" className="space-y-8 mt-6">
+
+              {/* Hero propagande */}
               <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#001a6e] via-[#0047CC] to-[#0068FF] text-white shadow-xl min-h-[300px]">
                 <div className="pointer-events-none absolute inset-0">
                   <div className="absolute -left-10 -top-10 h-56 w-56 rounded-full border-[40px] border-white/5" />
@@ -559,10 +607,11 @@ const Elections = () => {
                 </div>
               </div>
 
+              {/* PDF programme */}
               <div className="flex flex-col sm:flex-row items-center gap-4 rounded-xl border border-border bg-card px-5 py-4">
                 <div className="flex items-center gap-3 flex-1 min-w-0">
                   <div className="shrink-0 w-9 h-9 rounded-lg bg-red-600 flex items-center justify-center">
-                    <FileText className="h-4 w-4 text-white" />
+                    <FileText className="h-4.5 w-4.5 text-white" />
                   </div>
                   <div>
                     <p className="font-semibold text-foreground text-sm">Programme électoral complet — FO COM UES Iliad</p>
@@ -583,6 +632,7 @@ const Elections = () => {
                 </div>
               </div>
 
+              {/* Qui sommes-nous */}
               <Card>
                 <CardHeader className="pb-3"><CardTitle className="flex items-center gap-2 text-base"><Users className="h-4 w-4 text-primary" />Qui sommes-nous ?</CardTitle></CardHeader>
                 <CardContent className="space-y-3 text-sm text-muted-foreground leading-relaxed">
@@ -598,6 +648,64 @@ const Elections = () => {
                 </CardContent>
               </Card>
 
+              {/* Bilan */}
+              <section className="space-y-4">
+                <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
+                  <CheckCircle className="h-5 w-5 text-green-500" />Notre bilan
+                </h3>
+                <div className="grid sm:grid-cols-2 gap-3">
+                  {[
+                    { icon: '⚖️', titre: 'RPS : La justice a donné raison au CSE',             texte: "Malgré l'opposition de la direction, nous avons obtenu gain de cause." },
+                    { icon: '📈', titre: "Salaires : L'entreprise a les moyens",                texte: 'Confirmé par expertises indépendantes — nous exigeons que ça se traduise en actes.' },
+                    { icon: '🛡️', titre: 'Réorganisations abusives dénoncées',                  texte: "Projets mal préparés aux impacts sous-estimés — nous l'avons dit haut et fort." },
+                    { icon: '🏠', titre: 'Télétravail défendu bec et ongles',                   texte: 'Opposition ferme aux décisions brutales et injustifiées de la direction.' },
+                    { icon: '💪', titre: 'Astreintes techniciens : rapport de force gagné',     texte: "FO a imposé une revalorisation des compensations et l'instauration de repos intangibles." },
+                    { icon: '🌙', titre: 'Techniciens de nuit : repos garantis',                texte: 'Dialogue social offensif pour exiger des plages de repos avant et après les interventions nocturnes.' },
+                    { icon: '✊', titre: 'Pétitions et grèves : FO assume ses responsabilités', texte: 'Seul syndicat à organiser des actions concrètes pour défendre les droits des salariés.' },
+                    { icon: '🔥', titre: 'Négociations : FO face à la direction',               texte: "Seul syndicat à porter le combat dans chaque négociation et à s'opposer fermement." },
+                    { icon: '📈', titre: 'Un syndicat renforcé par ses adhérents',              texte: 'De nouveaux adhérents toujours plus nombreux rejoignent nos rangs.' },
+                  ].map((item, i) => (
+                    <div key={i} className="flex items-start gap-3 p-3 rounded-lg border border-border bg-card">
+                      <span className="text-lg shrink-0">{item.icon}</span>
+                      <div>
+                        <p className="font-semibold text-foreground text-sm">{item.titre}</p>
+                        <p className="text-xs text-muted-foreground leading-relaxed mt-0.5">{item.texte}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              {/* 4 priorités */}
+              <section className="space-y-4">
+                <h3 className="text-lg font-bold text-foreground">Nos 4 priorités pour 2026</h3>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  {[
+                    { emoji: '💰', titre: "Pouvoir d'Achat & Partage de la Valeur", intro: "Face à une inflation qui se stabilise mais des prix qui restent hauts :", items: ["Augmentations Générales (AG) : une base fixe pour tous", "Prime de Partage de la Valeur (PPV) : prime maximale défiscalisée", "Tickets Restaurant : revalorisation à 12,50 € pour suivre le coût réel"] },
+                    { emoji: '🤖', titre: 'IA et Évolution des Métiers', intro: "« Zéro salarié laissé de côté » — Nous demandons :", items: ["Droit à la Formation Massive : plan certifiant avant tout déploiement IA", "Garantie d'Emploi : l'IA doit réduire la charge, non supprimer des postes"] },
+                    { emoji: '🏠', titre: 'Qualité de Vie et Télétravail (TAD)', intro: 'Le mode hybride doit être mieux encadré :', items: ["Indemnité Télétravail : passage à 5 € par jour", "Droit à la Déconnexion : verrous techniques après 19h", "Semaine de 4 jours : expérimentation sur services volontaires"] },
+                    { emoji: '🤝', titre: 'Un CSE au service de TOUS', intro: 'Transparence et activités sociales dignes :', items: ["Transparence totale dans nos communications", "ASC : chèques vacances, activités bien-être & sport", "Chèque culture et remboursement frais de garde enfants"] },
+                  ].map(pilier => (
+                    <div key={pilier.titre} className="rounded-xl border border-border bg-card overflow-hidden">
+                      <div className="bg-red-600 px-4 py-2.5">
+                        <p className="font-bold text-white text-sm">{pilier.emoji} {pilier.titre}</p>
+                      </div>
+                      <div className="px-4 py-3 space-y-2">
+                        <p className="text-xs text-muted-foreground italic">{pilier.intro}</p>
+                        <ul className="space-y-1.5">
+                          {pilier.items.map(item => (
+                            <li key={item} className="flex items-start gap-2 text-xs text-foreground">
+                              <span className="mt-1 w-1 h-1 rounded-full bg-red-500 shrink-0" />{item}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              {/* Engagements */}
               <Card>
                 <CardHeader className="pb-3"><CardTitle className="flex items-center gap-2 text-base"><Shield className="h-4 w-4 text-primary" />Nos engagements</CardTitle></CardHeader>
                 <CardContent>
@@ -611,35 +719,37 @@ const Elections = () => {
                 </CardContent>
               </Card>
 
-              <section className="space-y-4">
-                <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
-                  <Printer className="h-5 w-5 text-muted-foreground" />Profession de foi — 2e tour
-                </h3>
-                <div className="flex flex-col sm:flex-row items-center gap-4 rounded-xl border border-border bg-card px-5 py-4">
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <div className="shrink-0 w-9 h-9 rounded-lg bg-red-600 flex items-center justify-center">
-                      <FileText className="h-4 w-4 text-white" />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-foreground text-sm">Profession de foi — FO COM UES Iliad</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">2ème tour · 29 avril – 6 mai 2026</p>
-                    </div>
-                  </div>
-                  <div className="flex gap-2 shrink-0">
-                    <Button asChild size="sm" className="bg-red-600 hover:bg-red-700 text-white">
-                      <a href="/propagande-ues-iliad-2tour.pdf" target="_blank" rel="noopener noreferrer">
-                        <ExternalLink className="h-3.5 w-3.5 mr-1.5" />Consulter
-                      </a>
-                    </Button>
-                    <Button asChild size="sm" variant="outline">
-                      <a href="/propagande-ues-iliad-2tour.pdf" download>
-                        <Download className="h-3.5 w-3.5 mr-1.5" />Télécharger
-                      </a>
-                    </Button>
-                  </div>
-                </div>
-              </section>
+              {/* ── Profession de foi — section inline ── */}
+<section className="space-y-4">
+  <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
+    <Printer className="h-5 w-5 text-muted-foreground" />Profession de foi — 2e tour
+  </h3>
+  <div className="flex flex-col sm:flex-row items-center gap-4 rounded-xl border border-border bg-card px-5 py-4">
+    <div className="flex items-center gap-3 flex-1 min-w-0">
+      <div className="shrink-0 w-9 h-9 rounded-lg bg-red-600 flex items-center justify-center">
+        <FileText className="h-4 w-4 text-white" />
+      </div>
+      <div>
+        <p className="font-semibold text-foreground text-sm">Profession de foi — FO COM UES Iliad</p>
+        <p className="text-xs text-muted-foreground mt-0.5">2ème tour · 29 avril – 6 mai 2026</p>
+      </div>
+    </div>
+    <div className="flex gap-2 shrink-0">
+      <Button asChild size="sm" className="bg-red-600 hover:bg-red-700 text-white">
+        <a href="/propagande-ues-iliad-2tour.pdf" target="_blank" rel="noopener noreferrer">
+          <ExternalLink className="h-3.5 w-3.5 mr-1.5" />Consulter
+        </a>
+      </Button>
+      <Button asChild size="sm" variant="outline">
+        <a href="/propagande-ues-iliad-2tour.pdf" download>
+          <Download className="h-3.5 w-3.5 mr-1.5" />Télécharger
+        </a>
+      </Button>
+    </div>
+  </div>
+</section>
 
+              {/* ── Documents Supabase liés à FO ── */}
               {documents.length > 0 && (
                 <section className="space-y-6">
                   <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
@@ -678,6 +788,7 @@ const Elections = () => {
                 </section>
               )}
 
+              {/* CTA final */}
               <div className="rounded-2xl bg-gradient-to-r from-red-600 to-red-700 p-6 text-center shadow-lg">
                 <Vote className="h-7 w-7 mx-auto mb-2 text-white/80" />
                 <p className="text-white font-black text-lg uppercase tracking-wide">Protégez vos droits</p>
@@ -685,6 +796,7 @@ const Elections = () => {
                 <p className="text-white font-extrabold text-xl mt-2">VOTEZ POUR FO COM UES ILIAD</p>
               </div>
 
+              {/* Contacts */}
               <section className="space-y-4">
                 <h3 className="text-base font-bold text-foreground flex items-center gap-2">
                   <Phone className="h-4 w-4 text-muted-foreground" />Contactez vos délégués syndicaux
@@ -702,6 +814,7 @@ const Elections = () => {
                 </div>
               </section>
 
+              {/* Liens externes */}
               <div className="flex flex-wrap gap-3">
                 <Button asChild variant="outline" size="sm">
                   <a href="https://focomues-iliad.fr/" target="_blank" rel="noopener noreferrer">
@@ -721,7 +834,10 @@ const Elections = () => {
               </p>
             </TabsContent>
 
-            {/* TAB 3 : RÉSULTATS */}
+            {/* ════════════════════════════════════════════════════════════
+                TAB 3 : RÉSULTATS & PARTICIPATION
+                Résultats 1er tour + Participation comme section
+            ════════════════════════════════════════════════════════════ */}
             <TabsContent value="resultats" className="space-y-8 mt-6">
               <div>
                 <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
@@ -730,6 +846,7 @@ const Elections = () => {
                 <p className="text-sm text-muted-foreground mt-1">Scrutin du 14–21 avril 2026 — Vote électronique — e-votez.net</p>
               </div>
 
+              {/* Résumé FO */}
               <div className="grid sm:grid-cols-2 gap-3">
                 <div className="flex items-center gap-3 rounded-xl border-2 border-red-300 dark:border-red-700 bg-red-50/60 dark:bg-red-950/20 px-4 py-4">
                   <div className="w-9 h-9 rounded-full flex items-center justify-center font-black text-white text-sm shrink-0" style={{ background: SYNDICAT_COLORS.FO }}>FO</div>
@@ -749,6 +866,7 @@ const Elections = () => {
                 </div>
               </div>
 
+              {/* ── Section Participation ── */}
               <section className="space-y-5">
                 <div className="flex items-center gap-2 border-b border-border pb-3">
                   <TrendingUp className="h-5 w-5 text-purple-500" />
@@ -817,6 +935,7 @@ const Elections = () => {
                 })()}
               </section>
 
+              {/* Collège Employés */}
               <section className="space-y-4">
                 <div className="flex items-center gap-2 flex-wrap">
                   <h3 className="text-base font-bold text-foreground">Collège Techniciens / Employés / Non-Cadres</h3>
@@ -872,6 +991,7 @@ const Elections = () => {
                 </div>
               </section>
 
+              {/* Collège Cadres */}
               <section className="space-y-4">
                 <div className="flex items-center gap-2 flex-wrap">
                   <h3 className="text-base font-bold text-foreground">Collège Cadres</h3>
@@ -932,6 +1052,7 @@ const Elections = () => {
                   </Card>
                 </div>
 
+                {/* Récap sièges */}
                 <Card className="bg-muted/20">
                   <CardHeader className="pb-2"><CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Récapitulatif sièges — Collège Cadres</CardTitle></CardHeader>
                   <CardContent>
@@ -950,6 +1071,7 @@ const Elections = () => {
                 </Card>
               </section>
 
+              {/* CTA 2e tour */}
               <div className="rounded-xl border border-red-200 dark:border-red-800/40 bg-red-50/60 dark:bg-red-950/20 px-5 py-5 flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div>
                   <p className="font-bold text-foreground flex items-center gap-2 text-sm">
@@ -965,8 +1087,13 @@ const Elections = () => {
               </div>
             </TabsContent>
 
-            {/* TAB 4 : CALENDRIER & RÈGLES */}
+            {/* ════════════════════════════════════════════════════════════
+                TAB 4 : CALENDRIER & RÈGLES
+                Rétro-planning + PAP + Déclaration + calendrier Supabase
+            ════════════════════════════════════════════════════════════ */}
             <TabsContent value="calendrier" className="space-y-10 mt-6">
+
+              {/* ── Rétro-planning officiel ── */}
               <section className="space-y-6">
                 <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                   <div>
@@ -982,6 +1109,7 @@ const Elections = () => {
                   </Button>
                 </div>
 
+                {/* Légende */}
                 <div className="flex flex-wrap gap-2 text-xs">
                   {(['info', 'candidature', 'vote', 'resultat'] as const).map(t => (
                     <span key={t} className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full font-medium border ${retroTypeStyle(t)}`}>
@@ -1013,6 +1141,7 @@ const Elections = () => {
                 </div>
               </section>
 
+              {/* ── Calendrier électoral Supabase ── */}
               {events.length > 0 && (
                 <section className="space-y-4">
                   <h2 className="text-lg font-bold flex items-center gap-2 text-foreground">
@@ -1045,6 +1174,7 @@ const Elections = () => {
                 </section>
               )}
 
+              {/* ── PAP & Modalités ── */}
               <section className="space-y-6">
                 <div>
                   <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
@@ -1081,6 +1211,52 @@ const Elections = () => {
                         <div key={s} className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-xs font-medium text-foreground">{s}</div>
                       ))}
                     </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <Users className="h-4 w-4 text-primary" />Collèges électoraux &amp; sièges
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <p className="text-sm text-muted-foreground">
+                      Effectif total : <strong className="text-foreground">5 006,71 ETP</strong> (31 janvier 2026) — 742,49 femmes · 4 264,23 hommes.
+                    </p>
+                    <div className="overflow-x-auto rounded-lg border border-border">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="bg-muted/50 border-b border-border">
+                            <th className="text-left px-4 py-2.5 font-semibold text-foreground text-sm">Collège</th>
+                            <th className="px-4 py-2.5 font-semibold text-foreground text-center text-sm">ETP</th>
+                            <th className="px-4 py-2.5 font-semibold text-foreground text-center text-sm">Titulaires</th>
+                            <th className="px-4 py-2.5 font-semibold text-foreground text-center text-sm">Suppléants</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr className="border-t border-border">
+                            <td className="px-4 py-3 font-medium text-foreground text-sm">Employés, Techniciens &amp; non-cadres</td>
+                            <td className="px-4 py-3 text-center text-muted-foreground text-sm">308,99</td>
+                            <td className="px-4 py-3 text-center font-bold text-primary text-sm">17</td>
+                            <td className="px-4 py-3 text-center font-bold text-primary text-sm">17</td>
+                          </tr>
+                          <tr className="border-t border-border">
+                            <td className="px-4 py-3 font-medium text-foreground text-sm">Cadres</td>
+                            <td className="px-4 py-3 text-center text-muted-foreground text-sm">433,50</td>
+                            <td className="px-4 py-3 text-center font-bold text-primary text-sm">13</td>
+                            <td className="px-4 py-3 text-center font-bold text-primary text-sm">13</td>
+                          </tr>
+                          <tr className="border-t-2 border-border bg-muted/30">
+                            <td className="px-4 py-3 font-bold text-foreground text-sm">TOTAL</td>
+                            <td className="px-4 py-3 text-center font-bold text-foreground text-sm">742,49</td>
+                            <td className="px-4 py-3 text-center font-bold text-foreground text-sm">30</td>
+                            <td className="px-4 py-3 text-center font-bold text-foreground text-sm">30</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                    <p className="text-xs text-muted-foreground">* Répartition proportionnelle à l'effectif (Art. 2 du PAP).</p>
                   </CardContent>
                 </Card>
 
@@ -1133,14 +1309,15 @@ const Elections = () => {
                   </CardContent>
                 </Card>
               </section>
+              
             </TabsContent>
 
           </Tabs>
         </div>
       </main>
-      <Footer />
+
       <ScrollToTop />
-    </div>
+    </PageShell>
   );
 };
 
