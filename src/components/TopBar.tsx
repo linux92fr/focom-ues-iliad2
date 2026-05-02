@@ -9,7 +9,7 @@ import UserMenu from "@/components/UserMenu";
 const topLinks = [
   { to: "/", label: "Accueil", icon: Home, end: true },
   { to: "/actualites", label: "Actualités" },
-  { to: "/publications", label: "Bilan de Mandat" },
+  { to: "/bilan-mandat", label: "Bilan de Mandat" },
   { to: "/profil", label: "Espace Adhérent" },
   { to: "/vos-droits", label: "Vos Droits" },
   { to: "/a-propos", label: "La FOCOM" },

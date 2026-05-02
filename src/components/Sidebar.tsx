@@ -16,13 +16,13 @@ import logoFocom from "@/assets/logo-focom.png";
 const navItems = [
   { to: "/", label: "Tableau de bord", icon: LayoutDashboard, end: true },
   { to: "/actualites", label: "Actualités", icon: Newspaper },
-  { to: "/publications", label: "Bilan de Mandat", icon: BarChart3 },
+  { to: "/bilan-mandat", label: "Bilan de Mandat", icon: BarChart3 },
   { to: "/profil", label: "Espace Adhérent", icon: UserCircle },
   { to: "/admin", label: "Administration", icon: Settings },
   { to: "/vos-droits", label: "Vos Droits", icon: Shield },
   { to: "/agenda", label: "Agenda", icon: Calendar },
-  { to: "/publications", label: "Documents Utiles", icon: FolderOpen },
-  { to: "/vos-droits", label: "FAQ", icon: HelpCircle },
+  { to: "/documents-utiles", label: "Documents Utiles", icon: FolderOpen },
+  { to: "/faq", label: "FAQ", icon: HelpCircle },
   { to: "/contact", label: "Nous Contacter", icon: Mail },
 ];
 

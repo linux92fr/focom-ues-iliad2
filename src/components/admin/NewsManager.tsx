@@ -156,9 +156,10 @@ const NewsManager = () => {
       setDialogOpen(false);
       resetForm();
       fetchNews();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error saving news:", error);
-      toast.error(error.message || "Erreur lors de l'enregistrement");
+      const errorMessage = error instanceof Error ? error.message : "Erreur lors de l'enregistrement";
+      toast.error(errorMessage);
     }
   };
 
@@ -171,9 +172,10 @@ const NewsManager = () => {
       if (error) throw error;
       toast.success("Actualité supprimée");
       fetchNews();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error deleting news:", error);
-      toast.error(error.message || "Erreur lors de la suppression");
+      const errorMessage = error instanceof Error ? error.message : "Erreur lors de la suppression";
+      toast.error(errorMessage);
     }
   };
 
@@ -190,9 +192,10 @@ const NewsManager = () => {
       if (error) throw error;
       toast.success(newsItem.published ? "Actualité dépubliée" : "Actualité publiée");
       fetchNews();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error toggling publish:", error);
-      toast.error(error.message || "Erreur");
+      const errorMessage = error instanceof Error ? error.message : "Erreur";
+      toast.error(errorMessage);
     }
   };
 

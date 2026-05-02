@@ -53,18 +53,27 @@ const Header = () => {
 
             {/* Actions */}
             <div className="flex items-center gap-2">
+              {/* Bouton de recherche */}
               <Button variant="ghost" size="icon" className="hidden sm:flex">
                 <Search className="h-5 w-5" />
               </Button>
+              
+              {/* Cloche de notification */}
               <Button variant="ghost" size="icon" className="hidden sm:flex relative">
                 <Bell className="h-5 w-5" />
                 <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full" />
               </Button>
-              <Button asChild variant="outline" size="sm" className="hidden md:flex gap-2 border-secondary text-secondary hover:bg-secondary/10">
+              
+              {/* Écrou d'administration */}
+              <Button asChild variant="ghost" size="icon" className="hidden md:flex">
                 <a href="/admin">
-                  <Settings className="h-4 w-4" />
-                  <span>Admin</span>
+                  <Settings className="h-5 w-5" />
                 </a>
+              </Button>
+              
+              {/* Bouton rouge "Nous rejoindre" */}
+              <Button asChild variant="default" size="sm" className="hidden md:flex bg-red-600 hover:bg-red-700 text-white font-semibold">
+                <a href="/adhesion">Nous rejoindre</a>
               </Button>
               
               {!loading && (
