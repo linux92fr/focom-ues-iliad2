@@ -29,6 +29,8 @@ import {
   Zap,
   BookOpen,
   Globe,
+  Vote,
+  ExternalLink,
 } from "lucide-react";
 
 const HERO_IMAGE = "https://d2xsxph8kpxj0f.cloudfront.net/310519663612648040/CNuRjrgGqWcQ7xt7rtMbHT/hero-banner-VHxfVX6tjRfujGise9ibwf.webp";
@@ -224,6 +226,54 @@ export default function Home() {
 
         {/* Main Content */}
         <main className="flex-1 min-w-0 p-4 lg:p-8">
+          {/* Bannière Élections — 2e tour en cours */}
+          <a
+            href="/elections"
+            className="group relative block mb-6 rounded-2xl overflow-hidden shadow-lg shadow-red-200/60 ring-1 ring-red-700/40 animate-[pulse_2.5s_ease-in-out_infinite] hover:animate-none hover:ring-2 hover:ring-red-500 transition-all"
+          >
+            {/* Fond rouge + effet scintillant */}
+            <div className="bg-gradient-to-r from-red-700 via-red-600 to-red-800 relative overflow-hidden">
+              {/* Shimmer */}
+              <div className="absolute inset-0 pointer-events-none opacity-40 bg-[linear-gradient(110deg,transparent_30%,rgba(255,255,255,0.25)_50%,transparent_70%)] bg-[length:200%_100%] animate-[shimmer_3s_linear_infinite]" />
+
+              <div className="relative flex flex-col sm:flex-row items-center gap-4 px-5 sm:px-7 py-4 sm:py-5">
+                {/* Icône + LIVE dot */}
+                <div className="relative flex items-center justify-center w-12 h-12 rounded-xl bg-white/15 backdrop-blur-sm shrink-0">
+                  <Vote className="w-6 h-6 text-white" />
+                  <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
+                    <span className="relative inline-flex h-3 w-3 rounded-full bg-white ring-2 ring-red-600" />
+                  </span>
+                </div>
+
+                {/* Texte */}
+                <div className="flex-1 min-w-0 text-center sm:text-left">
+                  <div className="flex items-center justify-center sm:justify-start gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-red-100">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/20 text-white">
+                      <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                      Live
+                    </span>
+                    Élections Professionnelles 2026
+                  </div>
+                  <p className="mt-1 text-white font-extrabold text-base sm:text-lg leading-tight">
+                    🗳️ 2<sup>e</sup> tour en cours — Votez FO COM UES ILIAD !
+                  </p>
+                  <p className="text-red-100 text-xs sm:text-sm mt-0.5">
+                    Collège Employés / Techniciens · du 29 avril au 6 mai 2026
+                  </p>
+                </div>
+
+                {/* CTA */}
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="inline-flex items-center gap-1.5 bg-white text-red-700 rounded-full px-4 py-2 text-sm font-bold shadow-md group-hover:bg-red-50 transition-colors">
+                    Je vote
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </span>
+                </div>
+              </div>
+            </div>
+          </a>
+
           {/* Hero Banner */}
           <section className="relative rounded-2xl overflow-hidden mb-8 shadow-lg">
             <img
