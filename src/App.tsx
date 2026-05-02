@@ -23,6 +23,8 @@ import Actualites from "./pages/Actualites";
 import ActualiteDetail from "./pages/ActualiteDetail";
 import NouvelArticle from "./pages/NouvelArticle";
 import EditArticle from "./pages/EditArticle";
+import Publications from "./pages/Publications";
+import PublicationDetail from "./pages/PublicationDetail";
 
 import Adhesion from "./pages/Adhesion";
 import Don from "./pages/Don";
@@ -86,6 +88,8 @@ function App() {
                       <Route path="/rgpd" element={<RGPD />} />
                       <Route path="/actualites" element={<Actualites />} />
                       <Route path="/actualites/:slug" element={<ActualiteDetail />} />
+                      <Route path="/publications" element={<Publications />} />
+                      <Route path="/publications/:slug" element={<PublicationDetail />} />
                       <Route path="/adhesion" element={<Adhesion />} />
                       <Route path="/don" element={<Don />} />
                       <Route path="/don-merci" element={<DonMerci />} />

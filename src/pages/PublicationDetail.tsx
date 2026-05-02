@@ -9,37 +9,40 @@ import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Article = Tables<"articles">;
-type Category = Tables<"categories">;
+
+const categoryLabels: Record<string, string> = {
+  actualite: "Actualité",
+  communique: "Communiqué",
+  evenement: "Événement",
+  victoire: "Victoire syndicale",
+};
+
+const categoryColors: Record<string, string> = {
+  actualite: "#dc2626",
+  communique: "#2563eb",
+  evenement: "#7c3aed",
+  victoire: "#16a34a",
+};
 
 const PublicationDetail = () => {
   const { slug } = useParams<{ slug: string }>();
   const [article, setArticle] = useState<Article | null>(null);
-  const [category, setCategory] = useState<Category | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchArticle = async () => {
-      if (!slug) return;
+      if (!slug) { setLoading(false); return; }
 
       try {
         const { data, error } = await supabase
           .from("articles")
           .select("*")
           .eq("slug", slug)
-          .eq("published", true)
+          .eq("is_published", true)
           .single();
 
         if (error) throw error;
         setArticle(data);
-
-        if (data?.category_id) {
-          const { data: catData } = await supabase
-            .from("categories")
-            .select("*")
-            .eq("id", data.category_id)
-            .single();
-          setCategory(catData);
-        }
       } catch (error) {
         console.error("Error fetching article:", error);
       } finally {
@@ -119,15 +122,15 @@ const PublicationDetail = () => {
           </Link>
 
           <div className="max-w-4xl">
-            {category && (
+            {article.category && categoryLabels[article.category] && (
               <Badge
                 className="mb-4"
                 style={{
-                  backgroundColor: category.color || "#dc2626",
+                  backgroundColor: categoryColors[article.category] || "#dc2626",
                   color: "white",
                 }}
               >
-                {category.name}
+                {categoryLabels[article.category]}
               </Badge>
             )}
             <h1 className="font-serif text-3xl md:text-4xl font-bold text-primary-foreground mb-4">
@@ -149,12 +152,12 @@ const PublicationDetail = () => {
       </section>
 
       {/* Cover Image */}
-      {article.cover_image && (
+      {article.image_url && (
         <section className="py-8">
           <div className="container mx-auto px-4">
             <div className="max-w-4xl mx-auto">
               <img
-                src={article.cover_image}
+                src={article.image_url}
                 alt={article.title}
                 className="w-full h-64 md:h-96 object-cover rounded-xl shadow-lg"
               />
@@ -169,13 +172,10 @@ const PublicationDetail = () => {
           <div className="max-w-4xl mx-auto">
             <Card>
               <CardContent className="p-8">
-                <div className="prose prose-lg max-w-none">
-                  {article.content.split("\n").map((paragraph, index) => (
-                    <p key={index} className="text-foreground/90 leading-relaxed mb-4">
-                      {paragraph}
-                    </p>
-                  ))}
-                </div>
+                <div
+                  className="prose prose-lg max-w-none"
+                  dangerouslySetInnerHTML={{ __html: article.content }}
+                />
 
                 {/* Share */}
                 <div className="mt-8 pt-8 border-t flex items-center justify-between">

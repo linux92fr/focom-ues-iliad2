@@ -16,11 +16,23 @@ import { Calendar, Search, ArrowRight, FileText, Loader2 } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Article = Tables<"articles">;
-type Category = Tables<"categories">;
+
+const categoryLabels: Record<string, string> = {
+  actualite: "Actualité",
+  communique: "Communiqué",
+  evenement: "Événement",
+  victoire: "Victoire syndicale",
+};
+
+const categoryColors: Record<string, string> = {
+  actualite: "#dc2626",
+  communique: "#2563eb",
+  evenement: "#7c3aed",
+  victoire: "#16a34a",
+};
 
 const Publications = () => {
   const [articles, setArticles] = useState<Article[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
@@ -28,17 +40,13 @@ const Publications = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [articlesResponse, categoriesResponse] = await Promise.all([
-          supabase
-            .from("articles")
-            .select("*")
-            .eq("published", true)
-            .order("published_at", { ascending: false }),
-          supabase.from("categories").select("*").order("name"),
-        ]);
+        const { data } = await supabase
+          .from("articles")
+          .select("*")
+          .eq("is_published", true)
+          .order("published_at", { ascending: false });
 
-        if (articlesResponse.data) setArticles(articlesResponse.data);
-        if (categoriesResponse.data) setCategories(categoriesResponse.data);
+        if (data) setArticles(data);
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {
@@ -49,24 +57,12 @@ const Publications = () => {
     fetchData();
   }, []);
 
-  const getCategoryName = (categoryId: string | null) => {
-    if (!categoryId) return null;
-    const category = categories.find((c) => c.id === categoryId);
-    return category?.name || null;
-  };
-
-  const getCategoryColor = (categoryId: string | null) => {
-    if (!categoryId) return "#dc2626";
-    const category = categories.find((c) => c.id === categoryId);
-    return category?.color || "#dc2626";
-  };
-
   const filteredArticles = articles.filter((item) => {
     const matchesSearch = item.title
       .toLowerCase()
       .includes(searchQuery.toLowerCase());
     const matchesCategory =
-      selectedCategory === "all" || item.category_id === selectedCategory;
+      selectedCategory === "all" || item.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
 
@@ -114,9 +110,9 @@ const Publications = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Toutes les catégories</SelectItem>
-                {categories.map((category) => (
-                  <SelectItem key={category.id} value={category.id}>
-                    {category.name}
+                {Object.entries(categoryLabels).map(([key, label]) => (
+                  <SelectItem key={key} value={key}>
+                    {label}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -134,9 +130,7 @@ const Publications = () => {
             </div>
           ) : filteredArticles.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-muted-foreground">
-                Aucune publication trouvée
-              </p>
+              <p className="text-muted-foreground">Aucune publication trouvée</p>
             </div>
           ) : (
             <div className="space-y-6">
@@ -147,10 +141,10 @@ const Publications = () => {
                 >
                   <CardContent className="p-6">
                     <div className="flex flex-col md:flex-row gap-6">
-                      {article.cover_image && (
+                      {article.image_url && (
                         <div className="w-full md:w-48 h-32 rounded-lg overflow-hidden flex-shrink-0">
                           <img
-                            src={article.cover_image}
+                            src={article.image_url}
                             alt={article.title}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                           />
@@ -158,14 +152,15 @@ const Publications = () => {
                       )}
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-3">
-                          {getCategoryName(article.category_id) && (
+                          {article.category && categoryLabels[article.category] && (
                             <Badge
                               style={{
-                                backgroundColor: getCategoryColor(article.category_id),
+                                backgroundColor:
+                                  categoryColors[article.category] || "#dc2626",
                                 color: "white",
                               }}
                             >
-                              {getCategoryName(article.category_id)}
+                              {categoryLabels[article.category]}
                             </Badge>
                           )}
                           <span className="text-xs text-muted-foreground flex items-center gap-1">
@@ -181,7 +176,7 @@ const Publications = () => {
                             {article.excerpt}
                           </p>
                         )}
-                        <Link to={`/publication/${article.slug}`}>
+                        <Link to={`/publications/${article.slug}`}>
                           <Button
                             variant="link"
                             className="p-0 h-auto text-primary font-medium group-hover:gap-3 transition-all"

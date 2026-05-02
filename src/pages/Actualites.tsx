@@ -16,11 +16,26 @@ import { Calendar, Search, ArrowRight, Loader2 } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 
 type News = Tables<"news">;
-type Category = Tables<"categories">;
+
+const categoryLabels: Record<string, string> = {
+  actualite: "Actualité",
+  communique: "Communiqué",
+  evenement: "Événement",
+  victoire: "Victoire syndicale",
+};
+
+const categoryColors: Record<string, string> = {
+  actualite: "#dc2626",
+  communique: "#2563eb",
+  evenement: "#7c3aed",
+  victoire: "#16a34a",
+};
+
+const stripHtml = (html: string) =>
+  html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 
 const Actualites = () => {
   const [news, setNews] = useState<News[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
@@ -28,17 +43,13 @@ const Actualites = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [newsResponse, categoriesResponse] = await Promise.all([
-          supabase
-            .from("news")
-            .select("*")
-            .eq("published", true)
-            .order("published_at", { ascending: false }),
-          supabase.from("categories").select("*").order("name"),
-        ]);
+        const { data } = await supabase
+          .from("news")
+          .select("*")
+          .eq("published", true)
+          .order("published_at", { ascending: false });
 
-        if (newsResponse.data) setNews(newsResponse.data);
-        if (categoriesResponse.data) setCategories(categoriesResponse.data);
+        if (data) setNews(data);
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {
@@ -49,24 +60,12 @@ const Actualites = () => {
     fetchData();
   }, []);
 
-  const getCategoryName = (categoryId: string | null) => {
-    if (!categoryId) return null;
-    const category = categories.find((c) => c.id === categoryId);
-    return category?.name || null;
-  };
-
-  const getCategoryColor = (categoryId: string | null) => {
-    if (!categoryId) return "#dc2626";
-    const category = categories.find((c) => c.id === categoryId);
-    return category?.color || "#dc2626";
-  };
-
   const filteredNews = news.filter((item) => {
-    const matchesSearch = item.title
+    const matchesSearch = (item.title || "")
       .toLowerCase()
       .includes(searchQuery.toLowerCase());
     const matchesCategory =
-      selectedCategory === "all" || item.category_id === selectedCategory;
+      selectedCategory === "all" || item.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
 
@@ -77,6 +76,12 @@ const Actualites = () => {
       month: "long",
       year: "numeric",
     });
+  };
+
+  const getExcerpt = (item: News) => {
+    if (item.excerpt) return item.excerpt;
+    if (!item.content) return "";
+    return stripHtml(item.content).substring(0, 150);
   };
 
   return (
@@ -113,9 +118,9 @@ const Actualites = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Toutes les catégories</SelectItem>
-                {categories.map((category) => (
-                  <SelectItem key={category.id} value={category.id}>
-                    {category.name}
+                {Object.entries(categoryLabels).map(([key, label]) => (
+                  <SelectItem key={key} value={key}>
+                    {label}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -133,9 +138,7 @@ const Actualites = () => {
             </div>
           ) : filteredNews.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-muted-foreground">
-                Aucune actualité trouvée
-              </p>
+              <p className="text-muted-foreground">Aucune actualité trouvée</p>
             </div>
           ) : (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -146,14 +149,15 @@ const Actualites = () => {
                 >
                   <CardContent className="p-6">
                     <div className="flex items-center gap-2 mb-3">
-                      {getCategoryName(item.category_id) && (
+                      {item.category && categoryLabels[item.category] && (
                         <Badge
                           style={{
-                            backgroundColor: getCategoryColor(item.category_id),
+                            backgroundColor:
+                              categoryColors[item.category] || "#dc2626",
                             color: "white",
                           }}
                         >
-                          {getCategoryName(item.category_id)}
+                          {categoryLabels[item.category]}
                         </Badge>
                       )}
                       <span className="text-xs text-muted-foreground flex items-center gap-1">
@@ -165,9 +169,9 @@ const Actualites = () => {
                       {item.title}
                     </h3>
                     <p className="text-muted-foreground text-sm line-clamp-3 mb-4">
-                      {item.content.substring(0, 150)}...
+                      {getExcerpt(item)}...
                     </p>
-                    <Link to={`/actualite/${item.id}`}>
+                    <Link to={`/actualites/${item.slug}`}>
                       <Button
                         variant="link"
                         className="p-0 h-auto text-primary font-medium group-hover:gap-3 transition-all"

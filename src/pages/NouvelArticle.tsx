@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
+import { useAdminAuth } from "@/contexts/AdminAuthContext";
 import { toast } from "sonner";
 import {
   ArrowLeft,
@@ -25,8 +25,6 @@ import {
 const LOGO_IMAGE =
   "https://files.manuscdn.com/user_upload_by_module/session_file/310519663612648040/LldXxCbhFdcPcHwX.png";
 
-const ARTICLE_ROLES = ["admin", "representant", "redacteur"];
-
 const categoryOptions = [
   { value: "actualite", label: "Actualité" },
   { value: "communique", label: "Communiqué" },
@@ -37,9 +35,7 @@ const categoryOptions = [
 export default function NouvelArticle() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { user, hasAnyRole, loading } = useSupabaseAuth();
-
-  const canManage = hasAnyRole(ARTICLE_ROLES);
+  const { isAuthenticated } = useAdminAuth();
 
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
@@ -54,7 +50,7 @@ export default function NouvelArticle() {
       const generated = title
         .toLowerCase()
         .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[̀-ͯ]/g, "")
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/(^-|-$)/g, "");
       setSlug(generated);
@@ -63,7 +59,6 @@ export default function NouvelArticle() {
 
   const createMutation = useMutation({
     mutationFn: async ({ publish }: { publish: boolean }) => {
-      if (!user?.id) throw new Error("Non authentifié");
       const { data, error } = await supabase
         .from("articles")
         .insert({
@@ -73,7 +68,7 @@ export default function NouvelArticle() {
           content,
           category,
           image_url: imageUrl || null,
-          author_id: user.id,
+          author_id: null,
           is_published: publish,
           status: publish ? ("publie" as const) : ("brouillon" as const),
           published_at: publish ? new Date().toISOString() : null,
@@ -84,9 +79,9 @@ export default function NouvelArticle() {
       return data;
     },
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["articles"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-articles"] });
       toast.success(variables.publish ? "Article publié !" : "Brouillon enregistré !");
-      navigate("/actualites");
+      navigate("/admin/actualites");
     },
     onError: () => toast.error("Erreur lors de la création de l'article"),
   });
@@ -97,22 +92,21 @@ export default function NouvelArticle() {
     return true;
   };
 
-  // Not authorized
-  if (!loading && !canManage) {
+  if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-xl border border-slate-200 p-8 max-w-md text-center shadow-sm">
           <FileText className="w-12 h-12 text-red-300 mx-auto mb-3" />
           <h2 className="font-bold text-slate-900 mb-1">Accès refusé</h2>
           <p className="text-sm text-slate-500 mb-4">
-            Vous n'avez pas les permissions nécessaires pour créer des articles.
+            Vous devez être connecté à l'espace d'administration.
           </p>
-          <Link
-            to="/actualites"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold rounded-lg transition-colors"
+          <button
+            onClick={() => navigate("/admin/login")}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-lg transition-colors"
           >
-            Retour aux actualités
-          </Link>
+            Se connecter
+          </button>
         </div>
       </div>
     );
@@ -125,7 +119,7 @@ export default function NouvelArticle() {
         <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-3 h-16">
             <button
-              onClick={() => navigate("/actualites")}
+              onClick={() => navigate("/admin/actualites")}
               className="p-2 rounded-lg hover:bg-slate-100"
             >
               <ArrowLeft className="w-5 h-5" />
@@ -158,7 +152,7 @@ export default function NouvelArticle() {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Titre de l'article"
-              className="border-slate-200 focus:ring-teal-500"
+              className="border-slate-200 focus:ring-red-500"
             />
           </div>
 
@@ -172,7 +166,7 @@ export default function NouvelArticle() {
                 value={slug}
                 onChange={(e) => setSlug(e.target.value)}
                 placeholder="slug-de-l-article"
-                className="font-mono text-sm border-slate-200 focus:ring-teal-500 flex-1"
+                className="font-mono text-sm border-slate-200 focus:ring-red-500 flex-1"
               />
             </div>
           </div>
@@ -202,7 +196,7 @@ export default function NouvelArticle() {
               value={imageUrl}
               onChange={(e) => setImageUrl(e.target.value)}
               placeholder="https://..."
-              className="border-slate-200 focus:ring-teal-500"
+              className="border-slate-200 focus:ring-red-500"
             />
           </div>
 
@@ -215,7 +209,7 @@ export default function NouvelArticle() {
               onChange={(e) => setExcerpt(e.target.value)}
               placeholder="Court résumé de l'article..."
               rows={3}
-              className="border-slate-200 focus:ring-teal-500 resize-none"
+              className="border-slate-200 focus:ring-red-500 resize-none"
             />
           </div>
 
@@ -228,7 +222,7 @@ export default function NouvelArticle() {
               onChange={(e) => setContent(e.target.value)}
               placeholder="Rédigez votre article ici... (HTML accepté)"
               rows={14}
-              className="border-slate-200 focus:ring-teal-500 font-mono text-sm resize-y"
+              className="border-slate-200 focus:ring-red-500 font-mono text-sm resize-y"
             />
           </div>
 
@@ -251,7 +245,7 @@ export default function NouvelArticle() {
               type="button"
               onClick={() => { if (validate()) createMutation.mutate({ publish: true }); }}
               disabled={createMutation.isPending}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-teal-600 hover:bg-teal-700 rounded-lg text-sm font-semibold text-white disabled:opacity-50 transition-colors"
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-red-600 hover:bg-red-700 rounded-lg text-sm font-semibold text-white disabled:opacity-50 transition-colors"
             >
               {createMutation.isPending ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -264,7 +258,6 @@ export default function NouvelArticle() {
         </div>
       </main>
 
-      {/* Footer */}
       <footer className="mt-12 bg-white border-t border-slate-200 py-6">
         <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
           <p className="text-xs text-slate-500 text-center">© 2026 FOCOM UES ILIAD – Tous droits réservés</p>
