@@ -149,13 +149,10 @@ const ActualiteDetail = () => {
           <div className="max-w-4xl mx-auto">
             <Card>
               <CardContent className="p-8">
-                <div className="prose prose-lg max-w-none">
-                  {news.content.split("\n").map((paragraph, index) => (
-                    <p key={index} className="text-foreground/90 leading-relaxed mb-4">
-                      {paragraph}
-                    </p>
-                  ))}
-                </div>
+                <div
+                  className="prose prose-lg max-w-none"
+                  dangerouslySetInnerHTML={{ __html: news.content }}
+                />
 
                 {/* Share */}
                 <div className="mt-8 pt-8 border-t flex items-center justify-between">
