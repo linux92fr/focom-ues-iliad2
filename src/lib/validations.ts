@@ -57,7 +57,7 @@ export const profileSchema = z.object({
   phone: z.string()
     .trim()
     .max(20, "Le téléphone ne doit pas dépasser 20 caractères")
-    .regex(/^$|^[0-9\s\-\+\(\)]+$/, "Format de téléphone invalide")
+    .regex(/^$|^[0-9\s\-+()]+$/, "Format de téléphone invalide")
     .optional()
     .nullable()
     .or(z.literal("")),

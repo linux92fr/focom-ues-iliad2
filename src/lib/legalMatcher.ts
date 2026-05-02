@@ -394,7 +394,7 @@ const LEGAL_DATABASE: LegalEntry[] = [
   {
     keywords: ['mutuelle', 'prévoyance', 'prevoyance', 'complémentaire santé', 'frais santé'],
     theme: 'Protection sociale complémentaire',
-    answer: `Depuis le **1er janvier 2016**, tout employeur doit proposer à ses salariés une **mutuelle d\'entreprise obligatoire** avec une prise en charge minimale de **50 %** de la cotisation par l'employeur.\n\nLe salarié peut demander une **dispense d'adhésion** dans certains cas (déjà couvert par un ayant-droit, CDD de moins de 3 mois, temps partiel…).\n\nLa **prévoyance** couvre les risques lourds : incapacité de travail, invalidité, décès. Elle peut être obligatoire selon la convention collective applicable.`,
+    answer: `Depuis le **1er janvier 2016**, tout employeur doit proposer à ses salariés une **mutuelle d'entreprise obligatoire** avec une prise en charge minimale de **50 %** de la cotisation par l'employeur.\n\nLe salarié peut demander une **dispense d'adhésion** dans certains cas (déjà couvert par un ayant-droit, CDD de moins de 3 mois, temps partiel…).\n\nLa **prévoyance** couvre les risques lourds : incapacité de travail, invalidité, décès. Elle peut être obligatoire selon la convention collective applicable.`,
     articles: [
       {
         numero: 'L.911-7',

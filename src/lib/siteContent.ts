@@ -92,7 +92,7 @@ export function useSiteContent<T extends SiteContentKey>(key: T) {
     let mounted = true;
 
     const fetchSection = async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("site_content")
         .select("title, subtitle, content")
         .eq("key", key)
