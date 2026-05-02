@@ -37,7 +37,7 @@ const SiteContentManager = () => {
 
   useEffect(() => {
     const fetchContent = async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("site_content")
         .select("key, title, subtitle, content")
         .in("key", keys);
@@ -53,7 +53,7 @@ const SiteContentManager = () => {
 
       setForms((current) => {
         const next = { ...current };
-        data.forEach((row: any) => {
+        data.forEach((row: { key: string; title: string; subtitle: string; content: unknown }) => {
           if (!keys.includes(row.key)) return;
           next[row.key as SiteContentKey] = {
             title: row.title || defaultSiteContent[row.key as SiteContentKey].title,
@@ -95,7 +95,7 @@ const SiteContentManager = () => {
       return;
     }
 
-    const { error } = await (supabase as any).from("site_content").upsert(
+    const { error } = await supabase.from("site_content").upsert(
       {
         key: activeKey,
         title: form.title,

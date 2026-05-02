@@ -22,13 +22,20 @@ const defaultCollege = (nom: string, inscrits: string = ''): CollegeForm => ({
 });
 
 // ── Chargement PDF.js depuis CDN (une seule fois) ────────────────────────────
-async function loadPdfJs(): Promise<any> {
+type PdfJsLib = {
+  GlobalWorkerOptions: { workerSrc: string };
+  getDocument: (data: { data: ArrayBuffer }) => { promise: Promise<{ numPages: number; getPage: (pageNum: number) => Promise<{ getTextContent: () => Promise<{ items: { str: string }[] }> }> }> };
+};
+
+async function loadPdfJs(): Promise<PdfJsLib> {
   return new Promise((resolve, reject) => {
-    if ((window as any).pdfjsLib) return resolve((window as any).pdfjsLib);
+    if ((window as unknown as { pdfjsLib?: PdfJsLib }).pdfjsLib) {
+      return resolve((window as unknown as { pdfjsLib: PdfJsLib }).pdfjsLib);
+    }
     const script = document.createElement('script');
     script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
     script.onload = () => {
-      const lib = (window as any).pdfjsLib;
+      const lib = (window as unknown as { pdfjsLib: PdfJsLib }).pdfjsLib;
       lib.GlobalWorkerOptions.workerSrc =
         'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
       resolve(lib);
@@ -47,7 +54,7 @@ async function extractTextFromPDF(file: File): Promise<string> {
   for (let i = 1; i <= pdf.numPages; i++) {
     const page = await pdf.getPage(i);
     const content = await page.getTextContent();
-    fullText += content.items.map((item: any) => item.str).join(' ') + '\n';
+    fullText += content.items.map((item: { str: string }) => item.str).join(' ') + '\n';
   }
   return fullText;
 }
@@ -80,7 +87,8 @@ function parsePDFText(text: string) {
   // Collège Employés/Techniciens uniquement (T2)
   const cp = { nom: 'TECHNICIENS, EMPLOYÉS, NON CADRES', re: /technicien|non.cadre|employ[ée]/i };
   const idx = t.search(cp.re);
-  let college: any = { nom: cp.nom };
+  type CollegeData = { nom: string; tit_inscrits?: string; tit_votants?: string; tit_taux?: string; sup_inscrits?: string; sup_votants?: string; sup_taux?: string; taux_college?: string };
+  let college: CollegeData = { nom: cp.nom };
 
   if (idx !== -1) {
     const block = t.slice(idx, idx + 500);
