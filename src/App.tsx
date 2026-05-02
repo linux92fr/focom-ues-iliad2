@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { AdminAuthProvider } from "./contexts/AdminAuthContext";
+import { ThemeProvider } from "./contexts/ThemeContext";
 import Index from "./pages/Home";
 import IntroSplash from "./components/IntroSplash";
 import Agenda from "./pages/Agenda";
@@ -35,6 +36,7 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
+      <ThemeProvider defaultTheme="light">
       <AdminAuthProvider>
         <TooltipProvider>
           <Toaster />
@@ -69,6 +71,7 @@ const App = () => (
           </BrowserRouter>
         </TooltipProvider>
       </AdminAuthProvider>
+      </ThemeProvider>
     </AuthProvider>
   </QueryClientProvider>
 );
