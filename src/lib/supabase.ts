@@ -1,7 +1,12 @@
 import { createClient } from '@supabase/supabase-js'
 
-export const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://votre-projet.supabase.co'
-export const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'votre-cle-anon'
+export const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+  || import.meta.env.VITE_SUPABASE_ANON_KEY_URL
+  || 'https://hduqvneurhqjyjlmrlxs.supabase.co'
+
+export const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+  || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
+  || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhkdXF2bmV1cmhxanlqbG1ybHhzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc4NTQ4NzMsImV4cCI6MjA4MzQzMDg3M30.J3aTkTv5KiA81Qb8opORK_yAiz7LQ9V5e_AmvGsEU-s'
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
