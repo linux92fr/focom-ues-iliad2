@@ -95,7 +95,7 @@ export default function AdminActualites() {
               </p>
             </div>
           </div>
-          <Link to="/actualites/nouveau">
+          <Link to="/admin/actualites/nouveau">
             <Button className="bg-red-600 hover:bg-red-700 text-white">
               <Plus className="w-4 h-4 mr-2" />
               Nouvel article
@@ -192,7 +192,7 @@ export default function AdminActualites() {
                         )}
                       </button>
                       <Link
-                        to={`/actualites/${article.id}/editer`}
+                        to={`/admin/actualites/${article.id}/editer`}
                         className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
                       >
                         <Edit2 className="w-4 h-4" />
