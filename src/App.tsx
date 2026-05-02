@@ -6,6 +6,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { AdminAuthProvider } from "./contexts/AdminAuthContext";
 import { SupabaseAuthProvider } from "./contexts/SupabaseAuthContext";
+import PublicLayout from "./components/PublicLayout";
 
 import Home from "./pages/Home";
 import NotFound from "./pages/NotFound";
@@ -70,40 +71,37 @@ function App() {
               <BrowserRouter>
                 <AdminAuthProvider>
                   <Routes>
-                    <Route path="/" element={<Home />} />
-                    <Route path="/bilan-mandat" element={<BilanMandat />} />
-                    <Route path="/vos-droits" element={<VosDroits />} />
-                    <Route path="/documents-utiles" element={<DocumentsUtiles />} />
-                    <Route path="/faq" element={<FAQ />} />
-                    <Route path="/contact" element={<Contact />} />
-                    <Route path="/mentions-legales" element={<MentionsLegales />} />
-                    <Route path="/rgpd" element={<RGPD />} />
+                    {/* ── Routes publiques avec sidebar ─────────────── */}
+                    <Route element={<PublicLayout />}>
+                      <Route path="/" element={<Home />} />
+                      <Route path="/bilan-mandat" element={<BilanMandat />} />
+                      <Route path="/vos-droits" element={<VosDroits />} />
+                      <Route path="/documents-utiles" element={<DocumentsUtiles />} />
+                      <Route path="/faq" element={<FAQ />} />
+                      <Route path="/contact" element={<Contact />} />
+                      <Route path="/mentions-legales" element={<MentionsLegales />} />
+                      <Route path="/rgpd" element={<RGPD />} />
+                      <Route path="/actualites" element={<Actualites />} />
+                      <Route path="/actualites/:slug" element={<ActualiteDetail />} />
+                      <Route path="/adhesion" element={<Adhesion />} />
+                      <Route path="/don" element={<Don />} />
+                      <Route path="/don-merci" element={<DonMerci />} />
+                      <Route path="/simulateur-mobilite" element={<SimulateurMobilite />} />
+                      <Route path="/simulateur-prime-variable" element={<SimulateurPrimeVariable />} />
+                      <Route path="/elections" element={<Elections />} />
+                      <Route path="/elections/premier-tour" element={<ElectionsPremierTour />} />
+                      <Route path="/nao2026" element={<Nao2026 />} />
+                      <Route path="/nao2026/formulaire" element={<FormulaireNao2026 />} />
+                      <Route path="/accords/gepp" element={<AccordGEPP />} />
+                      <Route path="/newsletter/unsubscribe" element={<NewsletterUnsubscribe />} />
+                      <Route path="/notifications" element={<Notifications />} />
+                      <Route path="/ai" element={<AI />} />
+                      <Route path="/sondages" element={<Sondages />} />
+                      <Route path="/admin/nao2026" element={<AdminNao2026 />} />
+                      <Route path="/admin/participation" element={<AdminParticipation />} />
+                    </Route>
 
-                    <Route path="/actualites" element={<Actualites />} />
-                    <Route path="/actualites/:slug" element={<ActualiteDetail />} />
-
-                    <Route path="/adhesion" element={<Adhesion />} />
-                    <Route path="/don" element={<Don />} />
-                    <Route path="/don-merci" element={<DonMerci />} />
-
-                    <Route path="/simulateur-mobilite" element={<SimulateurMobilite />} />
-                    <Route path="/simulateur-prime-variable" element={<SimulateurPrimeVariable />} />
-
-                    <Route path="/elections" element={<Elections />} />
-                    <Route path="/elections/premier-tour" element={<ElectionsPremierTour />} />
-
-                    <Route path="/nao2026" element={<Nao2026 />} />
-                    <Route path="/nao2026/formulaire" element={<FormulaireNao2026 />} />
-                    <Route path="/accords/gepp" element={<AccordGEPP />} />
-
-                    <Route path="/newsletter/unsubscribe" element={<NewsletterUnsubscribe />} />
-                    <Route path="/notifications" element={<Notifications />} />
-
-                    <Route path="/ai" element={<AI />} />
-                    <Route path="/sondages" element={<Sondages />} />
-
-                    <Route path="/admin/nao2026" element={<AdminNao2026 />} />
-                    <Route path="/admin/participation" element={<AdminParticipation />} />
+                    {/* ── Admin panel (layout propre) ────────────────── */}
                     <Route path="/admin/login" element={<AdminLogin />} />
                     <Route path="/admin" element={<AdminDashboard />} />
                     <Route path="/admin/actualites" element={<AdminActualites />} />
