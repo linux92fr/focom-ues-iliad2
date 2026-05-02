@@ -6,6 +6,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { AdminAuthProvider } from "./contexts/AdminAuthContext";
 import { SupabaseAuthProvider } from "./contexts/SupabaseAuthContext";
+import { AuthProvider } from "./hooks/useAuth";
 import PublicLayout from "./components/PublicLayout";
 
 import Home from "./pages/Home";
@@ -66,6 +67,7 @@ function App() {
       <ErrorBoundary>
         <ThemeProvider defaultTheme="light">
           <SupabaseAuthProvider>
+            <AuthProvider>
             <TooltipProvider>
               <Toaster />
               <BrowserRouter>
@@ -121,6 +123,7 @@ function App() {
                 </AdminAuthProvider>
               </BrowserRouter>
             </TooltipProvider>
+            </AuthProvider>
           </SupabaseAuthProvider>
         </ThemeProvider>
       </ErrorBoundary>
