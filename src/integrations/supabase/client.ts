@@ -8,11 +8,12 @@ function validUrl(val: string | undefined): boolean {
   try { return !!val && /^https?:\/\/.+/.test(val); } catch { return false; }
 }
 
-const rawUrl = import.meta.env.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_ANON_KEY_URL;
-const rawKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY;
+const rawUrl = import.meta.env.VITE_SUPABASE_URL;
+const rawKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 const SUPABASE_URL = validUrl(rawUrl) ? rawUrl : FALLBACK_URL;
-const SUPABASE_KEY = rawKey && rawKey.length > 20 ? rawKey : FALLBACK_KEY;
+// N'accepter que les clés JWT (format anon legacy), rejeter les publishable keys (sb_publishable_...)
+const SUPABASE_KEY = rawKey && rawKey.startsWith('eyJ') ? rawKey : FALLBACK_KEY;
 
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_KEY, {
   auth: {
