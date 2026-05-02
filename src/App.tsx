@@ -18,6 +18,7 @@ import PublicationDetail from "./pages/PublicationDetail";
 import VosDroits from "./pages/VosDroits";
 import Contact from "./pages/Contact";
 import MentionsLegales from "./pages/MentionsLegales";
+import Elections from "./pages/Elections";
 import NotFound from "./pages/NotFound";
 import AdminLogin from "./pages/admin/AdminLogin";
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -55,6 +56,7 @@ const App = () => (
               <Route path="/contact" element={<Contact />} />
               <Route path="/agenda" element={<Agenda />} />
               <Route path="/mentions-legales" element={<MentionsLegales />} />
+              <Route path="/elections" element={<Elections />} />
               <Route path="/admin/login" element={<AdminLogin />} />
               <Route path="/admin" element={<AdminDashboard />} />
               <Route path="/admin/actualites" element={<AdminActualites />} />
