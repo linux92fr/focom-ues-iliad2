@@ -80,7 +80,7 @@ function App() {
               <BrowserRouter>
                 <AdminAuthProvider>
                   <Routes>
-                    {/* ── Routes publiques existantes ─────────────────── */}
+                    {/* ── Routes publiques ────────────────────────────── */}
                     <Route path="/" element={<Home />} />
                     <Route path="/bilan-mandat" element={<BilanMandat />} />
                     <Route path="/vos-droits" element={<VosDroits />} />
@@ -92,8 +92,6 @@ function App() {
 
                     {/* ── Actualités ──────────────────────────────────── */}
                     <Route path="/actualites" element={<Actualites />} />
-                    <Route path="/actualites/nouveau" element={<NouvelArticle />} />
-                    <Route path="/actualites/:id/editer" element={<EditArticle />} />
                     <Route path="/actualites/:slug" element={<ActualiteDetail />} />
 
                     {/* ── Adhésion & Don ──────────────────────────────── */}
@@ -105,7 +103,7 @@ function App() {
                     <Route path="/simulateur-mobilite" element={<SimulateurMobilite />} />
                     <Route path="/simulateur-prime-variable" element={<SimulateurPrimeVariable />} />
 
-                    {/* ── Tracts & Élections ──────────────────────────── */}
+                    {/* ── Élections ───────────────────────────────────── */}
                     <Route path="/elections" element={<Elections />} />
                     <Route path="/elections/premier-tour" element={<ElectionsPremierTour />} />
 
@@ -126,10 +124,13 @@ function App() {
                     <Route path="/admin/nao2026" element={<AdminNao2026 />} />
                     <Route path="/admin/participation" element={<AdminParticipation />} />
 
-                    {/* ── Admin panel (design cible conservé) ─────────── */}
+                    {/* ── Admin panel ─────────────────────────────────── */}
                     <Route path="/admin/login" element={<AdminLogin />} />
                     <Route path="/admin" element={<AdminDashboard />} />
                     <Route path="/admin/actualites" element={<AdminActualites />} />
+                    {/* ✅ Routes article création/édition (admin) */}
+                    <Route path="/admin/actualites/nouveau" element={<NouvelArticle />} />
+                    <Route path="/admin/actualites/:id/editer" element={<EditArticle />} />
                     <Route path="/admin/documents" element={<AdminDocuments />} />
                     <Route path="/admin/adherents" element={<AdminAdherents />} />
                     <Route path="/admin/parametres" element={<AdminParametres />} />
