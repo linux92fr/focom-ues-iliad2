@@ -9,19 +9,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import {
   Bell, Check, CheckCheck, Loader2, Search, Filter,
   ChevronLeft, ChevronRight, Trash2, Archive, ArchiveRestore,
-  ExternalLink, BellOff
+  ExternalLink, BellOff, LogIn,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -41,41 +35,44 @@ interface Notification {
 const ITEMS_PER_PAGE = 15;
 
 const typeConfig: Record<string, { label: string; className: string }> = {
-  article: { label: 'Article', className: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400' },
-  formation: { label: 'Formation', className: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' },
-  action: { label: 'Action', className: 'bg-primary/10 text-primary' },
-  info: { label: 'Info', className: 'bg-muted text-muted-foreground' },
+  article:   { label: 'Article',   className: 'bg-blue-100 text-blue-800' },
+  formation: { label: 'Formation', className: 'bg-green-100 text-green-800' },
+  action:    { label: 'Action',    className: 'bg-primary/10 text-primary' },
+  info:      { label: 'Info',      className: 'bg-muted text-muted-foreground' },
 };
 
 const Notifications = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
+  const [authChecked, setAuthChecked] = useState(false);
   const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [filterType, setFilterType] = useState('all');
   const [filterRead, setFilterRead] = useState('all');
-  const [filterArchived, setFilterArchived] = useState('active'); // active | archived | all
+  const [filterArchived, setFilterArchived] = useState('active');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [actionLoading, setActionLoading] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; ids: string[] }>({ open: false, ids: [] });
 
+  // ── Auth check ───────────────────────────────────────────────
   useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) { navigate('/auth'); return; }
-      setUser(session.user);
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      setAuthChecked(true);
       setLoading(false);
-    };
-    checkAuth();
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
-      if (!session?.user) navigate('/auth');
     });
-    return () => subscription.unsubscribe();
-  }, [navigate]);
 
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // ── Fetch ────────────────────────────────────────────────────
   useEffect(() => {
     if (user) fetchNotifications();
   }, [user, currentPage, filterType, filterRead, filterArchived, searchQuery]);
@@ -106,7 +103,7 @@ const Notifications = () => {
     }
   };
 
-  // ── Single actions ──────────────────────────────────────────
+  // ── Actions ──────────────────────────────────────────────────
   const markAsRead = async (id: string) => {
     await supabase.from('notifications').update({ is_read: true }).eq('id', id);
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
@@ -114,10 +111,7 @@ const Notifications = () => {
 
   const toggleArchive = async (id: string, archived: boolean) => {
     const { error } = await supabase.from('notifications').update({ archived: !archived }).eq('id', id);
-    if (!error) {
-      toast.success(archived ? 'Notification désarchivée' : 'Notification archivée');
-      fetchNotifications();
-    }
+    if (!error) { toast.success(archived ? 'Désarchivée' : 'Archivée'); fetchNotifications(); }
   };
 
   const deleteOne = async (id: string) => {
@@ -129,7 +123,6 @@ const Notifications = () => {
     }
   };
 
-  // ── Bulk actions ─────────────────────────────────────────────
   const bulkMarkRead = async () => {
     if (!selectedIds.size) return;
     setActionLoading(true);
@@ -143,7 +136,7 @@ const Notifications = () => {
     if (!selectedIds.size) return;
     setActionLoading(true);
     await supabase.from('notifications').update({ archived: archive }).in('id', [...selectedIds]);
-    toast.success(archive ? `${selectedIds.size} notification(s) archivée(s)` : `${selectedIds.size} notification(s) désarchivée(s)`);
+    toast.success(archive ? 'Archivées' : 'Désarchivées');
     setActionLoading(false);
     fetchNotifications();
   };
@@ -166,7 +159,6 @@ const Notifications = () => {
     fetchNotifications();
   };
 
-  // ── Selection helpers ─────────────────────────────────────────
   const toggleSelect = (id: string) => {
     setSelectedIds(prev => {
       const next = new Set(prev);
@@ -183,7 +175,8 @@ const Notifications = () => {
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
-  if (loading) {
+  // ── Loading ──────────────────────────────────────────────────
+  if (!authChecked || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -191,10 +184,36 @@ const Notifications = () => {
     );
   }
 
+  // ── Non connecté ─────────────────────────────────────────────
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <Card className="w-full max-w-sm text-center">
+          <CardContent className="pt-10 pb-8 space-y-4">
+            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
+              <Bell className="w-8 h-8 text-primary" />
+            </div>
+            <h2 className="text-lg font-bold text-foreground">Accès réservé aux membres</h2>
+            <p className="text-sm text-muted-foreground">
+              Connectez-vous pour consulter vos notifications.
+            </p>
+            <Button onClick={() => navigate('/profil')} className="w-full gap-2">
+              <LogIn className="w-4 h-4" />
+              Se connecter
+            </Button>
+            <Button variant="ghost" onClick={() => navigate('/')} className="w-full">
+              Retour à l'accueil
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // ── Page principale ──────────────────────────────────────────
   return (
     <div className="p-4 lg:p-8">
-
-      <main className="container mx-auto px-4 pt-24 pb-16">
+      <main className="container mx-auto px-4 pt-8 pb-16">
         <div className="max-w-4xl mx-auto">
 
           {/* Header */}
@@ -231,8 +250,7 @@ const Notifications = () => {
                 <div className="flex gap-2 flex-wrap">
                   <Select value={filterArchived} onValueChange={(v) => { setFilterArchived(v); setCurrentPage(1); }}>
                     <SelectTrigger className="w-[130px]">
-                      <Archive className="mr-2 h-4 w-4" />
-                      <SelectValue />
+                      <Archive className="mr-2 h-4 w-4" /><SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-popover">
                       <SelectItem value="active">Actives</SelectItem>
@@ -242,8 +260,7 @@ const Notifications = () => {
                   </Select>
                   <Select value={filterType} onValueChange={(v) => { setFilterType(v); setCurrentPage(1); }}>
                     <SelectTrigger className="w-[130px]">
-                      <Filter className="mr-2 h-4 w-4" />
-                      <SelectValue placeholder="Type" />
+                      <Filter className="mr-2 h-4 w-4" /><SelectValue placeholder="Type" />
                     </SelectTrigger>
                     <SelectContent className="bg-popover">
                       <SelectItem value="all">Tous types</SelectItem>
@@ -286,16 +303,12 @@ const Notifications = () => {
                   </Button>
                   <Button size="sm" variant="outline" onClick={() => bulkArchive(filterArchived !== 'archived')} disabled={actionLoading}>
                     {filterArchived === 'archived'
-                      ? <><ArchiveRestore className="h-4 w-4 mr-1" /> Désarchiver</>
-                      : <><Archive className="h-4 w-4 mr-1" /> Archiver</>
-                    }
+                      ? <><ArchiveRestore className="h-4 w-4 mr-1" />Désarchiver</>
+                      : <><Archive className="h-4 w-4 mr-1" />Archiver</>}
                   </Button>
-                  <Button
-                    size="sm"
-                    variant="destructive"
+                  <Button size="sm" variant="destructive"
                     onClick={() => setDeleteConfirm({ open: true, ids: [...selectedIds] })}
-                    disabled={actionLoading}
-                  >
+                    disabled={actionLoading}>
                     <Trash2 className="h-4 w-4 mr-1" /> Supprimer
                   </Button>
                 </div>
@@ -314,10 +327,8 @@ const Notifications = () => {
                 </CardContent>
               </Card>
             ) : notifications.map((notif) => (
-              <Card
-                key={notif.id}
-                className={`transition-colors ${!notif.is_read ? 'border-l-4 border-l-primary bg-primary/5' : ''} ${notif.archived ? 'opacity-60' : ''}`}
-              >
+              <Card key={notif.id}
+                className={`transition-colors ${!notif.is_read ? 'border-l-4 border-l-primary bg-primary/5' : ''} ${notif.archived ? 'opacity-60' : ''}`}>
                 <CardContent className="py-3 px-4">
                   <div className="flex items-start gap-3">
                     <Checkbox
@@ -341,32 +352,27 @@ const Notifications = () => {
                         {format(new Date(notif.created_at), "d MMMM yyyy 'à' HH:mm", { locale: fr })}
                       </p>
                     </div>
-                    {/* Per-item actions */}
                     <div className="flex items-center gap-1 shrink-0">
                       {notif.link && (
-                        <Button variant="ghost" size="icon" className="h-8 w-8" asChild title="Ouvrir le lien">
+                        <Button variant="ghost" size="icon" className="h-8 w-8" asChild title="Ouvrir">
                           <Link to={notif.link} onClick={() => !notif.is_read && markAsRead(notif.id)}>
                             <ExternalLink className="h-4 w-4" />
                           </Link>
                         </Button>
                       )}
                       {!notif.is_read && (
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => markAsRead(notif.id)} title="Marquer comme lu">
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => markAsRead(notif.id)} title="Marquer lu">
                           <Check className="h-4 w-4" />
                         </Button>
                       )}
-                      <Button
-                        variant="ghost" size="icon" className="h-8 w-8"
+                      <Button variant="ghost" size="icon" className="h-8 w-8"
                         onClick={() => toggleArchive(notif.id, notif.archived)}
-                        title={notif.archived ? 'Désarchiver' : 'Archiver'}
-                      >
+                        title={notif.archived ? 'Désarchiver' : 'Archiver'}>
                         {notif.archived ? <ArchiveRestore className="h-4 w-4" /> : <Archive className="h-4 w-4" />}
                       </Button>
-                      <Button
-                        variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive"
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive"
                         onClick={() => setDeleteConfirm({ open: true, ids: [notif.id] })}
-                        title="Supprimer"
-                      >
+                        title="Supprimer">
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
@@ -393,19 +399,22 @@ const Notifications = () => {
         </div>
       </main>
 
-
-      {/* Delete confirm dialog */}
+      {/* Delete confirm */}
       <AlertDialog open={deleteConfirm.open} onOpenChange={(open) => !open && setDeleteConfirm({ open: false, ids: [] })}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Supprimer {deleteConfirm.ids.length > 1 ? `ces ${deleteConfirm.ids.length} notifications` : 'cette notification'} ?</AlertDialogTitle>
+            <AlertDialogTitle>
+              Supprimer {deleteConfirm.ids.length > 1 ? `ces ${deleteConfirm.ids.length} notifications` : 'cette notification'} ?
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              Cette action est irréversible. {deleteConfirm.ids.length > 1 ? 'Les notifications sélectionnées' : 'La notification'} sera{deleteConfirm.ids.length > 1 ? 'nt' : ''} définitivement supprimée{deleteConfirm.ids.length > 1 ? 's' : ''}.
+              Cette action est irréversible.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction onClick={bulkDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90" disabled={actionLoading}>
+            <AlertDialogAction onClick={bulkDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={actionLoading}>
               {actionLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Supprimer
             </AlertDialogAction>
