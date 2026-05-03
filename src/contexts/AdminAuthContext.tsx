@@ -21,7 +21,6 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AdminUser | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Restaurer la session Supabase au chargement
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
@@ -45,20 +44,17 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Construit l'objet AdminUser depuis le user Supabase
   const buildAdminUser = async (supabaseUser: User): Promise<AdminUser | null> => {
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("user_roles")
         .select("role")
         .eq("user_id", supabaseUser.id)
-        .in("role", ["admin", "redacteur", "moderator"])
-        .limit(1)
-        .single();
+        .limit(1);
 
-      if (!data) return null;
+      if (error || !data || data.length === 0) return null;
 
-      const role = data.role === "admin" ? "admin" : "editor";
+      const role = data[0].role === "admin" ? "admin" : "editor";
       const username = supabaseUser.email?.split("@")[0] ?? "admin";
       return { username, role, supabaseUser };
     } catch {
@@ -67,13 +63,9 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
   };
 
   const login = async (username: string, password: string): Promise<boolean> => {
-    // username peut être un email complet ou juste la partie avant @
     const email = username.includes("@") ? username : `${username}@focomues-iliad.fr`;
 
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error || !data.user) {
       console.error("Login error:", error?.message);
@@ -95,10 +87,8 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   };
 
-  if (loading) return null;
-
   return (
-    <AdminAuthContext.Provider value={{ user, isAuthenticated: !!user, login, logout }}>
+    <AdminAuthContext.Provider value={{ user, isAuthenticated: !!user && !loading, login, logout }}>
       {children}
     </AdminAuthContext.Provider>
   );
