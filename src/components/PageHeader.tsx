@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Search, Bell, Settings, X, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
 
 const SEARCH_LINKS = [
   { label: "Élections CSE 2026", href: "/elections" },
@@ -25,16 +26,52 @@ const SEARCH_LINKS = [
 export default function PageHeader() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [unreadCount, setUnreadCount] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
 
-  const results = query.trim().length > 0
-    ? SEARCH_LINKS.filter((l) =>
-        l.label.toLowerCase().includes(query.toLowerCase())
-      )
-    : [];
+  // ── Compteur notifications non lues ─────────────────────────
+  useEffect(() => {
+    let channel: ReturnType<typeof supabase.channel> | null = null;
 
-  // Ouvrir avec Ctrl+K
+    const fetchUnread = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) { setUnreadCount(0); return; }
+
+      const { count } = await supabase
+        .from("notifications")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", session.user.id)
+        .eq("is_read", false)
+        .eq("archived", false);
+
+      setUnreadCount(count ?? 0);
+    };
+
+    fetchUnread();
+
+    // Temps réel
+    channel = supabase
+      .channel("notifications-header")
+      .on("postgres_changes", {
+        event: "*",
+        schema: "public",
+        table: "notifications",
+      }, () => { fetchUnread(); })
+      .subscribe();
+
+    // Auth change
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+      fetchUnread();
+    });
+
+    return () => {
+      subscription.unsubscribe();
+      if (channel) supabase.removeChannel(channel);
+    };
+  }, []);
+
+  // ── Raccourci Ctrl+K ─────────────────────────────────────────
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "k") {
@@ -47,14 +84,14 @@ export default function PageHeader() {
     return () => window.removeEventListener("keydown", handler);
   }, []);
 
-  // Focus auto à l'ouverture
   useEffect(() => {
-    if (searchOpen) {
-      setTimeout(() => inputRef.current?.focus(), 50);
-    } else {
-      setQuery("");
-    }
+    if (searchOpen) setTimeout(() => inputRef.current?.focus(), 50);
+    else setQuery("");
   }, [searchOpen]);
+
+  const results = query.trim().length > 0
+    ? SEARCH_LINKS.filter((l) => l.label.toLowerCase().includes(query.toLowerCase()))
+    : [];
 
   const handleSelect = (href: string) => {
     setSearchOpen(false);
@@ -78,11 +115,15 @@ export default function PageHeader() {
           {/* Notifications */}
           <Link
             to="/notifications"
-            aria-label="Notifications"
+            aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} non lues)` : ""}`}
             className="relative w-9 h-9 flex items-center justify-center rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors"
           >
             <Bell className="w-5 h-5" />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-600 rounded-full ring-2 ring-white" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center ring-2 ring-white px-1">
+                {unreadCount > 99 ? "99+" : unreadCount}
+              </span>
+            )}
           </Link>
 
           {/* Administration */}
@@ -94,7 +135,6 @@ export default function PageHeader() {
             <Settings className="w-5 h-5" />
           </Link>
 
-          {/* Divider */}
           <div className="w-px h-6 bg-slate-200 mx-1" />
 
           {/* Nous rejoindre */}
@@ -115,15 +155,11 @@ export default function PageHeader() {
           className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4"
           onClick={() => setSearchOpen(false)}
         >
-          {/* Backdrop */}
           <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" />
-
-          {/* Panneau */}
           <div
             className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Champ de saisie */}
             <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-100">
               <Search className="w-5 h-5 text-slate-400 flex-shrink-0" />
               <input
@@ -147,7 +183,6 @@ export default function PageHeader() {
               </div>
             </div>
 
-            {/* Résultats */}
             {results.length > 0 && (
               <ul className="max-h-72 overflow-y-auto py-2">
                 {results.map((item) => (
@@ -164,14 +199,12 @@ export default function PageHeader() {
               </ul>
             )}
 
-            {/* Aucun résultat */}
             {query.trim().length > 0 && results.length === 0 && (
               <div className="px-4 py-6 text-center text-sm text-slate-400">
                 Aucun résultat pour «&nbsp;{query}&nbsp;»
               </div>
             )}
 
-            {/* État vide — accès rapides */}
             {query.trim().length === 0 && (
               <div className="px-4 py-4">
                 <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">
