@@ -17,26 +17,58 @@ interface AdminAuthContextType {
 
 const AdminAuthContext = createContext<AdminAuthContextType | null>(null);
 
+const ADMIN_ROLES = ["admin", "secretaire", "representant", "redacteur", "tresorier"];
+
+async function fetchUserRole(userId: string): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId)
+    .limit(1);
+
+  if (error || !data || data.length === 0) return null;
+  return data[0].role as string;
+}
+
 export function AdminAuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AdminUser | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
+    // Vérifie la session existante au démarrage
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
-        const adminUser = await buildAdminUser(session.user);
-        setUser(adminUser);
+        const role = await fetchUserRole(session.user.id);
+        if (role && ADMIN_ROLES.includes(role)) {
+          setUser({
+            username: session.user.email?.split("@")[0] ?? "admin",
+            role: role === "admin" ? "admin" : "editor",
+            supabaseUser: session.user,
+          });
+        }
       }
-      setLoading(false);
+      setReady(true);
     });
 
+    // Écoute les changements d'auth
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        if (session?.user) {
-          const adminUser = await buildAdminUser(session.user);
-          setUser(adminUser);
-        } else {
+      async (event, session) => {
+        if (event === "SIGNED_OUT" || !session?.user) {
           setUser(null);
+          return;
+        }
+        // Ne re-fetch que si nécessaire
+        if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+          const role = await fetchUserRole(session.user.id);
+          if (role && ADMIN_ROLES.includes(role)) {
+            setUser({
+              username: session.user.email?.split("@")[0] ?? "admin",
+              role: role === "admin" ? "admin" : "editor",
+              supabaseUser: session.user,
+            });
+          } else {
+            setUser(null);
+          }
         }
       }
     );
@@ -44,26 +76,10 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const buildAdminUser = async (supabaseUser: User): Promise<AdminUser | null> => {
-    try {
-      const { data, error } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", supabaseUser.id)
-        .limit(1);
-
-      if (error || !data || data.length === 0) return null;
-
-      const role = data[0].role === "admin" ? "admin" : "editor";
-      const username = supabaseUser.email?.split("@")[0] ?? "admin";
-      return { username, role, supabaseUser };
-    } catch {
-      return null;
-    }
-  };
-
   const login = async (username: string, password: string): Promise<boolean> => {
-    const email = username.includes("@") ? username : `${username}@focomues-iliad.fr`;
+    const email = username.includes("@")
+      ? username
+      : `${username}@focomues-iliad.fr`;
 
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
@@ -72,13 +88,18 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
       return false;
     }
 
-    const adminUser = await buildAdminUser(data.user);
-    if (!adminUser) {
+    const role = await fetchUserRole(data.user.id);
+    if (!role || !ADMIN_ROLES.includes(role)) {
       await supabase.auth.signOut();
       return false;
     }
 
-    setUser(adminUser);
+    setUser({
+      username: data.user.email?.split("@")[0] ?? "admin",
+      role: role === "admin" ? "admin" : "editor",
+      supabaseUser: data.user,
+    });
+
     return true;
   };
 
@@ -88,7 +109,12 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AdminAuthContext.Provider value={{ user, isAuthenticated: !!user && !loading, login, logout }}>
+    <AdminAuthContext.Provider value={{
+      user,
+      isAuthenticated: ready && !!user,
+      login,
+      logout,
+    }}>
       {children}
     </AdminAuthContext.Provider>
   );
