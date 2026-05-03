@@ -11,6 +11,7 @@ interface AdminUser {
 interface AdminAuthContextType {
   user: AdminUser | null;
   isAuthenticated: boolean;
+  ready: boolean;
   login: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
 }
@@ -25,7 +26,6 @@ async function fetchUserRole(userId: string): Promise<string | null> {
     .select("role")
     .eq("user_id", userId)
     .limit(1);
-
   if (error || !data || data.length === 0) return null;
   return data[0].role as string;
 }
@@ -50,14 +50,12 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
       setReady(true);
     });
 
-    // Écoute les changements d'auth
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (event === "SIGNED_OUT" || !session?.user) {
           setUser(null);
           return;
         }
-        // Ne re-fetch que si nécessaire
         if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
           const role = await fetchUserRole(session.user.id);
           if (role && ADMIN_ROLES.includes(role)) {
@@ -82,11 +80,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
       : `${username}@focomues-iliad.fr`;
 
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-
-    if (error || !data.user) {
-      console.error("Login error:", error?.message);
-      return false;
-    }
+    if (error || !data.user) return false;
 
     const role = await fetchUserRole(data.user.id);
     if (!role || !ADMIN_ROLES.includes(role)) {
@@ -99,7 +93,6 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
       role: role === "admin" ? "admin" : "editor",
       supabaseUser: data.user,
     });
-
     return true;
   };
 
@@ -111,7 +104,8 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
   return (
     <AdminAuthContext.Provider value={{
       user,
-      isAuthenticated: ready && !!user,
+      isAuthenticated: !!user,
+      ready,
       login,
       logout,
     }}>

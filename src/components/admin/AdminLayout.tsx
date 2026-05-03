@@ -179,21 +179,30 @@ interface AdminAuthGuardProps {
   children: ReactNode;
 }
 
-export function AdminAuthGuard({ children }: AdminAuthGuardProps) {
-  const { isAuthenticated } = useAdminAuth();
+export function AdminAuthGuard({ children }: { children: ReactNode }) {
+  const { isAuthenticated, ready } = useAdminAuth();
   const navigate = useNavigate();
-  const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    // N'agit qu'une fois la vérification initiale terminée
+    if (ready && !isAuthenticated) {
       navigate("/admin/login", { replace: true });
     }
-    setIsChecking(false);
-  }, [isAuthenticated, navigate]);
+  }, [ready, isAuthenticated, navigate]);
 
-  if (isChecking || !isAuthenticated) {
-    return null;
+  // Attend la vérification sans rediriger
+  if (!ready) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="flex flex-col items-center gap-3 text-slate-400">
+          <div className="w-8 h-8 border-2 border-slate-300 border-t-red-600 rounded-full animate-spin" />
+          <p className="text-sm">Vérification en cours…</p>
+        </div>
+      </div>
+    );
   }
+
+  if (!isAuthenticated) return null;
 
   return <>{children}</>;
 }
