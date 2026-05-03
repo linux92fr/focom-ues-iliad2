@@ -30,44 +30,48 @@ async function fetchUserRole(userId: string): Promise<string | null> {
   return data[0].role as string;
 }
 
+function buildAdminUser(supabaseUser: User, role: string): AdminUser {
+  return {
+    username: supabaseUser.email?.split("@")[0] ?? "admin",
+    role: role === "admin" ? "admin" : "editor",
+    supabaseUser,
+  };
+}
+
 export function AdminAuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AdminUser | null>(null);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    // Vérifie la session existante au démarrage
+    // Vérification initiale de session
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
         const role = await fetchUserRole(session.user.id);
         if (role && ADMIN_ROLES.includes(role)) {
-          setUser({
-            username: session.user.email?.split("@")[0] ?? "admin",
-            role: role === "admin" ? "admin" : "editor",
-            supabaseUser: session.user,
-          });
+          setUser(buildAdminUser(session.user, role));
         }
       }
       setReady(true);
     });
 
+    // Écoute les changements — uniquement TOKEN_REFRESHED pour éviter les boucles
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (event === "SIGNED_OUT" || !session?.user) {
           setUser(null);
           return;
         }
-        if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+        // TOKEN_REFRESHED = session restaurée depuis localStorage
+        if (event === "TOKEN_REFRESHED") {
           const role = await fetchUserRole(session.user.id);
           if (role && ADMIN_ROLES.includes(role)) {
-            setUser({
-              username: session.user.email?.split("@")[0] ?? "admin",
-              role: role === "admin" ? "admin" : "editor",
-              supabaseUser: session.user,
-            });
+            setUser(buildAdminUser(session.user, role));
           } else {
             setUser(null);
           }
         }
+        // SIGNED_IN est géré directement par la fonction login()
+        // pour éviter les double-appels et les boucles
       }
     );
 
@@ -88,11 +92,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
       return false;
     }
 
-    setUser({
-      username: data.user.email?.split("@")[0] ?? "admin",
-      role: role === "admin" ? "admin" : "editor",
-      supabaseUser: data.user,
-    });
+    setUser(buildAdminUser(data.user, role));
     return true;
   };
 
