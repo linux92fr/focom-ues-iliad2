@@ -326,23 +326,36 @@ const Profile = () => {
                       {pwErrors.confirm && <p className="text-sm text-destructive">{pwErrors.confirm}</p>}
                     </div>
 
-                    {pwData.next && (
-                      <div className="space-y-1">
-                        <div className="flex gap-1">
-                          {[pwData.next.length >= 8, /[A-Z]/.test(pwData.next), /[0-9]/.test(pwData.next), /[^A-Za-z0-9]/.test(pwData.next)].map((ok, i) => (
-                            <div key={i} className={`h-1 flex-1 rounded-full transition-colors ${ok ? "bg-green-500" : "bg-slate-200"}`} />
-                          ))}
+                    <div className="rounded-lg bg-muted/50 border border-border p-3 space-y-2">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Critères requis</p>
+                      {[
+                        { label: "Au moins 8 caractères", ok: pwData.next.length >= 8 },
+                        { label: "Une lettre majuscule (A-Z)", ok: /[A-Z]/.test(pwData.next) },
+                        { label: "Un chiffre (0-9)", ok: /[0-9]/.test(pwData.next) },
+                        { label: "Un caractère spécial (!@#...)", ok: /[^A-Za-z0-9]/.test(pwData.next) },
+                      ].map(({ label, ok }) => (
+                        <div key={label} className="flex items-center gap-2 text-xs">
+                          <span className={`w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${ok ? "bg-green-500" : "bg-slate-200"}`}>
+                            {ok && <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
+                          </span>
+                          <span className={ok ? "text-green-700 font-medium" : "text-muted-foreground"}>{label}</span>
                         </div>
-                        <p className="text-xs text-muted-foreground">
-                          {[
-                            pwData.next.length < 8 && "8 caractères min",
-                            !/[A-Z]/.test(pwData.next) && "une majuscule",
-                            !/[0-9]/.test(pwData.next) && "un chiffre",
-                            !/[^A-Za-z0-9]/.test(pwData.next) && "un caractère spécial",
-                          ].filter(Boolean).join(" · ") || "✓ Mot de passe fort"}
-                        </p>
-                      </div>
-                    )}
+                      ))}
+                      {pwData.next && (
+                        <div className="pt-1 mt-1 border-t border-border">
+                          <div className="flex gap-1">
+                            {[pwData.next.length >= 8, /[A-Z]/.test(pwData.next), /[0-9]/.test(pwData.next), /[^A-Za-z0-9]/.test(pwData.next)].map((ok, i) => (
+                              <div key={i} className={`h-1 flex-1 rounded-full transition-colors ${ok ? "bg-green-500" : "bg-slate-200"}`} />
+                            ))}
+                          </div>
+                          <p className="text-xs text-center mt-1 font-medium">
+                            {[pwData.next.length >= 8, /[A-Z]/.test(pwData.next), /[0-9]/.test(pwData.next), /[^A-Za-z0-9]/.test(pwData.next)].every(Boolean)
+                              ? <span className="text-green-600">✓ Mot de passe fort</span>
+                              : <span className="text-muted-foreground">Complétez les critères ci-dessus</span>}
+                          </p>
+                        </div>
+                      )}
+                    </div>
 
                     <Separator />
                     <div className="flex justify-end">
