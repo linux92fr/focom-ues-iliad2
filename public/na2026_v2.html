@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Revendications NAO 2026 — FOCOM UES ILIAD</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  @page {
+    size: A4;
+    margin: 12mm 14mm;
+  }
+
+  @media print {
+    html, body { background: white !important; }
+    .no-print { display: none !important; }
+    .page-break { page-break-before: always; }
+    .card { break-inside: avoid; }
+  }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: #f8fafc;
+    color: #0f172a;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+    .site-footer-left { display: flex; align-items: center; gap: 12px; }
+  .site-footer-logo {
+    width: 36px; height: 36px;
+    background: white; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 900; font-size: 11px; color: #dc2626;
+    flex-shrink: 0;
+  }
+  .site-footer-name { color: white; font-size: 13px; font-weight: 700; }
+  .site-footer-sub { color: rgba(255,255,255,.7); font-size: 10px; }
+  .site-footer-right { color: rgba(255,255,255,.7); font-size: 10px; text-align: right; }
+
+  @media print {
+    .site-header, .site-footer { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+
+  /* ── Print button ── */
+  .print-btn {
+    position: fixed; top: 16px; right: 16px; z-index: 999;
+    background: #002060; color: white;
+    border: none; border-radius: 8px;
+    padding: 10px 20px; font-size: 13px; font-weight: 700;
+    cursor: pointer; display: flex; align-items: center; gap-8px;
+    box-shadow: 0 4px 12px rgba(0,32,96,.35);
+  }
+  .print-btn:hover { background: #003080; }
+
+  /* ── Page container ── */
+  .page { max-width: 794px; margin: 0 auto; padding: 20px 0 40px; }
+
+  /* ── Hero ── */
+  .hero {
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    border-radius: 16px; padding: 28px 32px;
+    color: white; margin-bottom: 18px; position: relative; overflow: hidden;
+  }
+  .hero::before {
+    content: ''; position: absolute; top: -40px; right: -40px;
+    width: 200px; height: 200px; border-radius: 50%;
+    background: rgba(255,255,255,.06);
+  }
+  .hero-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
+  .hero-left { flex: 1; }
+  .hero-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+  .badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 10px; border-radius: 999px; font-size: 10px; font-weight: 700;
+    border: 1.5px solid rgba(255,255,255,.25); background: rgba(255,255,255,.15);
+    color: white;
+  }
+  .badge-yellow { background: #f5a800; color: #7c3a00; border-color: transparent; }
+  .hero h1 { font-size: 28px; font-weight: 900; line-height: 1.2; margin-bottom: 8px; }
+  .hero h1 span { color: #fde68a; }
+  .hero-sub { font-size: 13px; color: rgba(255,255,255,.8); max-width: 420px; margin-bottom: 10px; }
+  .hero-quote { border-left: 2px solid rgba(245,200,66,.4); padding-left: 12px; font-size: 11px; color: rgba(255,255,255,.6); font-style: italic; }
+  .hero-cats { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+  .hero-cat { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 999px; background: rgba(255,255,255,.12); color: white; font-size: 10px; font-weight: 600; }
+  .cat-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+  .hero-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; min-width: 160px; }
+  .stat-box { background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.2); border-radius: 12px; padding: 10px 8px; text-align: center; }
+  .stat-val { font-size: 22px; font-weight: 900; color: white; }
+  .stat-lbl { font-size: 9px; color: rgba(255,255,255,.65); margin-top: 2px; }
+
+  /* ── Sections ── */
+  .section { margin-bottom: 16px; }
+
+  .preamble {
+    background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 12px;
+    padding: 16px 20px;
+  }
+  .preamble h2 { font-size: 13px; font-weight: 800; margin-bottom: 6px; }
+  .preamble p { font-size: 11.5px; color: #475569; line-height: 1.7; }
+
+  /* ── Grid revendications ── */
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+
+  .card {
+    border-radius: 12px; border: 1.5px solid; overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  .card-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 12px;
+  }
+  .card-num { font-size: 22px; font-weight: 900; color: rgba(255,255,255,.75); line-height: 1; }
+  .card-cat-badge {
+    font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 999px;
+    background: rgba(255,255,255,.2); color: white;
+  }
+  .card-body { padding: 10px 12px; display: flex; flex-direction: column; gap: 7px; flex: 1; }
+  .card-title-row { display: flex; align-items: flex-start; gap: 8px; }
+  .card-icon {
+    width: 28px; height: 28px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    font-size: 13px;
+  }
+  .card-title { font-size: 12px; font-weight: 800; line-height: 1.3; }
+  .card-chiffre { font-size: 15px; font-weight: 900; }
+  .card-sous { font-size: 10px; color: #64748b; margin-top: 1px; line-height: 1.3; }
+  .card-accroche {
+    border-radius: 7px; padding: 5px 8px; border: 1px solid;
+    font-size: 10px; font-weight: 700; font-style: italic;
+  }
+  .card-detail { font-size: 10px; color: #475569; line-height: 1.6; }
+
+  /* ── Synthèse ── */
+  .synthese {
+    background: #f0fdf4; border: 2px solid #86efac; border-radius: 12px; padding: 16px 20px;
+  }
+  .synthese-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .synthese-icon { width: 36px; height: 36px; background: #22c55e; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: white; font-size: 18px; flex-shrink: 0; }
+  .synthese-title { font-size: 16px; font-weight: 800; color: #14532d; }
+  .synthese-sub { font-size: 11px; color: #166534; }
+  .synthese-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .synthese-item { background: white; border: 1px solid #bbf7d0; border-radius: 10px; padding: 10px; text-align: center; }
+  .synthese-val { font-size: 22px; font-weight: 900; color: #16a34a; }
+  .synthese-lbl { font-size: 10px; font-weight: 700; color: #14532d; margin-top: 3px; }
+  .synthese-detail { font-size: 9px; color: #4ade80; margin-top: 1px; }
+
+  /* ── Transport highlight ── */
+  .transport-highlight {
+    background: linear-gradient(135deg, #dbeafe, #eff6ff);
+    border: 2px solid #93c5fd; border-radius: 12px; padding: 14px 18px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .transport-icon-big { font-size: 32px; flex-shrink: 0; }
+  .transport-title { font-size: 15px; font-weight: 900; color: #1d4ed8; margin-bottom: 4px; }
+  .transport-pct { font-size: 28px; font-weight: 900; color: #2563eb; }
+  .transport-desc { font-size: 11px; color: #3b82f6; line-height: 1.5; }
+  .transport-badge { display: inline-block; background: #2563eb; color: white; padding: 2px 8px; border-radius: 999px; font-size: 10px; font-weight: 700; margin-top: 4px; }
+
+  /* ── Reconduction ── */
+  .reconduction {
+    background: linear-gradient(135deg, #1e3a5f, #1d4ed8);
+    border-radius: 12px; padding: 14px 18px; color: white;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .reconduction-emoji { font-size: 28px; flex-shrink: 0; }
+  .reconduction h3 { font-size: 13px; font-weight: 800; margin-bottom: 4px; }
+  .reconduction p { font-size: 11px; color: rgba(255,255,255,.8); line-height: 1.5; }
+
+  /* ── Footer disclaimer ── */
+  .disclaimer { text-align: center; font-size: 10px; color: #94a3b8; margin-top: 20px; padding-top: 12px; border-top: 1px solid #e2e8f0; }
+
+  /* ── Catégorie colors ── */
+  /* salaire = emerald */
+  .cat-salaire .card-header { background: #10b981; }
+  .cat-salaire { border-color: #6ee7b7; background: #f0fdf4; }
+  .cat-salaire .card-chiffre, .cat-salaire .card-title { color: #065f46; }
+  .cat-salaire .card-icon { background: #d1fae5; }
+  .cat-salaire .card-accroche { background: #ecfdf5; border-color: #a7f3d0; color: #059669; }
+  .cat-salaire .cat-dot { background: #10b981; }
+
+  /* temps = blue */
+  .cat-temps .card-header { background: #3b82f6; }
+  .cat-temps { border-color: #93c5fd; background: #eff6ff; }
+  .cat-temps .card-chiffre, .cat-temps .card-title { color: #1e40af; }
+  .cat-temps .card-icon { background: #dbeafe; }
+  .cat-temps .card-accroche { background: #eff6ff; border-color: #bfdbfe; color: #2563eb; }
+  .cat-temps .cat-dot { background: #3b82f6; }
+
+  /* social = rose */
+  .cat-social .card-header { background: #f43f5e; }
+  .cat-social { border-color: #fda4af; background: #fff1f2; }
+  .cat-social .card-chiffre, .cat-social .card-title { color: #9f1239; }
+  .cat-social .card-icon { background: #ffe4e6; }
+  .cat-social .card-accroche { background: #fff1f2; border-color: #fecdd3; color: #e11d48; }
+  .cat-social .cat-dot { background: #f43f5e; }
+
+  /* egalite = purple */
+  .cat-egalite .card-header { background: #a855f7; }
+  .cat-egalite { border-color: #d8b4fe; background: #faf5ff; }
+  .cat-egalite .card-chiffre, .cat-egalite .card-title { color: #581c87; }
+  .cat-egalite .card-icon { background: #f3e8ff; }
+  .cat-egalite .card-accroche { background: #faf5ff; border-color: #e9d5ff; color: #9333ea; }
+  .cat-egalite .cat-dot { background: #a855f7; }
+
+  /* negociation = red */
+  .cat-negociation .card-header { background: #dc2626; }
+  .cat-negociation { border-color: #fca5a5; background: #fef2f2; }
+  .cat-negociation .card-chiffre, .cat-negociation .card-title { color: #7f1d1d; }
+  .cat-negociation .card-icon { background: #fee2e2; }
+  .cat-negociation .card-accroche { background: #fef2f2; border-color: #fecaca; color: #dc2626; }
+  .cat-negociation .cat-dot { background: #dc2626; }
+</style>
+</head>
+<body>
+
+<button class="print-btn no-print" onclick="window.print()">🖨 Imprimer / Exporter PDF</button>
+
+    <div>
+      <div class="site-header-title">FOCOM UES ILIAD</div>
+      <div class="site-header-sub">Syndicat FO Communications</div>
+    </div>
+  </div>
+  <div class="site-header-badge">NAO 2026</div>
+</div>
+
+<div class="page">
+
+  <!-- Hero -->
+  <div class="hero section">
+    <div class="hero-top">
+      <div class="hero-left">
+        <div class="hero-badges" style="align-items:center;">
+          <img src="data:image/png;base64,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" style="width:38px;height:38px;object-fit:contain;border-radius:50%;background:white;padding:2px;flex-shrink:0;" />
+          <span class="badge">📢 NAO 2026</span>
+          <span class="badge">UES ILIAD</span>
+          <span class="badge badge-yellow">FOCOM</span>
+        </div>
+        <h1>Négociation Annuelle<br><span>Obligatoire 2026</span></h1>
+        <p class="hero-sub">Nos <strong>23 revendications</strong> pour cette année de négociation. Des mesures concrètes, chiffrées, pour améliorer la vie de tous les salariés de l'UES ILIAD.</p>
+        <blockquote class="hero-quote">« Le capital humain reste la première ressource de l'entreprise et la principale composante de sa réussite. »</blockquote>
+        <div class="hero-cats">
+          <span class="hero-cat"><span class="cat-dot" style="background:#10b981"></span>Salaires &amp; Primes (6)</span>
+          <span class="hero-cat"><span class="cat-dot" style="background:#3b82f6"></span>Temps de travail (3)</span>
+          <span class="hero-cat"><span class="cat-dot" style="background:#f43f5e"></span>Avantages sociaux (8)</span>
+          <span class="hero-cat"><span class="cat-dot" style="background:#a855f7"></span>Égalité &amp; Reconnaissance (4)</span>
+          <span class="hero-cat"><span class="cat-dot" style="background:#dc2626"></span>Négociation (2)</span>
+        </div>
+      </div>
+      <div class="hero-stats">
+        <div class="stat-box"><div class="stat-val">23</div><div class="stat-lbl">Revendications</div></div>
+        <div class="stat-box"><div class="stat-val">6</div><div class="stat-lbl">Salaires &amp; Primes</div></div>
+        <div class="stat-box"><div class="stat-val">6</div><div class="stat-lbl">Négociations</div></div>
+        <div class="stat-box"><div class="stat-val">12</div><div class="stat-lbl">Social &amp; Égalité</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Highlight transport -->
+  <div class="transport-highlight section">
+    <div class="transport-icon-big">🚇</div>
+    <div>
+      <div class="transport-title">Nouvelle revendication — Transport en commun</div>
+      <div style="display:flex;align-items:baseline;gap:8px">
+        <span class="transport-pct">75 %</span>
+        <span style="font-size:13px;color:#3b82f6;font-weight:700">de prise en charge patronale</span>
+      </div>
+      <p class="transport-desc">Au-delà du minimum légal de 50 %, nous demandons le passage à <strong>75 % de prise en charge des abonnements de transport en commun</strong> pour 2026, jusqu'aux prochaines NAO. Un soutien concret et immédiat au pouvoir d'achat de chaque salarié qui utilise les transports pour se rendre au travail.</p>
+      <span class="transport-badge">En vigueur jusqu'aux NAO suivantes</span>
+    </div>
+  </div>
+
+  <!-- Préambule -->
+  <div class="preamble section">
+    <h2>Préambule — Contexte 2026</h2>
+    <p>Depuis l'épisode inflationniste de 2022 à 2024, les salaires réels ont reculé : l'inflation cumulée a été nettement supérieure aux augmentations générales. L'année 2026 est de plus marquée par une <strong>chute brutale de l'intéressement</strong> et par l'envolée des prix de l'énergie. Dans ce contexte, et face à l'accélération de l'IA dans nos métiers, <strong>la juste répartition de la valeur ajoutée</strong> n'est plus une option — c'est une urgence.</p>
+  </div>
+
+  <!-- Grille des revendications -->
+  <div class="section">
+    <h2 style="font-size:16px;font-weight:900;margin-bottom:12px;color:#0f172a">Nos 23 revendications</h2>
+    <div class="grid">
+
+      <!-- 01 -->
+      <div class="card cat-salaire">
+        <div class="card-header"><span class="card-num">01</span><span class="card-cat-badge">Salaires &amp; Primes</span></div>
+        <div class="card-body">
+          <div class="card-title-row"><div class="card-icon">📈</div><div><div class="card-title">Augmentation salariale <span class="card-chiffre">+2,5 %</span></div><div class="card-sous">Minimum 2,5 % pour tous les salariés</div></div></div>
+          <div class="card-accroche cat-salaire">« Neutraliser l'inflation, c'est le minimum »</div>
+          <p class="card-detail">Face à l'inflation cumulée depuis 2022 et à la revalorisation du SMIC de janvier 2026, une augmentation d'au moins 2,5 % est indispensable, avec rétroactivité au 1er janvier 2026.</p>
+        </div>
+      </div>
+
+      <!-- 02 -->
+      <div class="card cat-salaire">
+        <div class="card-header"><span class="card-num">02</span><span class="card-cat-badge">Salaires &amp; Primes</span></div>
+        <div class="card-body">
+          <div class="card-title-row"><div class="card-icon">🔄</div><div><div class="card-title">Indexation sur le SMIC</div><div class="card-sous">Revalorisation automatique des années suivantes</div></div></div>
+          <div class="card-accroche cat-salaire">« Plus jamais de salaires figés »</div>
+          <p class="card-detail">Indexation des salaires sur le SMIC et garantie de revalorisation après 3 années sans augmentation sur un même emploi.</p>
+        </div>
+      </div>
+
+      <!-- 03 -->
+      <div class="card cat-salaire">
+        <div class="card-header"><span class="card-num">03</span><span class="card-cat-badge">Salaires &amp; Primes</span></div>
+        <div class="card-body">
+          <div class="card-title-row"><div class="card-icon">📄</div><div><div class="card-title">Transparence fiches de paie</div><div class="card-sous">Deux lignes distinctes + note d'information</div></div></div>
+          <div class="card-accroche cat-salaire">« Chaque salarié a le droit de comprendre sa rémunération »</div>
+          <p class="card-detail">Mention de deux lignes séparées : augmentation conventionnelle et NAO. Note explicative sur les critères des augmentations individuelles.</p>
+        </div>
+      </div>
+
+      <!-- 04 -->
+      <div class="card cat-salaire">
+        <div class="card-header"><span class="card-num">04</span><span class="card-cat-badge">Salaires &amp; Primes</span></div>
+        <div class="card-body">
+          <div class="card-title-row"><div class="card-icon">💰</div><div><div class="card-title">Prime de partage de la valeur</div><div class="card-sous">Répartition équitable salariés / actionnaires</div></div></div>
+          <div class="card-accroche cat-salaire">« La valeur créée doit profiter à ceux qui la produisent »</div>
+          <p class="card-detail">Prime de partage prenant en compte l'implication de chaque salarié, dans une logique de répartition équitable des richesses générées.</p>
+        </div>
+      </div>
+
+      <!-- 05 -->
+      <div class="card cat-salaire">
+        <div class="card-header"><span class="card-num">05</span><span class="card-cat-badge">Salaires &amp; Primes</span></div>
+        <div class="card-body">
+          <div class="card-title-row"><div class="card-icon">🏥</div><div><div class="card-title">Subrogation &amp; délai de carence</div><div class="card-sous">Maintien salaire + suppression carence maladie</div></div></div>
+          <div class="card-accroche cat-salaire">« La santé ne devrait pas coûter de l'argent »</div>
+          <p class="card-detail">Mise en place de la subrogation, maintien intégral du salaire et suppression du délai de carence en cas d'arrêt maladie.</p>
+        </div>
+      </div>
+
+      <!-- 06 -->
+      <div class="card cat-salaire">
+        <div class="card-header"><span class="card-num">06</span><span class="card-cat-badge">Salaires &amp; Primes</span></div>
+        <div class="card-body">
+          <div class="card-title-row"><div class="card-icon">☀️</div><div><div class="card-title">Prime de vacances</div><div class="card-sous">Mise en place pour tous les salariés</div></div></div>
+          <div class="card-accroche cat-salaire">« Les vacances ne sont pas un luxe »</div>
+          <p class="card-detail">Prime de vacances pour l'ensemble des salariés, contribuant au bien-être et à la performance de chacun.</p>
+        </div>
+      </div>
+
+      <!-- 07 -->
+      <div class="card cat-temps">
+        <div class="card-header"><span class="card-num">07</span><span class="card-cat-badge">Temps de travail</span></div>
+        <div class="card-body">
+          <div class="card-title-row"><div class="card-icon">🕐</div><div><div class="card-title">Temps de trajet = temps de travail</div><div class="card-sous">Trajets domicile-mission début/fin de journée</div></div></div>
+          <div class="card-accroche cat-temps">« Le temps en route, c'est du travail »</div>
+          <p class="card-detail">Reconnaissance des trajets des salariés itinérants comme temps de travail effectif, conformément aux évolutions jurisprudentielles récentes.</p>
+        </div>
+      </div>
+
+      <!-- 08 -->
+      <div class="card cat-temps">
+        <div class="card-header"><span class="card-num">08</span><span class="card-cat-badge">Temps de travail</span></div>
+        <div class="card-body">
+          <div class="card-title-row"><div class="card-icon">📅</div><div><div class="card-title">Négociation temps de travail</div><div class="card-sous">Conformité européenne &amp; Cour de cassation</div></div></div>
+          <div class="card-accroche cat-temps">« L'organisation du travail doit évoluer »</div>
+          <p class="card-detail">Ouverture d'une négociation pour mise en conformité avec les recommandations européennes, jurisprudences et préconisations de l'Inspection du Travail.</p>
+        </div>
+      </div>
+
+      <!-- 09 -->
+      <div class="card cat-temps">
+        <div class="card-header"><span class="card-num">09</span><span class="card-cat-badge">Temps de travail</span></div>
+        <div class="card-body">
+          <div class="card-title-row"><div class="card-icon">🤖</div><div><div class="card-title">Négociation IA &amp; Digitalisation</div><div class="card-sous">Les gains de productivité aux salariés</div></div></div>
+          <div class="card-accroche cat-temps">« L'IA progresse — les conditions aussi »</div>
+          <p class="card-detail">Accord Digitalisation &amp; IA garantissant que les gains de productivité bénéficient aux collaborateurs, avec accompagnement structuré au changement.</p>
+        </div>
+      </div>
+
+      <!-- 10 -->
+      <div class="card cat-egalite">
+        <div class="card-header"><span class="card-num">10</span><span class="card-cat-badge">Égalité &amp; Reconnaissance</span></div>
+        <div class="card-body">
+          <div class="card-title-row"><div class="card-icon">⚖️</div><div><div class="card-title">Égalité Femmes-Hommes</div><div class="card-sous">Rattrapage systématique des écarts</div></div></div>
+          <div class="card-accroche cat-egalite">« Des actes, pas des chiffres d'index »</div>
+          <p class="card-detail">Rattrapage systématique et budgétisé de tous les écarts de rémunération injustifiés F/H, avec mesures concrètes inscrites dans l'accord NAO.</p>
+        </div>
+      </div>
+
+      <!-- 11 -->
+      <div class="card cat-egalite">
+        <div class="card-header"><span class="card-num">11</span><span class="card-cat-badge">Égalité &amp; Reconnaissance</span></div>
+        <div class="card-body">
+          <div class="card-title-row"><div class="card-icon">🏅</div><div><div class="card-title">Reclassification Agents de Maîtrise</div><div class="card-sous">Requalifier les techniciens seuil D en AM</div></div></div>
+          <div class="card-accroche cat-egalite">« Justice pour une catégorie sous-reconnue »</div>
+          <p class="card-detail">Reclassification officielle des salariés seuil D en Agents de Maîtrise, pour une reconnaissance juste de leurs compétences et responsabilités réelles.</p>
+        </div>
+      </div>
+
+      <!-- 12 -->
+      <div class="card cat-egalite">
+        <div class="card-header"><span class="card-num">12</span><span class="card-cat-badge">Égalité &amp; Reconnaissance</span></div>
+        <div class="card-body">
+          <div class="card-title-row"><div class="card-icon">🥇</div><div><div class="card-title">Médaille du travail</div><div class="card-sous">Systématique pour les départs en retraite</div></div></div>
+          <div class="card-accroche cat-egalite">« Chaque départ mérite une reconnaissance »</div>
+          <p class="card-detail">Attribution systématique d'une médaille du travail à chaque salarié partant en retraite. Un geste symbolique et humain, qui signifie beaucoup.</p>
+        </div>
+      </div>
+
+      <!-- 13 -->
+      <div class="card cat-egalite">
+        <div class="card-header"><span class="card-num">13</span><span class="card-cat-badge">Égalité &amp; Reconnaissance</span></div>
+        <div class="card-body">
+          <div class="card-title-row"><div class="card-icon">📊</div><div><div class="card-title">Accord PPV</div><div class="card-sous">Prime de Partage de la Valeur — structurant</div></div></div>
+          <div class="card-accroche cat-egalite">« Un partage de valeur pérenne »</div>
+          <p class="card-detail">Accord PPV pérenne garantissant une répartition équitable de la valeur ajoutée, au-delà des décisions unilatérales annuelles.</p>
+        </div>
+      </div>
+
+      <!-- 14 -->
+      <div class="card cat-social">
+        <div class="card-header"><span class="card-num">14</span><span class="card-cat-badge">Avantages sociaux</span></div>
+        <div class="card-body">
+          <div class="card-title-row"><div class="card-icon">🍽️</div><div><div class="card-title">Ticket-restaurant &amp; panier repas <span class="card-chiffre">12,50 €</span></div><div class="card-sous">Revalorisation à 12,50 € pour tous</div></div></div>
+          <div class="card-accroche cat-social">« Se nourrir correctement ne doit pas être un luxe »</div>
+          <p class="card-detail">Revalorisation du ticket-restaurant et du panier repas itinérants à 12,50 € (plafond exonération URSSAF 2026), prise en charge employeur à 60 %.</p>
+        </div>
+      </div>
+
+      <!-- 15 -->
+      <div class="card cat-social">
+        <div class="card-header"><span class="card-num">15</span><span class="card-cat-badge">Avantages sociaux</span></div>
+        <div class="card-body">
+          <div class="card-title-row"><div class="card-icon">☕</div><div><div class="card-title">Budget convivialité QVCT <span class="card-chiffre">200 €</span></div><div class="card-sous">150 € convivialité + 50 € repas Noël</div></div></div>
+          <div class="card-accroche cat-social">« La cohésion d'équipe, ça se cultive »</div>
+          <p class="card-detail">Budget QVCT annuel de 150 € par collaborateur + 50 € repas de Noël, uniformisé pour toutes les équipes.</p>
+        </div>
+      </div>
+
+      <!-- 16 -->
+      <div class="card cat-social">
+        <div class="card-header"><span class="card-num">16</span><span class="card-cat-badge">Avantages sociaux</span></div>
+        <div class="card-body">
+          <div class="card-title-row"><div class="card-icon">💻</div><div><div class="card-title">Indemnité télétravail <span class="card-chiffre">59 €</span></div><div class="card-sous">Revalorisation à 59 € mensuels</div></div></div>
+          <div class="card-accroche cat-social">« Le bureau à la maison a un coût réel »</div>
+          <p class="card-detail">Revalorisation des indemnités d'occupation du domicile liées au télétravail à 59 €/mois, couvrant électricité, assurance et eau.</p>
+        </div>
+      </div>
+
+      <!-- 17 -->
+      <div class="card cat-social">
+        <div class="card-header"><span class="card-num">17</span><span class="card-cat-badge">Avantages sociaux</span></div>
+        <div class="card-body">
+          <div class="card-title-row"><div class="card-icon">⭐</div><div><div class="card-title">Budget œuvres sociales <span class="card-chiffre">1 %</span></div><div class="card-sous">1 % de la masse salariale</div></div></div>
+          <div class="card-accroche cat-social">« Pour tous les salariés et leurs familles »</div>
+          <p class="card-detail">Augmentation de la dotation des œuvres sociales à 1 % de la masse salariale, se rapprochant du taux le mieux disant de la profession.</p>
+        </div>
+      </div>
+
+      <!-- 18 -->
+      <div class="card cat-social">
+        <div class="card-header"><span class="card-num">18</span><span class="card-cat-badge">Avantages sociaux</span></div>
+        <div class="card-body">
+          <div class="card-title-row"><div class="card-icon">🚗</div><div><div class="card-title">Véhicules de fonction</div><div class="card-sous">Pour les salariés qui le souhaitent</div></div></div>
+          <div class="card-accroche cat-social">« Attirer et fidéliser les talents »</div>
+          <p class="card-detail">Politique de véhicules de fonction ouverte aux salariés volontaires, participant à l'attractivité de l'entreprise dans un secteur concurrentiel.</p>
+        </div>
+      </div>
+
+      <!-- 19 -->
+      <div class="card cat-social">
+        <div class="card-header"><span class="card-num">19</span><span class="card-cat-badge">Avantages sociaux</span></div>
+        <div class="card-body">
+          <div class="card-title-row"><div class="card-icon">📱</div><div><div class="card-title">Offre collaborateur mobile</div><div class="card-sous">Salarié et toute sa famille</div></div></div>
+          <div class="card-accroche cat-social">« Un avantage différenciant »</div>
+          <p class="card-detail">Offre préférentielle mobile et forfait accessible à l'ensemble des membres de la famille du salarié. Un avantage concret et apprécié.</p>
+        </div>
+      </div>
+
+      <!-- 20 -->
+      <div class="card cat-social">
+        <div class="card-header"><span class="card-num">20</span><span class="card-cat-badge">Avantages sociaux</span></div>
+        <div class="card-body">
+          <div class="card-title-row"><div class="card-icon">📈</div><div><div class="card-title">Accord intéressement</div><div class="card-sous">Ouverture de négociation</div></div></div>
+          <div class="card-accroche cat-social">« Associer les salariés aux résultats »</div>
+          <p class="card-detail">Négociation d'un accord d'intéressement pour associer durablement les salariés aux performances économiques du Groupe.</p>
+        </div>
+      </div>
+
+      <!-- 21 — NOUVEAU -->
+      <div class="card cat-social" style="border-color:#3b82f6; background: linear-gradient(135deg,#eff6ff,#dbeafe); position:relative;">
+        <div style="position:absolute;top:8px;right:8px;background:#f59e0b;color:#7c2d12;font-size:9px;font-weight:800;padding:2px 7px;border-radius:999px;">NOUVEAU 2026</div>
+        <div class="card-header" style="background:linear-gradient(135deg,#2563eb,#1d4ed8)"><span class="card-num">21</span><span class="card-cat-badge">Avantages sociaux</span></div>
+        <div class="card-body">
+          <div class="card-title-row"><div class="card-icon" style="background:#dbeafe">🚇</div><div><div class="card-title" style="color:#1e3a8a">Transport en commun <span class="card-chiffre" style="color:#2563eb">75 %</span></div><div class="card-sous">Prise en charge patronale — jusqu'aux prochaines NAO</div></div></div>
+          <div class="card-accroche" style="background:#eff6ff;border-color:#93c5fd;color:#1d4ed8">« Un trajet moins cher, un pouvoir d'achat préservé »</div>
+          <p class="card-detail">Passage de la prise en charge de 50 % à <strong>75 % des abonnements de transport en commun</strong> pour 2026, jusqu'aux prochaines NAO. Au-delà du minimum légal, un soutien concret et immédiat au pouvoir d'achat.</p>
+        </div>
+      </div>
+
+      <!-- 22 -->
+      <div class="card cat-negociation">
+        <div class="card-header"><span class="card-num">22</span><span class="card-cat-badge">Négociation</span></div>
+        <div class="card-body">
+          <div class="card-title-row"><div class="card-icon">🏠</div><div><div class="card-title">Accord télétravail</div><div class="card-sous">Négociation dédiée — cadre clair</div></div></div>
+          <div class="card-accroche cat-negociation">« Un cadre clair et juste »</div>
+          <p class="card-detail">Accord télétravail structurant définissant droits et modalités d'organisation hybride. Un cadre opposable et équitable pour tous.</p>
+        </div>
+      </div>
+
+      <!-- 23 -->
+      <div class="card cat-negociation">
+        <div class="card-header"><span class="card-num">23</span><span class="card-cat-badge">Négociation</span></div>
+        <div class="card-body">
+          <div class="card-title-row"><div class="card-icon">🌿</div><div><div class="card-title">Accord QVT</div><div class="card-sous">Qualité de Vie au Travail — ambitieux</div></div></div>
+          <div class="card-accroche cat-negociation">« Une priorité, pas un slogan »</div>
+          <p class="card-detail">Accord QVT couvrant conditions de travail, prévention des RPS, santé au travail et équilibre vie pro/perso. Une vraie ambition, pas une déclaration.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Synthèse chiffrée -->
+  <div class="synthese section">
+    <div class="synthese-head">
+      <div class="synthese-icon">📈</div>
+      <div>
+        <div class="synthese-title">Synthèse de l'enveloppe</div>
+        <div class="synthese-sub">Restaurer le pouvoir d'achat et corriger les inégalités structurelles</div>
+      </div>
+    </div>
+    <div class="synthese-grid">
+      <div class="synthese-item"><div class="synthese-val">+2,5 %</div><div class="synthese-lbl">Augmentation collective</div><div class="synthese-detail">Rétroactivité au 1er janv. 2026</div></div>
+      <div class="synthese-item"><div class="synthese-val">12,50 €</div><div class="synthese-lbl">Ticket-restaurant</div><div class="synthese-detail">Valeur faciale revalorisée</div></div>
+      <div class="synthese-item"><div class="synthese-val">1 %</div><div class="synthese-lbl">Budget œuvres sociales</div><div class="synthese-detail">De la masse salariale</div></div>
+      <div class="synthese-item" style="border-color:#93c5fd;background:#eff6ff"><div class="synthese-val" style="color:#2563eb">75 %</div><div class="synthese-lbl" style="color:#1e3a8a">Transport en commun</div><div class="synthese-detail" style="color:#60a5fa">Prise en charge patronale</div></div>
+      <div class="synthese-item"><div class="synthese-val">59 €</div><div class="synthese-lbl">Indemnité télétravail</div><div class="synthese-detail">Mensuelle revalorisée</div></div>
+      <div class="synthese-item"><div class="synthese-val">200 €</div><div class="synthese-lbl">Budget QVCT</div><div class="synthese-detail">Convivialité + Noël</div></div>
+    </div>
+  </div>
+
+  <!-- Reconduction -->
+  <div class="reconduction section">
+    <div class="reconduction-emoji">🔄</div>
+    <div>
+      <h3>Reconduction des mesures NAO 2025</h3>
+      <p>Nous exigeons la reconduction intégrale de toutes les mesures et avantages acquis lors des précédentes négociations annuelles (NAO 2025), sans régression sociale d'aucune sorte.</p>
+    </div>
+  </div>
+
+</div>
+
+    <div>
+      <div class="site-footer-name">FOCOM UES ILIAD</div>
+      <div class="site-footer-sub">Fédération Syndicaliste Force Ouvrière de la Communication</div>
+    </div>
+  </div>
+  <div class="site-footer-right">
+    Document NAO 2026 · Délégation FOCOM<br>
+    Ces revendications ne constituent pas un engagement contractuel.
+  </div>
+</div>
+
+</body>
+</html>
