@@ -29,6 +29,7 @@ export default function PageHeader() {
   const [query, setQuery] = useState("");
   const [unreadCount, setUnreadCount] = useState(0);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
@@ -37,6 +38,20 @@ export default function PageHeader() {
   const initials = user
     ? (user.user_metadata?.display_name?.substring(0, 2) || user.email?.substring(0, 2) || "U").toUpperCase()
     : null;
+
+  // Fetch avatar depuis profiles
+  useEffect(() => {
+    const fetchAvatar = async () => {
+      if (!user?.email) { setAvatarUrl(null); return; }
+      const { data } = await supabase
+        .from("profiles")
+        .select("avatar_url")
+        .eq("email", user.email)
+        .single();
+      setAvatarUrl(data?.avatar_url || null);
+    };
+    fetchAvatar();
+  }, [user]);
 
   // Notifications non lues
   useEffect(() => {
@@ -143,10 +158,10 @@ export default function PageHeader() {
             <div ref={userMenuRef} className="relative">
               <button
                 onClick={() => setUserMenuOpen((v) => !v)}
-                className="w-10 h-10 rounded-full bg-primary text-primary-foreground font-bold text-sm flex items-center justify-center hover:opacity-90 transition-opacity ring-2 ring-primary/20 focus:outline-none"
+                className="w-10 h-10 rounded-full bg-primary text-primary-foreground font-bold text-sm flex items-center justify-center hover:opacity-90 transition-opacity ring-2 ring-primary/20 focus:outline-none overflow-hidden"
                 aria-label="Mon compte"
               >
-                {initials}
+                {avatarUrl ? <img src={avatarUrl} alt="avatar" className="w-full h-full object-cover" /> : initials}
               </button>
 
               {userMenuOpen && (
