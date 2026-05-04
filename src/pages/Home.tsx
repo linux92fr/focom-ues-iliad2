@@ -129,7 +129,7 @@ export default function Home() {
       {/* Hero Banner — titre et sous-titre depuis Supabase */}
       <section className="relative rounded-2xl overflow-hidden mb-8 shadow-lg">
         <img src={HERO_IMAGE} alt="FO Com" className="w-full h-64 sm:h-80 lg:h-96 object-cover" />
-        <div className="absolute inset-0 bg-slate-900/75" />
+        <div className="absolute inset-0 bg-slate-900/90/>
         <div className="absolute inset-0 flex flex-col items-center justify-center p-6 sm:p-10 lg:p-14 text-center">
           <h2 className="text-2xl sm:text-4xl lg:text-5xl font-extrabold text-white leading-tight">
             {heroTitle}
