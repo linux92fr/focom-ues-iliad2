@@ -73,17 +73,9 @@ const Profile = () => {
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
+    if (file.size > 2 * 1024 * 1024) { toast.error("L'image ne doit pas dépasser 2 Mo"); return; }
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) { toast.error("Format accepté : JPG, PNG ou WebP"); return; }
 
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error("L'image ne doit pas dépasser 2 Mo");
-      return;
-    }
-    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
-      toast.error("Format accepté : JPG, PNG ou WebP");
-      return;
-    }
-
-    // Prévisualisation locale
     const reader = new FileReader();
     reader.onload = (ev) => setAvatarPreview(ev.target?.result as string);
     reader.readAsDataURL(file);
@@ -92,23 +84,10 @@ const Profile = () => {
     try {
       const ext = file.name.split(".").pop();
       const path = `${user.id}/avatar.${ext}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from("avatars")
-        .upload(path, file, { upsert: true });
-
+      const { error: uploadError } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
       if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from("avatars")
-        .getPublicUrl(path);
-
-      // Sauvegarde l'URL dans le profil
-      await supabase
-        .from("profiles")
-        .update({ avatar_url: publicUrl })
-        .eq("email", user.email!);
-
+      const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(path);
+      await supabase.from("profiles").update({ avatar_url: publicUrl }).eq("email", user.email!);
       setAvatarPreview(publicUrl);
       toast.success("Photo de profil mise à jour");
     } catch {
@@ -162,10 +141,12 @@ const Profile = () => {
   // ── Mot de passe ─────────────────────────────────────────────
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validation
     const errors: Record<string, string> = {};
     if (!pwData.next || pwData.next.length < 8)
       errors.next = "Le mot de passe doit contenir au moins 8 caractères";
-    if (!/[A-Z]/.test(pwData.next))
+    else if (!/[A-Z]/.test(pwData.next))
       errors.next = "Le mot de passe doit contenir au moins une majuscule";
     if (pwData.next !== pwData.confirm)
       errors.confirm = "Les mots de passe ne correspondent pas";
@@ -173,6 +154,7 @@ const Profile = () => {
 
     setPwErrors({});
     setPwSaving(true);
+
     try {
       const { error } = await supabase.auth.updateUser({ password: pwData.next });
       if (error) throw error;
@@ -189,11 +171,7 @@ const Profile = () => {
     setShowPw((prev) => ({ ...prev, [field]: !prev[field] }));
 
   if (authLoading || loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return <div className="min-h-screen flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   }
   if (!user) return null;
 
@@ -208,68 +186,36 @@ const Profile = () => {
     <div className="min-h-screen flex flex-col">
       <main className="flex-grow bg-muted/30 py-12">
         <div className="container max-w-4xl mx-auto px-4">
-
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-foreground">Mon Profil</h1>
             <p className="text-muted-foreground mt-2">Gérez vos informations personnelles et votre mot de passe</p>
           </div>
 
           <div className="grid gap-6 md:grid-cols-3">
-
             {/* Carte résumé + avatar */}
             <Card className="md:col-span-1 h-fit">
               <CardHeader className="text-center">
-
-                {/* Avatar avec bouton upload */}
                 <div className="relative w-24 h-24 mx-auto mb-4 group">
                   {avatarPreview ? (
-                    <img
-                      src={avatarPreview}
-                      alt="Avatar"
-                      className="w-24 h-24 rounded-full object-cover ring-4 ring-primary/20"
-                    />
+                    <img src={avatarPreview} alt="Avatar" className="w-24 h-24 rounded-full object-cover ring-4 ring-primary/20" />
                   ) : (
                     <div className="w-24 h-24 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-2xl font-bold ring-4 ring-primary/20">
                       {initials}
                     </div>
                   )}
-
-                  {/* Overlay au survol */}
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={uploadingAvatar}
-                    className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                  >
-                    {uploadingAvatar
-                      ? <Loader2 className="w-6 h-6 text-white animate-spin" />
-                      : <Camera className="w-6 h-6 text-white" />}
+                  <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploadingAvatar}
+                    className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                    {uploadingAvatar ? <Loader2 className="w-6 h-6 text-white animate-spin" /> : <Camera className="w-6 h-6 text-white" />}
                   </button>
-
-                  {/* Bouton supprimer */}
                   {avatarPreview && !uploadingAvatar && (
-                    <button
-                      type="button"
-                      onClick={handleRemoveAvatar}
-                      className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors shadow"
-                    >
+                    <button type="button" onClick={handleRemoveAvatar}
+                      className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors shadow">
                       <X className="w-3 h-3" />
                     </button>
                   )}
                 </div>
-
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  onChange={handleAvatarChange}
-                  className="hidden"
-                />
-
-                <p className="text-xs text-muted-foreground mb-2">
-                  Cliquez sur la photo pour modifier · JPG, PNG, WebP · 2 Mo max
-                </p>
-
+                <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleAvatarChange} className="hidden" />
+                <p className="text-xs text-muted-foreground mb-2">Cliquez sur la photo pour modifier · JPG, PNG, WebP · 2 Mo max</p>
                 <CardTitle>{displayName}</CardTitle>
                 <CardDescription>{user.email}</CardDescription>
               </CardHeader>
@@ -294,13 +240,10 @@ const Profile = () => {
 
             {/* Colonne droite */}
             <div className="md:col-span-2 space-y-6">
-
               {/* Infos personnelles */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <User className="h-5 w-5" /> Informations personnelles
-                  </CardTitle>
+                  <CardTitle className="flex items-center gap-2"><User className="h-5 w-5" /> Informations personnelles</CardTitle>
                   <CardDescription>Modifiez vos informations de contact</CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -310,16 +253,14 @@ const Profile = () => {
                         <Label htmlFor="first_name">Prénom</Label>
                         <div className="relative">
                           <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                          <Input id="first_name" name="first_name" value={formData.first_name}
-                            onChange={handleInputChange} placeholder="Votre prénom" maxLength={100} className="pl-10" />
+                          <Input id="first_name" name="first_name" value={formData.first_name} onChange={handleInputChange} placeholder="Votre prénom" maxLength={100} className="pl-10" />
                         </div>
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="last_name">Nom</Label>
                         <div className="relative">
                           <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                          <Input id="last_name" name="last_name" value={formData.last_name}
-                            onChange={handleInputChange} placeholder="Votre nom" maxLength={100} className="pl-10" />
+                          <Input id="last_name" name="last_name" value={formData.last_name} onChange={handleInputChange} placeholder="Votre nom" maxLength={100} className="pl-10" />
                         </div>
                       </div>
                       <div className="space-y-2">
@@ -334,17 +275,14 @@ const Profile = () => {
                         <Label htmlFor="phone">Téléphone</Label>
                         <div className="relative">
                           <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                          <Input id="phone" name="phone" value={formData.phone}
-                            onChange={handleInputChange} placeholder="06 12 34 56 78" maxLength={20} className="pl-10" />
+                          <Input id="phone" name="phone" value={formData.phone} onChange={handleInputChange} placeholder="06 12 34 56 78" maxLength={20} className="pl-10" />
                         </div>
                       </div>
                     </div>
                     <Separator />
                     <div className="flex justify-end">
                       <Button type="submit" disabled={saving}>
-                        {saving
-                          ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Enregistrement...</>
-                          : <><Save className="mr-2 h-4 w-4" />Enregistrer</>}
+                        {saving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Enregistrement...</> : <><Save className="mr-2 h-4 w-4" />Enregistrer</>}
                       </Button>
                     </div>
                   </form>
@@ -354,9 +292,7 @@ const Profile = () => {
               {/* Changement de mot de passe */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Lock className="h-5 w-5" /> Changer le mot de passe
-                  </CardTitle>
+                  <CardTitle className="flex items-center gap-2"><Lock className="h-5 w-5" /> Changer le mot de passe</CardTitle>
                   <CardDescription>Minimum 8 caractères avec au moins une majuscule</CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -365,18 +301,16 @@ const Profile = () => {
                       <Label htmlFor="pw-next">Nouveau mot de passe</Label>
                       <div className="relative">
                         <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input id="pw-next" type={showPw.next ? "text" : "password"}
+                        <Input id="pw-next" name="username" type={showPw.next ? "text" : "password"}
                           value={pwData.next} onChange={(e) => setPwData((p) => ({ ...p, next: e.target.value }))}
                           className={`pl-10 pr-10 ${pwErrors.next ? "border-destructive" : ""}`}
                           placeholder="Nouveau mot de passe" autoComplete="new-password" />
-                        <button type="button" onClick={() => togglePw("next")}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                        <button type="button" onClick={() => togglePw("next")} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                           {showPw.next ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
                       </div>
                       {pwErrors.next && <p className="text-sm text-destructive">{pwErrors.next}</p>}
                     </div>
-
                     <div className="space-y-2">
                       <Label htmlFor="pw-confirm">Confirmer le mot de passe</Label>
                       <div className="relative">
@@ -385,8 +319,7 @@ const Profile = () => {
                           value={pwData.confirm} onChange={(e) => setPwData((p) => ({ ...p, confirm: e.target.value }))}
                           className={`pl-10 pr-10 ${pwErrors.confirm ? "border-destructive" : ""}`}
                           placeholder="Confirmez le mot de passe" autoComplete="new-password" />
-                        <button type="button" onClick={() => togglePw("confirm")}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                        <button type="button" onClick={() => togglePw("confirm")} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                           {showPw.confirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
                       </div>
@@ -415,9 +348,7 @@ const Profile = () => {
                     <div className="flex justify-end">
                       <Button type="submit" disabled={pwSaving || !pwData.next || !pwData.confirm}
                         variant="outline" className="border-primary text-primary hover:bg-primary hover:text-primary-foreground">
-                        {pwSaving
-                          ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Modification...</>
-                          : <><Lock className="mr-2 h-4 w-4" />Modifier le mot de passe</>}
+                        {pwSaving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Modification...</> : <><Lock className="mr-2 h-4 w-4" />Modifier le mot de passe</>}
                       </Button>
                     </div>
                   </form>
