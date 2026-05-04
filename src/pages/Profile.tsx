@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,11 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import {
-  User, Mail, Phone, Loader2, Save, Lock, Eye, EyeOff, ShieldCheck,
+  User, Mail, Phone, Loader2, Save, Lock, Eye, EyeOff,
+  ShieldCheck, Camera, X,
 } from "lucide-react";
 
 interface ProfileData {
@@ -27,51 +27,106 @@ interface ProfileData {
 const Profile = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [formData, setFormData] = useState({ first_name: "", last_name: "", phone: "" });
 
-  // Mot de passe
   const [pwData, setPwData] = useState({ next: "", confirm: "" });
   const [pwErrors, setPwErrors] = useState<Record<string, string>>({});
   const [pwSaving, setPwSaving] = useState(false);
   const [showPw, setShowPw] = useState({ next: false, confirm: false });
 
-  // Auth guard
   useEffect(() => {
     if (!authLoading && !user) navigate("/");
   }, [user, authLoading, navigate]);
 
-  // Fetch profil par email
   useEffect(() => {
     const fetchProfile = async () => {
       if (!user?.email) return;
       try {
-        const { data, error } = await supabase
+        const { data } = await supabase
           .from("profiles")
           .select("*")
           .eq("email", user.email)
           .single();
-
-        if (error) throw error;
-        setProfile(data as ProfileData);
-        setFormData({
-          first_name: data.first_name || "",
-          last_name: data.last_name || "",
-          phone: data.phone || "",
-        });
-      } catch {
-        // Profil inexistant — on affiche quand même le formulaire avec les données auth
-        setProfile(null);
-      } finally {
-        setLoading(false);
-      }
+        if (data) {
+          setProfile(data as ProfileData);
+          setFormData({
+            first_name: data.first_name || "",
+            last_name: data.last_name || "",
+            phone: data.phone || "",
+          });
+          setAvatarPreview(data.avatar_url || null);
+        }
+      } catch { /* profil inexistant */ }
+      finally { setLoading(false); }
     };
     if (user) fetchProfile();
   }, [user]);
 
+  // ── Upload avatar ────────────────────────────────────────────
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("L'image ne doit pas dépasser 2 Mo");
+      return;
+    }
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      toast.error("Format accepté : JPG, PNG ou WebP");
+      return;
+    }
+
+    // Prévisualisation locale
+    const reader = new FileReader();
+    reader.onload = (ev) => setAvatarPreview(ev.target?.result as string);
+    reader.readAsDataURL(file);
+
+    setUploadingAvatar(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `${user.id}/avatar.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(path, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("avatars")
+        .getPublicUrl(path);
+
+      // Sauvegarde l'URL dans le profil
+      await supabase
+        .from("profiles")
+        .update({ avatar_url: publicUrl })
+        .eq("email", user.email!);
+
+      setAvatarPreview(publicUrl);
+      toast.success("Photo de profil mise à jour");
+    } catch {
+      toast.error("Impossible d'uploader la photo");
+      setAvatarPreview(profile?.avatar_url || null);
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
+  const handleRemoveAvatar = async () => {
+    if (!user) return;
+    await supabase.from("profiles").update({ avatar_url: null }).eq("email", user.email!);
+    setAvatarPreview(null);
+    toast.success("Photo supprimée");
+  };
+
+  // ── Infos personnelles ───────────────────────────────────────
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -83,27 +138,18 @@ const Profile = () => {
     setSaving(true);
     try {
       if (profile) {
-        // Mise à jour
-        const { error } = await supabase
-          .from("profiles")
-          .update({
-            first_name: formData.first_name || null,
-            last_name: formData.last_name || null,
-            phone: formData.phone || null,
-          })
-          .eq("email", user.email);
-        if (error) throw error;
+        await supabase.from("profiles").update({
+          first_name: formData.first_name || null,
+          last_name: formData.last_name || null,
+          phone: formData.phone || null,
+        }).eq("email", user.email);
       } else {
-        // Création
-        const { error } = await supabase
-          .from("profiles")
-          .insert({
-            email: user.email,
-            first_name: formData.first_name || null,
-            last_name: formData.last_name || null,
-            phone: formData.phone || null,
-          });
-        if (error) throw error;
+        await supabase.from("profiles").insert({
+          email: user.email,
+          first_name: formData.first_name || null,
+          last_name: formData.last_name || null,
+          phone: formData.phone || null,
+        });
       }
       toast.success("Profil mis à jour avec succès");
     } catch {
@@ -113,7 +159,7 @@ const Profile = () => {
     }
   };
 
-  // Changement de mot de passe
+  // ── Mot de passe ─────────────────────────────────────────────
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
     const errors: Record<string, string> = {};
@@ -123,7 +169,6 @@ const Profile = () => {
       errors.next = "Le mot de passe doit contenir au moins une majuscule";
     if (pwData.next !== pwData.confirm)
       errors.confirm = "Les mots de passe ne correspondent pas";
-
     if (Object.keys(errors).length > 0) { setPwErrors(errors); return; }
 
     setPwErrors({});
@@ -150,15 +195,14 @@ const Profile = () => {
       </div>
     );
   }
-
   if (!user) return null;
 
   const displayName = formData.first_name || formData.last_name
     ? `${formData.first_name} ${formData.last_name}`.trim()
     : user.email;
 
-  const initials = (formData.first_name?.charAt(0) || "") + (formData.last_name?.charAt(0) || "")
-    || user.email?.substring(0, 2).toUpperCase() || "U";
+  const initials = ((formData.first_name?.charAt(0) || "") + (formData.last_name?.charAt(0) || ""))
+    .toUpperCase() || user.email?.substring(0, 2).toUpperCase() || "U";
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -172,14 +216,60 @@ const Profile = () => {
 
           <div className="grid gap-6 md:grid-cols-3">
 
-            {/* Carte résumé */}
+            {/* Carte résumé + avatar */}
             <Card className="md:col-span-1 h-fit">
               <CardHeader className="text-center">
-                <Avatar className="h-24 w-24 mx-auto mb-4">
-                  <AvatarFallback className="bg-primary text-primary-foreground text-2xl">
-                    {initials.toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
+
+                {/* Avatar avec bouton upload */}
+                <div className="relative w-24 h-24 mx-auto mb-4 group">
+                  {avatarPreview ? (
+                    <img
+                      src={avatarPreview}
+                      alt="Avatar"
+                      className="w-24 h-24 rounded-full object-cover ring-4 ring-primary/20"
+                    />
+                  ) : (
+                    <div className="w-24 h-24 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-2xl font-bold ring-4 ring-primary/20">
+                      {initials}
+                    </div>
+                  )}
+
+                  {/* Overlay au survol */}
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadingAvatar}
+                    className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                  >
+                    {uploadingAvatar
+                      ? <Loader2 className="w-6 h-6 text-white animate-spin" />
+                      : <Camera className="w-6 h-6 text-white" />}
+                  </button>
+
+                  {/* Bouton supprimer */}
+                  {avatarPreview && !uploadingAvatar && (
+                    <button
+                      type="button"
+                      onClick={handleRemoveAvatar}
+                      className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors shadow"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={handleAvatarChange}
+                  className="hidden"
+                />
+
+                <p className="text-xs text-muted-foreground mb-2">
+                  Cliquez sur la photo pour modifier · JPG, PNG, WebP · 2 Mo max
+                </p>
+
                 <CardTitle>{displayName}</CardTitle>
                 <CardDescription>{user.email}</CardDescription>
               </CardHeader>
@@ -193,9 +283,9 @@ const Profile = () => {
                     </div>
                   )}
                   {profile?.access_key && (
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">Clé d'accès :</span>
-                      <span className="font-mono text-xs">{profile.access_key}</span>
+                    <div className="flex items-start gap-2">
+                      <span className="font-medium shrink-0">Clé d'accès :</span>
+                      <span className="font-mono text-xs break-all">{profile.access_key}</span>
                     </div>
                   )}
                 </div>
@@ -333,7 +423,6 @@ const Profile = () => {
                   </form>
                 </CardContent>
               </Card>
-
             </div>
           </div>
         </div>
