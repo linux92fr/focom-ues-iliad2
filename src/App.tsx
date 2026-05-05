@@ -110,6 +110,7 @@ function App() {
                       <Route path="/profil" element={<Profile />} />
                       <Route path="/admin/nao2026" element={<AdminNao2026 />} />
                       <Route path="/admin/participation" element={<AdminParticipation />} />
+                      <Route path="/admin/poster" element={<PosterComposer />} />
                     </Route>
 
                     {/* ── Admin panel (layout propre) ────────────────── */}
