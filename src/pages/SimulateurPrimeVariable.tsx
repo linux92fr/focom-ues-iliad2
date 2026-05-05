@@ -41,6 +41,14 @@ const PROFILES = {
 type Specialty = keyof typeof SPECS;
 type Profile = keyof typeof PROFILES;
 
+type Snapshot = {
+  id: number;
+  name: string;
+  v1: number;
+  v2: number;
+  delta: number;
+};
+
 export default function SimulateurPrimeVariableComplet() {
   // --- STATES ---
   const [specialty, setSpecialty] = useState<Specialty>('reseau');
@@ -53,7 +61,7 @@ export default function SimulateurPrimeVariableComplet() {
   const [eciBonus, setEciBonus] = useState({ dep: false, form: false, hno: false, col: false, pro: false, marge: 2 });
   
   const [v1Data, setV1Data] = useState({ perf: 3, prod: 4, eciPct: 15, qisPct: 0, bonifPct: 0 });
-  const [snapshots, setSnapshots] = useState<any[]>([]);
+  const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
 
   // Safety resets
   useEffect(() => {
@@ -347,7 +355,18 @@ function Section({ title, children }: { title: string, children: React.ReactNode
   );
 }
 
-function Slider({ label, val, min, max, step = 1, unit = '', invertColors = false, setVal }: any) {
+type SliderProps = {
+  label: string;
+  val: number;
+  min: number;
+  max: number;
+  step?: number;
+  unit?: string;
+  invertColors?: boolean;
+  setVal: (value: number) => void;
+};
+
+function Slider({ label, val, min, max, step = 1, unit = '', invertColors = false, setVal }: SliderProps) {
   const pct = (val - min) / (max - min);
   const isGood = invertColors ? pct < 0.3 : pct > 0.7;
   const isWarn = invertColors ? pct > 0.7 : pct < 0.3;
