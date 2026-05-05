@@ -3,14 +3,11 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Newspaper, FileText, Users, Settings,
   LogOut, Menu, X, ChevronRight, Bell, Shield, BarChart3,
-  MessageSquare, Home, Eye, Clock, ExternalLink,
+  MessageSquare, Home, Eye, Clock, ExternalLink, Layers
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAdminAuth } from "@/contexts/AdminAuthContext";
-<<<<<<< HEAD
 import { supabase } from "@/integrations/supabase/client";
-=======
->>>>>>> eb9b09a (refactor(admin): clean up AdminLayout imports and fix Tailwind classes)
 
 const LOGO_IMAGE = "https://files.manuscdn.com/user_upload_by_module/session_file/310519663612648040/LldXxCbhFdcPcHwX.png";
 
@@ -25,7 +22,7 @@ const navItems = [
   { path: "/admin/messages",   label: "Messages",        icon: MessageSquare },
   { path: "/admin/home-edit",  label: "Édition Home",    icon: Home },
   { path: "/admin/parametres", label: "Paramètres",      icon: Settings },
-  { path: "/admin/poster", label: "Compositeur", icon: Layers }
+  { path: "/admin/poster",     label: "Compositeur",     icon: Layers }
 ];
 
 interface ContactMessage {
@@ -78,8 +75,7 @@ export default function AdminLayout({ children, title, breadcrumb }: AdminLayout
     fetchUnread();
     const channel = supabase
       .channel("admin-layout-messages")
-      .on("postgres_changes", { event: "*", schema: "public", table: "contact_messages" },
-        () => fetchUnread())
+      .on("postgres_changes", { event: "*", schema: "public", table: "contact_messages" }, () => fetchUnread())
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, []);
@@ -126,10 +122,14 @@ export default function AdminLayout({ children, title, breadcrumb }: AdminLayout
           {navItems.map((item) => {
             const active = isActive(item);
             return (
-              <Link key={item.path} to={item.path} onClick={() => setSidebarOpen(false)}
+              <Link
+                key={item.path}
+                to={item.path}
+                onClick={() => setSidebarOpen(false)}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                  active ? "bg-red-600 text-white shadow-lg shadow-red-900/30"
-                         : "text-slate-300 hover:bg-slate-800 hover:text-white"
+                  active
+                    ? "bg-red-600 text-white shadow-lg shadow-red-900/30"
+                    : "text-slate-300 hover:bg-slate-800 hover:text-white"
                 }`}
               >
                 <item.icon className="w-4 h-4 flex-shrink-0" />
@@ -143,44 +143,54 @@ export default function AdminLayout({ children, title, breadcrumb }: AdminLayout
         <div className="p-3 border-t border-slate-700">
           <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-slate-800 mb-2">
             <div className="w-8 h-8 rounded-full bg-red-600 flex items-center justify-center text-xs font-bold flex-shrink-0">
-              {user?.username.charAt(0).toUpperCase()}
+              {user?.username?.charAt(0).toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-white truncate">{user?.username}</p>
               <p className="text-[10px] text-slate-400 capitalize">{user?.role}</p>
             </div>
           </div>
-          <Button variant="ghost" size="sm" onClick={handleLogout}
-            className="w-full text-slate-400 hover:text-white hover:bg-slate-800 justify-start gap-2">
-            <LogOut className="w-4 h-4" /> Se déconnecter
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleLogout}
+            className="w-full text-slate-400 hover:text-white hover:bg-slate-800 justify-start gap-2"
+          >
+            <LogOut className="w-4 h-4" />
+            Se déconnecter
           </Button>
         </div>
       </aside>
 
       {sidebarOpen && (
-        <div className="fixed inset-0 bg-black/50 z-30 lg:hidden" onClick={() => setSidebarOpen(false)} />
+        <div
+          className="fixed inset-0 bg-black/50 z-30 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
       )}
 
       {/* Main */}
       <div className="flex-1 flex flex-col min-w-0">
-
         {/* Topbar */}
         <header className="bg-white border-b border-slate-200 px-4 sm:px-6 h-14 flex items-center justify-between sticky top-0 z-20 shadow-sm">
           <div className="flex items-center gap-3">
-            <button onClick={() => setSidebarOpen(!sidebarOpen)} className="lg:hidden p-2 rounded-lg hover:bg-slate-100">
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="lg:hidden p-2 rounded-lg hover:bg-slate-100"
+            >
               {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
             <div>
               <h1 className="text-base font-bold text-slate-900">{title}</h1>
               {breadcrumb && (
-                <p className="text-[11px] text-slate-500 hidden sm:block">{breadcrumb.join(" / ")}</p>
+                <p className="text-[11px] text-slate-500 hidden sm:block">
+                  {breadcrumb.join(" / ")}
+                </p>
               )}
             </div>
           </div>
 
           <div className="flex items-center gap-2">
-<<<<<<< HEAD
-
             {/* ── Cloche avec popup ─────────────────────────── */}
             <div ref={bellRef} className="relative">
               <button
@@ -200,7 +210,9 @@ export default function AdminLayout({ children, title, breadcrumb }: AdminLayout
                 <div className="absolute right-0 top-11 w-80 bg-white rounded-xl shadow-2xl border border-slate-200 z-50 overflow-hidden">
                   <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
                     <p className="font-semibold text-sm text-slate-900">Messages non lus</p>
-                    <span className="text-xs text-slate-400">{unreadCount} message{unreadCount > 1 ? "s" : ""}</span>
+                    <span className="text-xs text-slate-400">
+                      {unreadCount} message{unreadCount > 1 ? "s" : ""}
+                    </span>
                   </div>
 
                   <div className="max-h-72 overflow-y-auto divide-y divide-slate-50">
@@ -208,26 +220,29 @@ export default function AdminLayout({ children, title, breadcrumb }: AdminLayout
                       <div className="px-4 py-8 text-center text-sm text-slate-400">
                         Aucun message non lu
                       </div>
-                    ) : messages.map((msg) => (
-                      <Link
-                        key={msg.id}
-                        to="/admin/messages"
-                        onClick={() => setBellOpen(false)}
-                        className="flex items-start gap-3 px-4 py-3 hover:bg-slate-50 transition-colors"
-                      >
-                        <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0 text-red-600 font-bold text-xs mt-0.5">
-                          {msg.name.charAt(0).toUpperCase()}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-slate-900 truncate">{msg.name}</p>
-                          <p className="text-xs text-slate-500 truncate">{msg.subject}</p>
-                          <p className="text-[10px] text-slate-400 flex items-center gap-1 mt-0.5">
-                            <Clock className="w-2.5 h-2.5" />{formatTime(msg.created_at)}
-                          </p>
-                        </div>
-                        <span className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0 mt-2" />
-                      </Link>
-                    ))}
+                    ) : (
+                      messages.map((msg) => (
+                        <Link
+                          key={msg.id}
+                          to="/admin/messages"
+                          onClick={() => setBellOpen(false)}
+                          className="flex items-start gap-3 px-4 py-3 hover:bg-slate-50 transition-colors"
+                        >
+                          <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0 text-red-600 font-bold text-xs mt-0.5">
+                            {msg.name.charAt(0).toUpperCase()}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-slate-900 truncate">{msg.name}</p>
+                            <p className="text-xs text-slate-500 truncate">{msg.subject}</p>
+                            <p className="text-[10px] text-slate-400 flex items-center gap-1 mt-0.5">
+                              <Clock className="w-2.5 h-2.5" />
+                              {formatTime(msg.created_at)}
+                            </p>
+                          </div>
+                          <span className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0 mt-2" />
+                        </Link>
+                      ))
+                    )}
                   </div>
 
                   <div className="px-4 py-3 border-t border-slate-100 bg-slate-50">
@@ -244,17 +259,10 @@ export default function AdminLayout({ children, title, breadcrumb }: AdminLayout
               )}
             </div>
 
-            <Link to="/" className="text-xs text-slate-500 hover:text-slate-900 px-3 py-1.5 rounded-lg hover:bg-slate-100 transition-colors hidden sm:block">
-=======
-            <Button variant="ghost" size="icon" className="relative">
-              <Bell className="w-4 h-4 text-slate-500" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
-            </Button>
             <Link
               to="/"
               className="text-xs text-slate-500 hover:text-slate-900 px-3 py-1.5 rounded-lg hover:bg-slate-100 transition-colors hidden sm:block"
             >
->>>>>>> eb9b09a (refactor(admin): clean up AdminLayout imports and fix Tailwind classes)
               Voir le site →
             </Link>
           </div>
@@ -274,7 +282,6 @@ export function AdminAuthGuard({ children }: { children: ReactNode }) {
     if (ready && !isAuthenticated) {
       navigate("/admin/login", { replace: true });
     }
-<<<<<<< HEAD
   }, [ready, isAuthenticated, navigate]);
 
   if (!ready) {
@@ -286,14 +293,9 @@ export function AdminAuthGuard({ children }: { children: ReactNode }) {
         </div>
       </div>
     );
-=======
-  }, [isAuthenticated, navigate]);
-
-  if (!isAuthenticated) {
-    return null;
->>>>>>> eb9b09a (refactor(admin): clean up AdminLayout imports and fix Tailwind classes)
   }
 
   if (!isAuthenticated) return null;
+
   return <>{children}</>;
 }
