@@ -8,6 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { CanvasRenderer } from "./CanvasRenderer";
+
+const [mode, setMode] = useState<"normal" | "campaignFO">("normal");
 
 const LOGO_FO = "https://files.manuscdn.com/user_upload_by_module/session_file/310519663612648040/LldXxCbhFdcPcHwX.png";
 
@@ -286,6 +289,9 @@ export default function PosterComposer({ onPublish }: PosterComposerProps) {
               <Button onClick={stopAnim} variant="outline" className="gap-2 border-amber-500 text-amber-400 hover:bg-amber-900/30">
                 <Square className="w-4 h-4" />Arrêter
               </Button>
+      <Button onClick={() => setMode("campaignFO")}>
+  🎬 Mode campagne
+</Button>
             )}
             {isAnimating && !isRecording && (
               <Button onClick={startRec} variant="outline" className="gap-2 border-red-600 text-red-400 hover:bg-red-900/30">
@@ -309,13 +315,13 @@ export default function PosterComposer({ onPublish }: PosterComposerProps) {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
           {/* Canvas */}
           <div className="lg:col-span-3 space-y-2">
-            <div className={`rounded-xl overflow-hidden border shadow-2xl transition-all ${isAnimating ? "border-purple-600 shadow-purple-900/40" : "border-slate-700"}`}>
-              <canvas ref={canvasRef} width={canvasSize.w} height={canvasSize.h}
-                className="w-full touch-none" style={{ cursor: isAnimating ? "default" : "crosshair" }}
-                onMouseDown={onMD} onMouseMove={onMM}
-                onMouseUp={() => setDragging(null)} onMouseLeave={() => setDragging(null)}
-              />
-            </div>
+            <div className="rounded-xl overflow-hidden border border-slate-700 shadow-2xl">
+  <CanvasRenderer
+    stickers={stickers}
+    bgRef={bgRef}
+    mode={mode}
+  />
+</div>
             <div className="flex items-center justify-between text-xs text-slate-400 px-1">
               <span>{stickers.length} élément{stickers.length > 1 ? "s" : ""}</span>
               {isAnimating && (
