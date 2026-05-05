@@ -22,6 +22,7 @@ const navItems = [
   { path: "/admin/messages",   label: "Messages",        icon: MessageSquare },
   { path: "/admin/home-edit",  label: "Édition Home",    icon: Home },
   { path: "/admin/parametres", label: "Paramètres",      icon: Settings },
+  { path: "/admin/poster", label: "Compositeur", icon: Layers }
 ];
 
 interface ContactMessage {
