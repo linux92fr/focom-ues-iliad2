@@ -1,4 +1,4 @@
-import { useState, useEffect, ReactNode, useRef } from "react";
+import { useState, useEffect, useCallback, ReactNode, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Newspaper, FileText, Users, Settings,
@@ -60,16 +60,27 @@ export default function AdminLayout({ children, title, breadcrumb }: AdminLayout
   const { user, logout } = useAdminAuth();
 
   // ── Fetch messages non lus ──────────────────────────────────
-  const fetchUnread = async () => {
-    const { data, count } = await supabase
+  const fetchUnread = useCallback(async () => {
+    const { data, count, error } = await supabase
       .from("contact_messages")
-      .select("id, name, subject, email, created_at, status", { count: "exact" })
+      .select<Pick<ContactMessage, "id" | "name" | "subject" | "email" | "created_at" | "status">>(
+        "id, name, subject, email, created_at, status",
+        { count: "exact" }
+      )
       .eq("status", "non-lu")
       .order("created_at", { ascending: false })
       .limit(5);
-    setMessages((data as ContactMessage[]) ?? []);
+
+    if (error) {
+      console.error("Unable to fetch unread messages:", error);
+      setMessages([]);
+      setUnreadCount(0);
+      return;
+    }
+
+    setMessages(data ?? []);
     setUnreadCount(count ?? 0);
-  };
+  }, []);
 
   useEffect(() => {
     fetchUnread();
@@ -78,7 +89,7 @@ export default function AdminLayout({ children, title, breadcrumb }: AdminLayout
       .on("postgres_changes", { event: "*", schema: "public", table: "contact_messages" }, () => fetchUnread())
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, []);
+  }, [fetchUnread]);
 
   // Ferme le popup en cliquant ailleurs
   useEffect(() => {

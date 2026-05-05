@@ -66,7 +66,7 @@ function parsePDFText(text: string) {
   const t = text.replace(/\s+/g, ' ');
 
   // Date JJ/MM/AAAA
-  const dateMatch = t.match(/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/);
+  const dateMatch = t.match(/(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{4})/);
   const date = dateMatch
     ? `${dateMatch[1].padStart(2, '0')}/${dateMatch[2].padStart(2, '0')}/${dateMatch[3]}`
     : '';
@@ -79,9 +79,9 @@ function parsePDFText(text: string) {
 
   // Taux établissement
   const tauxEtabMatch =
-    t.match(/[ée]tablissement[^%\d]{0,30}(\d{1,3}[,\.]\d{1,2})\s*%?/i) ||
-    t.match(/taux\s+global[^%\d]{0,30}(\d{1,3}[,\.]\d{1,2})/i) ||
-    t.match(/participation[^%\d]{0,30}(\d{1,3}[,\.]\d{1,2})\s*%/i);
+    t.match(/[ée]tablissement[^%\d]{0,30}(\d{1,3}[,.]\d{1,2})\s*%?/i) ||
+    t.match(/taux\s+global[^%\d]{0,30}(\d{1,3}[,.]\d{1,2})/i) ||
+    t.match(/participation[^%\d]{0,30}(\d{1,3}[,.]\d{1,2})\s*%/i);
   const tauxEtab = tauxEtabMatch ? toNum(tauxEtabMatch[1]) : '';
 
   // Collège Employés/Techniciens uniquement (T2)
@@ -92,7 +92,7 @@ function parsePDFText(text: string) {
 
   if (idx !== -1) {
     const block = t.slice(idx, idx + 500);
-    const allNums = [...block.matchAll(/\b(\d{1,6}(?:[,\.]\d{1,2})?)\b/g)]
+    const allNums = [...block.matchAll(/\b(\d{1,6}(?:[,.]\d{1,2})?)\b/g)]
       .map(m => toNum(m[1]))
       .filter(n => !isNaN(parseFloat(n)));
 
@@ -201,8 +201,9 @@ const AdminParticipation = () => {
         }));
       }
       setExtractSuccess(true);
-    } catch (e: any) {
-      setExtractError(e.message);
+    } catch (e: unknown) {
+      if (e instanceof Error) setExtractError(e.message);
+      else setExtractError('Erreur inconnue');
     } finally {
       setExtracting(false);
     }
@@ -235,8 +236,9 @@ const AdminParticipation = () => {
       setDate(''); setHeure(''); setTauxEtab('');
       setPdfFile(null); setRawText(''); setExtractSuccess(false);
       setCollege(defaultCollege('TECHNICIENS, EMPLOYÉS, NON CADRES', '2774'));
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e: unknown) {
+      if (e instanceof Error) setError(e.message);
+      else setError('Erreur inconnue');
     } finally {
       setSaving(false);
     }
