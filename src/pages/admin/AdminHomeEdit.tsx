@@ -49,25 +49,24 @@ export default function AdminHomeEdit() {
       setLoading(true);
       const { data } = await supabase
         .from("site_content")
-        .select("key, value")
+        .select("key, title, subtitle, content")
         .in("key", [HERO_KEY, SECTIONS_KEY]);
 
       if (data) {
         const hero = data.find((d) => d.key === HERO_KEY);
         const secs = data.find((d) => d.key === SECTIONS_KEY);
 
-        if (hero?.value) {
-          try {
-            const parsed = JSON.parse(hero.value);
-            if (parsed.title)    setHeroTitle(parsed.title);
-            if (parsed.subtitle) setHeroSubtitle(parsed.subtitle);
-          } catch { /* ignore */ }
+        if (hero) {
+          if (hero.title) setHeroTitle(hero.title);
+          if (hero.subtitle) setHeroSubtitle(hero.subtitle);
+          else if (hero.content && typeof hero.content === "object" && hero.content !== null) {
+            const parsed = hero.content as Record<string, unknown>;
+            if (typeof parsed.title === "string") setHeroTitle(parsed.title);
+            if (typeof parsed.subtitle === "string") setHeroSubtitle(parsed.subtitle);
+          }
         }
-        if (secs?.value) {
-          try {
-            const parsed = JSON.parse(secs.value);
-            if (Array.isArray(parsed)) setSections(parsed);
-          } catch { /* ignore */ }
+        if (secs?.content && Array.isArray(secs.content)) {
+          setSections(secs.content as Section[]);
         }
       }
       setLoading(false);
@@ -84,13 +83,13 @@ export default function AdminHomeEdit() {
 
       // Upsert hero
       await supabase.from("site_content").upsert(
-        { key: HERO_KEY, value: heroValue, title: "Hero page d'accueil", subtitle: "" },
+        { key: HERO_KEY, title: heroTitle, subtitle: heroSubtitle, content: {} },
         { onConflict: "key" }
       );
 
       // Upsert sections
       await supabase.from("site_content").upsert(
-        { key: SECTIONS_KEY, value: sectionsValue, title: "Sections de navigation", subtitle: "" },
+        { key: SECTIONS_KEY, title: "Sections de navigation", subtitle: "", content: sections },
         { onConflict: "key" }
       );
 

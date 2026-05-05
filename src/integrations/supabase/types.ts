@@ -1622,20 +1622,29 @@ export type Database = {
         Row: {
           id: string
           key: string
-          updated_at: string | null
-          value: string
+          title: string
+          subtitle: string
+          content: Json
+          created_at: string
+          updated_at: string
         }
         Insert: {
           id?: string
           key: string
-          updated_at?: string | null
-          value: string
+          title: string
+          subtitle?: string
+          content?: Json
+          created_at?: string
+          updated_at?: string
         }
         Update: {
           id?: string
           key?: string
-          updated_at?: string | null
-          value?: string
+          title?: string
+          subtitle?: string
+          content?: Json
+          created_at?: string
+          updated_at?: string
         }
         Relationships: []
       }

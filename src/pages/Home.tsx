@@ -71,16 +71,18 @@ export default function Home() {
   useEffect(() => {
     supabase
       .from("site_content")
-      .select("value")
+      .select("title, subtitle, content")
       .eq("key", "home_hero")
       .single()
       .then(({ data }) => {
-        if (data?.value) {
-          try {
-            const parsed = JSON.parse(data.value);
-            if (parsed.title)    setHeroTitle(parsed.title);
-            if (parsed.subtitle) setHeroSubtitle(parsed.subtitle);
-          } catch { /* garde les valeurs par défaut */ }
+        if (data) {
+          if (data.title) setHeroTitle(data.title);
+          if (data.subtitle) setHeroSubtitle(data.subtitle);
+          else if (data.content && typeof data.content === "object" && data.content !== null) {
+            const content = data.content as Record<string, unknown>;
+            if (typeof content.title === "string") setHeroTitle(content.title);
+            if (typeof content.subtitle === "string") setHeroSubtitle(content.subtitle);
+          }
         }
       });
   }, []);
