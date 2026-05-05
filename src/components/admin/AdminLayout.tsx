@@ -7,7 +7,10 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAdminAuth } from "@/contexts/AdminAuthContext";
+<<<<<<< HEAD
 import { supabase } from "@/integrations/supabase/client";
+=======
+>>>>>>> eb9b09a (refactor(admin): clean up AdminLayout imports and fix Tailwind classes)
 
 const LOGO_IMAGE = "https://files.manuscdn.com/user_upload_by_module/session_file/310519663612648040/LldXxCbhFdcPcHwX.png";
 
@@ -44,7 +47,7 @@ const formatTime = (iso: string) => {
 };
 
 interface AdminLayoutProps {
-  children: React.ReactNode;
+  children: ReactNode;
   title: string;
   breadcrumb?: string[];
 }
@@ -176,6 +179,7 @@ export default function AdminLayout({ children, title, breadcrumb }: AdminLayout
           </div>
 
           <div className="flex items-center gap-2">
+<<<<<<< HEAD
 
             {/* ── Cloche avec popup ─────────────────────────── */}
             <div ref={bellRef} className="relative">
@@ -241,6 +245,16 @@ export default function AdminLayout({ children, title, breadcrumb }: AdminLayout
             </div>
 
             <Link to="/" className="text-xs text-slate-500 hover:text-slate-900 px-3 py-1.5 rounded-lg hover:bg-slate-100 transition-colors hidden sm:block">
+=======
+            <Button variant="ghost" size="icon" className="relative">
+              <Bell className="w-4 h-4 text-slate-500" />
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
+            </Button>
+            <Link
+              to="/"
+              className="text-xs text-slate-500 hover:text-slate-900 px-3 py-1.5 rounded-lg hover:bg-slate-100 transition-colors hidden sm:block"
+            >
+>>>>>>> eb9b09a (refactor(admin): clean up AdminLayout imports and fix Tailwind classes)
               Voir le site →
             </Link>
           </div>
@@ -260,6 +274,7 @@ export function AdminAuthGuard({ children }: { children: ReactNode }) {
     if (ready && !isAuthenticated) {
       navigate("/admin/login", { replace: true });
     }
+<<<<<<< HEAD
   }, [ready, isAuthenticated, navigate]);
 
   if (!ready) {
@@ -271,6 +286,12 @@ export function AdminAuthGuard({ children }: { children: ReactNode }) {
         </div>
       </div>
     );
+=======
+  }, [isAuthenticated, navigate]);
+
+  if (!isAuthenticated) {
+    return null;
+>>>>>>> eb9b09a (refactor(admin): clean up AdminLayout imports and fix Tailwind classes)
   }
 
   if (!isAuthenticated) return null;
