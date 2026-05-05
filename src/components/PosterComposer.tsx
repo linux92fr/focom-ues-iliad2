@@ -11,8 +11,10 @@ import { toast } from "sonner";
 
 const LOGO_FO = "https://files.manuscdn.com/user_upload_by_module/session_file/310519663612648040/LldXxCbhFdcPcHwX.png";
 
-// ── Types ──────────────────────────────────────────────────────────────────────
-type AnimType = "none" | "pulse" | "bounce" | "rotate" | "shake" | "flicker" | "wave";
+// L'image de ton ouvrier vu de dos
+const WORKER_IMG_URL = "/ouvrier-dos.png"; 
+
+type AnimType = "none" | "pulse" | "bounce" | "rotate" | "shake" | "flicker" | "wave" | "paint";
 
 interface Sticker {
   id: string;
@@ -37,16 +39,16 @@ const ANIM_LABELS: Record<AnimType, string> = {
   shake:   "📳 Vibration",
   flicker: "✨ Scintillement",
   wave:    "🌊 Vague",
+  paint:   "👨‍🔧 Tapissier (Déroulé)", 
 };
 
-const PRESET_STICKERS = [
+const PRESET_STICKERS =[
   { src: LOGO_FO, label: "Logo FO COM" },
   { src: "/fo-militants.png", label: "Militants FO" },
 ];
 
 function uid() { return Math.random().toString(36).slice(2); }
 
-// ── Calcul offsets d'animation ─────────────────────────────────────────────────
 function getAnimOffset(s: Sticker, t: number) {
   const f = t * s.animSpeed;
   switch (s.anim) {
@@ -60,33 +62,39 @@ function getAnimOffset(s: Sticker, t: number) {
   }
 }
 
-// ── Composant CanvasRenderer intégré ──────────────────────────────────────────
-function CanvasRenderer({ stickers, bgRef, mode, selected, drawFrameRef }: { 
-  stickers: Sticker[]; 
-  bgRef: React.MutableRefObject<HTMLImageElement | null>; 
-  mode: string; 
-  selected: string | null;
-  drawFrameRef: React.MutableRefObject<((animated: boolean) => void) | null>;
-}) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const stickerImgsRef = useRef<Record<string, HTMLImageElement>>({});
-  const t0Ref = useRef<number>(Date.now());
-  const rafRef = useRef<number>(0);
-  const [isAnimating, setIsAnimating] = useState(false);
+interface PosterComposerProps {
+  onPublish?: (dataUrl: string) => void;
+}
 
-  // Charger les images des stickers
+export default function PosterComposer({ onPublish }: PosterComposerProps) {
+  const canvasRef      = useRef<HTMLCanvasElement>(null);
+  const bgRef          = useRef<HTMLImageElement | null>(null);
+  const stickerImgs    = useRef<Record<string, HTMLImageElement>>({});
+  const workerImgRef   = useRef<HTMLImageElement | null>(null); 
+  const rafRef         = useRef<number>(0);
+  const t0Ref          = useRef<number>(Date.now());
+  const mrRef          = useRef<MediaRecorder | null>(null);
+  const chunksRef      = useRef<BlobPart[]>([]);
+
+  const [bgSrc, setBgSrc]         = useState<string | null>(null);
+  const[stickers, setStickers]   = useState<Sticker[]>([]);
+  const [selected, setSelected]   = useState<string | null>(null);
+  const[dragging, setDragging]   = useState<{ id: string; ox: number; oy: number } | null>(null);
+  const[canvasSize, setCanvasSize] = useState({ w: 800, h: 500 });
+  const[isAnimating, setIsAnim]  = useState(false);
+  const[isRecording, setIsRec]   = useState(false);
+  const [recSec, setRecSec]       = useState(0);
+  const[published, setPublished] = useState(false);
+
+  const sel   = stickers.find(s => s.id === selected) ?? null;
+  const hasAn = stickers.some(s => s.anim !== "none");
+
+  // Charge l'image de l'ouvrier
   useEffect(() => {
-    stickers.forEach(s => {
-      if (!stickerImgsRef.current[s.id]) {
-        const img = new Image();
-        img.crossOrigin = "anonymous";
-        img.onload = () => {
-          stickerImgsRef.current[s.id] = img;
-        };
-        img.src = s.src;
-      }
-    });
-  }, [stickers]);
+    const img = new Image();
+    img.src = WORKER_IMG_URL;
+    img.onload = () => { workerImgRef.current = img; };
+  },[]);
 
   const drawFrame = useCallback((animated: boolean) => {
     const canvas = canvasRef.current;
@@ -103,26 +111,68 @@ function CanvasRenderer({ stickers, bgRef, mode, selected, drawFrameRef }: {
       ctx.fillStyle = "#475569";
       ctx.font = "18px sans-serif";
       ctx.textAlign = "center";
-      ctx.fillText("Importez une photo de fond", canvas.width / 2, canvas.height / 2);
-    }
-
-    // Mode campagne FO
-    if (mode === "campaignFO") {
-      ctx.fillStyle = "rgba(255, 0, 0, 0.3)";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillText("Importez un mur en fond !", canvas.width / 2, canvas.height / 2);
     }
 
     for (const s of stickers) {
-      const img = stickerImgsRef.current[s.id];
+      const img = stickerImgs.current[s.id];
       if (!img) continue;
+      
       const o = animated ? getAnimOffset(s, t) : { dx: 0, dy: 0, scale: 1, rot: 0, alpha: 1 };
-      ctx.save();
-      ctx.globalAlpha = s.opacity * o.alpha;
-      ctx.translate(s.x + s.width / 2 + o.dx, s.y + s.height / 2 + o.dy);
-      ctx.rotate(((s.rotation + o.rot) * Math.PI) / 180);
-      ctx.scale(o.scale * (s.flipH ? -1 : 1), o.scale);
-      ctx.drawImage(img, -s.width / 2, -s.height / 2, s.width, s.height);
-      ctx.restore();
+
+      if (s.anim === "paint" && animated) {
+        // Déroulement de 0 à 1
+        const progress = (t * s.animSpeed * 0.15) % 1; 
+        const revealedHeight = s.height * progress; 
+
+        ctx.save();
+        ctx.globalAlpha = s.opacity;
+        ctx.translate(s.x + s.width / 2, s.y + s.height / 2);
+        ctx.rotate((s.rotation * Math.PI) / 180);
+
+        // MASQUE CLIPPING
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(-s.width / 2, -s.height / 2, s.width, revealedHeight);
+        ctx.clip(); 
+        ctx.scale(s.flipH ? -1 : 1, 1);
+        ctx.drawImage(img, -s.width / 2, -s.height / 2, s.width, s.height);
+        ctx.restore();
+
+        // L'OUVRIER VU DE DOS
+        if (workerImgRef.current) {
+          const worker = workerImgRef.current;
+          
+          // L'ouvrier doit faire environ 1.5 fois la taille de l'affiche
+          const wHeight = s.height * 1.5; 
+          const wWidth = (worker.width / worker.height) * wHeight;
+          
+          // Balayage (gauche/droite)
+          const swayX = Math.sin(t * s.animSpeed * 6) * (s.width / 2.5); 
+          
+          // Calculs spécifiques pour l'image non-recadrée (691x341 avec vide autour)
+          // La brosse est à 43% de la largeur du PNG, et tout en haut (Y=0)
+          
+          // La hauteur de descente
+          const workerY = -s.height / 2 + revealedHeight - (wHeight * 0.05);
+          
+          // Le décalage pour que la brosse soit au centre du balayage
+          const workerX = swayX - (wWidth * 0.43); 
+          
+          ctx.drawImage(worker, workerX, workerY, wWidth, wHeight);
+        }
+        ctx.restore();
+      } 
+      else {
+        // Animations Classiques
+        ctx.save();
+        ctx.globalAlpha = s.opacity * o.alpha;
+        ctx.translate(s.x + s.width / 2 + o.dx, s.y + s.height / 2 + o.dy);
+        ctx.rotate(((s.rotation + o.rot) * Math.PI) / 180);
+        ctx.scale(o.scale * (s.flipH ? -1 : 1), o.scale);
+        ctx.drawImage(img, -s.width / 2, -s.height / 2, s.width, s.height);
+        ctx.restore();
+      }
 
       if (s.id === selected && !animated) {
         ctx.save();
@@ -135,14 +185,8 @@ function CanvasRenderer({ stickers, bgRef, mode, selected, drawFrameRef }: {
         ctx.restore();
       }
     }
-  }, [stickers, bgRef, mode, selected]);
+  },[stickers, selected]);
 
-  // Exposer drawFrame au parent
-  useEffect(() => {
-    drawFrameRef.current = drawFrame;
-  }, [drawFrame, drawFrameRef]);
-
-  // Boucle d'animation
   useEffect(() => {
     if (isAnimating) {
       const loop = () => { drawFrame(true); rafRef.current = requestAnimationFrame(loop); };
@@ -151,69 +195,32 @@ function CanvasRenderer({ stickers, bgRef, mode, selected, drawFrameRef }: {
     } else {
       drawFrame(false);
     }
-  }, [isAnimating, drawFrame]);
+  },[isAnimating, drawFrame]);
 
-  useEffect(() => { if (!isAnimating) drawFrame(false); }, [stickers, selected, bgRef, mode, isAnimating, drawFrame]);
+  useEffect(() => { if (!isAnimating) drawFrame(false); },[stickers, selected, bgSrc, canvasSize, isAnimating, drawFrame]);
 
-  return <canvas ref={canvasRef} width={800} height={500} className="w-full h-auto rounded-lg shadow-2xl" />;
-}
-
-// ── Composant principal ────────────────────────────────────────────────────────
-interface PosterComposerProps {
-  onPublish?: (dataUrl: string) => void;
-}
-
-export default function PosterComposer({ onPublish }: PosterComposerProps) {
-  const canvasRef      = useRef<HTMLCanvasElement | null>(null);
-  const bgRef          = useRef<HTMLImageElement | null>(null);
-  const stickerImgs    = useRef<Record<string, HTMLImageElement>>({});
-  const drawFrameRef   = useRef<((animated: boolean) => void) | null>(null);
-  const t0Ref          = useRef<number>(Date.now());
-  const mrRef          = useRef<MediaRecorder | null>(null);
-  const chunksRef      = useRef<BlobPart[]>([]);
-
-  const [mode, setMode] = useState<"normal" | "campaignFO">("normal");
-  const [bgSrc, setBgSrc]         = useState<string | null>(null);
-  const [stickers, setStickers]   = useState<Sticker[]>([]);
-  const [selected, setSelected]   = useState<string | null>(null);
-  const [dragging, setDragging]   = useState<{ id: string; ox: number; oy: number } | null>(null);
-  const [canvasSize, setCanvasSize] = useState({ w: 800, h: 500 });
-  const [isAnimating, setIsAnim]  = useState(false);
-  const [isRecording, setIsRec]   = useState(false);
-  const [recSec, setRecSec]       = useState(0);
-  const [published, setPublished] = useState(false);
-
-  const sel   = stickers.find(s => s.id === selected) ?? null;
-  const hasAn = stickers.some(s => s.anim !== "none");
-
-  // ── Dessin via CanvasRenderer ─────────────────────────────────────────────────
-  const requestRedraw = useCallback((animated: boolean) => {
-    if (drawFrameRef.current) drawFrameRef.current(animated);
-  }, []);
-
-  // ── Boucle RAF ────────────────────────────────────────────────────────────────
-  useEffect(() => {
-    if (isAnimating) {
-      let rafId: number;
-      const loop = () => {
-        requestRedraw(true);
-        rafId = requestAnimationFrame(loop);
-      };
-      rafId = requestAnimationFrame(loop);
-      return () => cancelAnimationFrame(rafId);
-    } else {
-      requestRedraw(false);
-    }
-  }, [isAnimating, requestRedraw]);
-
-  // ── Contrôle animation ────────────────────────────────────────────────────────
   const startAnim = () => { t0Ref.current = Date.now(); setSelected(null); setIsAnim(true); };
   const stopAnim  = () => { setIsAnim(false); if (isRecording) stopRec(); };
 
-  // ── Enregistrement vidéo ──────────────────────────────────────────────────────
   const startRec = () => {
-    // Note: Pour l'enregistrement, il faudrait accéder au canvas réel
-    toast.info("Fonctionnalité d'enregistrement à implémenter avec le canvas réel");
+    const canvas = canvasRef.current!;
+    if (!isAnimating) startAnim();
+    const stream = canvas.captureStream(30);
+    const mr = new MediaRecorder(stream, { mimeType: "video/webm;codecs=vp9" });
+    chunksRef.current =[];
+    mr.ondataavailable = e => { if (e.data.size > 0) chunksRef.current.push(e.data); };
+    mr.onstop = () => {
+      const blob = new Blob(chunksRef.current, { type: "video/webm" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "focom-animation.webm";
+      a.click();
+      toast.success("Vidéo exportée !");
+    };
+    mr.start();
+    mrRef.current = mr;
+    setIsRec(true);
+    setRecSec(0);
   };
 
   const stopRec = () => { mrRef.current?.stop(); setIsRec(false); };
@@ -224,7 +231,6 @@ export default function PosterComposer({ onPublish }: PosterComposerProps) {
     return () => clearInterval(id);
   }, [isRecording]);
 
-  // ── Fond ──────────────────────────────────────────────────────────────────────
   const loadBg = (file: File) => {
     const url = URL.createObjectURL(file);
     const img = new Image();
@@ -237,7 +243,6 @@ export default function PosterComposer({ onPublish }: PosterComposerProps) {
     img.src = url;
   };
 
-  // ── Sticker ───────────────────────────────────────────────────────────────────
   const addSticker = useCallback((src: string, label: string) => {
     const img = new Image();
     img.crossOrigin = "anonymous";
@@ -246,27 +251,61 @@ export default function PosterComposer({ onPublish }: PosterComposerProps) {
       stickerImgs.current[id] = img;
       const w = Math.min(200, canvasSize.w / 3);
       const h = (img.height / img.width) * w;
-      setStickers(prev => [...prev, { id, src, label, x: canvasSize.w / 2 - w / 2, y: canvasSize.h / 2 - h / 2, width: w, height: h, rotation: 0, flipH: false, opacity: 1, anim: "none", animSpeed: 1 }]);
+      setStickers(prev =>[...prev, { id, src, label, x: canvasSize.w / 2 - w / 2, y: canvasSize.h / 2 - h / 2, width: w, height: h, rotation: 0, flipH: false, opacity: 1, anim: "none", animSpeed: 1 }]);
       setSelected(id);
     };
     img.src = src;
-  }, [canvasSize]);
+  },[canvasSize]);
 
-  // ── Drag ──────────────────────────────────────────────────────────────────────
-  // Note: Le drag nécessite l'accès au canvas - simplification pour l'instant
-  const upd = (patch: Partial<Sticker>) => setStickers(prev => prev.map(s => s.id === selected ? { ...s, ...patch } : s));
-
-  // ── Export PNG ────────────────────────────────────────────────────────────────
-  const exportPng = () => {
-    toast.info("Capture PNG - Fonctionnalité nécessitant le canvas");
+  const getPos = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const r = canvasRef.current!.getBoundingClientRect();
+    return { x: (e.clientX - r.left) * (canvasSize.w / r.width), y: (e.clientY - r.top) * (canvasSize.h / r.height) };
+  };
+  const hitTest = (x: number, y: number) => {
+    for (let i = stickers.length - 1; i >= 0; i--) {
+      const s = stickers[i];
+      if (x >= s.x && x <= s.x + s.width && y >= s.y && y <= s.y + s.height) return s.id;
+    }
+    return null;
+  };
+  const onMD = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (isAnimating) return;
+    const { x, y } = getPos(e);
+    const hit = hitTest(x, y);
+    setSelected(hit);
+    if (hit) { const s = stickers.find(s => s.id === hit)!; setDragging({ id: hit, ox: x - s.x, oy: y - s.y }); }
+  };
+  const onMM = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!dragging) return;
+    const { x, y } = getPos(e);
+    setStickers(prev => prev.map(s => s.id === dragging.id ? { ...s, x: x - dragging.ox, y: y - dragging.oy } : s));
   };
 
-  // ── Publier ───────────────────────────────────────────────────────────────────
+  const upd = (patch: Partial<Sticker>) => setStickers(prev => prev.map(s => s.id === selected ? { ...s, ...patch } : s));
+
+  const exportPng = () => {
+    const wasAnim = isAnimating;
+    if (wasAnim) setIsAnim(false);
+    setSelected(null);
+    setTimeout(() => {
+      drawFrame(false);
+      const a = document.createElement("a");
+      a.download = "focom-affiche.png";
+      a.href = canvasRef.current!.toDataURL("image/png");
+      a.click();
+      toast.success("Image exportée !");
+      if (wasAnim) startAnim();
+    }, 80);
+  };
+
   const handlePublish = () => {
     const wasAnim = isAnimating;
     if (wasAnim) setIsAnim(false);
     setSelected(null);
     setTimeout(() => {
+      drawFrame(false);
+      const dataUrl = canvasRef.current!.toDataURL("image/jpeg", 0.92);
+      if (onPublish) onPublish(dataUrl);
       toast.success("Composition validée et publiée !");
       setPublished(true);
       setTimeout(() => setPublished(false), 3000);
@@ -278,7 +317,6 @@ export default function PosterComposer({ onPublish }: PosterComposerProps) {
     <div className="min-h-screen bg-slate-900 text-white p-4">
       <div className="max-w-5xl mx-auto space-y-4">
 
-        {/* Header */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-xl font-bold flex items-center gap-2">
@@ -287,9 +325,6 @@ export default function PosterComposer({ onPublish }: PosterComposerProps) {
             <p className="text-xs text-slate-400 mt-0.5">Composez · Animez · Publiez</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Button onClick={() => setMode(mode === "normal" ? "campaignFO" : "normal")} variant="outline" className="gap-2">
-              🎬 {mode === "normal" ? "Mode campagne" : "Mode normal"}
-            </Button>
             {!isAnimating ? (
               <Button onClick={startAnim} disabled={!hasAn} variant="outline" className="gap-2 border-purple-600 text-purple-400 hover:bg-purple-900/30 disabled:opacity-40">
                 <Play className="w-4 h-4" />Animer
@@ -319,33 +354,30 @@ export default function PosterComposer({ onPublish }: PosterComposerProps) {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-          {/* Canvas */}
           <div className="lg:col-span-3 space-y-2">
-            <CanvasRenderer 
-              stickers={stickers} 
-              bgRef={bgRef} 
-              mode={mode} 
-              selected={selected}
-              drawFrameRef={drawFrameRef}
-            />
+            <div className={`rounded-xl overflow-hidden border shadow-2xl transition-all ${isAnimating ? "border-purple-600 shadow-purple-900/40" : "border-slate-700"}`}>
+              <canvas ref={canvasRef} width={canvasSize.w} height={canvasSize.h}
+                className="w-full touch-none" style={{ cursor: isAnimating ? "default" : "crosshair" }}
+                onMouseDown={onMD} onMouseMove={onMM}
+                onMouseUp={() => setDragging(null)} onMouseLeave={() => setDragging(null)}
+              />
+            </div>
             <div className="flex items-center justify-between text-xs text-slate-400 px-1">
               <span>{stickers.length} élément{stickers.length > 1 ? "s" : ""}</span>
               {isAnimating && (
                 <span className="flex items-center gap-1.5 text-purple-400 font-medium">
                   <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse inline-block" />
-                  Animation{isRecording && <span className="text-red-400 ml-2">● REC {recSec}s</span>}
+                  Animation en cours...
                 </span>
               )}
               <label className="cursor-pointer hover:text-white flex items-center gap-1.5 transition-colors">
-                <ImageIcon className="w-3.5 h-3.5" />{bgSrc ? "Changer fond" : "Importer fond"}
+                <ImageIcon className="w-3.5 h-3.5" />{bgSrc ? "Changer fond" : "Importer mur (fond)"}
                 <input type="file" accept="image/*" className="hidden" onChange={e => { if (e.target.files?.[0]) loadBg(e.target.files[0]); }} />
               </label>
             </div>
           </div>
 
-          {/* Panneau */}
           <div className="space-y-3">
-            {/* Affiches prédéfinies */}
             <div className="bg-slate-800 rounded-xl border border-slate-700 p-3 space-y-2">
               <p className="text-xs font-semibold text-slate-300 uppercase tracking-wide">Affiches</p>
               <div className="grid grid-cols-2 gap-2">
@@ -363,7 +395,6 @@ export default function PosterComposer({ onPublish }: PosterComposerProps) {
               </label>
             </div>
 
-            {/* Contrôles */}
             {sel && !isAnimating ? (
               <div className="bg-slate-800 rounded-xl border border-red-800/50 p-3 space-y-3">
                 <div className="flex items-center justify-between">
@@ -373,7 +404,6 @@ export default function PosterComposer({ onPublish }: PosterComposerProps) {
                   </button>
                 </div>
 
-                {/* Taille */}
                 <div className="space-y-1">
                   <Label className="text-xs text-slate-400">Taille</Label>
                   <div className="flex items-center gap-1.5">
@@ -383,7 +413,6 @@ export default function PosterComposer({ onPublish }: PosterComposerProps) {
                   </div>
                 </div>
 
-                {/* Rotation */}
                 <div className="space-y-1">
                   <Label className="text-xs text-slate-400">Rotation {sel.rotation}°</Label>
                   <div className="flex items-center gap-1.5">
@@ -393,19 +422,11 @@ export default function PosterComposer({ onPublish }: PosterComposerProps) {
                   </div>
                 </div>
 
-                {/* Opacité */}
-                <div className="space-y-1">
-                  <Label className="text-xs text-slate-400">Opacité {Math.round(sel.opacity * 100)}%</Label>
-                  <Slider min={10} max={100} value={[sel.opacity * 100]} onValueChange={([v]) => upd({ opacity: v / 100 })} />
-                </div>
-
-                {/* Flip */}
                 <button onClick={() => upd({ flipH: !sel.flipH })}
                   className={`w-full flex items-center justify-center gap-2 py-1.5 rounded-lg text-xs border transition-colors ${sel.flipH ? "bg-teal-900/40 border-teal-600 text-teal-300" : "bg-slate-700 border-slate-600 text-slate-300"}`}>
                   <FlipHorizontal className="w-3.5 h-3.5" />Miroir horizontal
                 </button>
 
-                {/* Animation */}
                 <div className="pt-2 border-t border-slate-700 space-y-2">
                   <p className="text-xs font-semibold text-purple-400 uppercase tracking-wide flex items-center gap-1.5">
                     <Zap className="w-3.5 h-3.5" />Animation
@@ -413,23 +434,18 @@ export default function PosterComposer({ onPublish }: PosterComposerProps) {
                   <div className="grid grid-cols-2 gap-1.5">
                     {(Object.keys(ANIM_LABELS) as AnimType[]).map(a => (
                       <button key={a} onClick={() => upd({ anim: a })}
-                        className={`px-2 py-1.5 rounded-lg text-[11px] font-medium border transition-all ${sel.anim === a ? "bg-purple-700 border-purple-500 text-white" : "bg-slate-700 border-slate-600 text-slate-300 hover:border-purple-500"}`}>
+                        className={`px-2 py-1.5 rounded-lg text-[10px] font-medium border transition-all ${sel.anim === a ? "bg-purple-700 border-purple-500 text-white" : "bg-slate-700 border-slate-600 text-slate-300 hover:border-purple-500"}`}>
                         {ANIM_LABELS[a]}
                       </button>
                     ))}
                   </div>
                   {sel.anim !== "none" && (
-                    <div className="space-y-1">
-                      <Label className="text-xs text-slate-400">Vitesse ×{sel.animSpeed.toFixed(1)}</Label>
+                    <div className="space-y-1 mt-2">
+                      <Label className="text-xs text-slate-400">Vitesse d'animation</Label>
                       <Slider min={2} max={30} step={1} value={[sel.animSpeed * 10]} onValueChange={([v]) => upd({ animSpeed: v / 10 })} />
                     </div>
                   )}
                 </div>
-
-                <button onClick={() => upd({ rotation: 0, flipH: false, opacity: 1, anim: "none", animSpeed: 1 })}
-                  className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs text-slate-400 hover:text-white bg-slate-700 hover:bg-slate-600 border border-slate-600 transition-colors">
-                  <X className="w-3.5 h-3.5" />Réinitialiser
-                </button>
               </div>
             ) : sel && isAnimating ? (
               <div className="bg-slate-800 rounded-xl border border-purple-700/40 p-3 text-center">
@@ -442,7 +458,6 @@ export default function PosterComposer({ onPublish }: PosterComposerProps) {
               </div>
             )}
 
-            {/* Calques */}
             {stickers.length > 0 && (
               <div className="bg-slate-800 rounded-xl border border-slate-700 p-3 space-y-1.5">
                 <p className="text-xs font-semibold text-slate-300 uppercase tracking-wide">Calques</p>
@@ -458,13 +473,6 @@ export default function PosterComposer({ onPublish }: PosterComposerProps) {
             )}
           </div>
         </div>
-
-        <p className="text-xs text-slate-500 text-center pb-4">
-          💡 <strong className="text-purple-400">Animer</strong> pour prévisualiser ·{" "}
-          <strong className="text-red-400">Enregistrer</strong> pour exporter en vidéo WebM ·{" "}
-          <strong className="text-teal-400">PNG</strong> pour une image fixe ·{" "}
-          <strong className="text-white">Valider & Publier</strong> pour intégrer au site
-        </p>
       </div>
     </div>
   );
