@@ -8,6 +8,7 @@ import { AdminAuthProvider } from "./contexts/AdminAuthContext";
 import { SupabaseAuthProvider } from "./contexts/SupabaseAuthContext";
 import { AuthProvider } from "./hooks/useAuth";
 import PublicLayout from "./components/PublicLayout";
+import PosterComposer from "./components/PosterComposer";
 
 import Home from "./pages/Home";
 import NotFound from "./pages/NotFound";
