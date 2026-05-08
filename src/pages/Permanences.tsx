@@ -11,7 +11,6 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import PageHeader from "@/components/PageHeader";
 import {
   Calendar, Clock, MapPin, Users, Video, User, ChevronRight,
   CalendarDays, Loader2, CheckCircle, XCircle,
@@ -158,11 +157,17 @@ export default function Permanences() {
 
   return (
     <div className="p-4 lg:p-8 max-w-4xl mx-auto space-y-8">
-      <PageHeader
-        title="Permanences syndicales"
-        subtitle="Prenez rendez-vous avec un délégué FOCOM pour vos questions individuelles"
-        icon={<CalendarDays className="w-6 h-6" />}
-      />
+      <div className="flex items-start gap-3">
+        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+          <CalendarDays className="w-5 h-5 text-primary" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Permanences syndicales</h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            Prenez rendez-vous avec un délégué FOCOM pour vos questions individuelles
+          </p>
+        </div>
+      </div>
 
       {!user && (
         <div className="flex items-start gap-3 bg-primary/5 border border-primary/20 rounded-xl px-4 py-3 text-sm text-foreground">

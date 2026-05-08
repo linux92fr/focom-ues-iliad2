@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Bot, Scale, BookOpen, Clock, Umbrella, Briefcase, Heart, ChevronRight, Sparkles } from "lucide-react";
 import ChatbotJuridique from "@/components/ChatbotJuridique";
-import PageHeader from "@/components/PageHeader";
 import { buildCcntContext } from "@/lib/ccntContext";
 
 interface Theme {
@@ -97,11 +96,17 @@ export default function AssistantJuridique() {
 
   return (
     <div className="p-4 lg:p-8 max-w-5xl mx-auto space-y-8">
-      <PageHeader
-        title="Assistant Juridique"
-        subtitle="Posez vos questions sur le droit du travail, la CCNT et les accords UES Iliad"
-        icon={<Bot className="w-6 h-6" />}
-      />
+      <div className="flex items-start gap-3">
+        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+          <Bot className="w-5 h-5 text-primary" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Assistant Juridique</h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            Posez vos questions sur le droit du travail, la CCNT et les accords UES Iliad
+          </p>
+        </div>
+      </div>
 
       {/* Avertissement légal */}
       <div className="flex items-start gap-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl px-4 py-3 text-sm text-amber-800 dark:text-amber-300">
