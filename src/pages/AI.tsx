@@ -2,7 +2,6 @@ import { useState, FormEvent } from 'react';
 import { Wand2, Bot, ArrowRight, Copy, Check } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import PageHeader from '@/components/PageHeader';
 
 type Mode = 'corriger' | 'reformuler' | 'simplifier';
 
@@ -62,11 +61,17 @@ export default function AI() {
 
   return (
     <div className="p-4 lg:p-8 max-w-3xl mx-auto space-y-8">
-      <PageHeader
-        title="Outils IA"
-        subtitle="Améliorez vos textes syndicaux ou posez vos questions juridiques"
-        icon={<Wand2 className="w-6 h-6" />}
-      />
+      <div className="flex items-start gap-3">
+        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+          <Wand2 className="w-5 h-5 text-primary" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Outils IA</h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            Améliorez vos textes syndicaux ou posez vos questions juridiques
+          </p>
+        </div>
+      </div>
 
       {/* Bannière assistant juridique */}
       <Link
