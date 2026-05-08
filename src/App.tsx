@@ -45,6 +45,8 @@ import NewsletterUnsubscribe from "./pages/NewsletterUnsubscribe";
 import Notifications from "./pages/Notifications";
 
 import AI from "./pages/AI";
+import AssistantJuridique from "./pages/AssistantJuridique";
+import Permanences from "./pages/Permanences";
 import Sondages from "./pages/Sondages";
 import Agenda from "./pages/Agenda";
 import Profile from "./pages/Profile";
@@ -63,6 +65,7 @@ import AdminDroits from "./pages/admin/AdminDroits";
 import AdminFAQ from "./pages/admin/AdminFAQ";
 import AdminMessages from "./pages/admin/AdminMessages";
 import AdminHomeEdit from "./pages/admin/AdminHomeEdit";
+import AdminPermanences from "./pages/admin/AdminPermanences";
 
 const queryClient = new QueryClient();
 
@@ -105,6 +108,8 @@ function App() {
                       <Route path="/newsletter/unsubscribe" element={<NewsletterUnsubscribe />} />
                       <Route path="/notifications" element={<Notifications />} />
                       <Route path="/ai" element={<AI />} />
+                      <Route path="/assistant-juridique" element={<AssistantJuridique />} />
+                      <Route path="/permanences" element={<Permanences />} />
                       <Route path="/sondages" element={<Sondages />} />
                       <Route path="/agenda" element={<Agenda />} />
                       <Route path="/profil" element={<Profile />} />
@@ -127,6 +132,7 @@ function App() {
                     <Route path="/admin/faq" element={<AdminFAQ />} />
                     <Route path="/admin/messages" element={<AdminMessages />} />
                     <Route path="/admin/home-edit" element={<AdminHomeEdit />} />
+                    <Route path="/admin/permanences" element={<AdminPermanences />} />
 
                     <Route path="*" element={<NotFound />} />
                   </Routes>

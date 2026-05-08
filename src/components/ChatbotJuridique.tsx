@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
-import { Bot, Send, User, RotateCcw, Sparkles } from "lucide-react";
+import { Bot, Send, User, RotateCcw, Sparkles, AlertCircle } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Message {
   role: "user" | "assistant";
@@ -15,6 +16,7 @@ export default function ChatbotJuridique({ initialQuestion, ccntContext }: Props
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const sentInitial = useRef(false);
 
@@ -22,7 +24,6 @@ export default function ChatbotJuridique({ initialQuestion, ccntContext }: Props
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
-  // Envoie automatiquement la question suggérée si elle change
   useEffect(() => {
     if (initialQuestion && initialQuestion.trim() && !sentInitial.current) {
       sentInitial.current = true;
@@ -39,49 +40,27 @@ export default function ChatbotJuridique({ initialQuestion, ccntContext }: Props
     setMessages(newMessages);
     if (!text) setInput("");
     setLoading(true);
-
-    const systemPrompt = [
-      "Tu es un assistant juridique expert en droit du travail français, au service des salariés du groupe Iliad (Free, Free Mobile, Free Réseau, Alice, etc.) affiliés au syndicat FO COM UES ILIAD (FOCOM).",
-      "",
-      "Tes connaissances couvrent :",
-      "- Le Code du travail français",
-      "- La Convention Collective Nationale des Télécommunications (CCNT, IDCC 2148)",
-      "- Les accords d'entreprise UES Iliad (astreintes, temps de travail, nuit, télétravail, etc.)",
-      "- La jurisprudence sociale récente",
-      "",
-      ccntContext ? `Contexte spécifique à cette thématique :\n${ccntContext}` : "",
-      "",
-      "Règles impératives :",
-      "- Réponds toujours en français",
-      "- Sois précis, concis et bienveillant",
-      "- Cite les articles du Code du travail ou de la CCNT lorsque c'est pertinent",
-      "- Mentionne si l'accord Iliad est plus favorable que la CCNT ou la loi",
-      "- Ne fournis jamais de consultation juridique officielle — oriente vers un délégué FOCOM pour les cas complexes",
-      "- Si tu n'as pas l'information, dis-le clairement",
-    ].filter(Boolean).join("\n");
+    setError(null);
 
     try {
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 1000,
-          system: systemPrompt,
+      const { data, error: fnError } = await supabase.functions.invoke("chat-juridique", {
+        body: {
           messages: newMessages.map((m) => ({ role: m.role, content: m.content })),
-        }),
+          ccntContext: ccntContext ?? null,
+        },
       });
 
-      const data = await response.json();
-      const reply = data.content?.[0]?.text ?? "Je n'ai pas pu générer de réponse. Veuillez réessayer.";
+      if (fnError) throw new Error(fnError.message);
+
+      const reply = data?.reply ?? "Je n'ai pas pu générer de réponse. Veuillez réessayer.";
       setMessages([...newMessages, { role: "assistant", content: reply }]);
     } catch {
+      setError("Une erreur s'est produite. Vérifiez votre connexion ou contactez un délégué FOCOM.");
       setMessages([
         ...newMessages,
         {
           role: "assistant",
-          content:
-            "Une erreur s'est produite. Veuillez réessayer ou contacter directement un délégué FOCOM.",
+          content: "Une erreur s'est produite. Veuillez réessayer ou contacter directement un délégué FOCOM.",
         },
       ]);
     } finally {
@@ -94,6 +73,12 @@ export default function ChatbotJuridique({ initialQuestion, ccntContext }: Props
       e.preventDefault();
       sendMessage();
     }
+  };
+
+  const handleReset = () => {
+    setMessages([]);
+    setError(null);
+    sentInitial.current = false;
   };
 
   const suggestions = [
@@ -121,6 +106,14 @@ export default function ChatbotJuridique({ initialQuestion, ccntContext }: Props
           <p className="text-xs text-muted-foreground">CCNT Télécoms (IDCC 2148) · Accords UES Iliad</p>
         </div>
       </div>
+
+      {/* Erreur */}
+      {error && (
+        <div className="mx-4 mt-3 flex items-start gap-2 text-xs text-destructive bg-destructive/10 border border-destructive/20 rounded-lg px-3 py-2">
+          <AlertCircle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
 
       {/* Zone de messages */}
       <div className="h-80 overflow-y-auto p-4 space-y-4 bg-muted/10">
@@ -198,7 +191,7 @@ export default function ChatbotJuridique({ initialQuestion, ccntContext }: Props
       <div className="p-3 border-t border-border bg-background flex gap-2 items-end">
         {messages.length > 0 && (
           <button
-            onClick={() => { setMessages([]); sentInitial.current = false; }}
+            onClick={handleReset}
             title="Nouvelle conversation"
             className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors flex-shrink-0"
           >
@@ -220,6 +213,12 @@ export default function ChatbotJuridique({ initialQuestion, ccntContext }: Props
         >
           <Send className="w-3.5 h-3.5" />
         </button>
+      </div>
+
+      <div className="px-4 py-2 border-t border-border bg-muted/20">
+        <p className="text-[10px] text-muted-foreground text-center">
+          Cet assistant fournit des informations générales. Pour une consultation juridique, contactez un délégué FOCOM.
+        </p>
       </div>
     </div>
   );
