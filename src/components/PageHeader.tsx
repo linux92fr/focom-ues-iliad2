@@ -161,7 +161,7 @@ export default function PageHeader() {
                 className="w-10 h-10 rounded-full bg-primary text-primary-foreground font-bold text-sm flex items-center justify-center hover:opacity-90 transition-opacity ring-2 ring-primary/20 focus:outline-none overflow-hidden"
                 aria-label="Mon compte"
               >
-                {avatarUrl ? <img src={avatarUrl} alt="avatar" className="w-full h-full object-cover" /> : initials}
+                {avatarUrl ? <img loading="lazy" src={avatarUrl} alt="avatar" className="w-full h-full object-cover" /> : initials}
               </button>
 
               {userMenuOpen && (

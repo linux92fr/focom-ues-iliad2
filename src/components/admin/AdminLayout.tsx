@@ -120,7 +120,7 @@ export default function AdminLayout({ children, title, breadcrumb }: AdminLayout
         ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
       `}>
         <div className="flex items-center gap-3 p-5 border-b border-slate-700">
-          <img src={LOGO_IMAGE} alt="FOCOM" className="h-9 w-9 object-contain" />
+          <img loading="lazy" src={LOGO_IMAGE} alt="FOCOM" className="h-9 w-9 object-contain" />
           <div>
             <p className="font-bold text-sm leading-tight">FOCOM UES ILIAD</p>
             <p className="text-[10px] text-slate-400 uppercase tracking-widest flex items-center gap-1">

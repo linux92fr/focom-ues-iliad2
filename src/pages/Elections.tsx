@@ -92,7 +92,7 @@ const CandidateCard = ({ candidat, index }: { candidat: Candidat & { role?: stri
       {/* Photo sans l'effet de zoom interne */}
       <div className="h-12 w-12 shrink-0 rounded-full overflow-hidden bg-gradient-to-br from-red-600 to-red-800 flex items-center justify-center shadow-sm">
         {candidat.photo && !imgError ? (
-          <img 
+          <img loading="lazy" 
             src={candidat.photo} 
             alt={candidat.name} 
             className="h-full w-full object-cover" 
@@ -598,7 +598,7 @@ const latestT2Snap = t2ParticipationData[t2ParticipationData.length - 1] ?? null
                     </div>
                   </div>
                   <div className="hidden sm:block absolute bottom-0 right-0 h-full w-[340px] pointer-events-none select-none">
-                    <img src="/fo-militants.png" alt="Militants FO COM"
+                    <img loading="lazy" src="/fo-militants.png" alt="Militants FO COM"
                       className="absolute bottom-0 right-0 h-[110%] w-auto object-contain object-bottom drop-shadow-2xl"
                       style={{ filter: 'drop-shadow(0 0 32px rgba(0,71,204,0.4))' }}
                     />

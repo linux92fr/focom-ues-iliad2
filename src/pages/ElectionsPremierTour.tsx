@@ -4,6 +4,7 @@ import ScrollToTop from '@/components/ScrollToTop';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { PageBreadcrumb } from '@/components/PageBreadcrumb';
 import { Vote, Users, Calendar, ArrowLeft, CheckCircle, AlertTriangle, TrendingUp, Award, Trophy } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -263,13 +264,12 @@ const ElectionsPremierTour = () => (
     <main className="pt-24 pb-16 px-4">
       <div className="container mx-auto max-w-5xl space-y-10">
 
-        {/* Retour */}
-        <Button variant="ghost" size="sm" asChild>
-          <Link to="/elections" className="gap-1.5">
-            <ArrowLeft className="h-4 w-4" />
-            Retour aux élections
-          </Link>
-        </Button>
+        <PageBreadcrumb
+          steps={[
+            { label: "Élections 2026", href: "/elections" },
+            { label: "Résultats 1er tour" },
+          ]}
+        />
 
         {/* Hero */}
         <div className="text-center space-y-4">

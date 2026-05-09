@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
+import DOMPurify from "dompurify";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { PageBreadcrumb } from "@/components/PageBreadcrumb";
 import { ArrowLeft, Calendar, Loader2, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
@@ -111,15 +113,13 @@ const PublicationDetail = () => {
       {/* Hero */}
       <section className="py-12 gradient-hero">
         <div className="container mx-auto px-4">
-          <Link to="/publications">
-            <Button
-              variant="ghost"
-              className="mb-6 text-primary-foreground hover:bg-primary-foreground/10"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Retour aux publications
-            </Button>
-          </Link>
+          <PageBreadcrumb
+            className="mb-4 [&_a]:text-primary-foreground/70 [&_a:hover]:text-primary-foreground [&_span]:text-primary-foreground/90 [&_li]:text-primary-foreground/50"
+            steps={[
+              { label: "Publications", href: "/publications" },
+              { label: article.title },
+            ]}
+          />
 
           <div className="max-w-4xl">
             {article.category && categoryLabels[article.category] && (
@@ -174,7 +174,7 @@ const PublicationDetail = () => {
               <CardContent className="p-8">
                 <div
                   className="prose prose-lg max-w-none"
-                  dangerouslySetInnerHTML={{ __html: article.content }}
+                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(article.content) }}
                 />
 
                 {/* Share */}

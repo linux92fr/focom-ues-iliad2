@@ -124,7 +124,7 @@ export default function NouvelArticle() {
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
-            <img src={LOGO_IMAGE} alt="FO Com" className="h-12 w-12 object-contain" />
+            <img loading="lazy" src={LOGO_IMAGE} alt="FO Com" className="h-12 w-12 object-contain" />
             <div className="hidden sm:block">
               <h1 className="text-lg font-bold text-slate-900 leading-tight">FOCOM UES ILIAD</h1>
               <p className="text-[11px] text-slate-500 font-medium tracking-wide uppercase">

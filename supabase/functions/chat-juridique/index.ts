@@ -2,12 +2,33 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+// Allowed origins: set ALLOWED_ORIGIN env var in Supabase secrets for production.
+// Falls back to allowing localhost for dev.
+const ALLOWED_ORIGINS = (Deno.env.get("ALLOWED_ORIGIN") ?? "")
+  .split(",")
+  .map((o) => o.trim())
+  .filter(Boolean);
+
+function getCorsHeaders(origin: string | null): Record<string, string> {
+  const allowed =
+    ALLOWED_ORIGINS.length === 0 ||
+    (origin !== null &&
+      (ALLOWED_ORIGINS.includes(origin) ||
+        origin.startsWith("http://localhost") ||
+        origin.startsWith("http://127.0.0.1")));
+
+  return {
+    "Access-Control-Allow-Origin": allowed && origin ? origin : "null",
+    "Access-Control-Allow-Headers":
+      "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+  };
+}
 
 serve(async (req) => {
+  const origin = req.headers.get("origin");
+  const corsHeaders = getCorsHeaders(origin);
+
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
@@ -73,15 +94,19 @@ serve(async (req) => {
     const data = await response.json();
 
     if (!response.ok) {
-      return new Response(JSON.stringify({ error: data.error?.message ?? "Erreur API" }), {
-        status: response.status,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: data.error?.message ?? "Erreur API" }),
+        {
+          status: response.status,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     }
 
-    return new Response(JSON.stringify({ reply: data.content?.[0]?.text ?? "" }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ reply: data.content?.[0]?.text ?? "" }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
   } catch {
     return new Response(JSON.stringify({ error: "Erreur serveur" }), {
       status: 500,

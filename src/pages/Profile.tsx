@@ -237,7 +237,7 @@ const Profile = () => {
               <CardHeader className="text-center pb-3">
                 <div className="relative w-20 h-20 mx-auto mb-3 group">
                   {avatarPreview ? (
-                    <img src={avatarPreview} alt="Avatar" className="w-20 h-20 rounded-full object-cover ring-4 ring-primary/20" />
+                    <img loading="lazy" src={avatarPreview} alt="Avatar" className="w-20 h-20 rounded-full object-cover ring-4 ring-primary/20" />
                   ) : (
                     <div className="w-20 h-20 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xl font-bold ring-4 ring-primary/20">
                       {initials}
