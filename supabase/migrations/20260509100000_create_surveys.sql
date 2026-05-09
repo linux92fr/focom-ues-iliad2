@@ -63,6 +63,12 @@ CREATE TRIGGER surveys_updated_at
   BEFORE UPDATE ON public.surveys
   FOR EACH ROW EXECUTE FUNCTION public.update_surveys_updated_at();
 
+-- Fonction helper pour la politique RLS anonyme (doit précéder les policies)
+CREATE OR REPLACE FUNCTION public.is_anonymous_survey(p_survey_id uuid)
+RETURNS boolean LANGUAGE sql SECURITY DEFINER AS $$
+  SELECT COALESCE((SELECT is_anonymous FROM public.surveys WHERE id = p_survey_id), false);
+$$;
+
 -- ─── RLS ────────────────────────────────────────────────────────
 ALTER TABLE public.surveys          ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.survey_questions ENABLE ROW LEVEL SECURITY;
@@ -136,9 +142,3 @@ CREATE POLICY "survey_responses_all_admin"
       AND role IN ('admin', 'moderator')
     )
   );
-
--- Fonction helper pour la politique anonyme
-CREATE OR REPLACE FUNCTION public.is_anonymous_survey(p_survey_id uuid)
-RETURNS boolean LANGUAGE sql SECURITY DEFINER AS $$
-  SELECT COALESCE((SELECT is_anonymous FROM public.surveys WHERE id = p_survey_id), false);
-$$;
