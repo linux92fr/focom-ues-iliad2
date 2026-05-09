@@ -1,4 +1,4 @@
-import { assertEquals } from "jsr:@std/assert";
+import { assertEquals } from "@std/assert";
 
 Deno.test("chat-juridique: system prompt is built correctly", () => {
   const ccntContext = "Contexte de test";

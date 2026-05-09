@@ -1,4 +1,7 @@
 {
+  "imports": {
+    "@std/assert": "jsr:@std/assert@^1.0.0"
+  },
   "lint": {
     "include": ["supabase/functions/"],
     "exclude": ["supabase/functions/**/_shared/"]
