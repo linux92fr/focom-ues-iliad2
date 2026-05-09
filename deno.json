@@ -1,4 +1,7 @@
 {
+  "imports": {
+    "@std/assert": "jsr:@std/assert@^1.0.0"
+  },
   "lint": {
     "include": ["supabase/functions/"],
     "exclude": ["supabase/functions/**/_shared/"]
@@ -8,8 +11,5 @@
   },
   "fmt": {
     "include": ["supabase/functions/"]
-  },
-  "imports": {
-    "https://deno.land/std@0.168.0/": "https://deno.land/std@0.168.0/"
   }
 }

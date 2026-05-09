@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Newspaper, FileText, Users, Settings,
   LogOut, Menu, X, ChevronRight, Bell, Shield, BarChart3,
-  MessageSquare, Home, Eye, Clock, ExternalLink, Layers
+  MessageSquare, Home, Eye, Clock, ExternalLink, Layers, ClipboardList
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAdminAuth } from "@/contexts/AdminAuthContext";
@@ -21,6 +21,7 @@ const navItems = [
   { path: "/admin/faq",        label: "FAQ",             icon: Eye },
   { path: "/admin/messages",   label: "Messages",        icon: MessageSquare },
   { path: "/admin/home-edit",  label: "Édition Home",    icon: Home },
+  { path: "/admin/sondages",   label: "Sondages",        icon: ClipboardList },
   { path: "/admin/parametres", label: "Paramètres",      icon: Settings },
   { path: "/admin/poster",     label: "Compositeur",     icon: Layers }
 ];
@@ -59,7 +60,7 @@ export default function AdminLayout({ children, title, breadcrumb }: AdminLayout
   const navigate = useNavigate();
   const { user, logout } = useAdminAuth();
 
-  // ── Fetch messages non lus ──────────────────────────────────
+  // ── Fetch messages non lus ──────────────────────────────
   const fetchUnread = useCallback(async () => {
     const { data, count, error } = await supabase
       .from("contact_messages")
@@ -202,7 +203,7 @@ export default function AdminLayout({ children, title, breadcrumb }: AdminLayout
           </div>
 
           <div className="flex items-center gap-2">
-            {/* ── Cloche avec popup ─────────────────────────── */}
+            {/* ── Cloche avec popup ───────────────────────── */}
             <div ref={bellRef} className="relative">
               <button
                 onClick={() => setBellOpen((v) => !v)}

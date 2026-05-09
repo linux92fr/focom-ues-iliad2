@@ -1,5 +1,3 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 
 // Allowed origins: set ALLOWED_ORIGIN env var in Supabase secrets for production.
@@ -25,7 +23,7 @@ function getCorsHeaders(origin: string | null): Record<string, string> {
   };
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   const origin = req.headers.get("origin");
   const corsHeaders = getCorsHeaders(origin);
 
