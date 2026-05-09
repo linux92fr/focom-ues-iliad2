@@ -1,7 +1,5 @@
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 
-// Allowed origins: set ALLOWED_ORIGIN env var in Supabase secrets for production.
-// Falls back to allowing localhost for dev.
 const ALLOWED_ORIGINS = (Deno.env.get("ALLOWED_ORIGIN") ?? "")
   .split(",")
   .map((o) => o.trim())
