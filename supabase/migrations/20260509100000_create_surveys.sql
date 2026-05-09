@@ -69,7 +69,7 @@ RETURNS boolean LANGUAGE sql SECURITY DEFINER AS $$
   SELECT COALESCE((SELECT is_anonymous FROM public.surveys WHERE id = p_survey_id), false);
 $$;
 
--- ─── RLS ──────────────────────────────────────────────
+-- ─── RLS ────────────────────────────────────────────────────────
 ALTER TABLE public.surveys          ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.survey_questions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.survey_options   ENABLE ROW LEVEL SECURITY;

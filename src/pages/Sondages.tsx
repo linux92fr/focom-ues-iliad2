@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -18,7 +18,7 @@ import {
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
-// ─── Types ────────────────────────────────────────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 type Survey = {
   id: string; title: string; description: string | null;
@@ -46,7 +46,7 @@ type ResultsData = {
   text_response?: string | null;
 };
 
-// ─── Composant ──────────────────────────────────────────────────────────────────────────────
+// ─── Composant ────────────────────────────────────────────────────────────────
 
 const Sondages = () => {
   const { user } = useAuth();
@@ -55,7 +55,9 @@ const Sondages = () => {
   const [activeSurvey, setActiveSurvey] = useState<Survey | null>(null);
   const [answers, setAnswers] = useState<Record<string, string | string[]>>({});
   const [textAnswers, setTextAnswers] = useState<Record<string, string>>({});
-  const [showResults, setShowResults] = useState<string | null>(null);
+  const [showResults, setShowResults] = useState<string | null>(null); // survey id
+
+  // ─── Fetch sondages ───────────────────────────────────────────────────────
 
   const { data: surveys = [], isLoading } = useQuery({
     queryKey: ['surveys-public'],
@@ -72,6 +74,8 @@ const Sondages = () => {
     },
   });
 
+  // ─── Sondages déjà votés ──────────────────────────────────────────────────
+
   const { data: votedSurveyIds = new Set<string>() } = useQuery({
     queryKey: ['voted-surveys', user?.id],
     enabled: !!user,
@@ -83,6 +87,8 @@ const Sondages = () => {
       return new Set((data ?? []).map((r) => r.survey_id as string));
     },
   });
+
+  // ─── Questions du sondage actif ───────────────────────────────────────────
 
   const { data: questions = [], isLoading: questionsLoading } = useQuery({
     queryKey: ['survey-questions', activeSurvey?.id],
@@ -98,6 +104,8 @@ const Sondages = () => {
     },
   });
 
+  // ─── Résultats ────────────────────────────────────────────────────────────
+
   const { data: results = [] } = useQuery({
     queryKey: ['survey-results', showResults],
     enabled: !!showResults,
@@ -107,6 +115,8 @@ const Sondages = () => {
         .select('question_id, option_id, text_response')
         .eq('survey_id', showResults!);
       if (error) throw error;
+
+      // Aggregate: count per (question_id, option_id)
       const counts: Record<string, number> = {};
       for (const r of data ?? []) {
         const key = `${r.question_id}__${r.option_id ?? '__text'}`;
@@ -119,6 +129,8 @@ const Sondages = () => {
     },
     refetchInterval: showResults ? 10000 : false,
   });
+
+  // ─── Nombre de participants ───────────────────────────────────────────────
 
   const { data: participantCount = 0 } = useQuery({
     queryKey: ['survey-participants', showResults],
@@ -134,6 +146,8 @@ const Sondages = () => {
     refetchInterval: showResults ? 10000 : false,
   });
 
+  // ─── Questions pour la vue résultats ─────────────────────────────────────
+
   const { data: resultQuestions = [] } = useQuery({
     queryKey: ['survey-questions-results', showResults],
     enabled: !!showResults,
@@ -147,6 +161,8 @@ const Sondages = () => {
       return (data ?? []) as Question[];
     },
   });
+
+  // ─── Soumettre les réponses ───────────────────────────────────────────────
 
   const submitMutation = useMutation({
     mutationFn: async () => {
@@ -190,6 +206,8 @@ const Sondages = () => {
 
   const isClosed = (s: Survey) => !!s.ends_at && new Date(s.ends_at) < new Date();
 
+  // ─── Rendu ────────────────────────────────────────────────────────────────
+
   return (
     <div className="p-4 lg:p-8">
       <main className="container mx-auto px-4 py-8 max-w-3xl">
@@ -204,6 +222,7 @@ const Sondages = () => {
           </div>
         </div>
 
+        {/* ── Formulaire de vote ──────────────────────────────────────────── */}
         {activeSurvey && (
           <div className="space-y-4">
             <PageBreadcrumb steps={[{ label: 'Sondages', href: '/sondages' }, { label: activeSurvey.title }]} />
@@ -304,6 +323,7 @@ const Sondages = () => {
           </div>
         )}
 
+        {/* ── Résultats ───────────────────────────────────────────────────── */}
         {!activeSurvey && showResults && (
           <div className="space-y-4">
             {(() => {
@@ -379,6 +399,7 @@ const Sondages = () => {
           </div>
         )}
 
+        {/* ── Liste des sondages ──────────────────────────────────────────── */}
         {!activeSurvey && !showResults && (
           <>
             {isLoading ? (
