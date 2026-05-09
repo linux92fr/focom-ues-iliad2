@@ -8,8 +8,5 @@
   },
   "fmt": {
     "include": ["supabase/functions/"]
-  },
-  "imports": {
-    "https://deno.land/std@0.168.0/": "https://deno.land/std@0.168.0/"
   }
 }
