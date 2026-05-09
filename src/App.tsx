@@ -67,6 +67,9 @@ import AdminMessages from "./pages/admin/AdminMessages";
 import AdminHomeEdit from "./pages/admin/AdminHomeEdit";
 import AdminPermanences from "./pages/admin/AdminPermanences";
 import AdminSondages from "./pages/admin/AdminSondages";
+import AdminNewsletter from "./pages/admin/AdminNewsletter";
+import AdminReclamations from "./pages/admin/AdminReclamations";
+import MesReclamations from "./pages/MesReclamations";
 
 const queryClient = new QueryClient();
 
@@ -82,6 +85,7 @@ function App() {
               <BrowserRouter>
                 <AdminAuthProvider>
                   <Routes>
+                    {/* ── Routes publiques avec sidebar ───────────────── */}
                     <Route element={<PublicLayout />}>
                       <Route path="/" element={<Home />} />
                       <Route path="/bilan-mandat" element={<BilanMandat />} />
@@ -113,11 +117,13 @@ function App() {
                       <Route path="/sondages" element={<Sondages />} />
                       <Route path="/agenda" element={<Agenda />} />
                       <Route path="/profil" element={<Profile />} />
+                      <Route path="/mes-reclamations" element={<MesReclamations />} />
                       <Route path="/admin/nao2026" element={<AdminNao2026 />} />
                       <Route path="/admin/participation" element={<AdminParticipation />} />
                       <Route path="/admin/poster" element={<PosterComposer />} />
                     </Route>
 
+                    {/* ── Admin panel (layout propre) ───────────────── */}
                     <Route path="/admin/login" element={<AdminLogin />} />
                     <Route path="/admin" element={<AdminDashboard />} />
                     <Route path="/admin/actualites" element={<AdminActualites />} />
@@ -133,6 +139,8 @@ function App() {
                     <Route path="/admin/home-edit" element={<AdminHomeEdit />} />
                     <Route path="/admin/permanences" element={<AdminPermanences />} />
                     <Route path="/admin/sondages" element={<AdminSondages />} />
+                    <Route path="/admin/newsletter" element={<AdminNewsletter />} />
+                    <Route path="/admin/reclamations" element={<AdminReclamations />} />
 
                     <Route path="*" element={<NotFound />} />
                   </Routes>

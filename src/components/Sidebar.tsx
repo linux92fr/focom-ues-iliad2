@@ -10,6 +10,7 @@ import {
   Mail,
   Calendar,
   Settings,
+  AlertCircle,
 } from "lucide-react";
 import logoFocom from "@/assets/logo-focom.png";
 
@@ -18,6 +19,7 @@ const navItems = [
   { to: "/actualites", label: "Actualités", icon: Newspaper },
   { to: "/bilan-mandat", label: "Bilan de Mandat", icon: BarChart3 },
   { to: "/profil", label: "Espace Adhérent", icon: UserCircle },
+  { to: "/mes-reclamations", label: "Mes Réclamations", icon: AlertCircle },
   { to: "/admin", label: "Administration", icon: Settings },
   { to: "/vos-droits", label: "Vos Droits", icon: Shield },
   { to: "/agenda", label: "Agenda", icon: Calendar },
