@@ -1,6 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Home, Save, ArrowLeft, Image as ImageIcon, Link as LinkIcon, Eye, Plus, Trash2, Edit2, GripVertical, Check, X } from "lucide-react";
+import {
+  Home, Save, ArrowLeft, Image as ImageIcon, Link as LinkIcon,
+  Eye, Plus, Trash2, Edit2, GripVertical, Check, X, Loader2,
+} from "lucide-react";
 import AdminLayout, { AdminAuthGuard } from "@/components/admin/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,63 +11,111 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 type Section = { id: number; title: string; icon: string; order: number; active: boolean };
 
-const initialSections: Section[] = [
-  { id: 1, title: "Vos Droits", icon: "Shield", order: 1, active: true },
-  { id: 2, title: "Actualités", icon: "FileText", order: 2, active: true },
-  { id: 3, title: "Bilan de Mandat", icon: "BarChart3", order: 3, active: true },
-  { id: 4, title: "Espace Adhérent", icon: "Users", order: 4, active: true },
-  { id: 5, title: "Documents Utiles", icon: "FileText", order: 5, active: true },
-  { id: 6, title: "FAQ", icon: "HelpCircle", order: 6, active: true },
-  { id: 7, title: "Nous Contacter", icon: "MessageSquare", order: 7, active: true },
+const defaultSections: Section[] = [
+  { id: 1, title: "Vos Droits",       icon: "Shield",       order: 1, active: true },
+  { id: 2, title: "Actualités",       icon: "FileText",     order: 2, active: true },
+  { id: 3, title: "Bilan de Mandat",  icon: "BarChart3",    order: 3, active: true },
+  { id: 4, title: "Espace Adhérent",  icon: "Users",        order: 4, active: true },
+  { id: 5, title: "Documents Utiles", icon: "FileText",     order: 5, active: true },
+  { id: 6, title: "FAQ",              icon: "HelpCircle",   order: 6, active: true },
+  { id: 7, title: "Nous Contacter",   icon: "MessageSquare",order: 7, active: true },
 ];
+
+const HERO_KEY     = "home_hero";
+const SECTIONS_KEY = "home_sections";
 
 export default function AdminHomeEdit() {
   const navigate = useNavigate();
-  const [heroTitle, setHeroTitle] = useState("Ensemble, connectés, plus forts.");
+
+  const [heroTitle,    setHeroTitle]    = useState("Ensemble, connectés, plus forts.");
   const [heroSubtitle, setHeroSubtitle] = useState("Le syndicat des travailleurs et travailleuses des télécommunications. Notre force, c'est l'union.");
-  const [sections, setSections] = useState<Section[]>(initialSections);
-  const [saved, setSaved] = useState(false);
+  const [sections,     setSections]     = useState<Section[]>(defaultSections);
 
-  /* Inline edit state for sections */
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [loading,  setLoading]  = useState(true);
+  const [saving,   setSaving]   = useState(false);
+
+  const [editingId,    setEditingId]    = useState<number | null>(null);
   const [editingTitle, setEditingTitle] = useState("");
+  const [addingSection,     setAddingSection]     = useState(false);
+  const [newSectionTitle,   setNewSectionTitle]   = useState("");
 
-  /* New section form */
-  const [addingSection, setAddingSection] = useState(false);
-  const [newSectionTitle, setNewSectionTitle] = useState("");
+  // ── Fetch depuis Supabase ──────────────────────────────────
+  useEffect(() => {
+    const fetchContent = async () => {
+      setLoading(true);
+      const { data } = await supabase
+        .from("site_content")
+        .select("key, value")
+        .in("key", [HERO_KEY, SECTIONS_KEY]);
 
-  const handleSave = () => {
-    // In production: persist to Supabase / API
-    setSaved(true);
-    toast.success("Modifications enregistrées avec succès");
-    setTimeout(() => setSaved(false), 3000);
+      if (data) {
+        const hero = data.find((d) => d.key === HERO_KEY);
+        const secs = data.find((d) => d.key === SECTIONS_KEY);
+
+        if (hero?.value) {
+          try {
+            const parsed = JSON.parse(hero.value);
+            if (parsed.title)    setHeroTitle(parsed.title);
+            if (parsed.subtitle) setHeroSubtitle(parsed.subtitle);
+          } catch { /* ignore */ }
+        }
+        if (secs?.value) {
+          try {
+            const parsed = JSON.parse(secs.value);
+            if (Array.isArray(parsed)) setSections(parsed);
+          } catch { /* ignore */ }
+        }
+      }
+      setLoading(false);
+    };
+    fetchContent();
+  }, []);
+
+  // ── Save vers Supabase ────────────────────────────────────
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const heroValue     = JSON.stringify({ title: heroTitle, subtitle: heroSubtitle });
+      const sectionsValue = JSON.stringify(sections);
+
+      // Upsert hero
+      await supabase.from("site_content").upsert(
+        { key: HERO_KEY, value: heroValue, title: "Hero page d'accueil", subtitle: "" },
+        { onConflict: "key" }
+      );
+
+      // Upsert sections
+      await supabase.from("site_content").upsert(
+        { key: SECTIONS_KEY, value: sectionsValue, title: "Sections de navigation", subtitle: "" },
+        { onConflict: "key" }
+      );
+
+      toast.success("Modifications enregistrées avec succès");
+    } catch {
+      toast.error("Impossible d'enregistrer les modifications");
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handlePreview = () => {
-    window.open("/", "_blank");
-  };
-
-  const startEdit = (section: Section) => {
-    setEditingId(section.id);
-    setEditingTitle(section.title);
-  };
+  // ── Sections helpers ──────────────────────────────────────
+  const startEdit = (s: Section) => { setEditingId(s.id); setEditingTitle(s.title); };
 
   const confirmEdit = (id: number) => {
     if (!editingTitle.trim()) { toast.error("Le titre ne peut pas être vide"); return; }
     setSections((prev) => prev.map((s) => s.id === id ? { ...s, title: editingTitle } : s));
     setEditingId(null);
-    toast.success("Section renommée");
+    toast.success("Section renommée — pensez à enregistrer");
   };
-
-  const cancelEdit = () => setEditingId(null);
 
   const deleteSection = (id: number, title: string) => {
     if (window.confirm(`Supprimer la section "${title}" ?`)) {
       setSections((prev) => prev.filter((s) => s.id !== id).map((s, i) => ({ ...s, order: i + 1 })));
-      toast.success("Section supprimée");
+      toast.success("Section supprimée — pensez à enregistrer");
     }
   };
 
@@ -74,16 +125,31 @@ export default function AdminHomeEdit() {
 
   const addSection = () => {
     if (!newSectionTitle.trim()) { toast.error("Titre requis"); return; }
-    setSections((prev) => [...prev, { id: Date.now(), title: newSectionTitle, icon: "FileText", order: prev.length + 1, active: true }]);
+    setSections((prev) => [
+      ...prev,
+      { id: Date.now(), title: newSectionTitle, icon: "FileText", order: prev.length + 1, active: true },
+    ]);
     setNewSectionTitle("");
     setAddingSection(false);
-    toast.success("Section ajoutée");
+    toast.success("Section ajoutée — pensez à enregistrer");
   };
+
+  if (loading) {
+    return (
+      <AdminAuthGuard>
+        <AdminLayout title="Édition Home" breadcrumb={["Administration", "Édition Home"]}>
+          <div className="flex items-center justify-center h-64">
+            <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
+          </div>
+        </AdminLayout>
+      </AdminAuthGuard>
+    );
+  }
 
   return (
     <AdminAuthGuard>
       <AdminLayout title="Édition Home" breadcrumb={["Administration", "Édition Home"]}>
-        {/* ── Page header ──────────────────────────────────── */}
+
         <div className="flex items-center gap-3 mb-6">
           <button onClick={() => navigate(-1)} className="p-2 rounded-lg hover:bg-slate-100">
             <ArrowLeft className="w-5 h-5" />
@@ -98,7 +164,8 @@ export default function AdminHomeEdit() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* ── Hero section ──────────────────────────────── */}
+
+          {/* Hero */}
           <Card className="border-slate-200 shadow-sm">
             <CardHeader>
               <CardTitle className="text-base font-semibold text-slate-900 flex items-center gap-2">
@@ -124,7 +191,7 @@ export default function AdminHomeEdit() {
             </CardContent>
           </Card>
 
-          {/* ── Navigation sections ───────────────────────── */}
+          {/* Sections de navigation */}
           <Card className="border-slate-200 shadow-sm">
             <CardHeader>
               <CardTitle className="text-base font-semibold text-slate-900 flex items-center justify-between">
@@ -143,43 +210,39 @@ export default function AdminHomeEdit() {
 
                     {editingId === section.id ? (
                       <div className="flex-1 flex items-center gap-1">
-                        <Input
-                          value={editingTitle}
-                          onChange={(e) => setEditingTitle(e.target.value)}
-                          className="h-7 text-sm py-0"
-                          autoFocus
-                          onKeyDown={(e) => { if (e.key === "Enter") confirmEdit(section.id); if (e.key === "Escape") cancelEdit(); }}
-                        />
+                        <Input value={editingTitle} onChange={(e) => setEditingTitle(e.target.value)}
+                          className="h-7 text-sm py-0" autoFocus
+                          onKeyDown={(e) => { if (e.key === "Enter") confirmEdit(section.id); if (e.key === "Escape") setEditingId(null); }} />
                         <button onClick={() => confirmEdit(section.id)} className="p-1 rounded hover:bg-green-100 text-green-600"><Check className="w-3.5 h-3.5" /></button>
-                        <button onClick={cancelEdit} className="p-1 rounded hover:bg-red-100 text-red-500"><X className="w-3.5 h-3.5" /></button>
+                        <button onClick={() => setEditingId(null)} className="p-1 rounded hover:bg-red-100 text-red-500"><X className="w-3.5 h-3.5" /></button>
                       </div>
                     ) : (
                       <>
                         <p className="flex-1 text-sm font-medium text-slate-900">{section.title}</p>
                         <div className="flex items-center gap-1">
-                          <button onClick={() => toggleSection(section.id)} className={`w-5 h-5 rounded flex items-center justify-center transition-colors ${section.active ? "bg-green-200 text-green-700" : "bg-slate-200 text-slate-400"}`} title={section.active ? "Masquer" : "Afficher"}>
-                            <span className="text-[9px] font-bold">{section.active ? "ON" : "OFF"}</span>
+                          <button onClick={() => toggleSection(section.id)}
+                            className={`w-8 h-5 rounded-full flex items-center px-1 transition-colors ${section.active ? "bg-green-400" : "bg-slate-300"}`}
+                            title={section.active ? "Masquer" : "Afficher"}>
+                            <span className={`w-3 h-3 bg-white rounded-full shadow transition-transform ${section.active ? "translate-x-3" : "translate-x-0"}`} />
                           </button>
-                          <Button variant="ghost" size="sm" className="p-1 h-auto" onClick={() => startEdit(section)} title="Renommer"><Edit2 className="w-3 h-3 text-slate-400 hover:text-blue-600" /></Button>
-                          <Button variant="ghost" size="sm" className="p-1 h-auto" onClick={() => deleteSection(section.id, section.title)} title="Supprimer"><Trash2 className="w-3 h-3 text-slate-400 hover:text-red-600" /></Button>
+                          <Button variant="ghost" size="sm" className="p-1 h-auto" onClick={() => startEdit(section)}>
+                            <Edit2 className="w-3 h-3 text-slate-400 hover:text-blue-600" />
+                          </Button>
+                          <Button variant="ghost" size="sm" className="p-1 h-auto" onClick={() => deleteSection(section.id, section.title)}>
+                            <Trash2 className="w-3 h-3 text-slate-400 hover:text-red-600" />
+                          </Button>
                         </div>
                       </>
                     )}
                   </div>
                 ))}
 
-                {/* Inline add form */}
                 {addingSection && (
                   <div className="flex items-center gap-2 p-2 bg-blue-50 border border-blue-200 rounded-lg">
                     <div className="w-6 h-6 rounded bg-teal-100 flex items-center justify-center text-xs text-teal-600 flex-shrink-0">{sections.length + 1}</div>
-                    <Input
-                      value={newSectionTitle}
-                      onChange={(e) => setNewSectionTitle(e.target.value)}
-                      className="h-7 text-sm py-0 flex-1"
-                      placeholder="Nom de la section..."
-                      autoFocus
-                      onKeyDown={(e) => { if (e.key === "Enter") addSection(); if (e.key === "Escape") setAddingSection(false); }}
-                    />
+                    <Input value={newSectionTitle} onChange={(e) => setNewSectionTitle(e.target.value)}
+                      className="h-7 text-sm py-0 flex-1" placeholder="Nom de la section..." autoFocus
+                      onKeyDown={(e) => { if (e.key === "Enter") addSection(); if (e.key === "Escape") setAddingSection(false); }} />
                     <button onClick={addSection} className="p-1 rounded hover:bg-green-100 text-green-600"><Check className="w-3.5 h-3.5" /></button>
                     <button onClick={() => setAddingSection(false)} className="p-1 rounded hover:bg-red-100 text-red-500"><X className="w-3.5 h-3.5" /></button>
                   </div>
@@ -188,7 +251,7 @@ export default function AdminHomeEdit() {
             </CardContent>
           </Card>
 
-          {/* ── Quick Stats ───────────────────────────────── */}
+          {/* Stats */}
           <Card className="border-slate-200 shadow-sm lg:col-span-2">
             <CardHeader>
               <CardTitle className="text-base font-semibold text-slate-900">Statistiques affichées sur l'accueil</CardTitle>
@@ -202,20 +265,21 @@ export default function AdminHomeEdit() {
                   </div>
                 ))}
               </div>
-              <p className="text-xs text-slate-400 mt-3">Ces statistiques proviennent du module Bilan. Modifiez-les dans la section Bilan de l'administration.</p>
+              <p className="text-xs text-slate-400 mt-3">Ces statistiques proviennent du module Bilan. Modifiez-les dans la section Bilan.</p>
             </CardContent>
           </Card>
         </div>
 
-        {/* ── Actions ──────────────────────────────────────── */}
+        {/* Actions */}
         <div className="mt-6 flex gap-3">
-          <Button onClick={handleSave} className={`gap-2 ${saved ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"} text-white transition-colors`}>
-            {saved ? <><Check className="w-4 h-4" />Enregistré !</> : <><Save className="w-4 h-4" />Enregistrer les modifications</>}
+          <Button onClick={handleSave} disabled={saving} className="gap-2 bg-red-600 hover:bg-red-700 text-white">
+            {saving ? <><Loader2 className="w-4 h-4 animate-spin" />Enregistrement...</> : <><Save className="w-4 h-4" />Enregistrer les modifications</>}
           </Button>
-          <Button variant="outline" onClick={handlePreview} className="border-slate-200 gap-2">
+          <Button variant="outline" onClick={() => window.open("/", "_blank")} className="border-slate-200 gap-2">
             <Eye className="w-4 h-4" />Aperçu du site
           </Button>
         </div>
+
       </AdminLayout>
     </AdminAuthGuard>
   );

@@ -3,19 +3,19 @@ import {
   Users, Newspaper, FileText, MessageSquare,
   TrendingUp, TrendingDown, Eye, Calendar,
   RefreshCw, Bell, X, CheckCircle, AlertCircle,
-  Info, Filter, ExternalLink, Clock,
+  Info, Filter, ExternalLink, Clock, Loader2,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   AreaChart, Area, BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
 import { Link } from "react-router-dom";
 import AdminLayout, { AdminAuthGuard } from "@/components/admin/AdminLayout";
+import { supabase } from "@/integrations/supabase/client";
 
-/* ─── Static data ────────────────────────────────────────────── */
+/* ─── Static data ─────────────────────────────────────────────── */
 const visitDataBase = [
   { month: "Nov", visites: 820 },
   { month: "Déc", visites: 950 },
@@ -44,14 +44,18 @@ const allActivity = [
   { type: "article", text: "Article archivé : Bilan 2024", time: "Il y a 5j", status: "success", category: "article" },
 ];
 
-const notifications = [
-  { id: 1, title: "Message non lu", desc: "Contact de M. Dupont en attente", time: "Il y a 2h", type: "info", read: false },
-  { id: 2, title: "Document expiré", desc: "La convention collective doit être mise à jour", time: "Il y a 1j", type: "warning", read: false },
-  { id: 3, title: "Nouvelle adhésion", desc: "Formulaire soumis par M. Bernard", time: "Il y a 2j", type: "success", read: true },
-  { id: 4, title: "FAQ mise à jour", desc: "3 nouvelles questions ajoutées", time: "Il y a 3j", type: "info", read: true },
-];
+/* ─── Types ───────────────────────────────────────────────────── */
+interface AdminNotif {
+  id: string;
+  title: string;
+  message: string;
+  type: string;
+  is_read: boolean;
+  archived: boolean;
+  created_at: string;
+}
 
-/* ─── Election countdown ─────────────────────────────────────── */
+/* ─── Election countdown ──────────────────────────────────────── */
 const ELECTION_DATE = new Date("2026-05-06T08:00:00");
 
 function useCountdown(target: Date) {
@@ -62,23 +66,19 @@ function useCountdown(target: Date) {
     const hours = Math.floor((diff % 86400000) / 3600000);
     const minutes = Math.floor((diff % 3600000) / 60000);
     const seconds = Math.floor((diff % 60000) / 1000);
-    const totalDays = 30;
-    const elapsed = totalDays - days;
-    const pct = Math.min(100, Math.round((elapsed / totalDays) * 100));
+    const pct = Math.min(100, Math.round(((30 - days) / 30) * 100));
     return { days, hours, minutes, seconds, pct };
   }, [target]);
 
   const [countdown, setCountdown] = useState(calc);
-
   useEffect(() => {
     const id = setInterval(() => setCountdown(calc()), 1000);
     return () => clearInterval(id);
   }, [calc]);
-
   return countdown;
 }
 
-/* ─── Status colors ──────────────────────────────────────────── */
+/* ─── Helpers ─────────────────────────────────────────────────── */
 const statusColor: Record<string, string> = {
   success: "bg-green-100 text-green-700",
   info: "bg-blue-100 text-blue-700",
@@ -86,22 +86,87 @@ const statusColor: Record<string, string> = {
 };
 
 const notifIcon: Record<string, React.ReactNode> = {
-  info: <Info className="w-4 h-4 text-blue-500" />,
+  info:    <Info className="w-4 h-4 text-blue-500" />,
   warning: <AlertCircle className="w-4 h-4 text-amber-500" />,
   success: <CheckCircle className="w-4 h-4 text-green-500" />,
 };
 
-/* ─── Component ──────────────────────────────────────────────── */
+const formatTime = (iso: string) => {
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 60) return `Il y a ${m} min`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `Il y a ${h}h`;
+  return `Il y a ${Math.floor(h / 24)}j`;
+};
+
+/* ─── Component ───────────────────────────────────────────────── */
 export default function AdminDashboard() {
   const countdown = useCountdown(ELECTION_DATE);
 
-  /* Refresh */
   const [refreshing, setRefreshing] = useState(false);
   const [visitData, setVisitData] = useState(visitDataBase);
   const [lastRefresh, setLastRefresh] = useState(new Date());
 
+  // ── Notifications depuis Supabase ──────────────────────────
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [notifList, setNotifList] = useState<AdminNotif[]>([]);
+  const [notifLoading, setNotifLoading] = useState(false);
+  const unreadCount = notifList.filter((n) => !n.is_read && !n.archived).length;
+
+  // Récupère les messages de contact non lus comme notifications admin
+  const [unreadMessages, setUnreadMessages] = useState(0);
+
+  const fetchNotifs = useCallback(async () => {
+    setNotifLoading(true);
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) { setNotifLoading(false); return; }
+
+    const { data } = await supabase
+      .from("notifications")
+      .select("*")
+      .eq("user_id", session.user.id)
+      .eq("archived", false)
+      .order("created_at", { ascending: false })
+      .limit(10);
+
+    setNotifList((data as AdminNotif[]) ?? []);
+    setNotifLoading(false);
+  }, []);
+
+  const fetchUnreadMessages = useCallback(async () => {
+    const { count } = await supabase
+      .from("contact_messages")
+      .select("*", { count: "exact", head: true })
+      .eq("status", "non-lu");
+    setUnreadMessages(count ?? 0);
+  }, []);
+
+  useEffect(() => {
+    fetchNotifs();
+    fetchUnreadMessages();
+  }, [fetchNotifs, fetchUnreadMessages]);
+
+  const markAllRead = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) return;
+    await supabase
+      .from("notifications")
+      .update({ is_read: true })
+      .eq("user_id", session.user.id)
+      .eq("is_read", false);
+    setNotifList((prev) => prev.map((n) => ({ ...n, is_read: true })));
+  };
+
+  const dismissNotif = async (id: string) => {
+    await supabase.from("notifications").update({ archived: true }).eq("id", id);
+    setNotifList((prev) => prev.filter((n) => n.id !== id));
+  };
+
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
+    fetchNotifs();
+    fetchUnreadMessages();
     setTimeout(() => {
       setVisitData(visitDataBase.map((d) => ({
         ...d,
@@ -110,35 +175,33 @@ export default function AdminDashboard() {
       setLastRefresh(new Date());
       setRefreshing(false);
     }, 1200);
-  }, []);
+  }, [fetchNotifs, fetchUnreadMessages]);
 
-  /* Notifications panel */
-  const [notifOpen, setNotifOpen] = useState(false);
-  const [notifList, setNotifList] = useState(notifications);
-  const unreadCount = notifList.filter((n) => !n.read).length;
-
-  const markAllRead = () => setNotifList((prev) => prev.map((n) => ({ ...n, read: true })));
-  const dismissNotif = (id: number) => setNotifList((prev) => prev.filter((n) => n.id !== id));
-
-  /* Activity filter */
   const [actFilter, setActFilter] = useState<"all" | "article" | "message" | "document">("all");
   const filteredActivity = actFilter === "all"
     ? allActivity
     : allActivity.filter((a) => a.category === actFilter);
 
-  /* Stats (could be fetched from API) */
   const statCards = [
     { title: "Adhérents actifs", value: "1 247", change: "+5,2%", positive: true, icon: Users, color: "text-teal-600 bg-teal-50", href: "/admin/adherents" },
     { title: "Articles publiés", value: "38", change: "+3 ce mois", positive: true, icon: Newspaper, color: "text-red-600 bg-red-50", href: "/admin/actualites" },
     { title: "Documents", value: "124", change: "+7 ce mois", positive: true, icon: FileText, color: "text-teal-600 bg-teal-50", href: "/admin/documents" },
-    { title: "Messages reçus", value: String(23 + unreadCount), change: `${unreadCount} non lu${unreadCount > 1 ? "s" : ""}`, positive: unreadCount === 0, icon: MessageSquare, color: "text-red-600 bg-red-50", href: "/admin/messages" },
+    {
+      title: "Messages reçus",
+      value: String(unreadMessages),
+      change: `${unreadMessages} non lu${unreadMessages > 1 ? "s" : ""}`,
+      positive: unreadMessages === 0,
+      icon: MessageSquare,
+      color: "text-red-600 bg-red-50",
+      href: "/admin/messages",
+    },
   ];
 
   return (
     <AdminAuthGuard>
       <AdminLayout title="Tableau de bord" breadcrumb={["Administration", "Tableau de bord"]}>
 
-        {/* ── Notification panel overlay ───────────────────────── */}
+        {/* ── Panneau notifications ──────────────────────────── */}
         {notifOpen && (
           <div className="fixed inset-0 z-50 flex justify-end" onClick={() => setNotifOpen(false)}>
             <div
@@ -163,23 +226,38 @@ export default function AdminDashboard() {
               </div>
 
               <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
-                {notifList.length === 0 ? (
+                {notifLoading ? (
+                  <div className="flex items-center justify-center h-24">
+                    <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
+                  </div>
+                ) : notifList.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-40 text-slate-400">
                     <CheckCircle className="w-8 h-8 mb-2 text-green-400" />
                     <p className="text-sm">Aucune notification</p>
                   </div>
                 ) : (
                   notifList.map((n) => (
-                    <div key={n.id} className={`flex items-start gap-3 px-4 py-3 hover:bg-slate-50 transition-colors ${!n.read ? "bg-blue-50/40" : ""}`}>
-                      <div className="mt-0.5 flex-shrink-0">{notifIcon[n.type]}</div>
+                    <div
+                      key={n.id}
+                      className={`flex items-start gap-3 px-4 py-3 hover:bg-slate-50 transition-colors ${!n.is_read ? "bg-blue-50/40" : ""}`}
+                    >
+                      <div className="mt-0.5 flex-shrink-0">
+                        {notifIcon[n.type] ?? <Info className="w-4 h-4 text-slate-400" />}
+                      </div>
                       <div className="flex-1 min-w-0">
-                        <p className={`text-sm font-semibold text-slate-900 ${!n.read ? "font-bold" : ""}`}>{n.title}</p>
-                        <p className="text-xs text-slate-500 mt-0.5 leading-snug">{n.desc}</p>
+                        <p className={`text-sm text-slate-900 ${!n.is_read ? "font-bold" : "font-semibold"}`}>
+                          {n.title}
+                        </p>
+                        <p className="text-xs text-slate-500 mt-0.5 leading-snug line-clamp-2">{n.message}</p>
                         <p className="text-[10px] text-slate-400 mt-1 flex items-center gap-1">
-                          <Clock className="w-3 h-3" />{n.time}
+                          <Clock className="w-3 h-3" />{formatTime(n.created_at)}
                         </p>
                       </div>
-                      <button onClick={() => dismissNotif(n.id)} className="p-1 rounded hover:bg-slate-200 flex-shrink-0">
+                      <button
+                        onClick={() => dismissNotif(n.id)}
+                        className="p-1 rounded hover:bg-slate-200 flex-shrink-0"
+                        title="Archiver"
+                      >
                         <X className="w-3 h-3 text-slate-400" />
                       </button>
                     </div>
@@ -188,8 +266,11 @@ export default function AdminDashboard() {
               </div>
 
               <div className="px-4 py-3 border-t border-slate-200">
-                <Link to="/admin/messages" onClick={() => setNotifOpen(false)}
-                  className="flex items-center justify-center gap-2 text-xs text-slate-600 hover:text-slate-900 font-medium py-1.5 hover:bg-slate-100 rounded-lg transition-colors">
+                <Link
+                  to="/admin/messages"
+                  onClick={() => setNotifOpen(false)}
+                  className="flex items-center justify-center gap-2 text-xs text-slate-600 hover:text-slate-900 font-medium py-1.5 hover:bg-slate-100 rounded-lg transition-colors"
+                >
                   <ExternalLink className="w-3.5 h-3.5" />
                   Voir tous les messages
                 </Link>
@@ -198,18 +279,14 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* ── Topbar actions row ───────────────────────────────── */}
+        {/* ── Topbar ────────────────────────────────────────── */}
         <div className="flex items-center justify-between mb-5">
-          <div>
-            <p className="text-xs text-slate-400">
-              Dernière mise à jour : {lastRefresh.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
-            </p>
-          </div>
+          <p className="text-xs text-slate-400">
+            Dernière mise à jour : {lastRefresh.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
+          </p>
           <div className="flex items-center gap-2">
-            {/* Notification bell (activated) */}
             <Button
-              variant="outline"
-              size="sm"
+              variant="outline" size="sm"
               className="relative gap-2 h-8 text-xs border-slate-200"
               onClick={() => setNotifOpen(true)}
             >
@@ -221,11 +298,8 @@ export default function AdminDashboard() {
                 </span>
               )}
             </Button>
-
-            {/* Refresh button (activated) */}
             <Button
-              variant="outline"
-              size="sm"
+              variant="outline" size="sm"
               className="gap-2 h-8 text-xs border-slate-200"
               onClick={handleRefresh}
               disabled={refreshing}
@@ -236,7 +310,7 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* ── Stats Cards ──────────────────────────────────────── */}
+        {/* ── Stats ─────────────────────────────────────────── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
           {statCards.map((stat) => (
             <Link key={stat.title} to={stat.href}>
@@ -259,7 +333,7 @@ export default function AdminDashboard() {
           ))}
         </div>
 
-        {/* ── Charts ──────────────────────────────────────────── */}
+        {/* ── Charts ────────────────────────────────────────── */}
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 mb-6">
           <Card className="xl:col-span-2 border-slate-200 shadow-sm">
             <CardHeader className="pb-2">
@@ -313,14 +387,12 @@ export default function AdminDashboard() {
           </Card>
         </div>
 
-        {/* ── Activity + Quick Actions ─────────────────────────── */}
+        {/* ── Activity + Quick Actions ───────────────────────── */}
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-          {/* Activity feed with filter */}
           <Card className="xl:col-span-2 border-slate-200 shadow-sm">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base font-semibold text-slate-900">Activité récente</CardTitle>
-                {/* Filter tabs (activated) */}
                 <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-0.5">
                   {(["all", "article", "message", "document"] as const).map((f) => (
                     <button
@@ -337,29 +409,22 @@ export default function AdminDashboard() {
               </div>
             </CardHeader>
             <CardContent className="space-y-2">
-              {filteredActivity.length === 0 ? (
-                <div className="flex items-center justify-center h-24 text-slate-400 text-sm">
-                  Aucune activité dans cette catégorie
-                </div>
-              ) : (
-                filteredActivity.map((item, idx) => (
-                  <div key={idx} className="flex items-start gap-3 p-3 rounded-lg hover:bg-slate-50 transition-colors">
-                    <div className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase flex-shrink-0 mt-0.5 ${statusColor[item.status]}`}>
-                      {item.type === "article" ? "Article" : item.type === "message" ? "Message" : "Document"}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-slate-800 font-medium leading-snug">{item.text}</p>
-                      <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-1">
-                        <Calendar className="w-3 h-3" />{item.time}
-                      </p>
-                    </div>
+              {filteredActivity.map((item, idx) => (
+                <div key={idx} className="flex items-start gap-3 p-3 rounded-lg hover:bg-slate-50 transition-colors">
+                  <div className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase flex-shrink-0 mt-0.5 ${statusColor[item.status]}`}>
+                    {item.type === "article" ? "Article" : item.type === "message" ? "Message" : "Document"}
                   </div>
-                ))
-              )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-slate-800 font-medium leading-snug">{item.text}</p>
+                    <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-1">
+                      <Calendar className="w-3 h-3" />{item.time}
+                    </p>
+                  </div>
+                </div>
+              ))}
             </CardContent>
           </Card>
 
-          {/* Quick actions + Countdown */}
           <Card className="border-slate-200 shadow-sm">
             <CardHeader className="pb-3">
               <CardTitle className="text-base font-semibold text-slate-900">Actions rapides</CardTitle>
@@ -380,20 +445,15 @@ export default function AdminDashboard() {
                 </Link>
               ))}
 
-              {/* ── Live election countdown ─────────────────── */}
               <div className="mt-4 pt-4 border-t border-slate-100">
                 <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
                   Prochaines élections
                 </p>
                 <div className="bg-red-50 border border-red-100 rounded-lg p-3">
                   <p className="text-sm font-bold text-red-700">6 mai 2026</p>
-
                   {countdown.days > 0 ? (
                     <>
-                      <p className="text-xs text-red-600 mt-0.5 mb-2">
-                        Élections professionnelles — J-{countdown.days}
-                      </p>
-                      {/* Live digit display */}
+                      <p className="text-xs text-red-600 mt-0.5 mb-2">Élections professionnelles — J-{countdown.days}</p>
                       <div className="grid grid-cols-4 gap-1 mb-2">
                         {[
                           { label: "J", val: countdown.days },
@@ -411,16 +471,10 @@ export default function AdminDashboard() {
                       </div>
                     </>
                   ) : (
-                    <p className="text-xs text-red-600 mt-0.5 mb-2 font-bold">
-                      C'est aujourd'hui ! Bonne élection.
-                    </p>
+                    <p className="text-xs text-red-600 mt-0.5 mb-2 font-bold">C'est aujourd'hui !</p>
                   )}
-
                   <div className="h-1.5 bg-red-200 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-red-600 rounded-full transition-all duration-1000"
-                      style={{ width: `${countdown.pct}%` }}
-                    />
+                    <div className="h-full bg-red-600 rounded-full transition-all duration-1000" style={{ width: `${countdown.pct}%` }} />
                   </div>
                 </div>
               </div>

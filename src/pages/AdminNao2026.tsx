@@ -246,13 +246,13 @@ export default function AdminNao2026() {
             <div className="rounded-2xl border border-border bg-card p-6">
               <h2 className="text-lg font-bold mb-4">Priorités par thématique</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                {[
+                {([
                   { key: 'salaires_priorite', label: 'Salaires & Primes', icon: TrendingUp },
                   { key: 'temps_priorite',    label: 'Temps de travail',  icon: Clock },
                   { key: 'social_priorite',   label: 'Avantages sociaux', icon: Users },
                   { key: 'egalite_priorite',  label: 'Égalité',           icon: Scale },
-                ].map(({ key, label, icon: Icon }) => {
-                  const counts = countBy(responses, r => (r as any)[key]);
+                ] as const).map(({ key, label, icon: Icon }) => {
+                  const counts = countBy(responses, r => r[key]);
                   return (
                     <div key={key} className="space-y-2">
                       <p className="text-sm font-bold flex items-center gap-2">
@@ -280,12 +280,12 @@ export default function AdminNao2026() {
             <div className="rounded-2xl border border-border bg-card p-6">
               <h2 className="text-lg font-bold mb-4">Représentativité du profil</h2>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                {[
+                {([
                   { label: 'Catégorie', key: 'categorie' },
                   { label: 'Ancienneté', key: 'anciennete' },
                   { label: 'Site', key: 'site' },
-                ].map(({ label, key }) => {
-                  const counts = countBy(responses, r => (r as any)[key]);
+                ] as const).map(({ label, key }) => {
+                  const counts = countBy(responses, r => r[key]);
                   return (
                     <div key={key}>
                       <p className="text-sm font-bold mb-2">{label}</p>

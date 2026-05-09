@@ -22,6 +22,14 @@ type Question = {
   survey_options: { id: string; option_text: string; display_order: number }[];
 };
 
+type SurveyResponseInsert = {
+  survey_id: string;
+  question_id: string;
+  user_id: string;
+  text_response?: string;
+  option_id?: string;
+};
+
 const Sondages = () => {
   const [surveys, setSurveys] = useState<Survey[]>([]);
   const [loading, setLoading] = useState(true);
@@ -96,7 +104,7 @@ const Sondages = () => {
     }
 
     setSubmitting(true);
-    const responses: any[] = [];
+    const responses: SurveyResponseInsert[] = [];
 
     for (const q of questions) {
       if (q.question_type === 'text') {
@@ -104,8 +112,11 @@ const Sondages = () => {
       } else if (q.question_type === 'single_choice') {
         responses.push({ survey_id: activeSurvey, question_id: q.id, option_id: answers[q.id] as string, user_id: user.user.id });
       } else {
-        for (const optId of (answers[q.id] as string[])) {
-          responses.push({ survey_id: activeSurvey, question_id: q.id, option_id: optId, user_id: user.user.id });
+        const answerValue = answers[q.id];
+        if (Array.isArray(answerValue)) {
+          for (const optId of answerValue) {
+            responses.push({ survey_id: activeSurvey, question_id: q.id, option_id: optId, user_id: user.user.id });
+          }
         }
       }
     }
@@ -162,7 +173,7 @@ const Sondages = () => {
                       {q.survey_options.sort((a, b) => a.display_order - b.display_order).map(o => (
                         <div key={o.id} className="flex items-center space-x-2">
                           <Checkbox id={o.id}
-                            checked={((answers[q.id] as string[]) || []).includes(o.id)}
+                            checked={Array.isArray(answers[q.id]) ? answers[q.id].includes(o.id) : false}
                             onCheckedChange={checked => handleMultipleChoice(q.id, o.id, !!checked)} />
                           <Label htmlFor={o.id} className="cursor-pointer">{o.option_text}</Label>
                         </div>

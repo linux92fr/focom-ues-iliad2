@@ -1,324 +1,184 @@
-import { useState, useRef, useEffect, KeyboardEvent } from 'react';
-import { findLegalAnswer } from '@/lib/legalMatcher';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion';
-import { Scale, Send, Bot, User, BookOpen, Gavel, Lightbulb, AlertCircle } from 'lucide-react';
-
-// ---- Types ----
+import { useState, useRef, useEffect } from "react";
+import { Bot, Send, User, RotateCcw, Sparkles, AlertCircle } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Message {
-  id: string;
-  role: 'user' | 'assistant';
+  role: "user" | "assistant";
   content: string;
-  articles?: { numero: string; titre: string; contenu: string; exemple?: string }[];
-  jurisprudences?: { reference: string; resume: string; portee: string }[];
-  conseils?: string[];
-  theme?: string;
-  confidence?: 'high' | 'medium' | 'low';
-  timestamp: Date;
 }
 
-interface ChatbotProps {
+interface Props {
   initialQuestion?: string;
   ccntContext?: string;
 }
 
-const SUGGESTED_QUESTIONS = [
-  "Peut-on me licencier pendant une grève ?",
-  "Combien d'heures supplémentaires ai-je droit ?",
-  "Que faire en cas de harcèlement moral ?",
-  "Quels sont mes droits en tant que délégué syndical ?",
-  "Comment contester un licenciement ?",
-  "C'est quoi le droit de retrait ?",
-];
-
-const WELCOME_MESSAGE: Message = {
-  id: 'welcome',
-  role: 'assistant',
-  content: `Bonjour ! Je suis votre assistant juridique spécialisé en **droit du travail**.
-
-Je peux répondre à vos questions sur le Code du travail français : grève, licenciement, harcèlement, temps de travail, contrats, formation professionnelle et bien plus.
-
-Posez votre question ou choisissez un sujet ci-dessous.
-
-⚠️ *Cet assistant fournit des informations générales. Pour votre situation personnelle, consultez un représentant syndical ou un avocat spécialisé.*`,
-  timestamp: new Date(),
-};
-
-// ---- Sous-composants ----
-
-function ConfidenceBadge({ confidence }: { confidence?: 'high' | 'medium' | 'low' }) {
-  if (!confidence || confidence === 'high') return null;
-  if (confidence === 'medium') {
-    return (
-      <Badge variant="secondary" className="text-xs gap-1">
-        <AlertCircle className="w-3 h-3" />
-        Réponse partielle — reformulez si besoin
-      </Badge>
-    );
-  }
-  return (
-    <Badge variant="destructive" className="text-xs gap-1 bg-orange-100 text-orange-700 border-orange-200">
-      <AlertCircle className="w-3 h-3" />
-      Question hors domaine
-    </Badge>
-  );
-}
-
-function MarkdownText({ text }: { text: string }) {
-  const lines = text.split('\n');
-  return (
-    <div className="space-y-1">
-      {lines.map((line, i) => {
-        if (!line) return <br key={i} />;
-        const rendered = line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-        if (line.startsWith('- ')) {
-          return (
-            <div key={i} className="flex gap-2 items-start">
-              <span className="text-primary mt-1 shrink-0">•</span>
-              <span dangerouslySetInnerHTML={{ __html: rendered.slice(2) }} />
-            </div>
-          );
-        }
-        return <p key={i} dangerouslySetInnerHTML={{ __html: rendered }} />;
-      })}
-    </div>
-  );
-}
-
-function AssistantMessage({ message }: { message: Message }) {
-  const hasExtras =
-    (message.articles && message.articles.length > 0) ||
-    (message.jurisprudences && message.jurisprudences.length > 0) ||
-    (message.conseils && message.conseils.length > 0);
-
-  return (
-    <div className="flex gap-3 items-start">
-      <div className="shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20">
-        <Scale className="w-4 h-4 text-primary" />
-      </div>
-
-      <div className="flex-1 space-y-3 max-w-[90%]">
-        {message.theme && message.theme !== 'Informations générales' && message.theme !== 'Hors sujet' && (
-          <Badge variant="outline" className="text-xs text-primary border-primary/30">
-            {message.theme}
-          </Badge>
-        )}
-
-        <Card className="border-l-4 border-l-primary/40 shadow-sm">
-          <CardContent className="p-4 text-sm text-foreground leading-relaxed">
-            <MarkdownText text={message.content} />
-            <ConfidenceBadge confidence={message.confidence} />
-          </CardContent>
-        </Card>
-
-        {hasExtras && (
-          <Accordion type="multiple" className="space-y-1">
-            {message.articles && message.articles.length > 0 && (
-              <AccordionItem value="articles" className="border rounded-lg px-3 bg-card shadow-sm">
-                <AccordionTrigger className="text-xs font-semibold text-primary py-2 hover:no-underline">
-                  <span className="flex items-center gap-2">
-                    <BookOpen className="w-3.5 h-3.5" />
-                    Articles du Code du travail ({message.articles.length})
-                  </span>
-                </AccordionTrigger>
-                <AccordionContent className="pb-3 space-y-3">
-                  {message.articles.map((art) => (
-                    <div key={art.numero} className="border-l-2 border-primary/30 pl-3 space-y-1">
-                      <p className="text-xs font-bold text-primary">Art. {art.numero} – {art.titre}</p>
-                      <p className="text-xs text-muted-foreground">{art.contenu}</p>
-                      {art.exemple && (
-                        <p className="text-xs text-foreground/70 italic bg-muted/40 rounded px-2 py-1">
-                          💡 {art.exemple}
-                        </p>
-                      )}
-                    </div>
-                  ))}
-                </AccordionContent>
-              </AccordionItem>
-            )}
-
-            {message.jurisprudences && message.jurisprudences.length > 0 && (
-              <AccordionItem value="jurisprudences" className="border rounded-lg px-3 bg-card shadow-sm">
-                <AccordionTrigger className="text-xs font-semibold text-amber-700 dark:text-amber-400 py-2 hover:no-underline">
-                  <span className="flex items-center gap-2">
-                    <Gavel className="w-3.5 h-3.5" />
-                    Jurisprudences ({message.jurisprudences.length})
-                  </span>
-                </AccordionTrigger>
-                <AccordionContent className="pb-3 space-y-3">
-                  {message.jurisprudences.map((jp) => (
-                    <div key={jp.reference} className="border-l-2 border-amber-400/50 pl-3 space-y-1">
-                      <p className="text-xs font-bold text-amber-700 dark:text-amber-400">{jp.reference}</p>
-                      <p className="text-xs text-muted-foreground">{jp.resume}</p>
-                      <p className="text-xs font-medium text-foreground/80">→ {jp.portee}</p>
-                    </div>
-                  ))}
-                </AccordionContent>
-              </AccordionItem>
-            )}
-
-            {message.conseils && message.conseils.length > 0 && (
-              <AccordionItem value="conseils" className="border rounded-lg px-3 bg-card shadow-sm">
-                <AccordionTrigger className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 py-2 hover:no-underline">
-                  <span className="flex items-center gap-2">
-                    <Lightbulb className="w-3.5 h-3.5" />
-                    Conseils pratiques ({message.conseils.length})
-                  </span>
-                </AccordionTrigger>
-                <AccordionContent className="pb-3">
-                  <ul className="space-y-1.5">
-                    {message.conseils.map((conseil, i) => (
-                      <li key={i} className="flex gap-2 items-start text-xs text-foreground/80">
-                        <span className="text-emerald-600 mt-0.5 shrink-0">✓</span>
-                        {conseil}
-                      </li>
-                    ))}
-                  </ul>
-                </AccordionContent>
-              </AccordionItem>
-            )}
-          </Accordion>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function UserMessage({ message }: { message: Message }) {
-  return (
-    <div className="flex gap-3 items-start justify-end">
-      <div className="max-w-[80%] bg-primary text-primary-foreground rounded-2xl rounded-tr-sm px-4 py-3 text-sm shadow-sm">
-        {message.content}
-      </div>
-      <div className="shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center border">
-        <User className="w-4 h-4 text-muted-foreground" />
-      </div>
-    </div>
-  );
-}
-
-// ---- Composant principal ----
-
-export default function ChatbotJuridique({ initialQuestion, ccntContext }: ChatbotProps) {
-  const [messages, setMessages] = useState<Message[]>([WELCOME_MESSAGE]);
-  const [input, setInput] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
+export default function ChatbotJuridique({ initialQuestion, ccntContext }: Props) {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const sentInitial = useRef(false);
 
-  // Scroll automatique
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isTyping]);
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, loading]);
 
-  // Écoute de la prop "initialQuestion" venant du composant parent VosDroits.tsx
   useEffect(() => {
-    if (initialQuestion) {
+    if (initialQuestion && initialQuestion.trim() && !sentInitial.current) {
+      sentInitial.current = true;
       sendMessage(initialQuestion);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialQuestion]);
 
-  const sendMessage = async (text: string) => {
-    const trimmed = text.trim();
-    if (!trimmed) return;
+  const sendMessage = async (text?: string) => {
+    const content = (text ?? input).trim();
+    if (!content || loading) return;
 
-    const userMsg: Message = {
-      id: crypto.randomUUID(),
-      role: 'user',
-      content: trimmed,
-      timestamp: new Date(),
-    };
+    const newMessages: Message[] = [...messages, { role: "user", content }];
+    setMessages(newMessages);
+    if (!text) setInput("");
+    setLoading(true);
+    setError(null);
 
-    setMessages((prev) => [...prev, userMsg]);
-    setInput('');
-    setIsTyping(true);
+    try {
+      const { data, error: fnError } = await supabase.functions.invoke("chat-juridique", {
+        body: {
+          messages: newMessages.map((m) => ({ role: m.role, content: m.content })),
+          ccntContext: ccntContext ?? null,
+        },
+      });
 
-    // TODO: C'est ici que tu lieras ton API (Supabase / OpenAI) plus tard !
-    // Pour le moment on utilise ton mock local findLegalAnswer.
-    // L'API devra recevoir : "System Prompt: Tu es un assistant... \n\n" + ccntContext + "\n\nUser Question: " + trimmed
-    
-    setTimeout(() => {
-      const result = findLegalAnswer(trimmed);
-      const assistantMsg: Message = {
-        id: crypto.randomUUID(),
-        role: 'assistant',
-        content: result.answer,
-        articles: result.articles,
-        jurisprudences: result.jurisprudences,
-        conseils: result.conseils,
-        theme: result.theme,
-        confidence: result.confidence,
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, assistantMsg]);
-      setIsTyping(false);
-    }, 600);
+      if (fnError) throw new Error(fnError.message);
+
+      const reply = data?.reply ?? "Je n'ai pas pu générer de réponse. Veuillez réessayer.";
+      setMessages([...newMessages, { role: "assistant", content: reply }]);
+    } catch {
+      setError("Une erreur s'est produite. Vérifiez votre connexion ou contactez un délégué FOCOM.");
+      setMessages([
+        ...newMessages,
+        {
+          role: "assistant",
+          content: "Une erreur s'est produite. Veuillez réessayer ou contacter directement un délégué FOCOM.",
+        },
+      ]);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      sendMessage(input);
+      sendMessage();
     }
   };
 
   const handleReset = () => {
-    setMessages([WELCOME_MESSAGE]);
-    setInput('');
-    inputRef.current?.focus();
+    setMessages([]);
+    setError(null);
+    sentInitial.current = false;
   };
 
+  const suggestions = [
+    "Quels sont mes droits en cas de licenciement ?",
+    "Comment fonctionne le maintien de salaire CCNT ?",
+    "Que faire face à un harcèlement au travail ?",
+    "Comment utiliser mon CPF ?",
+  ];
+
   return (
-    <div className="flex flex-col h-[600px] border rounded-xl overflow-hidden bg-background shadow-md">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b bg-card">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-            <Bot className="w-4 h-4 text-primary" />
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-foreground">Assistant Droit du Travail</p>
-            <p className="text-xs text-muted-foreground flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
-              Basé sur le Code du travail français
-            </p>
-          </div>
+    <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
+
+      {/* En-tête */}
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-muted/30">
+        <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+          <Bot className="w-4 h-4 text-primary-foreground" />
         </div>
-        <Button variant="ghost" size="sm" onClick={handleReset} className="text-xs text-muted-foreground">
-          Réinitialiser
-        </Button>
+        <div>
+          <p className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+            Assistant Juridique FOCOM
+            <span className="inline-flex items-center gap-1 text-[10px] font-medium bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">
+              <Sparkles className="w-2.5 h-2.5" /> IA
+            </span>
+          </p>
+          <p className="text-xs text-muted-foreground">CCNT Télécoms (IDCC 2148) · Accords UES Iliad</p>
+        </div>
       </div>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
-        {messages.map((msg) =>
-          msg.role === 'assistant' ? (
-            <AssistantMessage key={msg.id} message={msg} />
-          ) : (
-            <UserMessage key={msg.id} message={msg} />
-          )
+      {/* Erreur */}
+      {error && (
+        <div className="mx-4 mt-3 flex items-start gap-2 text-xs text-destructive bg-destructive/10 border border-destructive/20 rounded-lg px-3 py-2">
+          <AlertCircle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
+
+      {/* Zone de messages */}
+      <div className="h-80 overflow-y-auto p-4 space-y-4 bg-muted/10">
+        {messages.length === 0 && (
+          <div className="h-full flex flex-col items-center justify-center text-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+              <Bot className="w-6 h-6 text-primary" />
+            </div>
+            <div>
+              <p className="font-medium text-foreground text-sm">Comment puis-je vous aider ?</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Posez une question ou choisissez une suggestion
+              </p>
+            </div>
+            <div className="flex flex-wrap justify-center gap-2 max-w-md">
+              {suggestions.map((s) => (
+                <button
+                  key={s}
+                  onClick={() => sendMessage(s)}
+                  className="text-xs px-3 py-1.5 bg-background border border-border rounded-full text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
         )}
 
-        {/* Typing indicator */}
-        {isTyping && (
-          <div className="flex gap-3 items-center">
-            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20">
-              <Scale className="w-4 h-4 text-primary" />
+        {messages.map((msg, i) => (
+          <div
+            key={i}
+            className={`flex gap-2.5 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+          >
+            {msg.role === "assistant" && (
+              <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center flex-shrink-0 mt-0.5">
+                <Bot className="w-3.5 h-3.5 text-primary-foreground" />
+              </div>
+            )}
+            <div
+              className={`max-w-[80%] px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
+                msg.role === "user"
+                  ? "bg-primary text-primary-foreground rounded-br-sm"
+                  : "bg-background border border-border text-foreground rounded-bl-sm shadow-sm"
+              }`}
+            >
+              {msg.content}
             </div>
-            <div className="bg-card border rounded-2xl rounded-tl-sm px-4 py-3">
+            {msg.role === "user" && (
+              <div className="w-7 h-7 rounded-lg bg-muted flex items-center justify-center flex-shrink-0 mt-0.5">
+                <User className="w-3.5 h-3.5 text-muted-foreground" />
+              </div>
+            )}
+          </div>
+        ))}
+
+        {loading && (
+          <div className="flex gap-2.5 justify-start">
+            <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
+              <Bot className="w-3.5 h-3.5 text-primary-foreground" />
+            </div>
+            <div className="bg-background border border-border rounded-2xl rounded-bl-sm px-3.5 py-2.5 shadow-sm">
               <div className="flex gap-1 items-center h-4">
-                <span className="w-2 h-2 rounded-full bg-primary/60 animate-bounce [animation-delay:0ms]" />
-                <span className="w-2 h-2 rounded-full bg-primary/60 animate-bounce [animation-delay:150ms]" />
-                <span className="w-2 h-2 rounded-full bg-primary/60 animate-bounce [animation-delay:300ms]" />
+                <span className="w-1.5 h-1.5 bg-muted-foreground/40 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                <span className="w-1.5 h-1.5 bg-muted-foreground/40 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                <span className="w-1.5 h-1.5 bg-muted-foreground/40 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
               </div>
             </div>
           </div>
@@ -327,45 +187,38 @@ export default function ChatbotJuridique({ initialQuestion, ccntContext }: Chatb
         <div ref={bottomRef} />
       </div>
 
-      {/* Suggested questions (shown only at start) */}
-      {messages.length === 1 && (
-        <div className="px-4 py-2 border-t bg-muted/30">
-          <p className="text-xs text-muted-foreground mb-2">Questions fréquentes :</p>
-          <div className="flex flex-wrap gap-2">
-            {SUGGESTED_QUESTIONS.map((q) => (
-              <button
-                key={q}
-                onClick={() => sendMessage(q)}
-                className="text-xs px-3 py-1.5 rounded-full border bg-background hover:bg-primary/5 hover:border-primary/40 transition-colors text-foreground/80"
-              >
-                {q}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Input */}
-      <div className="px-4 py-3 border-t bg-card flex gap-2">
-        <Input
-          ref={inputRef}
+      {/* Zone de saisie */}
+      <div className="p-3 border-t border-border bg-background flex gap-2 items-end">
+        {messages.length > 0 && (
+          <button
+            onClick={handleReset}
+            title="Nouvelle conversation"
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors flex-shrink-0"
+          >
+            <RotateCcw className="w-4 h-4" />
+          </button>
+        )}
+        <textarea
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Posez votre question sur le droit du travail..."
-          className="flex-1 text-sm"
-          disabled={isTyping}
-          maxLength={500}
+          placeholder="Posez votre question juridique… (Entrée pour envoyer)"
+          rows={1}
+          className="flex-1 resize-none text-sm text-foreground placeholder-muted-foreground outline-none bg-muted/30 border border-border rounded-xl px-3 py-2 max-h-28"
         />
-        <Button
-          onClick={() => sendMessage(input)}
-          disabled={isTyping || !input.trim()}
-          size="icon"
-          className="shrink-0"
-          aria-label="Envoyer"
+        <button
+          onClick={() => sendMessage()}
+          disabled={!input.trim() || loading}
+          className="w-8 h-8 flex items-center justify-center rounded-xl bg-primary hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed text-primary-foreground transition-colors flex-shrink-0"
         >
-          <Send className="w-4 h-4" />
-        </Button>
+          <Send className="w-3.5 h-3.5" />
+        </button>
+      </div>
+
+      <div className="px-4 py-2 border-t border-border bg-muted/20">
+        <p className="text-[10px] text-muted-foreground text-center">
+          Cet assistant fournit des informations générales. Pour une consultation juridique, contactez un délégué FOCOM.
+        </p>
       </div>
     </div>
   );

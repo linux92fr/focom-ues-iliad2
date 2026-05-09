@@ -1,0 +1,50 @@
+-- Table des messages de contact
+CREATE TABLE public.contact_messages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  subject TEXT NOT NULL,
+  message TEXT NOT NULL,
+  category TEXT NOT NULL DEFAULT 'Général',
+  status TEXT NOT NULL DEFAULT 'non-lu' CHECK (status IN ('non-lu', 'lu', 'repondu')),
+  admin_reply TEXT,
+  replied_at TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  CONSTRAINT contact_messages_name_length CHECK (char_length(name) <= 100),
+  CONSTRAINT contact_messages_email_length CHECK (char_length(email) <= 255),
+  CONSTRAINT contact_messages_subject_length CHECK (char_length(subject) <= 200),
+  CONSTRAINT contact_messages_message_length CHECK (char_length(message) <= 2000)
+);
+
+-- RLS
+ALTER TABLE public.contact_messages ENABLE ROW LEVEL SECURITY;
+
+-- N'importe qui (visiteur anonyme) peut insérer un message
+CREATE POLICY "Anyone can send a contact message"
+ON public.contact_messages FOR INSERT
+TO anon, authenticated
+WITH CHECK (true);
+
+-- Seuls les admins peuvent lire les messages
+CREATE POLICY "Admins can read all messages"
+ON public.contact_messages FOR SELECT
+TO authenticated
+USING (public.has_role(auth.uid(), 'admin'));
+
+-- Seuls les admins peuvent mettre à jour (statut, réponse)
+CREATE POLICY "Admins can update messages"
+ON public.contact_messages FOR UPDATE
+TO authenticated
+USING (public.has_role(auth.uid(), 'admin'));
+
+-- Seuls les admins peuvent supprimer
+CREATE POLICY "Admins can delete messages"
+ON public.contact_messages FOR DELETE
+TO authenticated
+USING (public.has_role(auth.uid(), 'admin'));
+
+-- Trigger updated_at
+CREATE TRIGGER update_contact_messages_updated_at
+  BEFORE UPDATE ON public.contact_messages
+  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();

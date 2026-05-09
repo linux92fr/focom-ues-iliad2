@@ -27,7 +27,7 @@ const Header = () => {
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <div className="flex items-center gap-3">
-              <img 
+              <img loading="lazy" 
                 src={logoFocom} 
                 alt="Logo FOCOM" 
                 className="w-12 h-12 object-contain"

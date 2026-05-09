@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { PageBreadcrumb } from '@/components/PageBreadcrumb';
 import {
   Megaphone, TrendingUp, Clock, Users, Scale,
   CheckCircle2, ChevronRight, ChevronLeft, Send,
@@ -354,6 +355,13 @@ const FormulaireNao2026 = () => {
       <main className="container mx-auto px-4 py-24">
         <div className="max-w-2xl mx-auto space-y-8">
 
+          <PageBreadcrumb
+            steps={[
+              { label: "NAO 2026", href: "/nao2026" },
+              { label: "Formulaire de participation" },
+            ]}
+          />
+
           {/* ── Hero ─────────────────────────────────────────────────────── */}
           <div className="relative overflow-hidden rounded-3xl bg-primary px-7 py-10 text-primary-foreground">
             <div className="absolute inset-0 opacity-10 pointer-events-none" aria-hidden>
@@ -362,7 +370,7 @@ const FormulaireNao2026 = () => {
             </div>
             <div className="relative z-10 space-y-3">
               <div className="flex flex-wrap items-center gap-2">
-                <img src={logoFocom} alt="Logo FOCOM" className="h-8 w-auto brightness-0 invert" />
+                <img loading="lazy" src={logoFocom} alt="Logo FOCOM" className="h-8 w-auto brightness-0 invert" />
                 <Badge className="bg-white/20 text-white border-0 text-xs font-bold gap-1.5">
                   <Megaphone className="w-3 h-3" />NAO 2026
                 </Badge>

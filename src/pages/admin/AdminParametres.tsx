@@ -23,9 +23,12 @@ const defaultSettings = {
   showStats: true,
 };
 
+type Settings = typeof defaultSettings;
+type SettingKey = keyof Settings;
+
 export default function AdminParametres() {
   const navigate = useNavigate();
-  const [settings, setSettings] = useState({ ...defaultSettings });
+  const [settings, setSettings] = useState<Settings>({ ...defaultSettings });
   const [saved, setSaved] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
 
@@ -47,11 +50,18 @@ export default function AdminParametres() {
     toast.success("Paramètres réinitialisés aux valeurs par défaut");
   };
 
-  const handleChange = (key: string, value: any) => {
+  const handleChange = <K extends SettingKey>(key: K, value: Settings[K]) => {
     setSettings((prev) => ({ ...prev, [key]: value }));
   };
 
-  const features = [
+  type FeatureItem = {
+    key: SettingKey;
+    icon: typeof Shield;
+    label: string;
+    desc: string;
+  };
+
+  const features: FeatureItem[] = [
     { key: "maintenanceMode", icon: Shield, label: "Mode maintenance", desc: "Désactiver l'accès public au site" },
     { key: "newRegistration", icon: Users, label: "Nouvelles inscriptions", desc: "Autoriser les nouvelles adhésions" },
     { key: "emailNotifications", icon: Mail, label: "Notifications email", desc: "Envoyer des notifications par email" },
@@ -130,18 +140,21 @@ export default function AdminParametres() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {features.map(({ key, icon: Icon, label, desc }) => (
-                <div key={key} className={`flex items-center justify-between p-3 rounded-lg transition-colors ${(settings as any)[key] && key === "maintenanceMode" ? "bg-amber-50 border border-amber-100" : "bg-slate-50"}`}>
-                  <div className="flex items-center gap-3">
-                    <Icon className="w-4 h-4 text-slate-600" />
-                    <div>
-                      <p className="text-sm font-medium text-slate-900">{label}</p>
-                      <p className="text-xs text-slate-500">{desc}</p>
+              {features.map(({ key, icon: Icon, label, desc }) => {
+                const settingValue = settings[key] as boolean;
+                return (
+                  <div key={key} className={`flex items-center justify-between p-3 rounded-lg transition-colors ${settingValue && key === "maintenanceMode" ? "bg-amber-50 border border-amber-100" : "bg-slate-50"}`}>
+                    <div className="flex items-center gap-3">
+                      <Icon className="w-4 h-4 text-slate-600" />
+                      <div>
+                        <p className="text-sm font-medium text-slate-900">{label}</p>
+                        <p className="text-xs text-slate-500">{desc}</p>
+                      </div>
                     </div>
+                    <Switch checked={settingValue} onCheckedChange={(v) => handleChange(key, v)} />
                   </div>
-                  <Switch checked={(settings as any)[key]} onCheckedChange={(v) => handleChange(key, v)} />
-                </div>
-              ))}
+                );
+              })}
             </CardContent>
           </Card>
 

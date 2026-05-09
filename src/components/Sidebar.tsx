@@ -34,7 +34,7 @@ const Sidebar = () => {
       {/* Logo block */}
       <div className="p-6 border-b border-border">
         <div className="flex items-center gap-3">
-          <img src={logoFocom} alt="FOCOM" className="w-12 h-12 object-contain" />
+          <img loading="lazy" src={logoFocom} alt="FOCOM" className="w-12 h-12 object-contain" />
           <div>
             <div className="font-display font-black text-primary text-lg leading-none">FOCOM</div>
             <div className="font-display font-black text-secondary text-base leading-none mt-1">UES ILIAD</div>

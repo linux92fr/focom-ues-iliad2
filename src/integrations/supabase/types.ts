@@ -132,6 +132,48 @@ export type Database = {
         }
         Relationships: []
       }
+      contact_messages: {
+        Row: {
+          id: string
+          name: string
+          email: string
+          subject: string
+          message: string
+          category: string
+          status: "non-lu" | "lu" | "repondu"
+          admin_reply: string | null
+          replied_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          email: string
+          subject: string
+          message: string
+          category?: string
+          status?: "non-lu" | "lu" | "repondu"
+          admin_reply?: string | null
+          replied_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          email?: string
+          subject?: string
+          message?: string
+          category?: string
+          status?: "non-lu" | "lu" | "repondu"
+          admin_reply?: string | null
+          replied_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       article_notifications: {
         Row: {
           article_id: string
