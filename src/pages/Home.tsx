@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { HoverCardGrid } from "@/components/HoverCard";
 import {
   FileText, Users, Shield, HelpCircle, Lock, Phone, Mail,
   ChevronRight, CheckCircle2, TrendingUp, Calendar, Handshake,
-  Award, Target, Heart, Zap, BookOpen, Globe, Vote,
+  Award, Target, Heart, Zap, BookOpen, Globe, Vote, Bell,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -66,8 +67,9 @@ export default function Home() {
   const navigate = useNavigate();
   const [heroTitle,    setHeroTitle]    = useState(DEFAULT_HERO_TITLE);
   const [heroSubtitle, setHeroSubtitle] = useState(DEFAULT_HERO_SUBTITLE);
+  const [nlEmail,   setNlEmail]   = useState("");
+  const [nlStatus,  setNlStatus]  = useState<"idle" | "loading" | "success" | "error" | "duplicate">("idle");
 
-  // Charger le contenu hero depuis Supabase
   useEffect(() => {
     supabase
       .from("site_content")
@@ -84,6 +86,34 @@ export default function Home() {
         }
       });
   }, []);
+
+  const handleSubscribe = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!nlEmail) return;
+    setNlStatus("loading");
+
+    const { data, error } = await supabase
+      .from("newsletter_subscribers")
+      .insert({ email: nlEmail })
+      .select("unsubscribe_token")
+      .single();
+
+    if (error) {
+      if (error.code === "23505") {
+        setNlStatus("duplicate");
+      } else {
+        setNlStatus("error");
+      }
+      return;
+    }
+
+    await supabase.functions.invoke("send-welcome-email", {
+      body: { email: nlEmail, unsubscribeToken: data.unsubscribe_token },
+    });
+
+    setNlStatus("success");
+    setNlEmail("");
+  };
 
   return (
     <main className="p-4 lg:p-8 bg-slate-50 min-h-screen">
@@ -126,7 +156,7 @@ export default function Home() {
         </div>
       </Link>
 
-      {/* Hero Banner — titre et sous-titre depuis Supabase */}
+      {/* Hero Banner */}
       <section className="relative rounded-2xl overflow-hidden mb-8 shadow-lg">
         <img src={HERO_IMAGE} alt="FO Com" className="w-full h-64 sm:h-80 lg:h-96 object-cover" />
         <div className="absolute inset-0 bg-slate-900/90" />
@@ -366,8 +396,57 @@ export default function Home() {
         </div>
       </div>
 
+      {/* Newsletter subscription */}
+      <section className="mt-8 bg-gradient-to-r from-slate-800 to-slate-900 rounded-2xl p-6 sm:p-8 shadow-lg overflow-hidden relative">
+        <div className="pointer-events-none absolute inset-0 opacity-10">
+          <div className="absolute -right-16 -top-16 h-64 w-64 rounded-full border-[40px] border-white" />
+          <div className="absolute -left-8 -bottom-8 h-48 w-48 rounded-full border-[24px] border-white" />
+        </div>
+        <div className="relative flex flex-col sm:flex-row items-center gap-6">
+          <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-red-600 flex items-center justify-center">
+            <Bell className="w-6 h-6 text-white" />
+          </div>
+          <div className="flex-1 text-center sm:text-left">
+            <h3 className="text-white font-bold text-lg">Restez informé avec notre newsletter</h3>
+            <p className="text-slate-400 text-sm mt-1">Recevez directement dans votre boîte mail nos actualités, droits et informations syndicales.</p>
+          </div>
+          <div className="w-full sm:w-auto">
+            {nlStatus === "success" ? (
+              <div className="flex items-center gap-2 text-teal-400 font-semibold text-sm">
+                <CheckCircle2 className="w-5 h-5" />
+                Inscription confirmée !
+              </div>
+            ) : (
+              <form onSubmit={handleSubscribe} className="flex gap-2">
+                <Input
+                  type="email"
+                  required
+                  placeholder="votre@email.fr"
+                  value={nlEmail}
+                  onChange={(e) => { setNlEmail(e.target.value); setNlStatus("idle"); }}
+                  className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus-visible:ring-red-500 w-56"
+                />
+                <Button
+                  type="submit"
+                  disabled={nlStatus === "loading"}
+                  className="bg-red-600 hover:bg-red-700 text-white font-semibold px-4 flex-shrink-0"
+                >
+                  {nlStatus === "loading" ? "..." : "S'abonner"}
+                </Button>
+              </form>
+            )}
+            {nlStatus === "duplicate" && (
+              <p className="text-amber-400 text-xs mt-2">Cette adresse est déjà abonnée.</p>
+            )}
+            {nlStatus === "error" && (
+              <p className="text-red-400 text-xs mt-2">Une erreur est survenue, veuillez réessayer.</p>
+            )}
+          </div>
+        </div>
+      </section>
+
       {/* Footer Contact Bar */}
-      <section className="mt-8 bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+      <section className="mt-6 bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-teal-50 flex items-center justify-center flex-shrink-0"><HelpCircle className="w-5 h-5 text-teal-600" /></div>

@@ -66,6 +66,8 @@ import AdminFAQ from "./pages/admin/AdminFAQ";
 import AdminMessages from "./pages/admin/AdminMessages";
 import AdminHomeEdit from "./pages/admin/AdminHomeEdit";
 import AdminPermanences from "./pages/admin/AdminPermanences";
+import AdminSondages from "./pages/admin/AdminSondages";
+import AdminNewsletter from "./pages/admin/AdminNewsletter";
 
 const queryClient = new QueryClient();
 
@@ -81,7 +83,6 @@ function App() {
               <BrowserRouter>
                 <AdminAuthProvider>
                   <Routes>
-                    {/* ── Routes publiques avec sidebar ─────────────── */}
                     <Route element={<PublicLayout />}>
                       <Route path="/" element={<Home />} />
                       <Route path="/bilan-mandat" element={<BilanMandat />} />
@@ -118,7 +119,6 @@ function App() {
                       <Route path="/admin/poster" element={<PosterComposer />} />
                     </Route>
 
-                    {/* ── Admin panel (layout propre) ────────────────── */}
                     <Route path="/admin/login" element={<AdminLogin />} />
                     <Route path="/admin" element={<AdminDashboard />} />
                     <Route path="/admin/actualites" element={<AdminActualites />} />
@@ -133,6 +133,8 @@ function App() {
                     <Route path="/admin/messages" element={<AdminMessages />} />
                     <Route path="/admin/home-edit" element={<AdminHomeEdit />} />
                     <Route path="/admin/permanences" element={<AdminPermanences />} />
+                    <Route path="/admin/sondages" element={<AdminSondages />} />
+                    <Route path="/admin/newsletter" element={<AdminNewsletter />} />
 
                     <Route path="*" element={<NotFound />} />
                   </Routes>
