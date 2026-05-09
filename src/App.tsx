@@ -67,7 +67,6 @@ import AdminMessages from "./pages/admin/AdminMessages";
 import AdminHomeEdit from "./pages/admin/AdminHomeEdit";
 import AdminPermanences from "./pages/admin/AdminPermanences";
 import AdminSondages from "./pages/admin/AdminSondages";
-import AdminNewsletter from "./pages/admin/AdminNewsletter";
 
 const queryClient = new QueryClient();
 
@@ -134,7 +133,6 @@ function App() {
                     <Route path="/admin/home-edit" element={<AdminHomeEdit />} />
                     <Route path="/admin/permanences" element={<AdminPermanences />} />
                     <Route path="/admin/sondages" element={<AdminSondages />} />
-                    <Route path="/admin/newsletter" element={<AdminNewsletter />} />
 
                     <Route path="*" element={<NotFound />} />
                   </Routes>

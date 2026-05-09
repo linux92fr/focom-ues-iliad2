@@ -19,7 +19,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
-// ─── Types ──────────────────────────────────────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 type Survey = {
   id: string; title: string; description: string | null;
@@ -69,7 +69,7 @@ const emptyForm = (): SurveyFormData => ({
 const fmtDate = (iso: string | null) =>
   iso ? format(new Date(iso), "dd MMM yyyy", { locale: fr }) : "—";
 
-// ─── Composant ──────────────────────────────────────────────────────────────────────────────
+// ─── Composant ────────────────────────────────────────────────────────────────
 
 export default function AdminSondages() {
   const queryClient = useQueryClient();
@@ -77,6 +77,8 @@ export default function AdminSondages() {
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState<SurveyFormData>(emptyForm());
   const [resultsId, setResultsId] = useState<string | null>(null);
+
+  // ─── Fetch surveys ──────────────────────────────────────────────────────
 
   const { data: surveys = [], isLoading } = useQuery({
     queryKey: ["admin-surveys"],
@@ -89,6 +91,8 @@ export default function AdminSondages() {
       return data as Survey[];
     },
   });
+
+  // ─── Résultats ──────────────────────────────────────────────────────────
 
   const { data: resultsData } = useQuery({
     queryKey: ["admin-survey-results", resultsId],
@@ -110,6 +114,8 @@ export default function AdminSondages() {
     },
   });
 
+  // ─── Toggle actif ───────────────────────────────────────────────────────
+
   const toggleMutation = useMutation({
     mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
       const { error } = await supabase.from("surveys").update({ is_active }).eq("id", id);
@@ -122,6 +128,8 @@ export default function AdminSondages() {
     },
     onError: () => toast.error("Erreur lors de la mise à jour"),
   });
+
+  // ─── Supprimer ──────────────────────────────────────────────────────────
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
@@ -136,6 +144,8 @@ export default function AdminSondages() {
     },
     onError: () => toast.error("Erreur lors de la suppression"),
   });
+
+  // ─── Sauvegarder ────────────────────────────────────────────────────────
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -161,6 +171,7 @@ export default function AdminSondages() {
       if (editId) {
         const { error } = await supabase.from("surveys").update(surveyPayload).eq("id", editId);
         if (error) throw error;
+        // Supprimer anciennes questions (cascade supprime options + responses)
         await supabase.from("survey_questions").delete().eq("survey_id", editId);
       } else {
         const { data, error } = await supabase.from("surveys").insert({ ...surveyPayload, is_active: true }).select("id").single();
@@ -168,6 +179,7 @@ export default function AdminSondages() {
         surveyId = data.id;
       }
 
+      // Insérer questions
       for (const [qi, q] of form.questions.entries()) {
         const { data: qData, error: qErr } = await supabase
           .from("survey_questions")
@@ -226,12 +238,14 @@ export default function AdminSondages() {
         question_text: q.question_text,
         question_type: q.question_type as QuestionDraft["question_type"],
         display_order: q.display_order,
-        options: (q.survey_options ?? []).sort((a: SurveyOption, b: SurveyOption) => a.display_order - b.display_order),
+        options: (q.survey_options ?? []).sort((a, b) => a.display_order - b.display_order),
       })),
     });
     setEditId(survey.id);
     setShowForm(true);
   };
+
+  // ─── Helpers form ────────────────────────────────────────────────────────
 
   const setQ = (i: number, patch: Partial<QuestionDraft>) =>
     setForm((f) => { const qs = [...f.questions]; qs[i] = { ...qs[i], ...patch }; return { ...f, questions: qs }; });
@@ -275,10 +289,13 @@ export default function AdminSondages() {
       return { ...f, questions: qs };
     });
 
+  // ─── Rendu ────────────────────────────────────────────────────────────────
+
   return (
     <AdminAuthGuard>
       <AdminLayout title="Sondages" breadcrumb={["Administration", "Sondages"]}>
 
+        {/* ── Header ──────────────────────────────────────────────────────── */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -297,6 +314,7 @@ export default function AdminSondages() {
           </Button>
         </div>
 
+        {/* ── Formulaire création/édition ─────────────────────────────────── */}
         {showForm && (
           <Card className="mb-6 border-primary/20">
             <CardHeader className="pb-3 flex-row items-center justify-between">
@@ -306,6 +324,8 @@ export default function AdminSondages() {
               </Button>
             </CardHeader>
             <CardContent className="space-y-6">
+
+              {/* Infos générales */}
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="md:col-span-2 space-y-1.5">
                   <Label>Titre *</Label>
@@ -333,6 +353,7 @@ export default function AdminSondages() {
 
               <Separator />
 
+              {/* Questions */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="font-semibold text-sm">Questions ({form.questions.length})</h3>
@@ -409,6 +430,7 @@ export default function AdminSondages() {
           </Card>
         )}
 
+        {/* ── Résultats ───────────────────────────────────────────────────── */}
         {resultsId && resultsData && (
           <Card className="mb-6 border-blue-200 bg-blue-50/30">
             <CardHeader className="pb-3 flex-row items-center justify-between">
@@ -424,8 +446,8 @@ export default function AdminSondages() {
               </div>
             </CardHeader>
             <CardContent className="space-y-5">
-              {(resultsData.questions as Array<{id: string; question_text: string; question_type: string; survey_options?: Array<{id: string; option_text: string; display_order: number}>}>).map((q, i) => {
-                const qResponses = (resultsData.responses as Array<{question_id: string; option_id: string | null; user_id: string}>).filter((r) => r.question_id === q.id);
+              {resultsData.questions.map((q: any, i: number) => {
+                const qResponses = resultsData.responses.filter((r: any) => r.question_id === q.id);
                 const total = qResponses.length;
                 return (
                   <div key={q.id}>
@@ -434,8 +456,8 @@ export default function AdminSondages() {
                       <p className="text-xs text-slate-400 italic">Réponses libres — confidentielles</p>
                     ) : (
                       <div className="space-y-2">
-                        {(q.survey_options ?? []).sort((a, b) => a.display_order - b.display_order).map((opt) => {
-                          const count = qResponses.filter((r) => r.option_id === opt.id).length;
+                        {(q.survey_options ?? []).sort((a: any, b: any) => a.display_order - b.display_order).map((opt: any) => {
+                          const count = qResponses.filter((r: any) => r.option_id === opt.id).length;
                           const pct = total > 0 ? Math.round((count / total) * 100) : 0;
                           return (
                             <div key={opt.id} className="space-y-1">
@@ -459,6 +481,7 @@ export default function AdminSondages() {
           </Card>
         )}
 
+        {/* ── Liste des sondages ──────────────────────────────────────────── */}
         <Card className="border-slate-200 shadow-sm">
           <CardContent className="p-0">
             {isLoading ? (
