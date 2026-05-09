@@ -60,7 +60,6 @@ export default function AdminLayout({ children, title, breadcrumb }: AdminLayout
   const navigate = useNavigate();
   const { user, logout } = useAdminAuth();
 
-  // ── Fetch messages non lus ──────────────────────────────────
   const fetchUnread = useCallback(async () => {
     const { data, count, error } = await supabase
       .from("contact_messages")
@@ -92,7 +91,6 @@ export default function AdminLayout({ children, title, breadcrumb }: AdminLayout
     return () => { supabase.removeChannel(channel); };
   }, [fetchUnread]);
 
-  // Ferme le popup en cliquant ailleurs
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (bellRef.current && !bellRef.current.contains(e.target as Node)) {
@@ -112,8 +110,6 @@ export default function AdminLayout({ children, title, breadcrumb }: AdminLayout
 
   return (
     <div className="min-h-screen bg-slate-50 flex">
-
-      {/* Sidebar */}
       <aside className={`
         fixed lg:sticky top-0 left-0 z-40 h-screen w-64
         bg-slate-900 text-white flex flex-col
@@ -129,19 +125,13 @@ export default function AdminLayout({ children, title, breadcrumb }: AdminLayout
             </p>
           </div>
         </div>
-
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
           {navItems.map((item) => {
             const active = isActive(item);
             return (
-              <Link
-                key={item.path}
-                to={item.path}
-                onClick={() => setSidebarOpen(false)}
+              <Link key={item.path} to={item.path} onClick={() => setSidebarOpen(false)}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                  active
-                    ? "bg-red-600 text-white shadow-lg shadow-red-900/30"
-                    : "text-slate-300 hover:bg-slate-800 hover:text-white"
+                  active ? "bg-red-600 text-white shadow-lg shadow-red-900/30" : "text-slate-300 hover:bg-slate-800 hover:text-white"
                 }`}
               >
                 <item.icon className="w-4 h-4 flex-shrink-0" />
@@ -151,7 +141,6 @@ export default function AdminLayout({ children, title, breadcrumb }: AdminLayout
             );
           })}
         </nav>
-
         <div className="p-3 border-t border-slate-700">
           <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-slate-800 mb-2">
             <div className="w-8 h-8 rounded-full bg-red-600 flex items-center justify-center text-xs font-bold flex-shrink-0">
@@ -162,53 +151,28 @@ export default function AdminLayout({ children, title, breadcrumb }: AdminLayout
               <p className="text-[10px] text-slate-400 capitalize">{user?.role}</p>
             </div>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleLogout}
-            className="w-full text-slate-400 hover:text-white hover:bg-slate-800 justify-start gap-2"
-          >
-            <LogOut className="w-4 h-4" />
-            Se déconnecter
+          <Button variant="ghost" size="sm" onClick={handleLogout} className="w-full text-slate-400 hover:text-white hover:bg-slate-800 justify-start gap-2">
+            <LogOut className="w-4 h-4" /> Se déconnecter
           </Button>
         </div>
       </aside>
 
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-30 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
+      {sidebarOpen && <div className="fixed inset-0 bg-black/50 z-30 lg:hidden" onClick={() => setSidebarOpen(false)} />}
 
-      {/* Main */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Topbar */}
         <header className="bg-white border-b border-slate-200 px-4 sm:px-6 h-14 flex items-center justify-between sticky top-0 z-20 shadow-sm">
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="lg:hidden p-2 rounded-lg hover:bg-slate-100"
-            >
+            <button onClick={() => setSidebarOpen(!sidebarOpen)} className="lg:hidden p-2 rounded-lg hover:bg-slate-100">
               {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
             <div>
               <h1 className="text-base font-bold text-slate-900">{title}</h1>
-              {breadcrumb && (
-                <p className="text-[11px] text-slate-500 hidden sm:block">
-                  {breadcrumb.join(" / ")}
-                </p>
-              )}
+              {breadcrumb && <p className="text-[11px] text-slate-500 hidden sm:block">{breadcrumb.join(" / ")}</p>}
             </div>
           </div>
-
           <div className="flex items-center gap-2">
-            {/* ── Cloche avec popup ─────────────────────────── */}
             <div ref={bellRef} className="relative">
-              <button
-                onClick={() => setBellOpen((v) => !v)}
-                className="relative w-9 h-9 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors"
-              >
+              <button onClick={() => setBellOpen((v) => !v)} className="relative w-9 h-9 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors">
                 <Bell className="w-5 h-5 text-slate-500" />
                 {unreadCount > 0 && (
                   <span className="absolute top-1 right-1 min-w-[16px] h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center px-0.5">
@@ -216,28 +180,18 @@ export default function AdminLayout({ children, title, breadcrumb }: AdminLayout
                   </span>
                 )}
               </button>
-
-              {/* Popup */}
               {bellOpen && (
                 <div className="absolute right-0 top-11 w-80 bg-white rounded-xl shadow-2xl border border-slate-200 z-50 overflow-hidden">
                   <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
                     <p className="font-semibold text-sm text-slate-900">Messages non lus</p>
-                    <span className="text-xs text-slate-400">
-                      {unreadCount} message{unreadCount > 1 ? "s" : ""}
-                    </span>
+                    <span className="text-xs text-slate-400">{unreadCount} message{unreadCount > 1 ? "s" : ""}</span>
                   </div>
-
                   <div className="max-h-72 overflow-y-auto divide-y divide-slate-50">
                     {messages.length === 0 ? (
-                      <div className="px-4 py-8 text-center text-sm text-slate-400">
-                        Aucun message non lu
-                      </div>
+                      <div className="px-4 py-8 text-center text-sm text-slate-400">Aucun message non lu</div>
                     ) : (
                       messages.map((msg) => (
-                        <Link
-                          key={msg.id}
-                          to="/admin/messages"
-                          onClick={() => setBellOpen(false)}
+                        <Link key={msg.id} to="/admin/messages" onClick={() => setBellOpen(false)}
                           className="flex items-start gap-3 px-4 py-3 hover:bg-slate-50 transition-colors"
                         >
                           <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0 text-red-600 font-bold text-xs mt-0.5">
@@ -247,8 +201,7 @@ export default function AdminLayout({ children, title, breadcrumb }: AdminLayout
                             <p className="text-sm font-semibold text-slate-900 truncate">{msg.name}</p>
                             <p className="text-xs text-slate-500 truncate">{msg.subject}</p>
                             <p className="text-[10px] text-slate-400 flex items-center gap-1 mt-0.5">
-                              <Clock className="w-2.5 h-2.5" />
-                              {formatTime(msg.created_at)}
+                              <Clock className="w-2.5 h-2.5" />{formatTime(msg.created_at)}
                             </p>
                           </div>
                           <span className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0 mt-2" />
@@ -256,30 +209,19 @@ export default function AdminLayout({ children, title, breadcrumb }: AdminLayout
                       ))
                     )}
                   </div>
-
                   <div className="px-4 py-3 border-t border-slate-100 bg-slate-50">
-                    <Link
-                      to="/admin/messages"
-                      onClick={() => setBellOpen(false)}
+                    <Link to="/admin/messages" onClick={() => setBellOpen(false)}
                       className="flex items-center justify-center gap-2 text-xs font-semibold text-red-600 hover:text-red-700 transition-colors"
                     >
-                      <ExternalLink className="w-3.5 h-3.5" />
-                      Voir tous les messages
+                      <ExternalLink className="w-3.5 h-3.5" /> Voir tous les messages
                     </Link>
                   </div>
                 </div>
               )}
             </div>
-
-            <Link
-              to="/"
-              className="text-xs text-slate-500 hover:text-slate-900 px-3 py-1.5 rounded-lg hover:bg-slate-100 transition-colors hidden sm:block"
-            >
-              Voir le site →
-            </Link>
+            <Link to="/" className="text-xs text-slate-500 hover:text-slate-900 px-3 py-1.5 rounded-lg hover:bg-slate-100 transition-colors hidden sm:block">Voir le site →</Link>
           </div>
         </header>
-
         <main className="flex-1 p-4 sm:p-6 overflow-auto">{children}</main>
       </div>
     </div>
@@ -291,9 +233,7 @@ export function AdminAuthGuard({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (ready && !isAuthenticated) {
-      navigate("/admin/login", { replace: true });
-    }
+    if (ready && !isAuthenticated) navigate("/admin/login", { replace: true });
   }, [ready, isAuthenticated, navigate]);
 
   if (!ready) {
@@ -308,6 +248,5 @@ export function AdminAuthGuard({ children }: { children: ReactNode }) {
   }
 
   if (!isAuthenticated) return null;
-
   return <>{children}</>;
 }

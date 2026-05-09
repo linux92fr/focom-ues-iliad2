@@ -82,7 +82,6 @@ function App() {
               <BrowserRouter>
                 <AdminAuthProvider>
                   <Routes>
-                    {/* ── Routes publiques avec sidebar ─────────────── */}
                     <Route element={<PublicLayout />}>
                       <Route path="/" element={<Home />} />
                       <Route path="/bilan-mandat" element={<BilanMandat />} />
@@ -119,7 +118,6 @@ function App() {
                       <Route path="/admin/poster" element={<PosterComposer />} />
                     </Route>
 
-                    {/* ── Admin panel (layout propre) ────────────────── */}
                     <Route path="/admin/login" element={<AdminLogin />} />
                     <Route path="/admin" element={<AdminDashboard />} />
                     <Route path="/admin/actualites" element={<AdminActualites />} />
