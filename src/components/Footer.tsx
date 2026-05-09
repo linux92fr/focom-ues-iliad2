@@ -34,7 +34,7 @@ const Footer = () => {
           {/* Brand */}
           <div className="col-span-2 md:col-span-4 lg:col-span-1">
             <div className="flex items-center gap-3 mb-4">
-              <img 
+              <img loading="lazy" 
                 src={logoFocom} 
                 alt="Logo FOCOM" 
                 className="w-14 h-14 object-contain"

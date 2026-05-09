@@ -75,7 +75,7 @@ const About = () => {
           </Link>
           
           <div className="flex flex-col md:flex-row items-center gap-8">
-            <img 
+            <img loading="lazy" 
               src={logoFocom} 
               alt="Logo FOCOM" 
               className="w-40 h-40 object-contain"

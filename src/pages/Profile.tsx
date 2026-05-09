@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -13,8 +14,12 @@ import { toast } from "sonner";
 import {
   User, Mail, Phone, Loader2, Save, Lock, Eye, EyeOff,
   ShieldCheck, Camera, X, CreditCard, History, CalendarDays,
+  Calendar, Clock, MapPin, Video, MessageSquare, AlertCircle,
+  CheckCircle2, XCircle, HelpCircle, ChevronRight,
 } from "lucide-react";
 import CarteAdherent from "@/components/CarteAdherent";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface ProfileData {
   id: string;
@@ -39,6 +44,28 @@ interface Adhesion {
   created_at: string;
 }
 
+interface RdvWithPermanence {
+  id: string;
+  permanence_id: string;
+  statut: string;
+  sujet: string;
+  message: string | null;
+  note_delegue: string | null;
+  created_at: string;
+  permanence: {
+    titre: string;
+    type: string;
+    delegue_nom: string;
+    date_permanence: string;
+    heure_debut: string;
+    heure_fin: string;
+    lieu: string | null;
+    visio_lien: string | null;
+  };
+}
+
+// ─── Constantes ───────────────────────────────────────────────────────────────
+
 const adhesionStatusLabel: Record<string, string> = {
   en_attente: "En attente",
   validee: "Validée",
@@ -53,8 +80,27 @@ const adhesionStatusVariant: Record<string, "default" | "secondary" | "destructi
   expiree: "outline",
 };
 
+const rdvStatusConfig: Record<string, { label: string; icon: React.ElementType; className: string }> = {
+  en_attente: { label: "En attente", icon: HelpCircle, className: "text-amber-600 bg-amber-50 border-amber-200" },
+  confirme:   { label: "Confirmé",   icon: CheckCircle2, className: "text-green-600 bg-green-50 border-green-200" },
+  annule:     { label: "Annulé",     icon: XCircle,     className: "text-slate-500 bg-slate-50 border-slate-200" },
+  effectue:   { label: "Effectué",   icon: CheckCircle2, className: "text-blue-600 bg-blue-50 border-blue-200" },
+};
+
+const formatDate = (iso: string) =>
+  new Date(iso).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+
+const formatTime = (t: string) => t.slice(0, 5);
+
+const isUpcoming = (rdv: RdvWithPermanence) =>
+  new Date(rdv.permanence.date_permanence) >= new Date(new Date().toDateString()) &&
+  rdv.statut !== "annule";
+
+// ─── Composant ────────────────────────────────────────────────────────────────
+
 const Profile = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { user, loading: authLoading } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -94,7 +140,6 @@ const Profile = () => {
           });
           setAvatarPreview(profileData.avatar_url || null);
 
-          // Charger l'historique des adhésions
           const { data: adhesionsData } = await supabase
             .from("adhesions")
             .select("*")
@@ -108,6 +153,49 @@ const Profile = () => {
     };
     if (user) fetchData();
   }, [user]);
+
+  // ─── RDV (permanences) ───────────────────────────────────────────────────
+
+  const { data: mesRdv = [], isLoading: rdvLoading } = useQuery({
+    queryKey: ["profil-mes-rdv", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("permanence_rdv")
+        .select(`
+          id, permanence_id, statut, sujet, message, note_delegue, created_at,
+          permanence:permanences (
+            titre, type, delegue_nom, date_permanence,
+            heure_debut, heure_fin, lieu, visio_lien
+          )
+        `)
+        .eq("user_id", user!.id)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as unknown as RdvWithPermanence[];
+    },
+  });
+
+  const cancelMutation = useMutation({
+    mutationFn: async (rdvId: string) => {
+      const { error } = await supabase
+        .from("permanence_rdv")
+        .update({ statut: "annule" })
+        .eq("id", rdvId)
+        .eq("user_id", user!.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["profil-mes-rdv"] });
+      toast.success("Rendez-vous annulé");
+    },
+    onError: () => toast.error("Impossible d'annuler le rendez-vous"),
+  });
+
+  const upcomingRdv = mesRdv.filter(isUpcoming);
+  const pastRdv = mesRdv.filter((r) => !isUpcoming(r));
+
+  // ─── Avatar ──────────────────────────────────────────────────────────────
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -144,6 +232,8 @@ const Profile = () => {
     toast.success("Photo supprimée");
   };
 
+  // ─── Profil ──────────────────────────────────────────────────────────────
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -176,6 +266,8 @@ const Profile = () => {
     }
   };
 
+  // ─── Mot de passe ────────────────────────────────────────────────────────
+
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
     const errors: Record<string, string> = {};
@@ -204,6 +296,8 @@ const Profile = () => {
   const togglePw = (field: keyof typeof showPw) =>
     setShowPw((prev) => ({ ...prev, [field]: !prev[field] }));
 
+  // ─── Rendu ────────────────────────────────────────────────────────────────
+
   if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -220,6 +314,9 @@ const Profile = () => {
   const initials = ((formData.first_name?.charAt(0) || "") + (formData.last_name?.charAt(0) || ""))
     .toUpperCase() || user.email?.substring(0, 2).toUpperCase() || "U";
 
+  const activeAdhesion = adhesions.find((a) => a.status === "validee");
+  const nextRdv = upcomingRdv[0] ?? null;
+
   return (
     <div className="min-h-screen flex flex-col">
       <main className="flex-grow bg-muted/30 py-12">
@@ -232,12 +329,13 @@ const Profile = () => {
           </div>
 
           <div className="grid gap-6 md:grid-cols-4">
-            {/* Carte résumé latérale */}
+
+            {/* ── Carte résumé latérale ──────────────────────────────────── */}
             <Card className="md:col-span-1 h-fit">
               <CardHeader className="text-center pb-3">
                 <div className="relative w-20 h-20 mx-auto mb-3 group">
                   {avatarPreview ? (
-                    <img src={avatarPreview} alt="Avatar" className="w-20 h-20 rounded-full object-cover ring-4 ring-primary/20" />
+                    <img loading="lazy" src={avatarPreview} alt="Avatar" className="w-20 h-20 rounded-full object-cover ring-4 ring-primary/20" />
                   ) : (
                     <div className="w-20 h-20 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xl font-bold ring-4 ring-primary/20">
                       {initials}
@@ -248,6 +346,7 @@ const Profile = () => {
                     onClick={() => fileInputRef.current?.click()}
                     disabled={uploadingAvatar}
                     className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                    aria-label="Changer la photo de profil"
                   >
                     {uploadingAvatar ? <Loader2 className="w-5 h-5 text-white animate-spin" /> : <Camera className="w-5 h-5 text-white" />}
                   </button>
@@ -256,6 +355,7 @@ const Profile = () => {
                       type="button"
                       onClick={handleRemoveAvatar}
                       className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors shadow"
+                      aria-label="Supprimer la photo"
                     >
                       <X className="w-3 h-3" />
                     </button>
@@ -267,50 +367,98 @@ const Profile = () => {
                   accept="image/jpeg,image/png,image/webp"
                   onChange={handleAvatarChange}
                   className="hidden"
+                  aria-label="Sélectionner une photo de profil"
                 />
                 <p className="text-[10px] text-muted-foreground">JPG, PNG, WebP · 2 Mo max</p>
                 <CardTitle className="text-base">{displayName}</CardTitle>
                 <CardDescription className="text-xs">{user.email}</CardDescription>
               </CardHeader>
-              <CardContent className="pt-0">
-                <Separator className="mb-3" />
-                <div className="space-y-2 text-xs text-muted-foreground">
-                  {profile?.status && (
-                    <div className="flex items-center justify-between gap-2">
-                      <span>Statut</span>
-                      <Badge
-                        variant={profile.status === "actif" ? "default" : "secondary"}
-                        className="text-[10px]"
-                      >
-                        {profile.status}
-                      </Badge>
+              <CardContent className="pt-0 space-y-3">
+                <Separator />
+
+                {/* Statut membre */}
+                {profile?.status && (
+                  <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                    <span>Statut</span>
+                    <Badge
+                      variant={profile.status === "actif" ? "default" : "secondary"}
+                      className="text-[10px]"
+                    >
+                      {profile.status}
+                    </Badge>
+                  </div>
+                )}
+
+                {/* Membre depuis */}
+                {profile?.created_at && (
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <CalendarDays className="w-3 h-3 flex-shrink-0" />
+                    <span>
+                      Membre depuis {new Date(profile.created_at).toLocaleDateString("fr-FR", { month: "short", year: "numeric" })}
+                    </span>
+                  </div>
+                )}
+
+                {/* Adhésion active */}
+                {activeAdhesion && (
+                  <>
+                    <Separator />
+                    <div className="rounded-lg bg-green-50 border border-green-200 px-3 py-2 space-y-1">
+                      <div className="flex items-center gap-1.5 text-xs font-semibold text-green-700">
+                        <ShieldCheck className="w-3.5 h-3.5" />
+                        Adhésion active
+                      </div>
+                      <p className="text-[10px] text-green-600">
+                        Jusqu'au {new Date(activeAdhesion.date_fin).toLocaleDateString("fr-FR")}
+                      </p>
                     </div>
-                  )}
-                  {profile?.created_at && (
-                    <div className="flex items-center gap-1.5 text-muted-foreground">
-                      <CalendarDays className="w-3 h-3" />
-                      <span>
-                        Depuis {new Date(profile.created_at).toLocaleDateString("fr-FR", { month: "short", year: "numeric" })}
-                      </span>
+                  </>
+                )}
+
+                {/* Prochain RDV */}
+                {nextRdv && (
+                  <>
+                    <Separator />
+                    <div className="rounded-lg bg-blue-50 border border-blue-200 px-3 py-2 space-y-1">
+                      <div className="flex items-center gap-1.5 text-xs font-semibold text-blue-700">
+                        <Calendar className="w-3.5 h-3.5" />
+                        Prochain RDV
+                      </div>
+                      <p className="text-[10px] text-blue-600 font-medium">
+                        {new Date(nextRdv.permanence.date_permanence).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
+                        {" · "}{formatTime(nextRdv.permanence.heure_debut)}
+                      </p>
+                      <p className="text-[10px] text-blue-500 truncate">{nextRdv.permanence.delegue_nom}</p>
                     </div>
-                  )}
-                  {adhesions.filter(a => a.status === "validee").length > 0 && (
-                    <div className="flex items-center gap-1.5 text-green-600 font-medium">
-                      <ShieldCheck className="w-3 h-3" />
-                      <span>{adhesions.filter(a => a.status === "validee").length} adhésion(s) active(s)</span>
-                    </div>
-                  )}
-                </div>
+                  </>
+                )}
+
+                <Separator />
+                <Button variant="outline" size="sm" className="w-full text-xs gap-1.5" asChild>
+                  <Link to="/permanences">
+                    <Calendar className="w-3.5 h-3.5" />
+                    Prendre RDV
+                  </Link>
+                </Button>
               </CardContent>
             </Card>
 
-            {/* Onglets principaux */}
+            {/* ── Onglets principaux ─────────────────────────────────────── */}
             <div className="md:col-span-3">
               <Tabs defaultValue="infos" className="space-y-4">
-                <TabsList className="grid w-full grid-cols-4">
+                <TabsList className="grid w-full grid-cols-5">
                   <TabsTrigger value="infos" className="gap-1.5 text-xs">
                     <User className="w-3.5 h-3.5" />
                     <span className="hidden sm:inline">Profil</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="rdv" className="gap-1.5 text-xs relative">
+                    <Calendar className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Mes RDV</span>
+                    {upcomingRdv.length > 0 && (
+                      <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-600 text-white text-[9px] font-bold flex items-center justify-center">
+                        {upcomingRdv.length}
+                      </span>
+                    )}
                   </TabsTrigger>
                   <TabsTrigger value="carte" className="gap-1.5 text-xs">
                     <CreditCard className="w-3.5 h-3.5" />
@@ -326,7 +474,7 @@ const Profile = () => {
                   </TabsTrigger>
                 </TabsList>
 
-                {/* Onglet Profil */}
+                {/* ── Onglet Profil ──────────────────────────────────────── */}
                 <TabsContent value="infos">
                   <Card>
                     <CardHeader>
@@ -364,10 +512,7 @@ const Profile = () => {
                             <Label htmlFor="email">Email</Label>
                             <div className="relative">
                               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                              <Input
-                                id="email" value={user.email || ""}
-                                className="pl-10 bg-muted" disabled
-                              />
+                              <Input id="email" value={user.email || ""} className="pl-10 bg-muted" disabled />
                             </div>
                             <p className="text-xs text-muted-foreground">L'email ne peut pas être modifié</p>
                           </div>
@@ -396,7 +541,88 @@ const Profile = () => {
                   </Card>
                 </TabsContent>
 
-                {/* Onglet Carte adhérent */}
+                {/* ── Onglet Mes RDV ─────────────────────────────────────── */}
+                <TabsContent value="rdv">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Calendar className="h-5 w-5" /> Mes rendez-vous
+                      </CardTitle>
+                      <CardDescription>
+                        Permanences réservées avec les délégués FOCOM
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {rdvLoading ? (
+                        <div className="flex items-center justify-center py-10">
+                          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                        </div>
+                      ) : mesRdv.length === 0 ? (
+                        <div className="text-center py-12 space-y-3">
+                          <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center mx-auto">
+                            <Calendar className="w-6 h-6 text-muted-foreground" />
+                          </div>
+                          <p className="text-sm text-muted-foreground">Aucun rendez-vous enregistré</p>
+                          <Button variant="outline" size="sm" asChild>
+                            <Link to="/permanences">
+                              <ChevronRight className="w-3.5 h-3.5 mr-1" />
+                              Prendre un rendez-vous
+                            </Link>
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="space-y-6">
+
+                          {/* RDV à venir */}
+                          {upcomingRdv.length > 0 && (
+                            <section>
+                              <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                                <span className="w-2 h-2 rounded-full bg-green-500 inline-block" />
+                                À venir ({upcomingRdv.length})
+                              </h3>
+                              <div className="space-y-3">
+                                {upcomingRdv.map((rdv) => (
+                                  <RdvCard
+                                    key={rdv.id}
+                                    rdv={rdv}
+                                    onCancel={() => cancelMutation.mutate(rdv.id)}
+                                    cancelling={cancelMutation.isPending}
+                                  />
+                                ))}
+                              </div>
+                            </section>
+                          )}
+
+                          {/* RDV passés / annulés */}
+                          {pastRdv.length > 0 && (
+                            <section>
+                              <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
+                                <span className="w-2 h-2 rounded-full bg-slate-300 inline-block" />
+                                Historique ({pastRdv.length})
+                              </h3>
+                              <div className="space-y-3">
+                                {pastRdv.map((rdv) => (
+                                  <RdvCard key={rdv.id} rdv={rdv} past />
+                                ))}
+                              </div>
+                            </section>
+                          )}
+
+                          <div className="pt-2">
+                            <Button variant="outline" size="sm" asChild>
+                              <Link to="/permanences">
+                                <Calendar className="w-3.5 h-3.5 mr-1.5" />
+                                Voir toutes les permanences
+                              </Link>
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                {/* ── Onglet Carte adhérent ──────────────────────────────── */}
                 <TabsContent value="carte">
                   <Card>
                     <CardHeader>
@@ -421,7 +647,7 @@ const Profile = () => {
                   </Card>
                 </TabsContent>
 
-                {/* Onglet Historique adhésions */}
+                {/* ── Onglet Historique adhésions ────────────────────────── */}
                 <TabsContent value="adhesions">
                   <Card>
                     <CardHeader>
@@ -482,7 +708,7 @@ const Profile = () => {
                   </Card>
                 </TabsContent>
 
-                {/* Onglet Sécurité */}
+                {/* ── Onglet Sécurité ────────────────────────────────────── */}
                 <TabsContent value="securite">
                   <Card>
                     <CardHeader>
@@ -508,6 +734,7 @@ const Profile = () => {
                             <button
                               type="button" onClick={() => togglePw("next")}
                               className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                              aria-label={showPw.next ? "Masquer" : "Afficher"}
                             >
                               {showPw.next ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                             </button>
@@ -529,6 +756,7 @@ const Profile = () => {
                             <button
                               type="button" onClick={() => togglePw("confirm")}
                               className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                              aria-label={showPw.confirm ? "Masquer" : "Afficher"}
                             >
                               {showPw.confirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                             </button>
@@ -606,5 +834,93 @@ const Profile = () => {
     </div>
   );
 };
+
+// ─── Sous-composant : carte RDV ───────────────────────────────────────────────
+
+function RdvCard({
+  rdv,
+  past = false,
+  onCancel,
+  cancelling,
+}: {
+  rdv: RdvWithPermanence;
+  past?: boolean;
+  onCancel?: () => void;
+  cancelling?: boolean;
+}) {
+  const statusCfg = rdvStatusConfig[rdv.statut] ?? rdvStatusConfig.en_attente;
+  const StatusIcon = statusCfg.icon;
+  const p = rdv.permanence;
+  const isVisio = p.type === "visio" || !!p.visio_lien;
+
+  return (
+    <div className={`rounded-xl border p-4 space-y-3 transition-colors ${past ? "bg-muted/20 border-border opacity-75" : "bg-background border-border hover:bg-muted/10"}`}>
+      {/* En-tête */}
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="font-semibold text-sm text-foreground truncate">{p.titre}</p>
+          <p className="text-xs text-muted-foreground">{p.delegue_nom}</p>
+        </div>
+        <span className={`flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-full border flex-shrink-0 ${statusCfg.className}`}>
+          <StatusIcon className="w-3 h-3" />
+          {statusCfg.label}
+        </span>
+      </div>
+
+      {/* Date / lieu */}
+      <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+        <div className="flex items-center gap-1.5">
+          <Calendar className="w-3.5 h-3.5 flex-shrink-0" />
+          <span className="truncate">{formatDate(p.date_permanence)}</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <Clock className="w-3.5 h-3.5 flex-shrink-0" />
+          <span>{formatTime(p.heure_debut)} – {formatTime(p.heure_fin)}</span>
+        </div>
+        {(p.lieu || isVisio) && (
+          <div className="flex items-center gap-1.5 col-span-2">
+            {isVisio ? <Video className="w-3.5 h-3.5 flex-shrink-0 text-blue-500" /> : <MapPin className="w-3.5 h-3.5 flex-shrink-0" />}
+            {isVisio && p.visio_lien
+              ? <a href={p.visio_lien} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline truncate">Rejoindre la visio</a>
+              : <span className="truncate">{p.lieu}</span>}
+          </div>
+        )}
+      </div>
+
+      {/* Sujet */}
+      <div className="flex items-start gap-1.5 text-xs text-muted-foreground bg-muted/40 rounded-lg px-3 py-2">
+        <MessageSquare className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+        <span className="italic">{rdv.sujet}</span>
+      </div>
+
+      {/* Note du délégué */}
+      {rdv.note_delegue && (
+        <div className="flex items-start gap-1.5 text-xs bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+          <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-amber-600" />
+          <div>
+            <p className="font-semibold text-amber-700 mb-0.5">Note du délégué</p>
+            <p className="text-amber-600">{rdv.note_delegue}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Actions */}
+      {!past && rdv.statut !== "annule" && rdv.statut !== "effectue" && onCancel && (
+        <div className="flex justify-end pt-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onCancel}
+            disabled={cancelling}
+            className="text-xs text-destructive hover:text-destructive hover:bg-destructive/10 h-7"
+          >
+            {cancelling ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <XCircle className="w-3 h-3 mr-1" />}
+            Annuler ce RDV
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default Profile;

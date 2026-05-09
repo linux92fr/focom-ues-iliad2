@@ -320,7 +320,7 @@ const ArticlesManager = () => {
     <div className="prose prose-sm max-w-none dark:prose-invert">
       {coverImage && (
         <div className="mb-4 rounded-lg overflow-hidden">
-          <img 
+          <img loading="lazy" 
             src={coverImage} 
             alt={title || "Aperçu"} 
             className="w-full h-48 object-cover"
@@ -484,7 +484,7 @@ const ArticlesManager = () => {
                         )}
                         {coverImage && (
                           <div className="relative h-32 rounded-lg overflow-hidden bg-muted">
-                            <img 
+                            <img loading="lazy" 
                               src={coverImage} 
                               alt="Aperçu" 
                               className="w-full h-full object-cover"
@@ -613,7 +613,7 @@ const ArticlesManager = () => {
                       <TableCell>
                         {article.cover_image ? (
                           <div className="w-10 h-10 rounded overflow-hidden bg-muted">
-                            <img 
+                            <img loading="lazy" 
                               src={article.cover_image} 
                               alt="" 
                               className="w-full h-full object-cover"
@@ -748,7 +748,7 @@ const ArticlesManager = () => {
               <div className="prose prose-sm max-w-none dark:prose-invert p-4">
                 {previewArticle.cover_image && (
                   <div className="mb-6 rounded-lg overflow-hidden">
-                    <img 
+                    <img loading="lazy" 
                       src={previewArticle.cover_image} 
                       alt={previewArticle.title} 
                       className="w-full h-64 object-cover"

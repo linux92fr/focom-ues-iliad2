@@ -264,7 +264,7 @@ export default function Home() {
                 { title:"GEPP : POUR TOUT SAVOIR", date:"29 octobre 2026", category:"Mobilisation", href:"/accords/gepp", image:"https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=200&h=150&fit=crop" },
               ].map((article, idx) => (
                 <Link key={idx} to={article.href} className="flex gap-4 p-3 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer group">
-                  <img src={article.image} alt={article.title} className="w-24 h-20 object-cover rounded-lg flex-shrink-0" />
+                  <img loading="lazy" src={article.image} alt={article.title} className="w-24 h-20 object-cover rounded-lg flex-shrink-0" />
                   <div className="flex-1 min-w-0">
                     {article.badge && <span className="inline-block bg-red-100 text-red-700 text-[10px] font-bold px-2 py-0.5 rounded-full mb-1.5 uppercase tracking-wide">{article.badge}</span>}
                     <h4 className="font-semibold text-slate-900 text-sm leading-snug group-hover:text-red-600 transition-colors line-clamp-2">{article.title}</h4>
@@ -359,7 +359,7 @@ export default function Home() {
           </section>
 
           <div className="bg-gradient-to-br from-teal-600 to-teal-700 rounded-xl p-6 text-white shadow-lg">
-            <img src={SOLIDARITY_IMAGE} alt="Solidarité" className="w-16 h-16 rounded-xl mb-3 object-cover" />
+            <img loading="lazy" src={SOLIDARITY_IMAGE} alt="Solidarité" className="w-16 h-16 rounded-xl mb-3 object-cover" />
             <h4 className="font-bold text-base">Notre engagement</h4>
             <p className="text-teal-100 text-xs mt-2 leading-relaxed">Transparence, écoute et action : notre priorité, c'est vous.</p>
           </div>
