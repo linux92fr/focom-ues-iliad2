@@ -89,7 +89,12 @@ Deno.serve(async (req) => {
   const roles = await roleRes.json();
   if (!Array.isArray(roles) || roles.length === 0) return json({ error: "Accès refusé" }, 403);
 
-  const { newsletterId } = await req.json();
+  const payload = await req.json();
+  const newsletterId = payload?.newsletterId;
+  const recipientEmails: string[] | undefined = Array.isArray(payload?.recipientEmails)
+    ? payload.recipientEmails.filter((email: unknown) => typeof email === "string" && email.includes("@"))
+    : undefined;
+
   if (!newsletterId) return json({ error: "newsletterId requis" }, 400);
 
   const nlRes = await fetch(
@@ -106,10 +111,18 @@ Deno.serve(async (req) => {
     `${supabaseUrl}/rest/v1/newsletter_subscribers?is_active=eq.true&select=email,unsubscribe_token`,
     { headers: { Authorization: `Bearer ${serviceKey}`, apikey: serviceKey } },
   );
-  const subscribers: Array<{ email: string; unsubscribe_token?: string | null }> = await subsRes.json();
+  const allSubscribers: Array<{ email: string; unsubscribe_token?: string | null }> = await subsRes.json();
+
+  const selectedEmailSet = recipientEmails?.length
+    ? new Set(recipientEmails.map((email) => email.toLowerCase()))
+    : null;
+
+  const subscribers = selectedEmailSet
+    ? allSubscribers.filter((sub) => selectedEmailSet.has(sub.email.toLowerCase()))
+    : allSubscribers;
 
   if (!subscribers.length) {
-    return json({ success: true, totalRecipients: 0, successfulSends: 0, failedSends: 0 });
+    return json({ success: false, error: "Aucun destinataire actif sélectionné", totalRecipients: 0, successfulSends: 0, failedSends: 0 }, 400);
   }
 
   const sendRes = await fetch(`${supabaseUrl}/rest/v1/newsletter_sends`, {
@@ -134,26 +147,26 @@ Deno.serve(async (req) => {
 
   let successful = 0;
   let failed = 0;
-  const BATCH = 100;
+  const BATCH = 10;
 
   for (let i = 0; i < subscribers.length; i += BATCH) {
     const batch = subscribers.slice(i, i + BATCH);
     const emails = batch.map((sub) => {
-  const unsubParam = sub.unsubscribe_token
-    ? `token=${sub.unsubscribe_token}`
-    : `email=${encodeURIComponent(sub.email)}`;
+      const unsubParam = sub.unsubscribe_token
+        ? `token=${sub.unsubscribe_token}`
+        : `email=${encodeURIComponent(sub.email)}`;
 
-  return {
-    from: fromEmail,
-    to: [sub.email],
-    subject: newsletter.subject,
-    html: wrapHtml(
-      newsletter.body_html,
-      `${siteUrl}/newsletter/unsubscribe?${unsubParam}`,
-      siteUrl,
-    ),
-  };
-});
+      return {
+        from: fromEmail,
+        to: [sub.email],
+        subject: newsletter.subject,
+        html: wrapHtml(
+          newsletter.body_html,
+          `${siteUrl}/newsletter/unsubscribe?${unsubParam}`,
+          siteUrl,
+        ),
+      };
+    });
 
     const batchRes = await fetch("https://api.resend.com/emails/batch", {
       method: "POST",
