@@ -4,16 +4,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import {
   FolderOpen, Clock, CheckCircle2, AlertCircle, XCircle, MessageSquare,
-  Loader2, Search, Paperclip, Download, Send, CalendarDays, Building2, Mail,
-  AlertTriangle,
+  Loader2, Search, Paperclip, Download, Send, CalendarDays, Building2, Mail, RefreshCw,
 } from "lucide-react";
 
 interface Reclamation {
@@ -91,20 +88,30 @@ export default function AdminReclamations() {
 function ReclamationsContent() {
   const [reclamations, setReclamations] = useState<Reclamation[]>([]);
   const [loading,      setLoading]      = useState(true);
+  const [refreshing,   setRefreshing]   = useState(false);
   const [search,       setSearch]       = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterPriority, setFilterPriority] = useState("all");
   const [selected,     setSelected]     = useState<Reclamation | null>(null);
 
   const fetchAll = useCallback(async () => {
-    const { data, error } = await supabase
-      .from("reclamations")
-      .select("*")
-      .order("created_at", { ascending: false });
-    if (!error) setReclamations(data ?? []);
-    setLoading(false);
-  }, []);
+  setRefreshing(true);
 
+  const { data, error } = await supabase
+    .from("reclamations")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (!error) {
+    setReclamations(data ?? []);
+  } else {
+    toast.error("Impossible d'actualiser les réclamations");
+  }
+
+  setLoading(false);
+  setRefreshing(false);
+}, []);
+  
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
   useEffect(() => {
@@ -179,6 +186,10 @@ function ReclamationsContent() {
             <SelectItem value="critique">Critique</SelectItem>
           </SelectContent>
         </Select>
+        <Button variant="outline" onClick={fetchAll} disabled={refreshing} className="gap-2">
+  <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} />
+  Actualiser
+</Button>
       </div>
 
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
