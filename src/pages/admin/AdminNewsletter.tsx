@@ -250,10 +250,16 @@ export default function AdminNewsletter() {
   };
 
   const confirmSend = (nl: Newsletter) => {
-    const label = sendMode === "all"
-      ? `${activeCount} abonné${activeCount > 1 ? "s" : ""} actif${activeCount > 1 ? "s" : ""}`
-      : `${selectedActiveEmails.length} destinataire${selectedActiveEmails.length > 1 ? "s" : ""} sélectionné${selectedActiveEmails.length > 1 ? "s" : ""}`;
-    if (!window.confirm(`Envoyer "${nl.subject}" à ${label} ?`)) return;
+    if (sendMode === "all") {
+      const confirmation = window.prompt(
+        `ATTENTION : vous allez envoyer "${nl.subject}" à TOUS les abonnés actifs (${activeCount}).\n\nPour confirmer l'envoi global, tapez exactement : TOUS`
+      );
+      if (confirmation !== "TOUS") return;
+    } else {
+      const preview = selectedActiveEmails.slice(0, 5).join("\n");
+      const more = selectedActiveEmails.length > 5 ? `\n... et ${selectedActiveEmails.length - 5} autre(s)` : "";
+      if (!window.confirm(`Envoyer "${nl.subject}" à ${selectedActiveEmails.length} destinataire(s) sélectionné(s) ?\n\n${preview}${more}`)) return;
+    }
     sendMutation.mutate(nl.id);
   };
 
@@ -399,6 +405,11 @@ export default function AdminNewsletter() {
                 {sendMode === "selected" && selectedActiveEmails.length === 0 && (
                   <p className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
                     Aucun destinataire sélectionné. Va dans l'onglet Abonnés pour cocher les destinataires avant l'envoi.
+                  </p>
+                )}
+                {sendMode === "all" && (
+                  <p className="text-xs text-red-700 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+                    Mode sensible : l'envoi global exige de taper TOUS dans une confirmation avant expédition.
                   </p>
                 )}
               </CardContent>
