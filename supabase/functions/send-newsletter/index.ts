@@ -139,19 +139,21 @@ Deno.serve(async (req) => {
   for (let i = 0; i < subscribers.length; i += BATCH) {
     const batch = subscribers.slice(i, i + BATCH);
     const emails = batch.map((sub) => {
-      const unsubValue = sub.unsubscribe_token || encodeURIComponent(sub.email);
-      const unsubParam = sub.unsubscribe_token ? `token=${sub.unsubscribe_token}` : `email=${encodeURIComponent(sub.email)}`;
-      return {
-        from: fromEmail,
-        to: [sub.email],
-        subject: newsletter.subject,
-        html: wrapHtml(
-          newsletter.body_html,
-          `${siteUrl}/newsletter/unsubscribe?${unsubParam}`,
-          siteUrl,
-        ),
-      };
-    });
+  const unsubParam = sub.unsubscribe_token
+    ? `token=${sub.unsubscribe_token}`
+    : `email=${encodeURIComponent(sub.email)}`;
+
+  return {
+    from: fromEmail,
+    to: [sub.email],
+    subject: newsletter.subject,
+    html: wrapHtml(
+      newsletter.body_html,
+      `${siteUrl}/newsletter/unsubscribe?${unsubParam}`,
+      siteUrl,
+    ),
+  };
+});
 
     const batchRes = await fetch("https://api.resend.com/emails/batch", {
       method: "POST",
