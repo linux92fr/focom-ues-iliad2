@@ -95,6 +95,14 @@ const statusSteps = [
   { key: "ferme", label: "Clôturée" },
 ];
 
+function getSupabaseErrorMessage(error: any) {
+  if (!error) return "Erreur inconnue";
+  if (error.code === "42501") return "Accès refusé par Supabase/RLS. Vérifiez les policies de la table reclamations.";
+  if (error.code === "23514") return "Une valeur du formulaire n'est pas acceptée par la base de données.";
+  if (error.code === "23503") return "Votre compte utilisateur n'est pas reconnu par la base de données.";
+  return error.message || "Erreur inconnue";
+}
+
 function StatusTimeline({ status }: { status: string }) {
   const currentStep = STATUS[status]?.step ?? 1;
   return (
@@ -133,7 +141,7 @@ export default function MesReclamations() {
       .select("*")
       .order("updated_at", { ascending: false });
     if (!error) setReclamations(data ?? []);
-    else toast.error("Impossible de charger vos réclamations");
+    else toast.error(`Impossible de charger vos réclamations : ${getSupabaseErrorMessage(error)}`);
     setLoading(false);
     setRefreshing(false);
   }, [user]);
@@ -244,7 +252,7 @@ export default function MesReclamations() {
         </div>
       )}
 
-      <CreateReclamationDialog open={createOpen} onClose={() => setCreateOpen(false)} userId={user.id} userEmail={user.email ?? ""} onCreated={fetchReclamations} />
+      <CreateReclamationDialog open={createOpen} onClose={() => setCreateOpen(false)} fallbackUserId={user.id} fallbackUserEmail={user.email ?? ""} onCreated={fetchReclamations} />
 
       {selectedRec && (
         <ReclamationDetailDialog
@@ -261,7 +269,7 @@ export default function MesReclamations() {
   );
 }
 
-function CreateReclamationDialog({ open, onClose, userId, userEmail, onCreated }: { open: boolean; onClose: () => void; userId: string; userEmail: string; onCreated: () => void }) {
+function CreateReclamationDialog({ open, onClose, fallbackUserId, fallbackUserEmail, onCreated }: { open: boolean; onClose: () => void; fallbackUserId: string; fallbackUserEmail: string; onCreated: () => void }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("rh");
@@ -297,14 +305,34 @@ function CreateReclamationDialog({ open, onClose, userId, userEmail, onCreated }
     }
     setSaving(true);
 
+    const { data: { user: currentUser }, error: userError } = await supabase.auth.getUser();
+    if (userError || !currentUser) {
+      toast.error("Votre session a expiré. Merci de vous reconnecter.");
+      setSaving(false);
+      return;
+    }
+
+    const userId = currentUser.id || fallbackUserId;
+    const userEmail = currentUser.email || fallbackUserEmail;
+
     const { data: rec, error } = await supabase
       .from("reclamations")
-      .insert({ user_id: userId, user_email: userEmail, title: title.trim(), description: description.trim(), category, entity, priority })
-      .select()
+      .insert({
+        user_id: userId,
+        user_email: userEmail,
+        title: title.trim(),
+        description: description.trim(),
+        category,
+        entity,
+        priority,
+        status: "nouveau",
+      })
+      .select("*")
       .single();
 
     if (error || !rec) {
-      toast.error("Erreur lors de la création");
+      console.error("Erreur création réclamation", error);
+      toast.error(`Erreur lors de la création : ${getSupabaseErrorMessage(error)}`);
       setSaving(false);
       return;
     }
@@ -313,9 +341,19 @@ function CreateReclamationDialog({ open, onClose, userId, userEmail, onCreated }
       const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "-");
       const path = `${userId}/${rec.id}/${Date.now()}-${safeName}`;
       const { error: upErr } = await supabase.storage.from("reclamations").upload(path, file);
-      if (!upErr) {
-        await supabase.from("reclamation_attachments").insert({ reclamation_id: rec.id, file_name: file.name, file_path: path, file_size: file.size, mime_type: file.type });
+      if (upErr) {
+        console.error("Erreur upload pièce jointe", upErr);
+        toast.warning(`Réclamation créée, mais pièce jointe non envoyée : ${upErr.message}`);
+        continue;
       }
+      const { error: attErr } = await supabase.from("reclamation_attachments").insert({
+        reclamation_id: rec.id,
+        file_name: file.name,
+        file_path: path,
+        file_size: file.size,
+        mime_type: file.type,
+      });
+      if (attErr) console.error("Erreur enregistrement pièce jointe", attErr);
     }
 
     toast.success("Réclamation créée avec succès");
@@ -390,7 +428,7 @@ function ReclamationDetailDialog({ rec, userId, onClose, onUpdated }: { rec: Rec
     if (!newMsg.trim()) return;
     setSending(true);
     const { error } = await supabase.from("reclamation_messages").insert({ reclamation_id: rec.id, author_id: userId, is_admin: false, content: newMsg.trim() });
-    if (error) toast.error("Erreur d'envoi");
+    if (error) toast.error(`Erreur d'envoi : ${getSupabaseErrorMessage(error)}`);
     else { setNewMsg(""); loadDetail(); toast.success("Message ajouté"); }
     setSending(false);
   };
