@@ -16,8 +16,6 @@ import {
   AlertTriangle,
 } from "lucide-react";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
 interface Reclamation {
   id: string;
   user_id: string;
@@ -47,8 +45,6 @@ interface Attachment {
   file_size: number | null;
   mime_type: string | null;
 }
-
-// ─── Config ───────────────────────────────────────────────────────────────────
 
 const STATUS: Record<string, { label: string; color: string; Icon: React.ElementType }> = {
   nouveau:  { label: "Nouveau",  color: "bg-blue-100 text-blue-700",   Icon: Clock },
@@ -82,8 +78,6 @@ const fmtSize = (bytes: number | null) => {
   return `${(bytes / 1048576).toFixed(1)} Mo`;
 };
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
-
 export default function AdminReclamations() {
   return (
     <AdminAuthGuard>
@@ -99,6 +93,7 @@ function ReclamationsContent() {
   const [loading,      setLoading]      = useState(true);
   const [search,       setSearch]       = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [filterPriority, setFilterPriority] = useState("all");
   const [selected,     setSelected]     = useState<Reclamation | null>(null);
 
   const fetchAll = useCallback(async () => {
@@ -122,11 +117,12 @@ function ReclamationsContent() {
 
   const filtered = reclamations.filter(r => {
     const matchStatus = filterStatus === "all" || r.status === filterStatus;
+    const matchPriority = filterPriority === "all" || r.priority === filterPriority;
     const q = search.toLowerCase();
     const matchSearch = !q || r.title.toLowerCase().includes(q) ||
       (r.user_email ?? "").toLowerCase().includes(q) ||
       r.description.toLowerCase().includes(q);
-    return matchStatus && matchSearch;
+    return matchStatus && matchPriority && matchSearch;
   });
 
   const stats = {
@@ -139,7 +135,6 @@ function ReclamationsContent() {
 
   return (
     <>
-      {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
         {[
           { label: "Total",    value: stats.total,    bg: "bg-white"       },
@@ -155,7 +150,6 @@ function ReclamationsContent() {
         ))}
       </div>
 
-      {/* Filters */}
       <div className="bg-white rounded-xl border border-slate-200 p-4 mb-4 flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -174,9 +168,19 @@ function ReclamationsContent() {
             <SelectItem value="ferme">Fermé</SelectItem>
           </SelectContent>
         </Select>
+        <Select value={filterPriority} onValueChange={setFilterPriority}>
+          <SelectTrigger className="w-40">
+            <SelectValue placeholder="Priorité" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Toutes priorités</SelectItem>
+            <SelectItem value="normale">Normale</SelectItem>
+            <SelectItem value="urgente">Urgente</SelectItem>
+            <SelectItem value="critique">Critique</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
-      {/* Table */}
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
         {loading ? (
           <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-slate-300" /></div>
@@ -240,7 +244,6 @@ function ReclamationsContent() {
         )}
       </div>
 
-      {/* Detail panel */}
       {selected && (
         <ReclamationPanel
           rec={selected}
@@ -254,8 +257,6 @@ function ReclamationsContent() {
     </>
   );
 }
-
-// ─── Detail panel ─────────────────────────────────────────────────────────────
 
 function ReclamationPanel({
   rec, onClose, onUpdated,
@@ -345,7 +346,6 @@ function ReclamationPanel({
           </SheetTitle>
         </SheetHeader>
 
-        {/* Status update */}
         <div className="px-6 py-3 border-b border-slate-100 bg-slate-50 flex items-center gap-3">
           <Label className="text-xs font-semibold text-slate-600 flex-shrink-0">Changer le statut :</Label>
           <Select value={newStatus} onValueChange={setNewStatus}>
@@ -367,13 +367,11 @@ function ReclamationPanel({
         </div>
 
         <ScrollArea className="flex-1 px-6 py-4 min-h-0">
-          {/* Description */}
           <div className="bg-slate-50 rounded-xl p-4 mb-4">
             <p className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Description</p>
             <p className="text-sm text-slate-700 whitespace-pre-wrap">{rec.description}</p>
           </div>
 
-          {/* Attachments */}
           {attachments.length > 0 && (
             <div className="mb-4">
               <p className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">
@@ -393,7 +391,6 @@ function ReclamationPanel({
             </div>
           )}
 
-          {/* Messages */}
           {loading ? (
             <div className="flex justify-center py-4"><Loader2 className="w-5 h-5 animate-spin text-slate-300" /></div>
           ) : messages.length === 0 ? (
@@ -425,7 +422,6 @@ function ReclamationPanel({
           )}
         </ScrollArea>
 
-        {/* Admin reply */}
         <form onSubmit={sendAdminMessage} className="px-6 py-4 border-t border-slate-100 flex gap-2">
           <Input
             value={newMsg}
