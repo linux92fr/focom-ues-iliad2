@@ -1,12 +1,40 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const PROJECT_SUPABASE_URL = 'https://qinekdmyycyujsrcsfbe.supabase.co';
+const PLACEHOLDER_VALUES = new Set([
+  '',
+  'your_supabase_project_url',
+  'your_supabase_anon_key',
+]);
 
-if (!SUPABASE_URL || !SUPABASE_KEY) {
+function cleanEnvValue(value: string | undefined): string {
+  return (value || '').trim().replace(/^['\"]|['\"]$/g, '');
+}
+
+function isValidHttpUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+const rawSupabaseUrl = cleanEnvValue(import.meta.env.VITE_SUPABASE_URL);
+const rawSupabaseKey = cleanEnvValue(import.meta.env.VITE_SUPABASE_ANON_KEY);
+
+const SUPABASE_URL = !PLACEHOLDER_VALUES.has(rawSupabaseUrl) && isValidHttpUrl(rawSupabaseUrl)
+  ? rawSupabaseUrl
+  : PROJECT_SUPABASE_URL;
+
+const SUPABASE_KEY = !PLACEHOLDER_VALUES.has(rawSupabaseKey)
+  ? rawSupabaseKey
+  : '';
+
+if (!SUPABASE_KEY) {
   throw new Error(
-    'Missing Supabase configuration. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your environment.'
+    'Missing Supabase anon key. Please set VITE_SUPABASE_ANON_KEY in your deployment environment.'
   );
 }
 
