@@ -94,8 +94,34 @@ Deno.serve(async (req) => {
   const recipientEmails: string[] | undefined = Array.isArray(payload?.recipientEmails)
     ? payload.recipientEmails.filter((email: unknown) => typeof email === "string" && email.includes("@"))
     : undefined;
+  const force = payload?.force === true;
 
   if (!newsletterId) return json({ error: "newsletterId requis" }, 400);
+
+  const runningSendRes = await fetch(
+    `${supabaseUrl}/rest/v1/newsletter_sends?newsletter_id=eq.${newsletterId}&status=eq.sending&select=id&limit=1`,
+    { headers: { Authorization: `Bearer ${serviceKey}`, apikey: serviceKey } },
+  );
+  const runningSends = await runningSendRes.json();
+  if (!force && Array.isArray(runningSends) && runningSends.length > 0) {
+    return json({ error: "Un envoi de cette newsletter est déjà en cours." }, 409);
+  }
+
+  const recentSendRes = await fetch(
+    `${supabaseUrl}/rest/v1/newsletter_sends?newsletter_id=eq.${newsletterId}&status=in.(completed,partial)&select=id,sent_at&order=sent_at.desc&limit=1`,
+    { headers: { Authorization: `Bearer ${serviceKey}`, apikey: serviceKey } },
+  );
+  const recentSends = await recentSendRes.json();
+  if (!force && Array.isArray(recentSends) && recentSends.length > 0) {
+    const lastSentAt = recentSends[0]?.sent_at ? new Date(recentSends[0].sent_at).getTime() : 0;
+    const sixHours = 6 * 60 * 60 * 1000;
+    if (lastSentAt && Date.now() - lastSentAt < sixHours) {
+      return json({
+        error: "Cette newsletter a déjà été envoyée récemment. Relance volontaire possible avec force=true.",
+        lastSentAt: recentSends[0].sent_at,
+      }, 409);
+    }
+  }
 
   const nlRes = await fetch(
     `${supabaseUrl}/rest/v1/newsletters?id=eq.${newsletterId}&select=*&limit=1`,
