@@ -23,7 +23,7 @@ function wrapHtml(bodyHtml: string, unsubUrl: string, siteUrl: string): string {
       <table width="600" align="center" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);max-width:100%;">
         <tr>
           <td style="background:#dc2626;padding:24px 40px;text-align:center;">
-            <h1 style="color:#ffffff;margin:0;font-size:20px;font-weight:700;">FOCOM UES ILIAD</h1>
+            <h1 style="color:#ffffff;margin:0;font-size:20px;font-weight:700;">FO COM UES ILIAD</h1>
           </td>
         </tr>
         <tr>
@@ -34,7 +34,7 @@ function wrapHtml(bodyHtml: string, unsubUrl: string, siteUrl: string): string {
         <tr>
           <td style="background:#f1f5f9;padding:20px 40px;text-align:center;border-top:1px solid #e2e8f0;">
             <p style="color:#94a3b8;font-size:12px;margin:0 0 6px;">
-              Vous recevez cet email car vous êtes abonné à la newsletter FOCOM UES ILIAD.
+              Vous recevez cet email car vous êtes abonné à la newsletter FO COM UES ILIAD.
             </p>
             <p style="margin:0;">
               <a href="${unsubUrl}" style="color:#dc2626;font-size:12px;">Se désabonner</a>
@@ -50,18 +50,29 @@ function wrapHtml(bodyHtml: string, unsubUrl: string, siteUrl: string): string {
 </html>`;
 }
 
+function normalizeFromEmail(value: string) {
+  if (value.includes("<") && value.includes(">")) return value;
+  if (value.includes("@")) return `FO COM UES ILIAD <${value}>`;
+  return value;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
+  if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const resendKey = Deno.env.get("RESEND_API_KEY");
-  const siteUrl = Deno.env.get("SITE_URL") ?? "https://focom-ues-iliad.fr";
-  const fromEmail = Deno.env.get("FROM_EMAIL") ?? "newsletter@focom-ues-iliad.fr";
+  const siteUrl = Deno.env.get("PUBLIC_SITE_URL") ?? Deno.env.get("SITE_URL") ?? "https://beta.focomues-iliad.fr";
+  const fromEmail = normalizeFromEmail(
+    Deno.env.get("NEWSLETTER_FROM")
+      ?? Deno.env.get("CONTACT_REPLY_FROM")
+      ?? Deno.env.get("FROM_EMAIL")
+      ?? "FO COM UES ILIAD <contact@focomues-iliad.fr>"
+  );
 
   if (!resendKey) return json({ error: "RESEND_API_KEY manquant" }, 500);
 
-  // ── Auth admin ───────────────────────────────────────────────
   const authHeader = req.headers.get("Authorization") ?? "";
   if (!authHeader.startsWith("Bearer ")) return json({ error: "Non autorisé" }, 401);
 
@@ -72,17 +83,15 @@ Deno.serve(async (req) => {
   const { id: userId } = await userRes.json();
 
   const roleRes = await fetch(
-    `${supabaseUrl}/rest/v1/user_roles?user_id=eq.${userId}&role=in.(admin,moderator)&select=role&limit=1`,
+    `${supabaseUrl}/rest/v1/user_roles?user_id=eq.${userId}&role=in.(admin,secretaire,representant,redacteur)&select=role&limit=1`,
     { headers: { Authorization: `Bearer ${serviceKey}`, apikey: serviceKey } },
   );
   const roles = await roleRes.json();
   if (!Array.isArray(roles) || roles.length === 0) return json({ error: "Accès refusé" }, 403);
 
-  // ── Paramètres ───────────────────────────────────────────────
   const { newsletterId } = await req.json();
   if (!newsletterId) return json({ error: "newsletterId requis" }, 400);
 
-  // ── Lire la newsletter ───────────────────────────────────────────────
   const nlRes = await fetch(
     `${supabaseUrl}/rest/v1/newsletters?id=eq.${newsletterId}&select=*&limit=1`,
     { headers: { Authorization: `Bearer ${serviceKey}`, apikey: serviceKey } },
@@ -93,18 +102,16 @@ Deno.serve(async (req) => {
   }
   const newsletter = newsletters[0];
 
-  // ── Lire les abonnés actifs ──────────────────────────────────
   const subsRes = await fetch(
     `${supabaseUrl}/rest/v1/newsletter_subscribers?is_active=eq.true&select=email,unsubscribe_token`,
     { headers: { Authorization: `Bearer ${serviceKey}`, apikey: serviceKey } },
   );
-  const subscribers: Array<{ email: string; unsubscribe_token: string }> = await subsRes.json();
+  const subscribers: Array<{ email: string; unsubscribe_token?: string | null }> = await subsRes.json();
 
   if (!subscribers.length) {
     return json({ success: true, totalRecipients: 0, successfulSends: 0, failedSends: 0 });
   }
 
-  // ── Enregistrer le début d'envoi ─────────────────────────────
   const sendRes = await fetch(`${supabaseUrl}/rest/v1/newsletter_sends`, {
     method: "POST",
     headers: {
@@ -118,28 +125,33 @@ Deno.serve(async (req) => {
       sent_by: userId,
       status: "sending",
       total_recipients: subscribers.length,
+      successful_sends: 0,
+      failed_sends: 0,
     }),
   });
   const sendRecords = await sendRes.json();
   const sendId: string | undefined = Array.isArray(sendRecords) ? sendRecords[0]?.id : undefined;
 
-  // ── Envoi par batches de 100 (limite Resend) ─────────────────
   let successful = 0;
   let failed = 0;
   const BATCH = 100;
 
   for (let i = 0; i < subscribers.length; i += BATCH) {
     const batch = subscribers.slice(i, i + BATCH);
-    const emails = batch.map((sub) => ({
-      from: `FOCOM UES ILIAD <${fromEmail}>`,
-      to: [sub.email],
-      subject: newsletter.subject,
-      html: wrapHtml(
-        newsletter.body_html,
-        `${siteUrl}/newsletter/unsubscribe?token=${sub.unsubscribe_token}`,
-        siteUrl,
-      ),
-    }));
+    const emails = batch.map((sub) => {
+      const unsubValue = sub.unsubscribe_token || encodeURIComponent(sub.email);
+      const unsubParam = sub.unsubscribe_token ? `token=${sub.unsubscribe_token}` : `email=${encodeURIComponent(sub.email)}`;
+      return {
+        from: fromEmail,
+        to: [sub.email],
+        subject: newsletter.subject,
+        html: wrapHtml(
+          newsletter.body_html,
+          `${siteUrl}/newsletter/unsubscribe?${unsubParam}`,
+          siteUrl,
+        ),
+      };
+    });
 
     const batchRes = await fetch("https://api.resend.com/emails/batch", {
       method: "POST",
@@ -158,7 +170,6 @@ Deno.serve(async (req) => {
     }
   }
 
-  // ── Mettre à jour le statut d'envoi ─────────────────────────
   if (sendId) {
     await fetch(`${supabaseUrl}/rest/v1/newsletter_sends?id=eq.${sendId}`, {
       method: "PATCH",
@@ -171,12 +182,13 @@ Deno.serve(async (req) => {
         status: failed === 0 ? "completed" : failed === subscribers.length ? "failed" : "partial",
         successful_sends: successful,
         failed_sends: failed,
+        sent_at: new Date().toISOString(),
       }),
     });
   }
 
   return json({
-    success: true,
+    success: failed === 0,
     totalRecipients: subscribers.length,
     successfulSends: successful,
     failedSends: failed,
