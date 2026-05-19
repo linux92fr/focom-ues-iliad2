@@ -98,6 +98,29 @@ export default function AdminNewsletter() {
 
   const clearSelected = () => setSelectedEmails([]);
 
+  const toggleSubMutation = useMutation({
+    mutationFn: async (subscriber: Subscriber) => {
+      const nextActive = !subscriber.is_active;
+      const { error } = await supabase
+        .from("newsletter_subscribers")
+        .update({
+          is_active: nextActive,
+          unsubscribed_at: nextActive ? null : new Date().toISOString(),
+        })
+        .eq("id", subscriber.id);
+      if (error) throw error;
+      return { email: subscriber.email, nextActive };
+    },
+    onSuccess: ({ email, nextActive }) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-subscribers"] });
+      if (!nextActive) {
+        setSelectedEmails((prev) => prev.filter((e) => e !== email));
+      }
+      toast.success(nextActive ? "Abonné réactivé" : "Abonné désactivé");
+    },
+    onError: () => toast.error("Erreur lors de la mise à jour de l'abonné"),
+  });
+
   const deleteSubMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("newsletter_subscribers").delete().eq("id", id);
@@ -280,7 +303,7 @@ export default function AdminNewsletter() {
                         <tr>
                           <th className="p-3 text-xs font-semibold text-slate-600 text-left w-12">Sel.</th>
                           {[
-                            "Email", "Statut", "Abonné le", ""
+                            "Email", "Statut", "Abonné le", "Actions"
                           ].map((h, i) => (<th key={i} className={`p-3 text-xs font-semibold text-slate-600 ${i === 3 ? "text-right" : "text-left"}`}>{h}</th>))}
                         </tr>
                       </thead>
@@ -302,7 +325,20 @@ export default function AdminNewsletter() {
                               <td className="p-3 text-sm font-medium text-slate-900">{s.email}</td>
                               <td className="p-3">{s.is_active ? <Badge className="bg-green-100 text-green-700 text-xs">Actif</Badge> : <Badge variant="secondary" className="text-xs">Désabonné</Badge>}</td>
                               <td className="p-3 text-xs text-slate-500">{fmtDate(s.subscribed_at)}</td>
-                              <td className="p-3 text-right"><Button variant="ghost" size="sm" onClick={() => { if (window.confirm(`Supprimer ${s.email} ?`)) deleteSubMutation.mutate(s.id); }}><Trash2 className="w-4 h-4 text-slate-400 hover:text-red-600" /></Button></td>
+                              <td className="p-3 text-right">
+                                <div className="flex items-center justify-end gap-1.5">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => toggleSubMutation.mutate(s)}
+                                    disabled={toggleSubMutation.isPending}
+                                    className="text-xs"
+                                  >
+                                    {s.is_active ? "Désactiver" : "Réactiver"}
+                                  </Button>
+                                  <Button variant="ghost" size="sm" onClick={() => { if (window.confirm(`Supprimer ${s.email} ?`)) deleteSubMutation.mutate(s.id); }}><Trash2 className="w-4 h-4 text-slate-400 hover:text-red-600" /></Button>
+                                </div>
+                              </td>
                             </tr>
                           );
                         })}
