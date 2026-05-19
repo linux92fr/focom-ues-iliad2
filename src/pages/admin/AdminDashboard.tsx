@@ -114,7 +114,7 @@ async function fetchStats(): Promise<DashboardStats> {
     activeSurveys,
   ] = await Promise.all([
     countFrom("profiles", q => q.eq("status", "actif")),
-    countFrom("adhesions", q => q.eq("status", "active")),
+    countFrom("adhesions", q => q.eq("status", "validee")),
     countFrom("articles", q => q.eq("is_published", true)),
     countFrom("articles", q => q.neq("status", "publie")),
     countFrom("documents"),
@@ -259,7 +259,7 @@ export default function AdminDashboard() {
   }, [refreshDashboard]);
 
   const statCards = useMemo(() => [
-    { title: "Profils actifs", value: stats.activeMembers, detail: `${stats.activeAdhesions} adhésion(s) active(s)`, icon: Users, color: "text-teal-600 bg-teal-50", href: "/admin/adherents" },
+    { title: "Profils actifs", value: stats.activeMembers, detail: `${stats.activeAdhesions} adhésion(s) validée(s)`, icon: Users, color: "text-teal-600 bg-teal-50", href: "/admin/adherents" },
     { title: "Articles publiés", value: stats.publishedArticles, detail: `${stats.draftArticles} brouillon(s) / en préparation`, icon: Newspaper, color: "text-red-600 bg-red-50", href: "/admin/actualites" },
     { title: "Documents", value: stats.documents, detail: "Documents disponibles", icon: FileText, color: "text-teal-600 bg-teal-50", href: "/admin/documents" },
     { title: "Messages non lus", value: stats.unreadMessages, detail: stats.unreadMessages === 0 ? "Aucun message à traiter" : "À traiter rapidement", icon: MessageSquare, color: "text-red-600 bg-red-50", href: "/admin/messages" },
