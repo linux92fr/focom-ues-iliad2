@@ -43,6 +43,16 @@ const emptyForm = (): NlForm => ({ title: "", subject: "", body_html: "" });
 const fmtDate = (iso: string) =>
   format(new Date(iso), "dd MMM yyyy à HH:mm", { locale: fr });
 
+const getErrorMessage = (err: unknown) => {
+  if (!err) return "Erreur inconnue";
+  if (err instanceof Error) return err.message;
+  if (typeof err === "string") return err;
+  if (typeof err === "object" && "message" in err && typeof (err as { message?: unknown }).message === "string") {
+    return (err as { message: string }).message;
+  }
+  return "Erreur inconnue";
+};
+
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { label: string; className: string }> = {
     completed: { label: "Envoyée", className: "bg-green-100 text-green-700" },
@@ -206,14 +216,31 @@ export default function AdminNewsletter() {
         body,
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
-      if (error) throw error;
+
+      if (error) {
+        const context = (error as { context?: Response }).context;
+        if (context?.json) {
+          try {
+            const details = await context.json();
+            throw new Error(details?.error || details?.message || error.message);
+          } catch {
+            throw new Error(error.message);
+          }
+        }
+        throw error;
+      }
+
+      if (data?.error) throw new Error(data.error);
       return data;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["admin-sends"] });
       toast.success(`Newsletter envoyée à ${data.successfulSends}/${data.totalRecipients} abonnés`);
     },
-    onError: (err: Error) => toast.error(`Erreur : ${err.message}`),
+    onError: (err: unknown) => {
+      const message = getErrorMessage(err);
+      toast.error(`Envoi impossible : ${message}`);
+    },
     onSettled: () => setSendingId(null),
   });
 
