@@ -1,6 +1,6 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { HashRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
@@ -82,10 +82,9 @@ function App() {
             <AuthProvider>
             <TooltipProvider>
               <Toaster />
-              <HashRouter>
+              <BrowserRouter>
                 <AdminAuthProvider>
                   <Routes>
-                    {/* ── Routes publiques avec sidebar ───────────────── */}
                     <Route element={<PublicLayout />}>
                       <Route path="/" element={<Home />} />
                       <Route path="/bilan-mandat" element={<BilanMandat />} />
@@ -123,7 +122,6 @@ function App() {
                       <Route path="/admin/poster" element={<PosterComposer />} />
                     </Route>
 
-                    {/* ── Admin panel (layout propre) ───────────────── */}
                     <Route path="/admin/login" element={<AdminLogin />} />
                     <Route path="/admin" element={<AdminDashboard />} />
                     <Route path="/admin/actualites" element={<AdminActualites />} />
@@ -145,7 +143,7 @@ function App() {
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </AdminAuthProvider>
-              </HashRouter>
+              </BrowserRouter>
             </TooltipProvider>
             </AuthProvider>
           </SupabaseAuthProvider>
