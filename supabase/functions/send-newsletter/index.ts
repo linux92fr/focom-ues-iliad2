@@ -91,12 +91,21 @@ Deno.serve(async (req) => {
 
   const payload = await req.json();
   const newsletterId = payload?.newsletterId;
-  const recipientEmails: string[] | undefined = Array.isArray(payload?.recipientEmails)
-    ? payload.recipientEmails.filter((email: unknown) => typeof email === "string" && email.includes("@"))
-    : undefined;
+  const sendAll = payload?.sendAll === true;
+  const recipientEmails: string[] = Array.isArray(payload?.recipientEmails)
+    ? Array.from(new Set(payload.recipientEmails
+        .filter((email: unknown) => typeof email === "string" && email.includes("@"))
+        .map((email: string) => email.trim().toLowerCase())))
+    : [];
   const force = payload?.force === true;
 
   if (!newsletterId) return json({ error: "newsletterId requis" }, 400);
+  if (!sendAll && recipientEmails.length === 0) {
+    return json({ error: "Aucun destinataire sélectionné. L'envoi à tous nécessite sendAll=true." }, 400);
+  }
+  if (sendAll && recipientEmails.length > 0) {
+    return json({ error: "Requête ambiguë : utilisez soit sendAll=true, soit recipientEmails, pas les deux." }, 400);
+  }
 
   const runningSendRes = await fetch(
     `${supabaseUrl}/rest/v1/newsletter_sends?newsletter_id=eq.${newsletterId}&status=eq.sending&select=id&limit=1`,
@@ -139,13 +148,10 @@ Deno.serve(async (req) => {
   );
   const allSubscribers: Array<{ email: string; unsubscribe_token?: string | null }> = await subsRes.json();
 
-  const selectedEmailSet = recipientEmails?.length
-    ? new Set(recipientEmails.map((email) => email.toLowerCase()))
-    : null;
-
-  const subscribers = selectedEmailSet
-    ? allSubscribers.filter((sub) => selectedEmailSet.has(sub.email.toLowerCase()))
-    : allSubscribers;
+  const selectedEmailSet = new Set(recipientEmails);
+  const subscribers = sendAll
+    ? allSubscribers
+    : allSubscribers.filter((sub) => selectedEmailSet.has(sub.email.toLowerCase()));
 
   if (!subscribers.length) {
     return json({ success: false, error: "Aucun destinataire actif sélectionné", totalRecipients: 0, successfulSends: 0, failedSends: 0 }, 400);
