@@ -46,7 +46,6 @@ export default function AdminMessages() {
   const [replyText, setReplyText] = useState("");
   const [sending, setSending] = useState(false);
 
-  // ── Fetch ────────────────────────────────────────────────────
   const fetchMessages = useCallback(async () => {
     setLoading(true);
     const { data, error } = await supabase
@@ -65,7 +64,6 @@ export default function AdminMessages() {
 
   useEffect(() => { fetchMessages(); }, [fetchMessages]);
 
-  // ── Helpers ──────────────────────────────────────────────────
   const filtered = messages.filter((m) => {
     const matchStatus = selectedStatus === "Tous" || m.status === selectedStatus;
     const q = searchQuery.toLowerCase();
@@ -81,7 +79,6 @@ export default function AdminMessages() {
   const formatTime = (iso: string) =>
     new Date(iso).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
 
-  // ── Actions ──────────────────────────────────────────────────
   const markAs = async (id: string, status: Status) => {
     const { error } = await supabase
       .from("contact_messages")
@@ -103,32 +100,37 @@ export default function AdminMessages() {
   };
 
   const handleSendReply = async () => {
-    if (!replyText.trim()) { toast.error("Le message de réponse est vide"); return; }
+    if (!replyText.trim()) {
+      toast.error("Le message de réponse est vide");
+      return;
+    }
     if (!modal) return;
 
     setSending(true);
-    const { error } = await supabase
-      .from("contact_messages")
-      .update({
-        status: "repondu",
-        admin_reply: replyText.trim(),
-        replied_at: new Date().toISOString(),
-      })
-      .eq("id", modal.item.id);
+
+    const { error } = await supabase.functions.invoke("send-contact-reply", {
+      body: {
+        messageId: modal.item.id,
+        reply: replyText.trim(),
+      },
+    });
 
     if (error) {
-      toast.error("Erreur lors de l'envoi de la réponse");
+      console.error("Erreur send-contact-reply", error);
+      toast.error("Erreur lors de l'envoi de l'email");
     } else {
+      const repliedAt = new Date().toISOString();
       setMessages((prev) =>
         prev.map((m) =>
           m.id === modal.item.id
-            ? { ...m, status: "repondu", admin_reply: replyText.trim(), replied_at: new Date().toISOString() }
+            ? { ...m, status: "repondu", admin_reply: replyText.trim(), replied_at: repliedAt }
             : m
         )
       );
-      toast.success(`Réponse enregistrée pour ${modal.item.name}`);
+      toast.success(`Réponse envoyée à ${modal.item.name}`);
       setModal(null);
     }
+
     setSending(false);
   };
 
@@ -144,7 +146,6 @@ export default function AdminMessages() {
     }
   };
 
-  // ── Style helpers ────────────────────────────────────────────
   const getStatusColor = (status: Status) => {
     if (status === "non-lu") return "bg-red-100 text-red-700";
     if (status === "lu") return "bg-blue-100 text-blue-700";
@@ -162,12 +163,9 @@ export default function AdminMessages() {
   const initials = (name: string) =>
     name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
 
-  // ── Render ───────────────────────────────────────────────────
   return (
     <AdminAuthGuard>
       <AdminLayout title="Messages" breadcrumb={["Administration", "Messages"]}>
-
-        {/* Modal */}
         {modal && (
           <div
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
@@ -177,7 +175,6 @@ export default function AdminMessages() {
               className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col"
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Header */}
               <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 flex-shrink-0">
                 <div className="flex items-center gap-3">
                   <Avatar className="h-9 w-9">
@@ -195,7 +192,6 @@ export default function AdminMessages() {
                 </button>
               </div>
 
-              {/* Body */}
               <div className="p-6 space-y-4 overflow-y-auto flex-1">
                 <div>
                   <p className="text-xs text-slate-400 mb-1">Sujet</p>
@@ -212,7 +208,6 @@ export default function AdminMessages() {
                   {modal.item.message}
                 </div>
 
-                {/* Réponse existante */}
                 {modal.item.admin_reply && modal.mode === "view" && (
                   <div className="border-t border-slate-100 pt-4">
                     <p className="text-xs font-semibold text-teal-700 mb-2">✓ Réponse envoyée</p>
@@ -235,13 +230,12 @@ export default function AdminMessages() {
                       autoFocus
                     />
                     <p className="text-xs text-slate-400">
-                      Note : la réponse est enregistrée dans la base de données. Ajoutez votre SMTP pour l'envoyer par email.
+                      La réponse sera envoyée par email au salarié et enregistrée dans la base de données.
                     </p>
                   </div>
                 )}
               </div>
 
-              {/* Footer */}
               <div className="flex justify-between gap-2 px-6 py-4 border-t border-slate-100 flex-shrink-0">
                 <Button
                   variant="ghost" size="sm"
@@ -263,7 +257,7 @@ export default function AdminMessages() {
                       className="bg-red-600 hover:bg-red-700 text-white gap-2"
                     >
                       {sending ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                      Enregistrer
+                      Envoyer par email
                     </Button>
                   )}
                 </div>
@@ -272,7 +266,6 @@ export default function AdminMessages() {
           </div>
         )}
 
-        {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center relative">
@@ -295,7 +288,6 @@ export default function AdminMessages() {
           </Button>
         </div>
 
-        {/* Filters */}
         <Card className="border-slate-200 shadow-sm mb-6">
           <CardContent className="p-4">
             <div className="flex flex-col sm:flex-row gap-3">
@@ -334,7 +326,6 @@ export default function AdminMessages() {
           </CardContent>
         </Card>
 
-        {/* Table */}
         <Card className="border-slate-200 shadow-sm">
           <CardContent className="p-0">
             {loading ? (
