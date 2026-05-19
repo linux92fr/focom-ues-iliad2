@@ -209,7 +209,7 @@ export default function AdminNewsletter() {
       if (!session) throw new Error("Non connecté");
 
       const body = sendMode === "all"
-        ? { newsletterId }
+        ? { newsletterId, sendAll: true }
         : { newsletterId, recipientEmails: selectedActiveEmails };
 
       const { data, error } = await supabase.functions.invoke("send-newsletter", {
