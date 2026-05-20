@@ -1,8 +1,6 @@
-const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
-
 const ALLOWED_ORIGINS = (Deno.env.get("ALLOWED_ORIGIN") ?? "")
   .split(",")
-  .map((o) => o.trim())
+  .map((origin) => origin.trim())
   .filter(Boolean);
 
 function getCorsHeaders(origin: string | null): Record<string, string> {
@@ -15,8 +13,7 @@ function getCorsHeaders(origin: string | null): Record<string, string> {
 
   return {
     "Access-Control-Allow-Origin": allowed && origin ? origin : "null",
-    "Access-Control-Allow-Headers":
-      "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
   };
 }
@@ -28,104 +25,89 @@ function json(data: unknown, status: number, headers: Record<string, string>) {
   });
 }
 
-const BILLING_FALLBACK_REPLY = `L'assistant juridique IA est temporairement indisponible car le crédit API Anthropic est insuffisant.
+type ChatMessage = {
+  role: "user" | "assistant";
+  content: string;
+};
 
-La page Vos droits reste accessible, mais les réponses automatiques sont suspendues pour le moment.
+function normalize(value: string) {
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
 
-Pour une question urgente ou personnalisée, contactez directement un représentant FO COM via la page Contact ou l'espace Réclamations.`;
+function hasAny(text: string, words: string[]) {
+  const normalized = normalize(text);
+  return words.some((word) => normalized.includes(normalize(word)));
+}
+
+function internalReply(question: string) {
+  if (hasAny(question, ["teletravail", "télétravail", "tt", "distance"])) {
+    return `Télétravail\n\nVotre question concerne le télétravail. Les points à vérifier sont généralement : l'éligibilité, le nombre de jours autorisés, les modalités de demande, les éventuels refus et le respect du droit à la déconnexion.\n\nPour une réponse adaptée à votre situation dans l'UES ILIAD, contactez FO COM via la page Contact ou Mes réclamations.`;
+  }
+
+  if (hasAny(question, ["maladie", "arret", "arrêt", "maintien", "absence", "ijss", "salaire"])) {
+    return `Arrêt maladie / maintien de salaire\n\nVotre question concerne un arrêt maladie ou le maintien de salaire. Les points à vérifier sont : dates d'arrêt, ancienneté, indemnités journalières, maintien employeur, prévoyance et éventuelle erreur sur bulletin de paie.\n\nPour contrôler précisément votre situation, transmettez les éléments à FO COM via Mes réclamations.`;
+  }
+
+  if (hasAny(question, ["harcelement", "harcèlement", "pression", "discrimination", "rps", "stress"])) {
+    return `Situation sensible au travail\n\nVotre question semble concerner une situation de pression, de discrimination, de harcèlement ou de risques psychosociaux. Il est important de garder des traces factuelles : dates, messages, témoins, mails et événements précis.\n\nNe restez pas seul : contactez rapidement un représentant FO COM, la médecine du travail ou utilisez Mes réclamations.`;
+  }
+
+  if (hasAny(question, ["licenciement", "rupture", "preavis", "préavis", "sanction", "avertissement", "disciplinaire"])) {
+    return `Rupture / sanction\n\nVotre question concerne probablement une rupture du contrat ou une procédure disciplinaire. Les points importants sont : documents reçus, délais, entretien éventuel, motif écrit, conséquences sur salaire, préavis et solde de tout compte.\n\nAvant de signer ou contester un document, contactez FO COM pour un accompagnement personnalisé.`;
+  }
+
+  if (hasAny(question, ["prime", "salaire", "augmentation", "nao", "variable", "remuneration", "rémunération"])) {
+    return `Rémunération / primes\n\nVotre question concerne la rémunération. Il faut comparer : contrat de travail, bulletin de paie, règles de prime, objectifs éventuels, accords NAO et pratiques appliquées.\n\nEn cas d'écart ou d'incompréhension, FO COM peut vous aider à vérifier les éléments.`;
+  }
+
+  if (hasAny(question, ["conge", "congé", "cp", "rtt", "vacances", "absence"])) {
+    return `Congés / absences\n\nVotre question concerne les congés ou absences. Les points à vérifier sont : compteurs, demande écrite, validation ou refus, délais internes, jours spécifiques et impact paie.\n\nEn cas de refus ou d'anomalie, demandez une trace écrite et contactez FO COM.`;
+  }
+
+  if (hasAny(question, ["formation", "cpf", "vae", "gepp", "evolution", "évolution", "competence", "compétence"])) {
+    return `Formation / parcours professionnel\n\nVotre question concerne la formation ou l'évolution professionnelle. Les sujets utiles sont : CPF, entretien professionnel, bilan de compétences, VAE, GEPP et demandes de formation.\n\nFO COM peut vous aider à préparer une demande écrite ou à vérifier vos droits.`;
+  }
+
+  return `Assistant juridique interne FO COM\n\nJe fonctionne actuellement en mode interne, sans appel à une API IA externe. Je peux orienter sur les principaux thèmes : télétravail, arrêt maladie, rémunération, congés, sanction, rupture, formation, harcèlement, discrimination ou risques psychosociaux.\n\nReformulez votre question avec quelques mots-clés, ou contactez directement FO COM via la page Contact ou Mes réclamations pour une analyse personnalisée.`;
+}
 
 Deno.serve(async (req) => {
   const origin = req.headers.get("origin");
   const corsHeaders = getCorsHeaders(origin);
 
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
-
-  if (req.method !== "POST") {
-    return json({ error: "Méthode non autorisée" }, 405, corsHeaders);
-  }
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method !== "POST") return json({ error: "Méthode non autorisée" }, 405, corsHeaders);
 
   try {
-    const { messages, ccntContext } = await req.json();
+    const { messages } = await req.json();
 
-    if (!messages || !Array.isArray(messages)) {
+    if (!Array.isArray(messages)) {
       return json({ error: "Messages requis" }, 400, corsHeaders);
     }
 
-    const safeMessages = messages
-      .filter((m: { role?: string; content?: string }) =>
-        (m.role === "user" || m.role === "assistant") && typeof m.content === "string" && m.content.trim().length > 0,
+    const safeMessages: ChatMessage[] = messages
+      .filter((message: { role?: string; content?: string }) =>
+        (message.role === "user" || message.role === "assistant") &&
+        typeof message.content === "string" &&
+        message.content.trim().length > 0,
       )
-      .map((m: { role: string; content: string }) => ({
-        role: m.role,
-        content: m.content,
+      .map((message: { role: "user" | "assistant"; content: string }) => ({
+        role: message.role,
+        content: message.content.trim(),
       }));
 
-    if (safeMessages.length === 0) {
-      return json({ error: "Message vide" }, 400, corsHeaders);
+    const lastUserMessage = [...safeMessages].reverse().find((message) => message.role === "user");
+
+    if (!lastUserMessage) {
+      return json({ error: "Message utilisateur requis" }, 400, corsHeaders);
     }
 
-    const systemPrompt = [
-      "Tu es un assistant juridique expert en droit du travail français, au service des salariés du groupe Iliad (Free, Free Mobile, Free Réseau, Alice, etc.) affiliés au syndicat FO COM UES ILIAD (FOCOM).",
-      "",
-      "Tes connaissances couvrent :",
-      "- Le Code du travail français",
-      "- La Convention Collective Nationale des Télécommunications (CCNT, IDCC 2148)",
-      "- Les accords d'entreprise UES Iliad (astreintes, temps de travail, nuit, télétravail, etc.)",
-      "- La jurisprudence sociale récente",
-      "",
-      ccntContext ? `Contexte spécifique à cette thématique :\n${ccntContext}` : "",
-      "",
-      "Règles impératives :",
-      "- Réponds toujours en français",
-      "- Sois précis, concis et bienveillant",
-      "- Cite les articles du Code du travail ou de la CCNT lorsque c'est pertinent",
-      "- Mentionne si l'accord Iliad est plus favorable que la CCNT ou la loi",
-      "- Ne fournis jamais de consultation juridique officielle — oriente vers un délégué FOCOM pour les cas complexes",
-      "- Si tu n'as pas l'information, dis-le clairement",
-    ]
-      .filter(Boolean)
-      .join("\n");
-
-    const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
-    if (!apiKey) {
-      return json({ error: "Clé ANTHROPIC_API_KEY manquante dans les secrets Supabase" }, 500, corsHeaders);
-    }
-
-    const model = Deno.env.get("ANTHROPIC_MODEL") ?? "claude-sonnet-4-20250514";
-
-    const response = await fetch(ANTHROPIC_API_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model,
-        max_tokens: 1024,
-        system: systemPrompt,
-        messages: safeMessages,
-      }),
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      const message = data?.error?.message ?? data?.message ?? "Erreur API Anthropic";
-      console.error("Anthropic chat-juridique error", { status: response.status, message, model });
-
-      if (message.toLowerCase().includes("credit balance is too low")) {
-        return json({ reply: BILLING_FALLBACK_REPLY, degraded: true, reason: "anthropic_billing" }, 200, corsHeaders);
-      }
-
-      return json({ error: message, status: response.status, model }, response.status, corsHeaders);
-    }
-
-    return json({ reply: data.content?.[0]?.text ?? "" }, 200, corsHeaders);
+    return json({ reply: internalReply(lastUserMessage.content), provider: "internal" }, 200, corsHeaders);
   } catch (error) {
-    console.error("chat-juridique server error", error);
+    console.error("chat-juridique internal error", error);
     return json({ error: "Erreur serveur chat-juridique" }, 500, corsHeaders);
   }
 });
