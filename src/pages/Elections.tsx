@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import {
   Vote,
   Users,
-  Calendar,
   CheckCircle,
   AlertTriangle,
   TrendingUp,
@@ -17,6 +16,7 @@ import {
   BarChart3,
   Handshake,
   Info,
+  MessageSquare,
 } from 'lucide-react';
 
 const FO_COLOR = '#E05C1F';
@@ -172,7 +172,7 @@ const Elections = () => {
                 <Link to="/bilan-mandat"><FileText className="mr-2 h-4 w-4" /> Voir le bilan FO COM</Link>
               </Button>
               <Button asChild variant="outline" className="border-white/30 bg-white/10 text-white hover:bg-white/20">
-                <Link to="/actualites"><NewspaperIcon /> Suivre les actualités</Link>
+                <Link to="/actualites"><TrendingUp className="mr-2 h-4 w-4" /> Suivre les actualités</Link>
               </Button>
             </div>
           </div>
@@ -342,7 +342,7 @@ const Elections = () => {
         {[
           { title: 'Lire le bilan de mandat', text: 'Comprendre les actions menées et les priorités défendues.', href: '/bilan-mandat', icon: FileText },
           { title: 'Suivre les actualités', text: 'Rester informé des suites du scrutin et des négociations.', href: '/actualites', icon: TrendingUp },
-          { title: 'Faire une demande', text: 'Contacter FO COM ou transmettre un document via la messagerie.', href: '/mes-reclamations', icon: MessageSquareIcon },
+          { title: 'Faire une demande', text: 'Contacter FO COM ou transmettre un document via la messagerie.', href: '/mes-reclamations', icon: MessageSquare },
         ].map((item) => (
           <Link key={item.title} to={item.href} className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-teal-200 hover:shadow-md">
             <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-teal-50 text-teal-600">
@@ -359,8 +359,5 @@ const Elections = () => {
     </main>
   );
 };
-
-const NewspaperIcon = () => <TrendingUp className="mr-2 h-4 w-4" />;
-const MessageSquareIcon = MessageSquare;
 
 export default Elections;
