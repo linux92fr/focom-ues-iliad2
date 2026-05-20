@@ -11,40 +11,76 @@ const json = (data: unknown, status = 200) =>
   });
 
 function wrapHtml(bodyHtml: string, unsubUrl: string, siteUrl: string): string {
+  const displayUrl = siteUrl.replace("https://", "").replace("http://", "");
+
   return `<!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FO COM UES ILIAD</title>
 </head>
-<body style="margin:0;padding:0;background:#f8fafc;font-family:Arial,Helvetica,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;padding:32px 16px;">
-    <tr><td>
-      <table width="600" align="center" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);max-width:100%;">
-        <tr>
-          <td style="background:#dc2626;padding:24px 40px;text-align:center;">
-            <h1 style="color:#ffffff;margin:0;font-size:20px;font-weight:700;">FO COM UES ILIAD</h1>
-          </td>
-        </tr>
-        <tr>
-          <td style="padding:40px;color:#475569;line-height:1.7;">
-            ${bodyHtml}
-          </td>
-        </tr>
-        <tr>
-          <td style="background:#f1f5f9;padding:20px 40px;text-align:center;border-top:1px solid #e2e8f0;">
-            <p style="color:#94a3b8;font-size:12px;margin:0 0 6px;">
-              Vous recevez cet email car vous êtes abonné à la newsletter FO COM UES ILIAD.
-            </p>
-            <p style="margin:0;">
-              <a href="${unsubUrl}" style="color:#dc2626;font-size:12px;">Se désabonner</a>
-              &nbsp;·&nbsp;
-              <a href="${siteUrl}" style="color:#94a3b8;font-size:12px;">${siteUrl.replace("https://", "")}</a>
-            </p>
-          </td>
-        </tr>
-      </table>
-    </td></tr>
+<body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,Helvetica,sans-serif;color:#1f2937;">
+  <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:#f3f4f6;padding:28px 12px;">
+    <tr>
+      <td align="center">
+        <table width="640" cellpadding="0" cellspacing="0" role="presentation" style="width:640px;max-width:100%;background:#ffffff;border-radius:22px;overflow:hidden;border:1px solid #e5e7eb;box-shadow:0 18px 45px rgba(15,23,42,0.12);">
+          <tr>
+            <td style="background:linear-gradient(135deg,#8e0000 0%,#c62828 45%,#ff5f52 100%);padding:30px 34px 26px;">
+              <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+                <tr>
+                  <td style="vertical-align:middle;">
+                    <div style="display:inline-block;background:#ffffff;color:#c62828;font-weight:900;font-size:22px;line-height:1;border-radius:16px;padding:13px 16px;letter-spacing:-0.5px;">FO</div>
+                    <div style="display:inline-block;vertical-align:middle;margin-left:12px;">
+                      <p style="margin:0;color:#ffffff;font-size:20px;font-weight:900;letter-spacing:-0.3px;">FO COM UES ILIAD</p>
+                      <p style="margin:5px 0 0;color:rgba(255,255,255,0.86);font-size:13px;font-weight:600;">Informer · Défendre · Agir</p>
+                    </div>
+                  </td>
+                </tr>
+              </table>
+              <div style="margin-top:26px;padding-top:18px;border-top:1px solid rgba(255,255,255,0.28);">
+                <p style="margin:0;color:#ffffff;font-size:28px;line-height:1.2;font-weight:900;letter-spacing:-0.7px;">Newsletter FO COM</p>
+                <p style="margin:8px 0 0;color:rgba(255,255,255,0.88);font-size:14px;line-height:1.5;">L’essentiel de l’actualité sociale et syndicale du groupe ILIAD.</p>
+              </div>
+            </td>
+          </tr>
+
+          <tr>
+            <td style="padding:32px 34px 18px;background:#ffffff;">
+              <div style="border-left:5px solid #c62828;background:#fff7f7;border-radius:0 16px 16px 0;padding:14px 18px;margin-bottom:24px;">
+                <p style="margin:0;color:#8e0000;font-size:13px;line-height:1.5;font-weight:700;">Message envoyé aux abonnés de la newsletter FO COM UES ILIAD.</p>
+              </div>
+
+              <div style="font-size:16px;line-height:1.75;color:#334155;">
+                ${bodyHtml}
+              </div>
+
+              <div style="text-align:center;margin:30px 0 10px;">
+                <a href="${siteUrl}" style="display:inline-block;background:#c62828;color:#ffffff;text-decoration:none;font-weight:800;font-size:14px;border-radius:999px;padding:13px 22px;box-shadow:0 8px 18px rgba(198,40,40,0.25);">Accéder au site FO COM</a>
+              </div>
+            </td>
+          </tr>
+
+          <tr>
+            <td style="padding:22px 34px;background:#111827;color:#d1d5db;">
+              <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+                <tr>
+                  <td style="font-size:12px;line-height:1.6;color:#d1d5db;">
+                    <p style="margin:0 0 8px;font-weight:800;color:#ffffff;">FO COM UES ILIAD</p>
+                    <p style="margin:0;color:#9ca3af;">Vous recevez cet email car vous êtes abonné à notre newsletter.</p>
+                    <p style="margin:10px 0 0;">
+                      <a href="${siteUrl}" style="color:#ffffff;text-decoration:none;font-weight:700;">${displayUrl}</a>
+                      <span style="color:#6b7280;"> · </span>
+                      <a href="${unsubUrl}" style="color:#ffb4b4;text-decoration:underline;">Se désabonner</a>
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
   </table>
 </body>
 </html>`;
