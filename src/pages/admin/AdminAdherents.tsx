@@ -65,17 +65,31 @@ export default function AdminAdherents() {
   const updateMutation = useMutation({
     mutationFn: async ({ profile, updates, roles }: { profile: ProfileWithRoles; updates: Partial<Profile>; roles: UserRole[] }) => {
       const currentRoles = profile.roles || [];
-      if (currentRoles.includes("admin" as UserRole) && !roles.includes("admin" as UserRole) && adminCount <= 1) {
-        throw new Error("Impossible de retirer le rôle Admin au dernier administrateur.");
-      }
       if (roles.length === 0) throw new Error("Sélectionnez au moins un rôle.");
+
+      const removesAdmin = currentRoles.includes("admin" as UserRole) && !roles.includes("admin" as UserRole);
+      if (removesAdmin) {
+        const { count, error: countError } = await supabase
+          .from("user_roles")
+          .select("id", { count: "exact", head: true })
+          .eq("role", "admin");
+        if (countError) throw countError;
+        if ((count ?? 0) <= 1) throw new Error("Impossible de retirer le rôle Admin au dernier administrateur.");
+      }
 
       const { data: { user } } = await supabase.auth.getUser();
       const { error: profileError } = await supabase.from("profiles").update(updates).eq("id", profile.id);
       if (profileError) throw profileError;
 
-      const toRemove = currentRoles.filter((role) => !roles.includes(role));
-      const toAdd = roles.filter((role) => !currentRoles.includes(role));
+      const { data: freshRolesData, error: freshRolesError } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", profile.id);
+      if (freshRolesError) throw freshRolesError;
+      const freshRoles = (freshRolesData || []).map((row) => row.role as UserRole);
+
+      const toRemove = freshRoles.filter((role) => !roles.includes(role));
+      const toAdd = roles.filter((role) => !freshRoles.includes(role));
 
       if (toRemove.length > 0) {
         const { error } = await supabase.from("user_roles").delete().eq("user_id", profile.id).in("role", toRemove);
@@ -110,7 +124,14 @@ export default function AdminAdherents() {
     setEditForm({ phone: item.phone ?? "", status: item.status as MemberStatus, roles: item.roles?.length ? item.roles : ["adherent" as UserRole] });
     setModal({ mode: "edit", item });
   };
-  const toggleRole = (role: UserRole) => setEditForm((f) => ({ ...f, roles: f.roles.includes(role) ? f.roles.filter((r) => r !== role) : [...f.roles, role] }));
+  const isLastAdminBeingEdited = modal?.mode === "edit" && modal.item.roles?.includes("admin" as UserRole) && adminCount <= 1;
+  const toggleRole = (role: UserRole) => {
+    if (role === "admin" && isLastAdminBeingEdited && editForm.roles.includes("admin" as UserRole)) {
+      toast.error("Impossible de retirer le rôle Admin au dernier administrateur.");
+      return;
+    }
+    setEditForm((f) => ({ ...f, roles: f.roles.includes(role) ? f.roles.filter((r) => r !== role) : [...f.roles, role] }));
+  };
   const handleSave = () => {
     if (!modal) return;
     updateMutation.mutate({ profile: modal.item, updates: { phone: editForm.phone || null, status: editForm.status }, roles: editForm.roles });
@@ -141,7 +162,10 @@ export default function AdminAdherents() {
                   <div className="space-y-4">
                     <div className="space-y-1.5"><Label>Téléphone</Label><Input value={editForm.phone} onChange={(e) => setEditForm((f) => ({ ...f, phone: e.target.value }))} placeholder="06 00 00 00 00" /></div>
                     <div className="space-y-1.5"><Label>Statut</Label><Select value={editForm.status} onValueChange={(v) => setEditForm((f) => ({ ...f, status: v as MemberStatus }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="actif">Actif</SelectItem><SelectItem value="inactif">Inactif</SelectItem><SelectItem value="suspendu">Suspendu</SelectItem></SelectContent></Select></div>
-                    <div className="space-y-2"><Label>Rôles</Label><div className="grid grid-cols-2 gap-2">{roleOptions.map((role) => <label key={role} className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm cursor-pointer ${editForm.roles.includes(role) ? "border-red-200 bg-red-50 text-red-700" : "border-slate-200 bg-white text-slate-600"}`}><input type="checkbox" checked={editForm.roles.includes(role)} onChange={() => toggleRole(role)} className="h-4 w-4 rounded border-slate-300" />{roleLabel[role] || role}</label>)}</div><p className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg p-2">Protection active : le dernier administrateur ne peut pas perdre son rôle Admin.</p></div>
+                    <div className="space-y-2"><Label>Rôles</Label><div className="grid grid-cols-2 gap-2">{roleOptions.map((role) => {
+                      const disabledAdmin = role === "admin" && isLastAdminBeingEdited && editForm.roles.includes("admin" as UserRole);
+                      return <label key={role} className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm ${disabledAdmin ? "cursor-not-allowed opacity-60 border-slate-200 bg-slate-50 text-slate-500" : editForm.roles.includes(role) ? "cursor-pointer border-red-200 bg-red-50 text-red-700" : "cursor-pointer border-slate-200 bg-white text-slate-600"}`}><input type="checkbox" checked={editForm.roles.includes(role)} disabled={disabledAdmin} onChange={() => toggleRole(role)} className="h-4 w-4 rounded border-slate-300" />{roleLabel[role] || role}</label>;
+                    })}</div><p className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg p-2">Protection active : le dernier administrateur ne peut pas perdre son rôle Admin. La vérification est faite dans Supabase au moment de l'enregistrement.</p></div>
                   </div>
                 )}
               </div>
@@ -166,7 +190,7 @@ export default function AdminAdherents() {
 
         <Card className="border-slate-200 shadow-sm"><CardContent className="p-0">{isLoading ? <div className="flex items-center justify-center py-16"><Loader2 className="w-8 h-8 animate-spin text-red-600" /></div> : <div className="overflow-x-auto"><table className="w-full"><thead className="bg-slate-50 border-b border-slate-200"><tr>{["Adhérent", "Email", "Téléphone", "Statut", "Rôles", "Depuis", "Actions"].map((h, i) => <th key={h} className={`p-4 text-sm font-semibold text-slate-600 ${i === 6 ? "text-right" : "text-left"}`}>{h}</th>)}</tr></thead><tbody>{filtered.map((p) => <tr key={p.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors"><td className="p-4"><div className="flex items-center gap-3"><Avatar className="h-9 w-9"><AvatarFallback className="bg-red-100 text-red-600">{initials(p)}</AvatarFallback></Avatar><span className="font-medium text-slate-900 text-sm">{fullName(p)}</span></div></td><td className="p-4 text-sm text-slate-600">{p.email}</td><td className="p-4 text-sm text-slate-500">{p.phone || "—"}</td><td className="p-4"><Badge className={statusBadgeClass[p.status as MemberStatus] ?? "bg-slate-100 text-slate-600"}>{statusLabel[p.status as MemberStatus] ?? p.status}</Badge></td><td className="p-4"><RoleBadges roles={p.roles} /></td><td className="p-4 text-sm text-slate-500">{formatDate(p.created_at)}</td><td className="p-4"><div className="flex items-center justify-end gap-1"><Button variant="ghost" size="sm" onClick={() => openView(p)} title="Voir"><Eye className="w-4 h-4 text-slate-400 hover:text-teal-600" /></Button><Button variant="ghost" size="sm" onClick={() => openEdit(p)} title="Modifier"><Edit className="w-4 h-4 text-slate-400 hover:text-blue-600" /></Button></div></td></tr>)}</tbody></table>{filtered.length === 0 && <div className="text-center py-12"><Users className="w-12 h-12 text-slate-300 mx-auto mb-3" /><p className="text-slate-500">Aucun adhérent trouvé</p></div>}</div>}</CardContent></Card>
 
-        <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4 text-xs text-slate-500 flex gap-2"><Shield className="w-4 h-4 text-teal-600 flex-shrink-0" /><p>La gestion des rôles est active. Vérifiez toujours les droits après modification, surtout pour les rôles Admin, Secrétaire et Rédacteur.</p></div>
+        <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4 text-xs text-slate-500 flex gap-2"><Shield className="w-4 h-4 text-teal-600 flex-shrink-0" /><p>La gestion des rôles est active. La suppression du dernier rôle Admin est vérifiée directement dans Supabase avant modification.</p></div>
       </AdminLayout>
     </AdminAuthGuard>
   );
