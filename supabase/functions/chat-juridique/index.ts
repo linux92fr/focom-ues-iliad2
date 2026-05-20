@@ -28,6 +28,12 @@ function json(data: unknown, status: number, headers: Record<string, string>) {
   });
 }
 
+const BILLING_FALLBACK_REPLY = `L'assistant juridique IA est temporairement indisponible car le crédit API Anthropic est insuffisant.
+
+La page Vos droits reste accessible, mais les réponses automatiques sont suspendues pour le moment.
+
+Pour une question urgente ou personnalisée, contactez directement un représentant FO COM via la page Contact ou l'espace Réclamations.`;
+
 Deno.serve(async (req) => {
   const origin = req.headers.get("origin");
   const corsHeaders = getCorsHeaders(origin);
@@ -109,6 +115,11 @@ Deno.serve(async (req) => {
     if (!response.ok) {
       const message = data?.error?.message ?? data?.message ?? "Erreur API Anthropic";
       console.error("Anthropic chat-juridique error", { status: response.status, message, model });
+
+      if (message.toLowerCase().includes("credit balance is too low")) {
+        return json({ reply: BILLING_FALLBACK_REPLY, degraded: true, reason: "anthropic_billing" }, 200, corsHeaders);
+      }
+
       return json({ error: message, status: response.status, model }, response.status, corsHeaders);
     }
 
