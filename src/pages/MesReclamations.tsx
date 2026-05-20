@@ -187,16 +187,16 @@ export default function MesReclamations() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-extrabold text-slate-900 flex items-center gap-2">
-            <FolderOpen className="w-6 h-6 text-red-600" /> Mes réclamations
+            <FolderOpen className="w-6 h-6 text-red-600" /> Mes demandes
           </h1>
-          <p className="text-slate-500 text-sm mt-1">Suivez vos dossiers RH et juridiques, avec vos échanges FO COM.</p>
+          <p className="text-slate-500 text-sm mt-1">Suivez vos demandes, vos bulletins transmis et vos échanges avec FO COM.</p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={fetchReclamations} disabled={refreshing} className="gap-2">
             <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} /> Actualiser
           </Button>
           <Button onClick={() => setCreateOpen(true)} className="bg-red-600 hover:bg-red-700 text-white gap-2">
-            <Plus className="w-4 h-4" /> Nouvelle réclamation
+            <Plus className="w-4 h-4" /> Nouvelle demande
           </Button>
         </div>
       </div>
@@ -220,8 +220,8 @@ export default function MesReclamations() {
       ) : reclamations.length === 0 ? (
         <div className="text-center py-16 text-slate-400 rounded-2xl border border-dashed border-slate-200 bg-white">
           <FolderOpen className="w-12 h-12 mx-auto mb-3 opacity-40" />
-          <p className="font-medium">Aucune réclamation</p>
-          <p className="text-sm mt-1">Cliquez sur "Nouvelle réclamation" pour commencer.</p>
+          <p className="font-medium">Aucune demande</p>
+          <p className="text-sm mt-1">Cliquez sur "Nouvelle demande" pour transmettre un bulletin ou contacter FO COM.</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -272,14 +272,14 @@ export default function MesReclamations() {
 function CreateReclamationDialog({ open, onClose, fallbackUserId, fallbackUserEmail, onCreated }: { open: boolean; onClose: () => void; fallbackUserId: string; fallbackUserEmail: string; onCreated: () => void }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [category, setCategory] = useState("rh");
+  const [category, setCategory] = useState("autre");
   const [entity, setEntity] = useState("autre");
   const [priority, setPriority] = useState("normale");
   const [files, setFiles] = useState<File[]>([]);
   const [saving, setSaving] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const reset = () => { setTitle(""); setDescription(""); setCategory("rh"); setEntity("autre"); setPriority("normale"); setFiles([]); };
+  const reset = () => { setTitle(""); setDescription(""); setCategory("autre"); setEntity("autre"); setPriority("normale"); setFiles([]); };
 
   const addFiles = (selectedFiles: File[]) => {
     const validFiles: File[] = [];
@@ -356,7 +356,7 @@ function CreateReclamationDialog({ open, onClose, fallbackUserId, fallbackUserEm
       if (attErr) console.error("Erreur enregistrement pièce jointe", attErr);
     }
 
-    toast.success("Réclamation créée avec succès");
+    toast.success("Demande créée avec succès");
     reset();
     onCreated();
     onClose();
@@ -366,7 +366,7 @@ function CreateReclamationDialog({ open, onClose, fallbackUserId, fallbackUserEm
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) { reset(); onClose(); } }}>
       <DialogContent className="max-w-lg">
-        <DialogHeader><DialogTitle className="flex items-center gap-2"><FolderOpen className="w-5 h-5 text-red-600" />Nouvelle réclamation</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle className="flex items-center gap-2"><FolderOpen className="w-5 h-5 text-red-600" />Nouvelle demande</DialogTitle></DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 mt-2">
           <div className="rounded-lg bg-teal-50 border border-teal-100 p-3 text-xs text-teal-900">
             Décrivez votre situation avec des éléments factuels. Les pièces jointes sont privées et visibles uniquement par vous et les représentants habilités.
@@ -382,7 +382,7 @@ function CreateReclamationDialog({ open, onClose, fallbackUserId, fallbackUserEm
             <Label>Pièces jointes</Label>
             <input ref={fileRef} type="file" multiple accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.webp,.txt" className="hidden" onChange={e => addFiles(Array.from(e.target.files ?? []))} />
             <button type="button" onClick={() => fileRef.current?.click()} className="mt-1 w-full border-2 border-dashed border-slate-200 rounded-lg py-3 text-sm text-slate-500 hover:border-teal-300 hover:text-teal-700 transition-colors flex items-center justify-center gap-2">
-              <Paperclip className="w-4 h-4" /> Ajouter des fichiers, 10 Mo max
+              <Paperclip className="w-4 h-4" /> Ajouter un bulletin PDF ou une pièce jointe, 10 Mo max
             </button>
             {files.length > 0 && <ul className="mt-2 space-y-1">{files.map((f, i) => <li key={`${f.name}-${i}`} className="flex items-center justify-between text-xs text-slate-600 bg-slate-50 rounded px-3 py-1.5"><span className="truncate">{f.name} · {fmtSize(f.size)}</span><button type="button" onClick={() => setFiles(prev => prev.filter((_, j) => j !== i))} className="ml-2 text-slate-400 hover:text-red-500 flex-shrink-0">✕</button></li>)}</ul>}
           </div>
