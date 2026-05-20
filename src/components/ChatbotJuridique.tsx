@@ -24,16 +24,16 @@ export default function ChatbotJuridique({ initialQuestion, ccntContext, themeId
     return newId;
   });
 
-  const [messages, setMessages]         = useState<Message[]>([]);
-  const [input, setInput]               = useState("");
-  const [loading, setLoading]           = useState(false);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(true);
-  const [error, setError]               = useState<string | null>(null);
-  const [feedback, setFeedback]         = useState<Record<number, "up" | "down">>({});
-  const bottomRef  = useRef<HTMLDivElement>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<Record<number, "up" | "down">>({});
+  const bottomRef = useRef<HTMLDivElement>(null);
   const sentInitial = useRef(false);
+  const sessionIdRef = useRef(sessionId);
 
-  // ── Load history + feedback on mount ──────────────────────────────────────
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -77,15 +77,31 @@ export default function ChatbotJuridique({ initialQuestion, ccntContext, themeId
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialQuestion, historyLoading]);
 
-  // ── Persist session ────────────────────────────────────────────────────────
   const saveSession = async (msgs: Message[]) => {
     await supabase.from("chat_sessions").upsert(
-      { id: sessionId, theme_id: themeId ?? null, messages: msgs, updated_at: new Date().toISOString() },
+      { id: sessionIdRef.current, theme_id: themeId ?? null, messages: msgs, updated_at: new Date().toISOString() },
       { onConflict: "id" },
     );
   };
 
-  // ── Send message ───────────────────────────────────────────────────────────
+  const getInvokeErrorMessage = async (fnError: unknown) => {
+    const fallback = fnError instanceof Error ? fnError.message : "Erreur Edge Function";
+    const context = (fnError as { context?: Response } | null)?.context;
+    if (!context) return fallback;
+
+    try {
+      const payload = await context.clone().json();
+      return payload?.error || payload?.message || payload?.details || fallback;
+    } catch {
+      try {
+        const text = await context.text();
+        return text || fallback;
+      } catch {
+        return fallback;
+      }
+    }
+  };
+
   const sendMessage = async (text?: string) => {
     const content = (text ?? input).trim();
     if (!content || loading) return;
@@ -104,24 +120,30 @@ export default function ChatbotJuridique({ initialQuestion, ccntContext, themeId
         },
       });
 
-      if (fnError) throw new Error(fnError.message);
+      if (fnError) {
+        throw new Error(await getInvokeErrorMessage(fnError));
+      }
+
+      if (data?.error) {
+        throw new Error(data.error);
+      }
 
       const reply = data?.reply ?? "Je n'ai pas pu générer de réponse. Veuillez réessayer.";
       const final: Message[] = [...next, { role: "assistant", content: reply }];
       setMessages(final);
       await saveSession(final);
-    } catch {
-      setError("Une erreur s'est produite. Vérifiez votre connexion ou contactez un délégué FOCOM.");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Une erreur s'est produite.";
+      setError(message);
       setMessages([...next, {
         role: "assistant",
-        content: "Une erreur s'est produite. Veuillez réessayer ou contacter directement un délégué FOCOM.",
+        content: `Erreur assistant juridique : ${message}`,
       }]);
     } finally {
       setLoading(false);
     }
   };
 
-  // ── Feedback ───────────────────────────────────────────────────────────────
   const handleFeedback = async (msgIndex: number, rating: "up" | "down") => {
     const current = feedback[msgIndex];
     const next = current === rating ? null : rating;
@@ -136,36 +158,25 @@ export default function ChatbotJuridique({ initialQuestion, ccntContext, themeId
     if (next === null) {
       await supabase.from("chat_feedback")
         .delete()
-        .eq("session_id", sessionId)
+        .eq("session_id", sessionIdRef.current)
         .eq("message_index", msgIndex);
     } else {
       await supabase.from("chat_feedback").upsert(
-        { session_id: sessionId, message_index: msgIndex, rating: next },
+        { session_id: sessionIdRef.current, message_index: msgIndex, rating: next },
         { onConflict: "session_id,message_index" },
       );
     }
   };
 
-  // ── Reset ──────────────────────────────────────────────────────────────────
   const handleReset = () => {
     const newId = crypto.randomUUID();
     localStorage.setItem(`chatSession_${themeKey}`, newId);
-    // Force remount by navigating — parent uses key prop, so just clear local state
+    sessionIdRef.current = newId;
     setMessages([]);
     setFeedback({});
     setError(null);
     sentInitial.current = false;
-    // Store the new session id for the next interaction
-    (window as unknown as Record<string, unknown>)[`__chatSessionId_${themeKey}`] = newId;
-    // Reload is not ideal; instead patch sessionId via ref trick
-    // Since sessionId is derived from localStorage at init, next sendMessage will use old id.
-    // Simplest correct fix: reload the component via parent key change.
-    // Here we patch localStorage and the closure by using a ref.
-    sessionIdRef.current = newId;
   };
-
-  // Keep a mutable ref so handleReset can update it without needing to remount
-  const sessionIdRef = useRef(sessionId);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -183,8 +194,6 @@ export default function ChatbotJuridique({ initialQuestion, ccntContext, themeId
 
   return (
     <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
-
-      {/* En-tête */}
       <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-muted/30">
         <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
           <Bot className="w-4 h-4 text-primary-foreground" />
@@ -200,7 +209,6 @@ export default function ChatbotJuridique({ initialQuestion, ccntContext, themeId
         </div>
       </div>
 
-      {/* Erreur */}
       {error && (
         <div className="mx-4 mt-3 flex items-start gap-2 text-xs text-destructive bg-destructive/10 border border-destructive/20 rounded-lg px-3 py-2">
           <AlertCircle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
@@ -208,9 +216,7 @@ export default function ChatbotJuridique({ initialQuestion, ccntContext, themeId
         </div>
       )}
 
-      {/* Zone de messages */}
       <div className="h-80 overflow-y-auto p-4 space-y-4 bg-muted/10">
-
         {historyLoading ? (
           <div className="h-full flex items-center justify-center">
             <div className="flex gap-1 items-center">
@@ -263,7 +269,6 @@ export default function ChatbotJuridique({ initialQuestion, ccntContext, themeId
                 )}
               </div>
 
-              {/* Feedback thumbs under assistant messages */}
               {msg.role === "assistant" && (
                 <div className="flex gap-1 ml-9 mt-1.5">
                   <button
@@ -312,7 +317,6 @@ export default function ChatbotJuridique({ initialQuestion, ccntContext, themeId
         <div ref={bottomRef} />
       </div>
 
-      {/* Zone de saisie */}
       <div className="p-3 border-t border-border bg-background flex gap-2 items-end">
         {messages.length > 0 && (
           <button
