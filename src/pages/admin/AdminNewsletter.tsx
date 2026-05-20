@@ -245,7 +245,7 @@ export default function AdminNewsletter() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Non connecté");
 
-      const { data, error } = await supabase.functions.invoke("send-newsletter", {
+      const { data, error } = await supabase.functions.invoke("send-newsletter-selected", {
         body: { newsletterId, recipientEmails: selectedActiveEmails },
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
