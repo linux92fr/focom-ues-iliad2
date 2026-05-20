@@ -125,10 +125,7 @@ export default function AdminNewsletter() {
       const nextActive = !subscriber.is_active;
       const { error } = await supabase
         .from("newsletter_subscribers")
-        .update({
-          is_active: nextActive,
-          unsubscribed_at: nextActive ? null : new Date().toISOString(),
-        })
+        .update({ is_active: nextActive, unsubscribed_at: nextActive ? null : new Date().toISOString() })
         .eq("id", subscriber.id);
       if (error) throw error;
       return { email: subscriber.email, nextActive };
@@ -222,13 +219,20 @@ export default function AdminNewsletter() {
 
       if (error) {
         const context = (error as { context?: Response }).context;
-        if (context?.json) {
+        if (context) {
+          let details: unknown = null;
           try {
-            const details = await context.json();
-            throw new Error(details?.error || details?.message || error.message);
-          } catch { throw new Error(error.message); }
+            details = await context.clone().json();
+          } catch {
+            try { details = await context.text(); } catch { details = null; }
+          }
+          if (typeof details === "object" && details !== null) {
+            const payload = details as { error?: string; message?: string; details?: string };
+            throw new Error(payload.error || payload.message || payload.details || error.message);
+          }
+          if (typeof details === "string" && details.trim()) throw new Error(details);
         }
-        throw error;
+        throw new Error(error.message);
       }
 
       if (data?.error) throw new Error(data.error);
@@ -295,8 +299,7 @@ export default function AdminNewsletter() {
 
             {showForm && <Card className="mb-6 border-primary/20"><CardHeader className="pb-3 flex-row items-center justify-between"><CardTitle className="text-base">{editId ? "Modifier" : "Nouvelle newsletter"}</CardTitle><Button variant="ghost" size="sm" onClick={() => { setShowForm(false); setEditId(null); setShowPreview(false); }}><X className="w-4 h-4" /></Button></CardHeader><CardContent className="space-y-4"><div className="grid gap-4 md:grid-cols-2"><div className="space-y-1.5"><Label>Titre interne *</Label><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Ex: Newsletter mai 2026" /></div><div className="space-y-1.5"><Label>Sujet de l'email *</Label><Input value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} placeholder="Ex: Actualités FOCOM — Mai 2026" /></div></div><div className="space-y-1.5"><div className="flex items-center justify-between"><Label>Contenu HTML *</Label><Button variant="outline" size="sm" onClick={() => setShowPreview((v) => !v)} className="gap-1.5 text-xs h-7"><Eye className="w-3.5 h-3.5" />{showPreview ? "Masquer" : "Aperçu"}</Button></div><div className={showPreview ? "grid grid-cols-2 gap-4" : ""}><Textarea value={form.body_html} onChange={(e) => setForm({ ...form, body_html: e.target.value })} placeholder="<p>Bonjour,</p><p>Voici les dernières nouvelles...</p>" rows={12} className="font-mono text-sm" />{showPreview && <div className="border border-slate-200 rounded-lg overflow-hidden bg-white"><div className="px-3 py-2 bg-slate-50 border-b border-slate-200 text-xs text-slate-500 font-medium">Aperçu du contenu</div><div className="p-4 prose prose-sm max-w-none text-slate-700" dangerouslySetInnerHTML={{ __html: form.body_html }} /></div>}</div><p className="text-xs text-slate-400">Le contenu sera encadré automatiquement dans le template email FOCOM.</p></div><div className="flex justify-end gap-2 pt-2"><Button variant="outline" onClick={() => { setShowForm(false); setEditId(null); setShowPreview(false); }}>Annuler</Button><Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending} className="bg-red-600 hover:bg-red-700 text-white gap-2">{saveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}{editId ? "Enregistrer" : "Créer la newsletter"}</Button></div></CardContent></Card>}
             <div className="flex justify-end mb-4"><Button onClick={() => { setShowForm(true); setEditId(null); setForm(emptyForm()); }} className="bg-red-600 hover:bg-red-700 text-white gap-2"><Plus className="w-4 h-4" /> Nouvelle newsletter</Button></div>
-            <Card className="border-slate-200 shadow-sm"><CardContent className="p-0">{nlLoading ? <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 animate-spin text-red-600" /></div> : newsletters.length === 0 ? <div className="text-center py-10"><Mail className="w-10 h-10 text-slate-300 mx-auto mb-3" /><p className="text-slate-400 text-sm">Aucune newsletter créée</p></div> : <div className="divide-y divide-slate-100">{newsletters.map((nl) => { const isSending = sendingId === nl.id; return <div key={nl.id} className="flex items-center justify-between px-5 py-4 hover:bg-slate-50 transition-colors"><div className="flex-1 min-w-0 mr-4"><p className="font-medium text-slate-900 text-sm truncate">{nl.title}</p><p className="text-xs text-slate-500 truncate mt-0.5">{nl.subject}</p><p className="text-[10px] text-slate-400 mt-1">Modifiée {fmtDate(nl.updated_at)}</p></div><div className="flex items-center gap-1.5 flex-shrink-0"><Button variant="outline" size="sm" onClick={() => confirmSend(nl)} disabled={isSending || sendTargetCount === 0 || sendTargetCount > MAX_NEWSLETTER_RECIPIENTS} className="gap-1.5 text-xs" title={sendTargetCount === 0 ? "Aucun destinataire" : `Envoyer à ${sendTargetCount} destinataires`}>
-              {isSending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}{isSending ? "Envoi…" : `Envoyer (${sendTargetCount})`}</Button><Button variant="ghost" size="sm" onClick={() => openEdit(nl)}><Eye className="w-4 h-4 text-slate-400" /></Button><Button variant="ghost" size="sm" onClick={() => { if (window.confirm(`Supprimer "${nl.title}" ?`)) deleteNlMutation.mutate(nl.id); }}><Trash2 className="w-4 h-4 text-slate-400 hover:text-red-600" /></Button></div></div>; })}</div>}</CardContent></Card>
+            <Card className="border-slate-200 shadow-sm"><CardContent className="p-0">{nlLoading ? <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 animate-spin text-red-600" /></div> : newsletters.length === 0 ? <div className="text-center py-10"><Mail className="w-10 h-10 text-slate-300 mx-auto mb-3" /><p className="text-slate-400 text-sm">Aucune newsletter créée</p></div> : <div className="divide-y divide-slate-100">{newsletters.map((nl) => { const isSending = sendingId === nl.id; return <div key={nl.id} className="flex items-center justify-between px-5 py-4 hover:bg-slate-50 transition-colors"><div className="flex-1 min-w-0 mr-4"><p className="font-medium text-slate-900 text-sm truncate">{nl.title}</p><p className="text-xs text-slate-500 truncate mt-0.5">{nl.subject}</p><p className="text-[10px] text-slate-400 mt-1">Modifiée {fmtDate(nl.updated_at)}</p></div><div className="flex items-center gap-1.5 flex-shrink-0"><Button variant="outline" size="sm" onClick={() => confirmSend(nl)} disabled={isSending || sendTargetCount === 0 || sendTargetCount > MAX_NEWSLETTER_RECIPIENTS} className="gap-1.5 text-xs" title={sendTargetCount === 0 ? "Aucun destinataire" : `Envoyer à ${sendTargetCount} destinataires`}>{isSending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}{isSending ? "Envoi…" : `Envoyer (${sendTargetCount})`}</Button><Button variant="ghost" size="sm" onClick={() => openEdit(nl)}><Eye className="w-4 h-4 text-slate-400" /></Button><Button variant="ghost" size="sm" onClick={() => { if (window.confirm(`Supprimer "${nl.title}" ?`)) deleteNlMutation.mutate(nl.id); }}><Trash2 className="w-4 h-4 text-slate-400 hover:text-red-600" /></Button></div></div>; })}</div>}</CardContent></Card>
           </TabsContent>
 
           <TabsContent value="historique">
