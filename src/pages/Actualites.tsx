@@ -15,7 +15,7 @@ import {
 import { Calendar, Search, ArrowRight, Loader2 } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 
-type News = Tables<"news">;
+type Article = Tables<"articles">;
 
 const categoryLabels: Record<string, string> = {
   actualite: "Actualité",
@@ -35,7 +35,7 @@ const stripHtml = (html: string) =>
   html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 
 const Actualites = () => {
-  const [news, setNews] = useState<News[]>([]);
+  const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
@@ -43,15 +43,16 @@ const Actualites = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const { data } = await supabase
-          .from("news")
+        const { data, error } = await supabase
+          .from("articles")
           .select("*")
-          .eq("published", true)
-          .order("published_at", { ascending: false });
+          .eq("is_published", true)
+          .order("published_at", { ascending: false, nullsFirst: false });
 
-        if (data) setNews(data);
+        if (error) throw error;
+        setArticles(data || []);
       } catch (error) {
-        console.error("Error fetching data:", error);
+        console.error("Error fetching articles:", error);
       } finally {
         setLoading(false);
       }
@@ -60,12 +61,14 @@ const Actualites = () => {
     fetchData();
   }, []);
 
-  const filteredNews = news.filter((item) => {
-    const matchesSearch = (item.title || "")
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase());
-    const matchesCategory =
-      selectedCategory === "all" || item.category === selectedCategory;
+  const filteredArticles = articles.filter((item) => {
+    const q = searchQuery.toLowerCase();
+    const matchesSearch =
+      q === "" ||
+      (item.title || "").toLowerCase().includes(q) ||
+      (item.excerpt || "").toLowerCase().includes(q) ||
+      stripHtml(item.content || "").toLowerCase().includes(q);
+    const matchesCategory = selectedCategory === "all" || item.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
 
@@ -78,7 +81,7 @@ const Actualites = () => {
     });
   };
 
-  const getExcerpt = (item: News) => {
+  const getExcerpt = (item: Article) => {
     if (item.excerpt) return item.excerpt;
     if (!item.content) return "";
     return stripHtml(item.content).substring(0, 150);
@@ -86,8 +89,6 @@ const Actualites = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-
-      {/* Hero */}
       <section className="py-16 gradient-hero">
         <div className="container mx-auto px-4 text-center">
           <h1 className="font-serif text-4xl md:text-5xl font-bold text-primary-foreground mb-4">
@@ -99,7 +100,6 @@ const Actualites = () => {
         </div>
       </section>
 
-      {/* Filters */}
       <section className="py-8 bg-muted/30 border-b">
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row gap-4">
@@ -119,9 +119,7 @@ const Actualites = () => {
               <SelectContent>
                 <SelectItem value="all">Toutes les catégories</SelectItem>
                 {Object.entries(categoryLabels).map(([key, label]) => (
-                  <SelectItem key={key} value={key}>
-                    {label}
-                  </SelectItem>
+                  <SelectItem key={key} value={key}>{label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -129,40 +127,33 @@ const Actualites = () => {
         </div>
       </section>
 
-      {/* News List */}
       <main className="flex-grow py-12">
         <div className="container mx-auto px-4">
           {loading ? (
             <div className="flex justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
-          ) : filteredNews.length === 0 ? (
+          ) : filteredArticles.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-muted-foreground">Aucune actualité trouvée</p>
             </div>
           ) : (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {filteredNews.map((item) => (
-                <Card
-                  key={item.id}
-                  className="group overflow-hidden hover:shadow-lg transition-all duration-300"
-                >
+              {filteredArticles.map((item) => (
+                <Card key={item.id} className="group overflow-hidden hover:shadow-lg transition-all duration-300">
+                  {item.image_url && (
+                    <img src={item.image_url} alt="" className="w-full h-40 object-cover" loading="lazy" />
+                  )}
                   <CardContent className="p-6">
                     <div className="flex items-center gap-2 mb-3">
                       {item.category && categoryLabels[item.category] && (
-                        <Badge
-                          style={{
-                            backgroundColor:
-                              categoryColors[item.category] || "#dc2626",
-                            color: "white",
-                          }}
-                        >
+                        <Badge style={{ backgroundColor: categoryColors[item.category] || "#dc2626", color: "white" }}>
                           {categoryLabels[item.category]}
                         </Badge>
                       )}
                       <span className="text-xs text-muted-foreground flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
-                        {formatDate(item.published_at)}
+                        {formatDate(item.published_at || item.created_at)}
                       </span>
                     </div>
                     <h3 className="font-serif text-xl font-semibold text-foreground mb-3 group-hover:text-primary transition-colors line-clamp-2">
@@ -172,10 +163,7 @@ const Actualites = () => {
                       {getExcerpt(item)}...
                     </p>
                     <Link to={`/actualites/${item.slug}`}>
-                      <Button
-                        variant="link"
-                        className="p-0 h-auto text-primary font-medium group-hover:gap-3 transition-all"
-                      >
+                      <Button variant="link" className="p-0 h-auto text-primary font-medium group-hover:gap-3 transition-all">
                         Lire la suite
                         <ArrowRight className="h-4 w-4 ml-1" />
                       </Button>
@@ -187,7 +175,6 @@ const Actualites = () => {
           )}
         </div>
       </main>
-
     </div>
   );
 };
