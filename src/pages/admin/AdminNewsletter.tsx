@@ -52,6 +52,18 @@ const getErrorMessage = (err: unknown) => {
   return "Erreur inconnue";
 };
 
+const withTimeout = async <T,>(promise: Promise<T>, timeoutMs = 15000): Promise<T> => {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error("La requête a expiré. Vérifiez la connexion ou les règles Supabase.")), timeoutMs);
+  });
+  try {
+    return await Promise.race([promise, timeoutPromise]);
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
+};
+
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { label: string; className: string }> = {
     completed: { label: "Envoyée", className: "bg-green-100 text-green-700" },
@@ -162,17 +174,37 @@ export default function AdminNewsletter() {
       if (!form.title.trim()) throw new Error("Le titre est requis");
       if (!form.subject.trim()) throw new Error("Le sujet est requis");
       if (!form.body_html.trim()) throw new Error("Le contenu est requis");
+
+      const payload = {
+        title: form.title.trim(),
+        subject: form.subject.trim(),
+        body_html: form.body_html.trim(),
+        body_text: form.body_html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim(),
+      };
+
+      console.info("Sauvegarde newsletter", { editId, title: payload.title, subject: payload.subject });
+
       if (editId) {
-        const { error } = await supabase
-          .from("newsletters")
-          .update({ title: form.title, subject: form.subject, body_html: form.body_html })
-          .eq("id", editId);
-        if (error) throw error;
+        const { error } = await withTimeout(
+          supabase
+            .from("newsletters")
+            .update(payload)
+            .eq("id", editId),
+        );
+        if (error) {
+          console.error("Erreur update newsletter", error);
+          throw error;
+        }
       } else {
-        const { error } = await supabase
-          .from("newsletters")
-          .insert({ title: form.title, subject: form.subject, body_html: form.body_html });
-        if (error) throw error;
+        const { error } = await withTimeout(
+          supabase
+            .from("newsletters")
+            .insert(payload),
+        );
+        if (error) {
+          console.error("Erreur insert newsletter", error);
+          throw error;
+        }
       }
     },
     onSuccess: () => {
@@ -180,7 +212,11 @@ export default function AdminNewsletter() {
       toast.success(editId ? "Newsletter mise à jour" : "Newsletter créée");
       setShowForm(false); setEditId(null); setForm(emptyForm()); setShowPreview(false);
     },
-    onError: (err: Error) => toast.error(err.message),
+    onError: (err: unknown) => {
+      const message = getErrorMessage(err);
+      console.error("Échec sauvegarde newsletter", err);
+      toast.error(`Création impossible : ${message}`);
+    },
   });
 
   const deleteNlMutation = useMutation({
