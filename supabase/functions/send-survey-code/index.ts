@@ -3,7 +3,9 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Max-Age": "86400",
 };
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
@@ -13,9 +15,7 @@ const FROM_EMAIL = Deno.env.get("SURVEY_FROM_EMAIL") ?? "FO COM UES ILIAD <conta
 const HASH_SECRET = Deno.env.get("SURVEY_EMAIL_HASH_SECRET") ?? SERVICE_ROLE_KEY;
 const DEFAULT_DOMAIN = "iliad-free.fr";
 
-const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
-  auth: { persistSession: false },
-});
+const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 
 async function sha256(value: string) {
   const data = new TextEncoder().encode(value);
@@ -23,32 +23,17 @@ async function sha256(value: string) {
   return Array.from(new Uint8Array(hash)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-function normalizeEmail(email: string) {
-  return email.trim().toLowerCase();
-}
-
-function getDomain(email: string) {
-  return email.split("@").pop()?.toLowerCase() ?? "";
-}
-
-function generateCode() {
-  return String(Math.floor(100000 + Math.random() * 900000));
-}
-
-function json(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
-}
+function normalizeEmail(email: string) { return email.trim().toLowerCase(); }
+function getDomain(email: string) { return email.split("@").pop()?.toLowerCase() ?? ""; }
+function generateCode() { return String(Math.floor(100000 + Math.random() * 900000)); }
+function json(body: unknown, status = 200) { return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } }); }
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
   try {
     const { survey_id, email } = await req.json();
-
     if (!survey_id || !email) return json({ error: "survey_id et email sont requis" }, 400);
     if (!RESEND_API_KEY) return json({ error: "RESEND_API_KEY manquant" }, 500);
 
@@ -66,18 +51,12 @@ serve(async (req) => {
     const now = new Date();
     if (survey.starts_at && new Date(survey.starts_at) > now) return json({ error: "Ce sondage n’est pas encore ouvert" }, 400);
     if (survey.ends_at && new Date(survey.ends_at) < now) return json({ error: "Ce sondage est clôturé" }, 400);
-
-    if (survey.participation_mode === "adherents_only") {
-      return json({ error: "Ce sondage est réservé aux adhérents actifs" }, 403);
-    }
+    if (survey.participation_mode === "adherents_only") return json({ error: "Ce sondage est réservé aux adhérents actifs" }, 403);
 
     const allowedDomain = (survey.allowed_email_domain || DEFAULT_DOMAIN).replace(/^@/, "").toLowerCase();
-    if (getDomain(normalizedEmail) !== allowedDomain) {
-      return json({ error: `Adresse professionnelle @${allowedDomain} requise` }, 400);
-    }
+    if (getDomain(normalizedEmail) !== allowedDomain) return json({ error: `Adresse professionnelle @${allowedDomain} requise` }, 400);
 
     const emailHash = await sha256(`${normalizedEmail}:${HASH_SECRET}`);
-
     const { count: existingParticipantCount, error: existingParticipantError } = await supabase
       .from("survey_external_participants")
       .select("id", { count: "exact", head: true })
@@ -85,26 +64,18 @@ serve(async (req) => {
       .eq("email_hash", emailHash);
 
     if (existingParticipantError) throw existingParticipantError;
-    if ((existingParticipantCount ?? 0) > 0) {
-      return json({ error: "Une participation a déjà été enregistrée avec cette adresse professionnelle" }, 409);
-    }
+    if ((existingParticipantCount ?? 0) > 0) return json({ error: "Une participation a déjà été enregistrée avec cette adresse professionnelle" }, 409);
 
     const code = generateCode();
     const codeHash = await sha256(`${normalizedEmail}:${code}:${HASH_SECRET}`);
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
 
-    const { error: insertError } = await supabase
-      .from("survey_email_verifications")
-      .insert({ survey_id, email_hash: emailHash, code_hash: codeHash, expires_at: expiresAt });
-
+    const { error: insertError } = await supabase.from("survey_email_verifications").insert({ survey_id, email_hash: emailHash, code_hash: codeHash, expires_at: expiresAt });
     if (insertError) throw insertError;
 
     const resendResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
-      headers: {
-        "Authorization": `Bearer ${RESEND_API_KEY}`,
-        "Content-Type": "application/json",
-      },
+      headers: { "Authorization": `Bearer ${RESEND_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         from: FROM_EMAIL,
         to: [normalizedEmail],
@@ -124,11 +95,7 @@ serve(async (req) => {
     });
 
     const resendBody = await resendResponse.text();
-    if (!resendResponse.ok) {
-      console.error("Resend error", resendResponse.status, resendBody);
-      return json({ error: "Erreur lors de l’envoi du code" }, 502);
-    }
-
+    if (!resendResponse.ok) { console.error("Resend error", resendResponse.status, resendBody); return json({ error: "Erreur lors de l’envoi du code" }, 502); }
     return json({ success: true, message: "Code envoyé" });
   } catch (error) {
     console.error("send-survey-code error", error);
