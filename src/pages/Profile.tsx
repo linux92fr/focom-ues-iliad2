@@ -128,7 +128,7 @@ const Profile = () => {
         const { data: profileData } = await supabase
           .from("profiles")
           .select("*")
-          .eq("email", user.email)
+          .eq("id", user.id)
           .single();
 
         if (profileData) {
@@ -245,11 +245,14 @@ const Profile = () => {
     setSaving(true);
     try {
       if (profile) {
-        await supabase.from("profiles").update({
-          first_name: formData.first_name || null,
-          last_name: formData.last_name || null,
-          phone: formData.phone || null,
-        }).eq("email", user.email);
+        await supabase
+  .from("profiles")
+  .update({
+    first_name: formData.first_name.trim() || "",
+    last_name: formData.last_name.trim() || "",
+    phone: formData.phone.trim() || null,
+  })
+  .eq("id", profile.id);
       } else {
         await supabase.from("profiles").insert({
           email: user.email,
