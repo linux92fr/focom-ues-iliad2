@@ -19,35 +19,12 @@ type MemberStatus = "actif" | "inactif" | "suspendu";
 type ModalMode = "view" | "edit";
 type ProfileWithRoles = Profile & { roles?: UserRole[] };
 
-const statusLabel: Record<MemberStatus, string> = {
-  actif: "Actif",
-  inactif: "Inactif",
-  suspendu: "Suspendu",
-};
+const roleOptions: UserRole[] = ["adherent", "representant", "redacteur", "secretaire", "tresorier", "visio", "admin"];
 
-const statusBadgeClass: Record<MemberStatus, string> = {
-  actif: "bg-green-100 text-green-700",
-  inactif: "bg-slate-100 text-slate-600",
-  suspendu: "bg-red-100 text-red-600",
-};
-
-const roleLabel: Record<string, string> = {
-  admin: "Admin",
-  secretaire: "Secrétaire",
-  representant: "Représentant",
-  redacteur: "Rédacteur",
-  adherent: "Adhérent",
-  user: "Utilisateur",
-};
-
-const roleBadgeClass: Record<string, string> = {
-  admin: "bg-red-100 text-red-700",
-  secretaire: "bg-purple-100 text-purple-700",
-  representant: "bg-teal-100 text-teal-700",
-  redacteur: "bg-blue-100 text-blue-700",
-  adherent: "bg-green-100 text-green-700",
-  user: "bg-slate-100 text-slate-600",
-};
+const statusLabel: Record<MemberStatus, string> = { actif: "Actif", inactif: "Inactif", suspendu: "Suspendu" };
+const statusBadgeClass: Record<MemberStatus, string> = { actif: "bg-green-100 text-green-700", inactif: "bg-slate-100 text-slate-600", suspendu: "bg-red-100 text-red-600" };
+const roleLabel: Record<string, string> = { admin: "Admin", secretaire: "Secrétaire", representant: "Représentant", redacteur: "Rédacteur", adherent: "Adhérent", public: "Public", tresorier: "Trésorier", visio: "Visio" };
+const roleBadgeClass: Record<string, string> = { admin: "bg-red-100 text-red-700", secretaire: "bg-purple-100 text-purple-700", representant: "bg-teal-100 text-teal-700", redacteur: "bg-blue-100 text-blue-700", adherent: "bg-green-100 text-green-700", public: "bg-slate-100 text-slate-600", tresorier: "bg-amber-100 text-amber-700", visio: "bg-cyan-100 text-cyan-700" };
 
 const initials = (p: Profile) => `${p.first_name?.[0] ?? ""}${p.last_name?.[0] ?? ""}`.toUpperCase();
 const fullName = (p: Profile) => `${p.first_name || ""} ${p.last_name || ""}`.trim();
@@ -55,15 +32,7 @@ const formatDate = (iso: string) => new Date(iso).toLocaleDateString("fr-FR", { 
 
 function RoleBadges({ roles }: { roles?: UserRole[] }) {
   const list = roles?.length ? roles : ["adherent" as UserRole];
-  return (
-    <div className="flex flex-wrap gap-1.5">
-      {list.map((role) => (
-        <Badge key={role} className={`text-[10px] px-2 py-0.5 ${roleBadgeClass[role] || "bg-slate-100 text-slate-600"}`}>
-          {roleLabel[role] || role}
-        </Badge>
-      ))}
-    </div>
-  );
+  return <div className="flex flex-wrap gap-1.5">{list.map((role) => <Badge key={role} className={`text-[10px] px-2 py-0.5 ${roleBadgeClass[role] || "bg-slate-100 text-slate-600"}`}>{roleLabel[role] || role}</Badge>)}</div>;
 }
 
 export default function AdminAdherents() {
@@ -71,49 +40,61 @@ export default function AdminAdherents() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStatus, setSelectedStatus] = useState<"Tous" | MemberStatus>("Tous");
   const [modal, setModal] = useState<{ mode: ModalMode; item: ProfileWithRoles } | null>(null);
-  const [editForm, setEditForm] = useState<{ phone: string; status: MemberStatus }>({ phone: "", status: "actif" });
+  const [editForm, setEditForm] = useState<{ phone: string; status: MemberStatus; roles: UserRole[] }>({ phone: "", status: "actif", roles: [] });
 
   const { data: profiles = [], isLoading } = useQuery({
     queryKey: ["admin-adherents"],
     queryFn: async () => {
-      const { data: profilesData, error: profilesError } = await supabase
-        .from("profiles")
-        .select("*")
-        .order("last_name", { ascending: true });
+      const { data: profilesData, error: profilesError } = await supabase.from("profiles").select("*").order("last_name", { ascending: true });
       if (profilesError) throw profilesError;
-
-      const { data: rolesData, error: rolesError } = await supabase
-        .from("user_roles")
-        .select("user_id, role");
+      const { data: rolesData, error: rolesError } = await supabase.from("user_roles").select("user_id, role");
       if (rolesError) throw rolesError;
-
       const rolesByUser = new Map<string, UserRole[]>();
       (rolesData || []).forEach((row) => {
         const existing = rolesByUser.get(row.user_id) || [];
         existing.push(row.role as UserRole);
         rolesByUser.set(row.user_id, existing);
       });
-
-      return ((profilesData || []) as Profile[]).map((profile) => ({
-        ...profile,
-        roles: rolesByUser.get(profile.id) || [],
-      })) as ProfileWithRoles[];
+      return ((profilesData || []) as Profile[]).map((profile) => ({ ...profile, roles: rolesByUser.get(profile.id) || [] })) as ProfileWithRoles[];
     },
   });
 
+  const adminCount = profiles.filter((p) => p.roles?.includes("admin" as UserRole)).length;
+  const representantCount = profiles.filter((p) => p.roles?.includes("representant" as UserRole)).length;
+
   const updateMutation = useMutation({
-    mutationFn: async ({ id, updates }: { id: string; updates: Partial<Profile> }) => {
-      const { error } = await supabase.from("profiles").update(updates).eq("id", id);
-      if (error) throw error;
+    mutationFn: async ({ profile, updates, roles }: { profile: ProfileWithRoles; updates: Partial<Profile>; roles: UserRole[] }) => {
+      const currentRoles = profile.roles || [];
+      if (currentRoles.includes("admin" as UserRole) && !roles.includes("admin" as UserRole) && adminCount <= 1) {
+        throw new Error("Impossible de retirer le rôle Admin au dernier administrateur.");
+      }
+      if (roles.length === 0) throw new Error("Sélectionnez au moins un rôle.");
+
+      const { data: { user } } = await supabase.auth.getUser();
+      const { error: profileError } = await supabase.from("profiles").update(updates).eq("id", profile.id);
+      if (profileError) throw profileError;
+
+      const toRemove = currentRoles.filter((role) => !roles.includes(role));
+      const toAdd = roles.filter((role) => !currentRoles.includes(role));
+
+      if (toRemove.length > 0) {
+        const { error } = await supabase.from("user_roles").delete().eq("user_id", profile.id).in("role", toRemove);
+        if (error) throw error;
+      }
+      if (toAdd.length > 0) {
+        const rows = toAdd.map((role) => ({ user_id: profile.id, role, assigned_by: user?.id || null }));
+        const { error } = await supabase.from("user_roles").insert(rows as never);
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-adherents"] });
-      toast.success("Adhérent mis à jour");
+      toast.success("Adhérent et rôles mis à jour");
       setModal(null);
     },
     onError: (error) => {
       console.error("Erreur mise à jour adhérent", error);
-      toast.error("Erreur lors de la mise à jour");
+      toast.error(error instanceof Error ? error.message : "Erreur lors de la mise à jour");
     },
   });
 
@@ -121,35 +102,21 @@ export default function AdminAdherents() {
     const matchStatus = selectedStatus === "Tous" || p.status === selectedStatus;
     const q = searchQuery.toLowerCase();
     const rolesText = (p.roles || []).join(" ").toLowerCase();
-    const matchSearch =
-      !q ||
-      (p.first_name || "").toLowerCase().includes(q) ||
-      (p.last_name || "").toLowerCase().includes(q) ||
-      (p.email || "").toLowerCase().includes(q) ||
-      rolesText.includes(q);
-    return matchStatus && matchSearch;
+    return matchStatus && (!q || (p.first_name || "").toLowerCase().includes(q) || (p.last_name || "").toLowerCase().includes(q) || (p.email || "").toLowerCase().includes(q) || rolesText.includes(q));
   });
 
   const openView = (item: ProfileWithRoles) => setModal({ mode: "view", item });
-
   const openEdit = (item: ProfileWithRoles) => {
-    setEditForm({ phone: item.phone ?? "", status: item.status as MemberStatus });
+    setEditForm({ phone: item.phone ?? "", status: item.status as MemberStatus, roles: item.roles?.length ? item.roles : ["adherent" as UserRole] });
     setModal({ mode: "edit", item });
   };
-
+  const toggleRole = (role: UserRole) => setEditForm((f) => ({ ...f, roles: f.roles.includes(role) ? f.roles.filter((r) => r !== role) : [...f.roles, role] }));
   const handleSave = () => {
     if (!modal) return;
-    updateMutation.mutate({ id: modal.item.id, updates: { phone: editForm.phone || null, status: editForm.status } });
+    updateMutation.mutate({ profile: modal.item, updates: { phone: editForm.phone || null, status: editForm.status }, roles: editForm.roles });
   };
 
-  const statusCounts = {
-    actif: profiles.filter((p) => p.status === "actif").length,
-    inactif: profiles.filter((p) => p.status === "inactif").length,
-    suspendu: profiles.filter((p) => p.status === "suspendu").length,
-  };
-
-  const adminCount = profiles.filter((p) => p.roles?.includes("admin" as UserRole)).length;
-  const representantCount = profiles.filter((p) => p.roles?.includes("representant" as UserRole)).length;
+  const statusCounts = { actif: profiles.filter((p) => p.status === "actif").length, inactif: profiles.filter((p) => p.status === "inactif").length, suspendu: profiles.filter((p) => p.status === "suspendu").length };
 
   return (
     <AdminAuthGuard>
@@ -161,55 +128,23 @@ export default function AdminAdherents() {
                 <h3 className="font-bold text-slate-900">{modal.mode === "view" ? "Fiche adhérent" : "Modifier l'adhérent"}</h3>
                 <button onClick={() => setModal(null)} className="p-1.5 rounded-lg hover:bg-slate-100"><X className="w-4 h-4 text-slate-500" /></button>
               </div>
-
               <div className="p-6 space-y-4">
                 <div className="flex items-center gap-4 pb-4 border-b border-slate-100">
                   <Avatar className="h-14 w-14"><AvatarFallback className="bg-red-100 text-red-600 text-lg">{initials(modal.item)}</AvatarFallback></Avatar>
-                  <div>
-                    <p className="text-lg font-bold text-slate-900">{fullName(modal.item)}</p>
-                    <p className="text-sm text-slate-500">{modal.item.email}</p>
-                    <div className="mt-2"><RoleBadges roles={modal.item.roles} /></div>
-                  </div>
+                  <div><p className="text-lg font-bold text-slate-900">{fullName(modal.item)}</p><p className="text-sm text-slate-500">{modal.item.email}</p><div className="mt-2"><RoleBadges roles={modal.item.roles} /></div></div>
                 </div>
-
                 {modal.mode === "view" ? (
                   <div className="space-y-3">
-                    {[
-                      ["Téléphone", modal.item.phone || "—"],
-                      ["Statut", statusLabel[modal.item.status as MemberStatus] ?? modal.item.status],
-                      ["Membre depuis", formatDate(modal.item.created_at)],
-                      ["Identifiant", modal.item.id],
-                    ].map(([k, v]) => (
-                      <div key={k} className="flex justify-between gap-4 text-sm">
-                        <span className="text-slate-500">{k}</span>
-                        <span className="font-medium text-slate-900 text-right break-all">{v}</span>
-                      </div>
-                    ))}
-                    <div className="rounded-lg bg-amber-50 border border-amber-100 p-3 text-xs text-amber-700">
-                      Les rôles sont affichés ici à titre de contrôle. Leur modification sera ajoutée dans une étape séparée pour éviter toute erreur de droits.
-                    </div>
+                    {[["Téléphone", modal.item.phone || "—"], ["Statut", statusLabel[modal.item.status as MemberStatus] ?? modal.item.status], ["Membre depuis", formatDate(modal.item.created_at)], ["Identifiant", modal.item.id]].map(([k, v]) => <div key={k} className="flex justify-between gap-4 text-sm"><span className="text-slate-500">{k}</span><span className="font-medium text-slate-900 text-right break-all">{v}</span></div>)}
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    <div className="space-y-1.5">
-                      <Label>Téléphone</Label>
-                      <Input value={editForm.phone} onChange={(e) => setEditForm((f) => ({ ...f, phone: e.target.value }))} placeholder="06 00 00 00 00" />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label>Statut</Label>
-                      <Select value={editForm.status} onValueChange={(v) => setEditForm((f) => ({ ...f, status: v as MemberStatus }))}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="actif">Actif</SelectItem>
-                          <SelectItem value="inactif">Inactif</SelectItem>
-                          <SelectItem value="suspendu">Suspendu</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    <div className="space-y-1.5"><Label>Téléphone</Label><Input value={editForm.phone} onChange={(e) => setEditForm((f) => ({ ...f, phone: e.target.value }))} placeholder="06 00 00 00 00" /></div>
+                    <div className="space-y-1.5"><Label>Statut</Label><Select value={editForm.status} onValueChange={(v) => setEditForm((f) => ({ ...f, status: v as MemberStatus }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="actif">Actif</SelectItem><SelectItem value="inactif">Inactif</SelectItem><SelectItem value="suspendu">Suspendu</SelectItem></SelectContent></Select></div>
+                    <div className="space-y-2"><Label>Rôles</Label><div className="grid grid-cols-2 gap-2">{roleOptions.map((role) => <label key={role} className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm cursor-pointer ${editForm.roles.includes(role) ? "border-red-200 bg-red-50 text-red-700" : "border-slate-200 bg-white text-slate-600"}`}><input type="checkbox" checked={editForm.roles.includes(role)} onChange={() => toggleRole(role)} className="h-4 w-4 rounded border-slate-300" />{roleLabel[role] || role}</label>)}</div><p className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg p-2">Protection active : le dernier administrateur ne peut pas perdre son rôle Admin.</p></div>
                   </div>
                 )}
               </div>
-
               <div className="flex justify-end gap-2 px-6 py-4 border-t border-slate-100">
                 <Button variant="outline" onClick={() => setModal(null)}>Fermer</Button>
                 {modal.mode === "view" && <Button onClick={() => openEdit(modal.item)} className="bg-red-600 hover:bg-red-700 text-white gap-2"><Edit className="w-4 h-4" />Modifier</Button>}
@@ -220,68 +155,18 @@ export default function AdminAdherents() {
         )}
 
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-          {(["actif", "inactif", "suspendu"] as MemberStatus[]).map((s) => (
-            <Card key={s} className="border-slate-200 shadow-sm"><CardContent className="p-4 text-center"><p className="text-2xl font-bold text-slate-900">{statusCounts[s]}</p><p className="text-xs text-slate-500 mt-1">{statusLabel[s]}s</p></CardContent></Card>
-          ))}
+          {(["actif", "inactif", "suspendu"] as MemberStatus[]).map((s) => <Card key={s} className="border-slate-200 shadow-sm"><CardContent className="p-4 text-center"><p className="text-2xl font-bold text-slate-900">{statusCounts[s]}</p><p className="text-xs text-slate-500 mt-1">{statusLabel[s]}s</p></CardContent></Card>)}
           <Card className="border-slate-200 shadow-sm"><CardContent className="p-4 text-center"><p className="text-2xl font-bold text-slate-900">{adminCount}</p><p className="text-xs text-slate-500 mt-1">Admins</p></CardContent></Card>
           <Card className="border-slate-200 shadow-sm"><CardContent className="p-4 text-center"><p className="text-2xl font-bold text-slate-900">{representantCount}</p><p className="text-xs text-slate-500 mt-1">Représentants</p></CardContent></Card>
         </div>
 
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center"><Users className="w-5 h-5 text-red-600" /></div>
-            <div><h2 className="text-lg font-bold text-slate-900">Gestion des Adhérents</h2><p className="text-sm text-slate-500">{profiles.length} membres au total</p></div>
-          </div>
-        </div>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6"><div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center"><Users className="w-5 h-5 text-red-600" /></div><div><h2 className="text-lg font-bold text-slate-900">Gestion des Adhérents</h2><p className="text-sm text-slate-500">{profiles.length} membres au total</p></div></div></div>
 
-        <Card className="border-slate-200 shadow-sm mb-6">
-          <CardContent className="p-4">
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="flex-1 relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" /><Input placeholder="Rechercher nom, email ou rôle..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10" /></div>
-              <Button variant="outline" size="sm" onClick={() => { setSearchQuery(""); setSelectedStatus("Tous"); }} className="gap-2"><Filter className="w-4 h-4" />Réinitialiser</Button>
-            </div>
-            <div className="flex flex-wrap gap-2 mt-3">
-              {(["Tous", "actif", "inactif", "suspendu"] as const).map((s) => (
-                <button key={s} onClick={() => setSelectedStatus(s)} className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${selectedStatus === s ? "bg-red-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>{s === "Tous" ? "Tous" : statusLabel[s]}</button>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        <Card className="border-slate-200 shadow-sm mb-6"><CardContent className="p-4"><div className="flex flex-col sm:flex-row gap-3"><div className="flex-1 relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" /><Input placeholder="Rechercher nom, email ou rôle..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10" /></div><Button variant="outline" size="sm" onClick={() => { setSearchQuery(""); setSelectedStatus("Tous"); }} className="gap-2"><Filter className="w-4 h-4" />Réinitialiser</Button></div><div className="flex flex-wrap gap-2 mt-3">{(["Tous", "actif", "inactif", "suspendu"] as const).map((s) => <button key={s} onClick={() => setSelectedStatus(s)} className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${selectedStatus === s ? "bg-red-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>{s === "Tous" ? "Tous" : statusLabel[s]}</button>)}</div></CardContent></Card>
 
-        <Card className="border-slate-200 shadow-sm">
-          <CardContent className="p-0">
-            {isLoading ? (
-              <div className="flex items-center justify-center py-16"><Loader2 className="w-8 h-8 animate-spin text-red-600" /></div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-slate-50 border-b border-slate-200">
-                    <tr>{["Adhérent", "Email", "Téléphone", "Statut", "Rôles", "Depuis", "Actions"].map((h, i) => <th key={h} className={`p-4 text-sm font-semibold text-slate-600 ${i === 6 ? "text-right" : "text-left"}`}>{h}</th>)}</tr>
-                  </thead>
-                  <tbody>
-                    {filtered.map((p) => (
-                      <tr key={p.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                        <td className="p-4"><div className="flex items-center gap-3"><Avatar className="h-9 w-9"><AvatarFallback className="bg-red-100 text-red-600">{initials(p)}</AvatarFallback></Avatar><span className="font-medium text-slate-900 text-sm">{fullName(p)}</span></div></td>
-                        <td className="p-4 text-sm text-slate-600">{p.email}</td>
-                        <td className="p-4 text-sm text-slate-500">{p.phone || "—"}</td>
-                        <td className="p-4"><Badge className={statusBadgeClass[p.status as MemberStatus] ?? "bg-slate-100 text-slate-600"}>{statusLabel[p.status as MemberStatus] ?? p.status}</Badge></td>
-                        <td className="p-4"><RoleBadges roles={p.roles} /></td>
-                        <td className="p-4 text-sm text-slate-500">{formatDate(p.created_at)}</td>
-                        <td className="p-4"><div className="flex items-center justify-end gap-1"><Button variant="ghost" size="sm" onClick={() => openView(p)} title="Voir"><Eye className="w-4 h-4 text-slate-400 hover:text-teal-600" /></Button><Button variant="ghost" size="sm" onClick={() => openEdit(p)} title="Modifier"><Edit className="w-4 h-4 text-slate-400 hover:text-blue-600" /></Button></div></td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {filtered.length === 0 && <div className="text-center py-12"><Users className="w-12 h-12 text-slate-300 mx-auto mb-3" /><p className="text-slate-500">Aucun adhérent trouvé</p></div>}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <Card className="border-slate-200 shadow-sm"><CardContent className="p-0">{isLoading ? <div className="flex items-center justify-center py-16"><Loader2 className="w-8 h-8 animate-spin text-red-600" /></div> : <div className="overflow-x-auto"><table className="w-full"><thead className="bg-slate-50 border-b border-slate-200"><tr>{["Adhérent", "Email", "Téléphone", "Statut", "Rôles", "Depuis", "Actions"].map((h, i) => <th key={h} className={`p-4 text-sm font-semibold text-slate-600 ${i === 6 ? "text-right" : "text-left"}`}>{h}</th>)}</tr></thead><tbody>{filtered.map((p) => <tr key={p.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors"><td className="p-4"><div className="flex items-center gap-3"><Avatar className="h-9 w-9"><AvatarFallback className="bg-red-100 text-red-600">{initials(p)}</AvatarFallback></Avatar><span className="font-medium text-slate-900 text-sm">{fullName(p)}</span></div></td><td className="p-4 text-sm text-slate-600">{p.email}</td><td className="p-4 text-sm text-slate-500">{p.phone || "—"}</td><td className="p-4"><Badge className={statusBadgeClass[p.status as MemberStatus] ?? "bg-slate-100 text-slate-600"}>{statusLabel[p.status as MemberStatus] ?? p.status}</Badge></td><td className="p-4"><RoleBadges roles={p.roles} /></td><td className="p-4 text-sm text-slate-500">{formatDate(p.created_at)}</td><td className="p-4"><div className="flex items-center justify-end gap-1"><Button variant="ghost" size="sm" onClick={() => openView(p)} title="Voir"><Eye className="w-4 h-4 text-slate-400 hover:text-teal-600" /></Button><Button variant="ghost" size="sm" onClick={() => openEdit(p)} title="Modifier"><Edit className="w-4 h-4 text-slate-400 hover:text-blue-600" /></Button></div></td></tr>)}</tbody></table>{filtered.length === 0 && <div className="text-center py-12"><Users className="w-12 h-12 text-slate-300 mx-auto mb-3" /><p className="text-slate-500">Aucun adhérent trouvé</p></div>}</div>}</CardContent></Card>
 
-        <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4 text-xs text-slate-500 flex gap-2">
-          <Shield className="w-4 h-4 text-teal-600 flex-shrink-0" />
-          <p>Contrôle ajouté : les rôles sont maintenant visibles dans la liste et les fiches adhérents. La modification des rôles sera traitée séparément pour éviter toute mauvaise attribution de droits.</p>
-        </div>
+        <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4 text-xs text-slate-500 flex gap-2"><Shield className="w-4 h-4 text-teal-600 flex-shrink-0" /><p>La gestion des rôles est active. Vérifiez toujours les droits après modification, surtout pour les rôles Admin, Secrétaire et Rédacteur.</p></div>
       </AdminLayout>
     </AdminAuthGuard>
   );
