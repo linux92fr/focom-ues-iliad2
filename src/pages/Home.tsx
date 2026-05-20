@@ -26,14 +26,47 @@ import {
   ClipboardList,
   Sparkles,
   Trophy,
+  PenLine,
+  Download,
+  Send,
+  ArrowRight,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 const HERO_IMAGE = "https://d2xsxph8kpxj0f.cloudfront.net/310519663612648040/CNuRjrgGqWcQ7xt7rtMbHT/hero-banner-VHxfVX6tjRfujGise9ibwf.webp";
 const SOLIDARITY_IMAGE = "https://d2xsxph8kpxj0f.cloudfront.net/310519663612648040/CNuRjrgGqWcQ7xt7rtMbHT/solidarity-icon-GxfeM5FU9pzPmnbJUShvCH.webp";
 
-const DEFAULT_HERO_TITLE = "Ensemble, connectés, plus forts.";
-const DEFAULT_HERO_SUBTITLE = "FO COM UES ILIAD accompagne, informe et défend les salariés du groupe au quotidien.";
+const DEFAULT_HERO_TITLE = "Informer. Défendre. Agir ensemble.";
+const DEFAULT_HERO_SUBTITLE = "FO COM UES ILIAD accompagne les salariés du groupe : droits, adhésion, demandes, documents utiles et actualités sociales.";
+
+type LatestArticle = {
+  id: string;
+  title: string | null;
+  slug: string | null;
+  excerpt: string | null;
+  content: string | null;
+  category: string | null;
+  published_at: string | null;
+  created_at: string | null;
+};
+
+const categoryLabels: Record<string, string> = {
+  actualite: "Actualité",
+  communique: "Communiqué",
+  evenement: "Événement",
+  victoire: "Victoire syndicale",
+};
+
+const stripHtml = (html: string) => html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+
+const formatDate = (dateString: string | null) => {
+  if (!dateString) return "";
+  return new Date(dateString).toLocaleDateString("fr-FR", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+};
 
 function AnimatedCounter({ target, suffix = "" }: { target: number; suffix?: string }) {
   const [count, setCount] = useState(0);
@@ -92,6 +125,7 @@ export default function Home() {
   const navigate = useNavigate();
   const [heroTitle, setHeroTitle] = useState(DEFAULT_HERO_TITLE);
   const [heroSubtitle, setHeroSubtitle] = useState(DEFAULT_HERO_SUBTITLE);
+  const [latestArticles, setLatestArticles] = useState<LatestArticle[]>([]);
   const [nlEmail, setNlEmail] = useState("");
   const [nlStatus, setNlStatus] = useState<"idle" | "loading" | "success" | "error" | "duplicate">("idle");
 
@@ -111,6 +145,16 @@ export default function Home() {
             // garde les valeurs par défaut
           }
         }
+      });
+
+    supabase
+      .from("articles")
+      .select("id,title,slug,excerpt,content,category,published_at,created_at")
+      .eq("is_published", true)
+      .order("published_at", { ascending: false, nullsFirst: false })
+      .limit(3)
+      .then(({ data, error }) => {
+        if (!error && data) setLatestArticles(data as LatestArticle[]);
       });
   }, []);
 
@@ -147,6 +191,31 @@ export default function Home() {
     { icon: Newspaper, title: "Actualités", desc: "Suivre les dernières publications", href: "/actualites", accent: "bg-teal-50 text-teal-600" },
   ];
 
+  const journeyCards = [
+    {
+      title: "Je veux adhérer",
+      description: "Un parcours simple pour remplir, signer et transmettre votre bulletin officiel.",
+      href: "/adhesion",
+      color: "from-red-600 to-red-700",
+      steps: [
+        { icon: PenLine, label: "Remplir le formulaire" },
+        { icon: Download, label: "Télécharger le PDF" },
+        { icon: Send, label: "Transmettre via Mes demandes" },
+      ],
+    },
+    {
+      title: "J’ai une question ou un dossier",
+      description: "Consultez vos droits, préparez votre demande et échangez avec FO COM.",
+      href: "/mes-reclamations",
+      color: "from-teal-600 to-cyan-700",
+      steps: [
+        { icon: Scale, label: "Comprendre mes droits" },
+        { icon: ClipboardList, label: "Créer une demande" },
+        { icon: MessageSquare, label: "Suivre les échanges" },
+      ],
+    },
+  ];
+
   const focusCards = [
     {
       icon: Handshake,
@@ -171,11 +240,27 @@ export default function Home() {
     },
   ];
 
+  const fallbackArticles = [
+    { title: "NAO 2026 UES ILIAD : propositions insuffisantes face aux attentes des salariés", category: "Négociations", href: "/nao2026", date: "" },
+    { title: "Arrêts maladie : la suspicion plutôt que la prévention", category: "Vos droits", href: "/actualites", date: "" },
+    { title: "GEPP : comprendre l’accord et ses impacts", category: "Emploi", href: "/accords/gepp", date: "" },
+  ];
+
+  const articlesToDisplay = latestArticles.length > 0
+    ? latestArticles.map((article) => ({
+        title: article.title || "Actualité FO COM",
+        category: article.category ? categoryLabels[article.category] || article.category : "Actualité",
+        href: article.slug ? `/actualites/${article.slug}` : "/actualites",
+        date: formatDate(article.published_at || article.created_at),
+        excerpt: article.excerpt || (article.content ? stripHtml(article.content).slice(0, 120) : ""),
+      }))
+    : fallbackArticles;
+
   return (
     <main className="min-h-screen overflow-x-hidden bg-slate-50 p-3 sm:p-4 lg:p-8">
-      <section className="relative mb-6 overflow-hidden rounded-3xl bg-slate-950 shadow-xl">
-        <img src={HERO_IMAGE} alt="FO COM UES ILIAD" className="absolute inset-0 h-full w-full object-cover opacity-35" />
-        <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-slate-950/90 to-red-950/75" />
+      <section className="relative mb-6 overflow-hidden rounded-3xl bg-[#13233A] shadow-xl">
+        <img src={HERO_IMAGE} alt="FO COM UES ILIAD" className="absolute inset-0 h-full w-full object-cover opacity-30" />
+        <div className="absolute inset-0 bg-gradient-to-br from-[#13233A] via-[#13233A]/95 to-red-950/75" />
         <div className="relative grid gap-8 px-5 py-10 sm:px-8 lg:grid-cols-[1.15fr_0.85fr] lg:px-12 lg:py-14">
           <div className="flex flex-col justify-center">
             <div className="mb-4 inline-flex w-fit items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-white/85 backdrop-blur">
@@ -191,8 +276,11 @@ export default function Home() {
               <Button onClick={() => navigate("/adhesion")} className="bg-red-600 px-6 py-3 text-white hover:bg-red-700">
                 <UserPlus className="mr-2 h-4 w-4" /> Adhérer maintenant
               </Button>
-              <Button onClick={() => navigate("/vos-droits")} variant="outline" className="border-white/30 bg-white/10 px-6 py-3 text-white backdrop-blur hover:bg-white/20">
-                <Shield className="mr-2 h-4 w-4" /> Consulter mes droits
+              <Button onClick={() => navigate("/mes-reclamations")} variant="outline" className="border-white/30 bg-white/10 px-6 py-3 text-white backdrop-blur hover:bg-white/20">
+                <MessageSquare className="mr-2 h-4 w-4" /> Faire une demande
+              </Button>
+              <Button onClick={() => navigate("/vos-droits")} variant="outline" className="border-teal-300/40 bg-teal-500/10 px-6 py-3 text-white backdrop-blur hover:bg-teal-500/20">
+                <Shield className="mr-2 h-4 w-4" /> Mes droits
               </Button>
             </div>
           </div>
@@ -224,7 +312,7 @@ export default function Home() {
             <div>
               <p className="text-sm font-extrabold text-slate-900">Élections CSE 2026 : scrutin terminé</p>
               <p className="mt-1 text-sm text-slate-500">
-                L’appel au vote est retiré. L’accueil met désormais en avant le suivi du mandat, les droits, l’adhésion et vos demandes.
+                Merci pour votre mobilisation. FO COM poursuit son action dans les instances et auprès des salariés.
               </p>
             </div>
           </div>
@@ -246,6 +334,34 @@ export default function Home() {
                 <p className="mt-1 text-xs leading-relaxed text-slate-500">{item.desc}</p>
               </div>
               <ChevronRight className="ml-auto h-4 w-4 shrink-0 text-slate-300 group-hover:text-red-500" />
+            </div>
+          </Link>
+        ))}
+      </section>
+
+      <section className="mb-8 grid gap-5 lg:grid-cols-2">
+        {journeyCards.map((journey) => (
+          <Link key={journey.title} to={journey.href} className="group overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg">
+            <div className={`h-2 bg-gradient-to-r ${journey.color}`} />
+            <div className="p-5 sm:p-6">
+              <div className="mb-4 flex items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-xl font-extrabold text-slate-900 group-hover:text-red-600">{journey.title}</h2>
+                  <p className="mt-1 text-sm leading-relaxed text-slate-500">{journey.description}</p>
+                </div>
+                <ArrowRight className="h-5 w-5 shrink-0 text-slate-300 group-hover:text-red-500" />
+              </div>
+              <div className="grid gap-2 sm:grid-cols-3">
+                {journey.steps.map((step, index) => (
+                  <div key={step.label} className="rounded-2xl bg-slate-50 p-3">
+                    <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-xl bg-white text-slate-700 shadow-sm">
+                      <step.icon className="h-4 w-4" />
+                    </div>
+                    <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">Étape {index + 1}</p>
+                    <p className="mt-1 text-xs font-semibold text-slate-700">{step.label}</p>
+                  </div>
+                ))}
+              </div>
             </div>
           </Link>
         ))}
@@ -277,26 +393,25 @@ export default function Home() {
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
             <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h2 className="text-xl font-extrabold text-slate-900">Actualités & priorités</h2>
-                <p className="text-sm text-slate-500">Les sujets à suivre maintenant.</p>
+                <h2 className="text-xl font-extrabold text-slate-900">Actualités récentes</h2>
+                <p className="text-sm text-slate-500">Les dernières publications FO COM.</p>
               </div>
               <Link to="/actualites" className="inline-flex items-center gap-1 text-sm font-semibold text-red-600 hover:text-red-700">
                 Voir toutes les actualités <ChevronRight className="h-4 w-4" />
               </Link>
             </div>
             <div className="space-y-3">
-              {[
-                { title: "NAO 2026 UES ILIAD : propositions insuffisantes face aux attentes des salariés", category: "Négociations", href: "/nao2026" },
-                { title: "Arrêts maladie : la suspicion plutôt que la prévention", category: "Vos droits", href: "/actualites" },
-                { title: "GEPP : comprendre l’accord et ses impacts", category: "Emploi", href: "/accords/gepp" },
-              ].map((article) => (
+              {articlesToDisplay.map((article) => (
                 <Link key={article.title} to={article.href} className="flex items-center gap-4 rounded-xl border border-slate-100 p-3 transition-colors hover:bg-slate-50">
                   <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-600">
                     <FileText className="h-5 w-5" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="line-clamp-2 text-sm font-bold text-slate-900">{article.title}</p>
-                    <p className="mt-1 text-xs font-medium text-teal-600">{article.category}</p>
+                    {"excerpt" in article && article.excerpt && <p className="mt-1 line-clamp-1 text-xs text-slate-500">{article.excerpt}</p>}
+                    <p className="mt-1 text-xs font-medium text-teal-600">
+                      {article.category}{article.date ? ` · ${article.date}` : ""}
+                    </p>
                   </div>
                   <ChevronRight className="h-4 w-4 shrink-0 text-slate-300" />
                 </Link>
@@ -333,8 +448,8 @@ export default function Home() {
         <div className="space-y-6">
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
             <div className="mb-4 flex items-center justify-between gap-3">
-              <h2 className="text-base font-extrabold text-slate-900">Bilan de mandat 2022–2026</h2>
-              <Link to="/bilan-mandat" className="text-xs font-bold text-red-600">Voir</Link>
+              <h2 className="text-base font-extrabold text-slate-900">Nos actions concrètes</h2>
+              <Link to="/bilan-mandat" className="text-xs font-bold text-red-600">Bilan</Link>
             </div>
             <p className="mb-5 text-xs leading-relaxed text-slate-500">Un mandat d’actions, de présence terrain et de défense collective.</p>
             <div className="mb-6 grid grid-cols-2 gap-3">
@@ -400,8 +515,8 @@ export default function Home() {
             <Bell className="h-6 w-6 text-white" />
           </div>
           <div className="flex-1">
-            <h2 className="text-lg font-bold text-white">Restez informé avec notre newsletter</h2>
-            <p className="mt-1 text-sm text-slate-400">Recevez nos actualités, droits et informations syndicales directement par email.</p>
+            <h2 className="text-lg font-bold text-white">Recevez les infos FO COM directement par email</h2>
+            <p className="mt-1 text-sm text-slate-400">NAO, droits, accords, alertes sociales et documents utiles.</p>
           </div>
           <div className="w-full lg:w-auto">
             {nlStatus === "success" ? (
@@ -419,7 +534,7 @@ export default function Home() {
                   className="w-full border-white/20 bg-white/10 text-white placeholder:text-slate-400 focus-visible:ring-red-500 sm:w-64"
                 />
                 <Button type="submit" disabled={nlStatus === "loading"} className="bg-red-600 font-semibold text-white hover:bg-red-700">
-                  {nlStatus === "loading" ? "..." : "S’abonner"}
+                  {nlStatus === "loading" ? "..." : "Je m’abonne"}
                 </Button>
               </form>
             )}
