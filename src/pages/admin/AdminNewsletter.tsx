@@ -17,6 +17,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
+const MAX_NEWSLETTER_RECIPIENTS = 10;
+
 type Subscriber = {
   id: string; email: string; is_active: boolean;
   subscribed_at: string; unsubscribed_at: string | null;
@@ -112,7 +114,7 @@ export default function AdminNewsletter() {
   };
 
   const selectFilteredActive = () => {
-    const emails = filteredSubs.filter((s) => s.is_active).map((s) => s.email).slice(0, 10);
+    const emails = filteredSubs.filter((s) => s.is_active).map((s) => s.email).slice(0, MAX_NEWSLETTER_RECIPIENTS);
     setSelectedEmails(emails);
   };
 
@@ -133,9 +135,7 @@ export default function AdminNewsletter() {
     },
     onSuccess: ({ email, nextActive }) => {
       queryClient.invalidateQueries({ queryKey: ["admin-subscribers"] });
-      if (!nextActive) {
-        setSelectedEmails((prev) => prev.filter((e) => e !== email));
-      }
+      if (!nextActive) setSelectedEmails((prev) => prev.filter((e) => e !== email));
       toast.success(nextActive ? "Abonné réactivé" : "Abonné désactivé");
     },
     onError: () => toast.error("Erreur lors de la mise à jour de l'abonné"),
@@ -153,17 +153,12 @@ export default function AdminNewsletter() {
     onError: () => toast.error("Erreur lors de la suppression"),
   });
 
-  const filteredSubs = subscribers.filter((s) =>
-    s.email.toLowerCase().includes(search.toLowerCase()),
-  );
+  const filteredSubs = subscribers.filter((s) => s.email.toLowerCase().includes(search.toLowerCase()));
 
   const { data: newsletters = [], isLoading: nlLoading } = useQuery({
     queryKey: ["admin-newsletters"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("newsletters")
-        .select("*")
-        .order("created_at", { ascending: false });
+      const { data, error } = await supabase.from("newsletters").select("*").order("created_at", { ascending: false });
       if (error) throw error;
       return data as Newsletter[];
     },
@@ -182,29 +177,12 @@ export default function AdminNewsletter() {
         body_text: form.body_html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim(),
       };
 
-      console.info("Sauvegarde newsletter", { editId, title: payload.title, subject: payload.subject });
-
       if (editId) {
-        const { error } = await withTimeout(
-          supabase
-            .from("newsletters")
-            .update(payload)
-            .eq("id", editId),
-        );
-        if (error) {
-          console.error("Erreur update newsletter", error);
-          throw error;
-        }
+        const { error } = await withTimeout(supabase.from("newsletters").update(payload).eq("id", editId));
+        if (error) throw error;
       } else {
-        const { error } = await withTimeout(
-          supabase
-            .from("newsletters")
-            .insert(payload),
-        );
-        if (error) {
-          console.error("Erreur insert newsletter", error);
-          throw error;
-        }
+        const { error } = await withTimeout(supabase.from("newsletters").insert(payload));
+        if (error) throw error;
       }
     },
     onSuccess: () => {
@@ -212,11 +190,7 @@ export default function AdminNewsletter() {
       toast.success(editId ? "Newsletter mise à jour" : "Newsletter créée");
       setShowForm(false); setEditId(null); setForm(emptyForm()); setShowPreview(false);
     },
-    onError: (err: unknown) => {
-      const message = getErrorMessage(err);
-      console.error("Échec sauvegarde newsletter", err);
-      toast.error(`Création impossible : ${message}`);
-    },
+    onError: (err: unknown) => toast.error(`Création impossible : ${getErrorMessage(err)}`),
   });
 
   const deleteNlMutation = useMutation({
@@ -234,12 +208,8 @@ export default function AdminNewsletter() {
 
   const sendMutation = useMutation({
     mutationFn: async (newsletterId: string) => {
-      if (selectedActiveEmails.length === 0) {
-        throw new Error("Sélectionnez au moins un destinataire actif");
-      }
-      if (selectedActiveEmails.length > 10) {
-        throw new Error("Maximum 10 destinataires par envoi");
-      }
+      if (selectedActiveEmails.length === 0) throw new Error("Sélectionnez au moins un destinataire actif");
+      if (selectedActiveEmails.length > MAX_NEWSLETTER_RECIPIENTS) throw new Error(`Maximum ${MAX_NEWSLETTER_RECIPIENTS} destinataires par envoi`);
 
       setSendingId(newsletterId);
       const { data: { session } } = await supabase.auth.getSession();
@@ -256,9 +226,7 @@ export default function AdminNewsletter() {
           try {
             const details = await context.json();
             throw new Error(details?.error || details?.message || error.message);
-          } catch {
-            throw new Error(error.message);
-          }
+          } catch { throw new Error(error.message); }
         }
         throw error;
       }
@@ -270,10 +238,7 @@ export default function AdminNewsletter() {
       queryClient.invalidateQueries({ queryKey: ["admin-sends"] });
       toast.success(`Newsletter envoyée à ${data.successfulSends}/${data.totalRecipients} abonnés`);
     },
-    onError: (err: unknown) => {
-      const message = getErrorMessage(err);
-      toast.error(`Envoi impossible : ${message}`);
-    },
+    onError: (err: unknown) => toast.error(`Envoi impossible : ${getErrorMessage(err)}`),
     onSettled: () => setSendingId(null),
   });
 
@@ -283,7 +248,7 @@ export default function AdminNewsletter() {
   };
 
   const confirmSend = (nl: Newsletter) => {
-    const preview = selectedActiveEmails.slice(0, 10).join("\n");
+    const preview = selectedActiveEmails.slice(0, MAX_NEWSLETTER_RECIPIENTS).join("\n");
     if (!window.confirm(`Envoyer "${nl.subject}" à ${selectedActiveEmails.length} destinataire(s) sélectionné(s) ?\n\n${preview}`)) return;
     sendMutation.mutate(nl.id);
   };
@@ -291,11 +256,7 @@ export default function AdminNewsletter() {
   const { data: sends = [], isLoading: sendsLoading } = useQuery({
     queryKey: ["admin-sends"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("newsletter_sends")
-        .select("*, newsletters(title, subject)")
-        .order("sent_at", { ascending: false })
-        .limit(50);
+      const { data, error } = await supabase.from("newsletter_sends").select("*, newsletters(title, subject)").order("sent_at", { ascending: false }).limit(50);
       if (error) throw error;
       return data as NewsletterSend[];
     },
@@ -311,237 +272,35 @@ export default function AdminNewsletter() {
             { label: "Newsletters créées", value: newsletters.length, icon: Eye, color: "text-purple-600" },
             { label: "Envois réalisés", value: sends.length, icon: Send, color: "text-red-600" },
           ].map(({ label, value, icon: Icon, color }) => (
-            <Card key={label} className="border-slate-200 shadow-sm">
-              <CardContent className="p-4 flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">
-                  <Icon className={`w-4 h-4 ${color}`} />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-slate-900">{value}</p>
-                  <p className="text-xs text-slate-500">{label}</p>
-                </div>
-              </CardContent>
-            </Card>
+            <Card key={label} className="border-slate-200 shadow-sm"><CardContent className="p-4 flex items-center gap-3"><div className="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0"><Icon className={`w-4 h-4 ${color}`} /></div><div><p className="text-2xl font-bold text-slate-900">{value}</p><p className="text-xs text-slate-500">{label}</p></div></CardContent></Card>
           ))}
         </div>
 
         <Tabs defaultValue="abonnes">
-          <TabsList className="mb-6">
-            <TabsTrigger value="abonnes">Abonnés ({activeCount})</TabsTrigger>
-            <TabsTrigger value="composer">Newsletters ({newsletters.length})</TabsTrigger>
-            <TabsTrigger value="historique">Historique ({sends.length})</TabsTrigger>
-          </TabsList>
+          <TabsList className="mb-6"><TabsTrigger value="abonnes">Abonnés ({activeCount})</TabsTrigger><TabsTrigger value="composer">Newsletters ({newsletters.length})</TabsTrigger><TabsTrigger value="historique">Historique ({sends.length})</TabsTrigger></TabsList>
 
           <TabsContent value="abonnes">
             <Card className="border-slate-200 shadow-sm">
-              <CardHeader className="pb-3">
-                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                  <div>
-                    <CardTitle className="text-base">Liste des abonnés</CardTitle>
-                    <p className="text-xs text-slate-500 mt-1">
-                      Sélectionnez jusqu'à 10 abonnés actifs par envoi.
-                    </p>
-                  </div>
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    <Input placeholder="Rechercher un email..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full sm:w-64 h-8 text-sm" />
-                    <Button variant="outline" size="sm" onClick={selectFilteredActive}>Sélectionner 10 visibles</Button>
-                    <Button variant="ghost" size="sm" onClick={clearSelected}>Vider</Button>
-                  </div>
-                </div>
-              </CardHeader>
+              <CardHeader className="pb-3"><div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"><div><CardTitle className="text-base">Liste des abonnés</CardTitle><p className="text-xs text-slate-500 mt-1">Sélectionnez jusqu'à {MAX_NEWSLETTER_RECIPIENTS} abonnés actifs par envoi pour respecter les limites Resend.</p></div><div className="flex flex-col sm:flex-row gap-2"><Input placeholder="Rechercher un email..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full sm:w-64 h-8 text-sm" /><Button variant="outline" size="sm" onClick={selectFilteredActive}>Sélectionner {MAX_NEWSLETTER_RECIPIENTS} visibles</Button><Button variant="ghost" size="sm" onClick={clearSelected}>Vider</Button></div></div></CardHeader>
               <CardContent className="p-0">
-                {subsLoading ? (
-                  <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 animate-spin text-red-600" /></div>
-                ) : filteredSubs.length === 0 ? (
-                  <div className="text-center py-10 text-slate-400 text-sm">{search ? "Aucun résultat" : "Aucun abonné"}</div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead className="bg-slate-50 border-b border-slate-200">
-                        <tr>
-                          <th className="p-3 text-xs font-semibold text-slate-600 text-left w-12">Sel.</th>
-                          {[
-                            "Email", "Statut", "Abonné le", "Actions"
-                          ].map((h, i) => (<th key={i} className={`p-3 text-xs font-semibold text-slate-600 ${i === 3 ? "text-right" : "text-left"}`}>{h}</th>))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {filteredSubs.map((s) => {
-                          const checked = selectedEmails.includes(s.email);
-                          return (
-                            <tr key={s.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                              <td className="p-3">
-                                <input
-                                  type="checkbox"
-                                  checked={checked}
-                                  disabled={!s.is_active || (!checked && selectedActiveEmails.length >= 10)}
-                                  onChange={() => toggleEmail(s.email)}
-                                  className="h-4 w-4 rounded border-slate-300"
-                                  aria-label={`Sélectionner ${s.email}`}
-                                />
-                              </td>
-                              <td className="p-3 text-sm font-medium text-slate-900">{s.email}</td>
-                              <td className="p-3">{s.is_active ? <Badge className="bg-green-100 text-green-700 text-xs">Actif</Badge> : <Badge variant="secondary" className="text-xs">Désabonné</Badge>}</td>
-                              <td className="p-3 text-xs text-slate-500">{fmtDate(s.subscribed_at)}</td>
-                              <td className="p-3 text-right">
-                                <div className="flex items-center justify-end gap-1.5">
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => toggleSubMutation.mutate(s)}
-                                    disabled={toggleSubMutation.isPending}
-                                    className="text-xs"
-                                  >
-                                    {s.is_active ? "Désactiver" : "Réactiver"}
-                                  </Button>
-                                  <Button variant="ghost" size="sm" onClick={() => { if (window.confirm(`Supprimer ${s.email} ?`)) deleteSubMutation.mutate(s.id); }}><Trash2 className="w-4 h-4 text-slate-400 hover:text-red-600" /></Button>
-                                </div>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
+                {subsLoading ? <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 animate-spin text-red-600" /></div> : filteredSubs.length === 0 ? <div className="text-center py-10 text-slate-400 text-sm">{search ? "Aucun résultat" : "Aucun abonné"}</div> : (
+                  <div className="overflow-x-auto"><table className="w-full"><thead className="bg-slate-50 border-b border-slate-200"><tr><th className="p-3 text-xs font-semibold text-slate-600 text-left w-12">Sel.</th>{["Email", "Statut", "Abonné le", "Actions"].map((h, i) => <th key={i} className={`p-3 text-xs font-semibold text-slate-600 ${i === 3 ? "text-right" : "text-left"}`}>{h}</th>)}</tr></thead><tbody>{filteredSubs.map((s) => { const checked = selectedEmails.includes(s.email); return <tr key={s.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors"><td className="p-3"><input type="checkbox" checked={checked} disabled={!s.is_active || (!checked && selectedActiveEmails.length >= MAX_NEWSLETTER_RECIPIENTS)} onChange={() => toggleEmail(s.email)} className="h-4 w-4 rounded border-slate-300" aria-label={`Sélectionner ${s.email}`} /></td><td className="p-3 text-sm font-medium text-slate-900">{s.email}</td><td className="p-3">{s.is_active ? <Badge className="bg-green-100 text-green-700 text-xs">Actif</Badge> : <Badge variant="secondary" className="text-xs">Désabonné</Badge>}</td><td className="p-3 text-xs text-slate-500">{fmtDate(s.subscribed_at)}</td><td className="p-3 text-right"><div className="flex items-center justify-end gap-1.5"><Button variant="outline" size="sm" onClick={() => toggleSubMutation.mutate(s)} disabled={toggleSubMutation.isPending} className="text-xs">{s.is_active ? "Désactiver" : "Réactiver"}</Button><Button variant="ghost" size="sm" onClick={() => { if (window.confirm(`Supprimer ${s.email} ?`)) deleteSubMutation.mutate(s.id); }}><Trash2 className="w-4 h-4 text-slate-400 hover:text-red-600" /></Button></div></td></tr>; })}</tbody></table></div>
                 )}
               </CardContent>
             </Card>
           </TabsContent>
 
           <TabsContent value="composer">
-            <Card className="mb-6 border-teal-100 bg-teal-50/50">
-              <CardContent className="p-4 space-y-3">
-                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                  <div>
-                    <p className="text-sm font-bold text-teal-900">Destinataires de l'envoi</p>
-                    <p className="text-xs text-teal-800 mt-1">
-                      Sélection obligatoire — {sendTargetCount}/10 destinataire{sendTargetCount > 1 ? "s" : ""} sélectionné{sendTargetCount > 1 ? "s" : ""}.
-                    </p>
-                  </div>
-                  <Badge className="bg-red-100 text-red-700 text-xs">Envoi global désactivé</Badge>
-                </div>
-                {selectedActiveEmails.length === 0 && (
-                  <p className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
-                    Aucun destinataire sélectionné. Va dans l'onglet Abonnés pour cocher jusqu'à 10 destinataires avant l'envoi.
-                  </p>
-                )}
-              </CardContent>
-            </Card>
+            <Card className="mb-6 border-teal-100 bg-teal-50/50"><CardContent className="p-4 space-y-3"><div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between"><div><p className="text-sm font-bold text-teal-900">Destinataires de l'envoi</p><p className="text-xs text-teal-800 mt-1">Sélection obligatoire — {sendTargetCount}/{MAX_NEWSLETTER_RECIPIENTS} destinataire{sendTargetCount > 1 ? "s" : ""} sélectionné{sendTargetCount > 1 ? "s" : ""}.</p></div><Badge className="bg-red-100 text-red-700 text-xs">Envoi global désactivé</Badge></div>{selectedActiveEmails.length === 0 && <p className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">Aucun destinataire sélectionné. Va dans l'onglet Abonnés pour cocher jusqu'à {MAX_NEWSLETTER_RECIPIENTS} destinataires avant l'envoi.</p>}</CardContent></Card>
 
-            {showForm && (
-              <Card className="mb-6 border-primary/20">
-                <CardHeader className="pb-3 flex-row items-center justify-between">
-                  <CardTitle className="text-base">{editId ? "Modifier" : "Nouvelle newsletter"}</CardTitle>
-                  <Button variant="ghost" size="sm" onClick={() => { setShowForm(false); setEditId(null); setShowPreview(false); }}><X className="w-4 h-4" /></Button>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-1.5">
-                      <Label>Titre interne *</Label>
-                      <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Ex: Newsletter mai 2026" />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label>Sujet de l'email *</Label>
-                      <Input value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} placeholder="Ex: Actualités FOCOM — Mai 2026" />
-                    </div>
-                  </div>
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <Label>Contenu HTML *</Label>
-                      <Button variant="outline" size="sm" onClick={() => setShowPreview((v) => !v)} className="gap-1.5 text-xs h-7">
-                        <Eye className="w-3.5 h-3.5" />{showPreview ? "Masquer" : "Aperçu"}
-                      </Button>
-                    </div>
-                    <div className={showPreview ? "grid grid-cols-2 gap-4" : ""}>
-                      <Textarea value={form.body_html} onChange={(e) => setForm({ ...form, body_html: e.target.value })} placeholder="<p>Bonjour,</p><p>Voici les dernières nouvelles...</p>" rows={12} className="font-mono text-sm" />
-                      {showPreview && (
-                        <div className="border border-slate-200 rounded-lg overflow-hidden bg-white">
-                          <div className="px-3 py-2 bg-slate-50 border-b border-slate-200 text-xs text-slate-500 font-medium">Aperçu du contenu</div>
-                          <div className="p-4 prose prose-sm max-w-none text-slate-700" dangerouslySetInnerHTML={{ __html: form.body_html }} />
-                        </div>
-                      )}
-                    </div>
-                    <p className="text-xs text-slate-400">Le contenu sera encadré automatiquement dans le template email FOCOM (en-tête rouge, pied de page avec lien de désabonnement).</p>
-                  </div>
-                  <div className="flex justify-end gap-2 pt-2">
-                    <Button variant="outline" onClick={() => { setShowForm(false); setEditId(null); setShowPreview(false); }}>Annuler</Button>
-                    <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending} className="bg-red-600 hover:bg-red-700 text-white gap-2">
-                      {saveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                      {editId ? "Enregistrer" : "Créer la newsletter"}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-            <div className="flex justify-end mb-4">
-              <Button onClick={() => { setShowForm(true); setEditId(null); setForm(emptyForm()); }} className="bg-red-600 hover:bg-red-700 text-white gap-2">
-                <Plus className="w-4 h-4" /> Nouvelle newsletter
-              </Button>
-            </div>
-            <Card className="border-slate-200 shadow-sm">
-              <CardContent className="p-0">
-                {nlLoading ? (
-                  <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 animate-spin text-red-600" /></div>
-                ) : newsletters.length === 0 ? (
-                  <div className="text-center py-10"><Mail className="w-10 h-10 text-slate-300 mx-auto mb-3" /><p className="text-slate-400 text-sm">Aucune newsletter créée</p></div>
-                ) : (
-                  <div className="divide-y divide-slate-100">
-                    {newsletters.map((nl) => {
-                      const isSending = sendingId === nl.id;
-                      return (
-                        <div key={nl.id} className="flex items-center justify-between px-5 py-4 hover:bg-slate-50 transition-colors">
-                          <div className="flex-1 min-w-0 mr-4">
-                            <p className="font-medium text-slate-900 text-sm truncate">{nl.title}</p>
-                            <p className="text-xs text-slate-500 truncate mt-0.5">{nl.subject}</p>
-                            <p className="text-[10px] text-slate-400 mt-1">Modifiée {fmtDate(nl.updated_at)}</p>
-                          </div>
-                          <div className="flex items-center gap-1.5 flex-shrink-0">
-                            <Button variant="outline" size="sm" onClick={() => confirmSend(nl)} disabled={isSending || sendTargetCount === 0 || sendTargetCount > 10} className="gap-1.5 text-xs" title={sendTargetCount === 0 ? "Aucun destinataire" : `Envoyer à ${sendTargetCount} destinataires`}>
-                              {isSending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-                              {isSending ? "Envoi…" : `Envoyer (${sendTargetCount})`}
-                            </Button>
-                            <Button variant="ghost" size="sm" onClick={() => openEdit(nl)}><Eye className="w-4 h-4 text-slate-400" /></Button>
-                            <Button variant="ghost" size="sm" onClick={() => { if (window.confirm(`Supprimer "${nl.title}" ?`)) deleteNlMutation.mutate(nl.id); }}><Trash2 className="w-4 h-4 text-slate-400 hover:text-red-600" /></Button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            {showForm && <Card className="mb-6 border-primary/20"><CardHeader className="pb-3 flex-row items-center justify-between"><CardTitle className="text-base">{editId ? "Modifier" : "Nouvelle newsletter"}</CardTitle><Button variant="ghost" size="sm" onClick={() => { setShowForm(false); setEditId(null); setShowPreview(false); }}><X className="w-4 h-4" /></Button></CardHeader><CardContent className="space-y-4"><div className="grid gap-4 md:grid-cols-2"><div className="space-y-1.5"><Label>Titre interne *</Label><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Ex: Newsletter mai 2026" /></div><div className="space-y-1.5"><Label>Sujet de l'email *</Label><Input value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} placeholder="Ex: Actualités FOCOM — Mai 2026" /></div></div><div className="space-y-1.5"><div className="flex items-center justify-between"><Label>Contenu HTML *</Label><Button variant="outline" size="sm" onClick={() => setShowPreview((v) => !v)} className="gap-1.5 text-xs h-7"><Eye className="w-3.5 h-3.5" />{showPreview ? "Masquer" : "Aperçu"}</Button></div><div className={showPreview ? "grid grid-cols-2 gap-4" : ""}><Textarea value={form.body_html} onChange={(e) => setForm({ ...form, body_html: e.target.value })} placeholder="<p>Bonjour,</p><p>Voici les dernières nouvelles...</p>" rows={12} className="font-mono text-sm" />{showPreview && <div className="border border-slate-200 rounded-lg overflow-hidden bg-white"><div className="px-3 py-2 bg-slate-50 border-b border-slate-200 text-xs text-slate-500 font-medium">Aperçu du contenu</div><div className="p-4 prose prose-sm max-w-none text-slate-700" dangerouslySetInnerHTML={{ __html: form.body_html }} /></div>}</div><p className="text-xs text-slate-400">Le contenu sera encadré automatiquement dans le template email FOCOM.</p></div><div className="flex justify-end gap-2 pt-2"><Button variant="outline" onClick={() => { setShowForm(false); setEditId(null); setShowPreview(false); }}>Annuler</Button><Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending} className="bg-red-600 hover:bg-red-700 text-white gap-2">{saveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}{editId ? "Enregistrer" : "Créer la newsletter"}</Button></div></CardContent></Card>}
+            <div className="flex justify-end mb-4"><Button onClick={() => { setShowForm(true); setEditId(null); setForm(emptyForm()); }} className="bg-red-600 hover:bg-red-700 text-white gap-2"><Plus className="w-4 h-4" /> Nouvelle newsletter</Button></div>
+            <Card className="border-slate-200 shadow-sm"><CardContent className="p-0">{nlLoading ? <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 animate-spin text-red-600" /></div> : newsletters.length === 0 ? <div className="text-center py-10"><Mail className="w-10 h-10 text-slate-300 mx-auto mb-3" /><p className="text-slate-400 text-sm">Aucune newsletter créée</p></div> : <div className="divide-y divide-slate-100">{newsletters.map((nl) => { const isSending = sendingId === nl.id; return <div key={nl.id} className="flex items-center justify-between px-5 py-4 hover:bg-slate-50 transition-colors"><div className="flex-1 min-w-0 mr-4"><p className="font-medium text-slate-900 text-sm truncate">{nl.title}</p><p className="text-xs text-slate-500 truncate mt-0.5">{nl.subject}</p><p className="text-[10px] text-slate-400 mt-1">Modifiée {fmtDate(nl.updated_at)}</p></div><div className="flex items-center gap-1.5 flex-shrink-0"><Button variant="outline" size="sm" onClick={() => confirmSend(nl)} disabled={isSending || sendTargetCount === 0 || sendTargetCount > MAX_NEWSLETTER_RECIPIENTS} className="gap-1.5 text-xs" title={sendTargetCount === 0 ? "Aucun destinataire" : `Envoyer à ${sendTargetCount} destinataires`}>
+              {isSending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}{isSending ? "Envoi…" : `Envoyer (${sendTargetCount})`}</Button><Button variant="ghost" size="sm" onClick={() => openEdit(nl)}><Eye className="w-4 h-4 text-slate-400" /></Button><Button variant="ghost" size="sm" onClick={() => { if (window.confirm(`Supprimer "${nl.title}" ?`)) deleteNlMutation.mutate(nl.id); }}><Trash2 className="w-4 h-4 text-slate-400 hover:text-red-600" /></Button></div></div>; })}</div>}</CardContent></Card>
           </TabsContent>
 
           <TabsContent value="historique">
-            <Card className="border-slate-200 shadow-sm">
-              <CardContent className="p-0">
-                {sendsLoading ? (
-                  <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 animate-spin text-red-600" /></div>
-                ) : sends.length === 0 ? (
-                  <div className="text-center py-10"><BarChart3 className="w-10 h-10 text-slate-300 mx-auto mb-3" /><p className="text-slate-400 text-sm">Aucun envoi réalisé</p></div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead className="bg-slate-50 border-b border-slate-200">
-                        <tr>{["Newsletter", "Envoyée le", "Destinataires", "Réussis", "Échecs", "Statut"].map((h, i) => (<th key={i} className="p-3 text-xs font-semibold text-slate-600 text-left">{h}</th>))}</tr>
-                      </thead>
-                      <tbody>
-                        {sends.map((s) => (
-                          <tr key={s.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                            <td className="p-3"><p className="text-sm font-medium text-slate-900">{s.newsletters?.title ?? "—"}</p><p className="text-xs text-slate-400 truncate max-w-xs">{s.newsletters?.subject}</p></td>
-                            <td className="p-3 text-xs text-slate-500 whitespace-nowrap"><div className="flex items-center gap-1"><Clock className="w-3 h-3" />{fmtDate(s.sent_at)}</div></td>
-                            <td className="p-3 text-sm text-slate-700">{s.total_recipients ?? "—"}</td>
-                            <td className="p-3">{s.successful_sends != null && (<span className="flex items-center gap-1 text-sm text-green-600"><CheckCircle2 className="w-3.5 h-3.5" />{s.successful_sends}</span>)}</td>
-                            <td className="p-3">{s.failed_sends != null && s.failed_sends > 0 && (<span className="flex items-center gap-1 text-sm text-red-600"><AlertCircle className="w-3.5 h-3.5" />{s.failed_sends}</span>)}</td>
-                            <td className="p-3"><StatusBadge status={s.status} /></td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <Card className="border-slate-200 shadow-sm"><CardContent className="p-0">{sendsLoading ? <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 animate-spin text-red-600" /></div> : sends.length === 0 ? <div className="text-center py-10"><BarChart3 className="w-10 h-10 text-slate-300 mx-auto mb-3" /><p className="text-slate-400 text-sm">Aucun envoi réalisé</p></div> : <div className="overflow-x-auto"><table className="w-full"><thead className="bg-slate-50 border-b border-slate-200"><tr>{["Newsletter", "Envoyée le", "Destinataires", "Réussis", "Échecs", "Statut"].map((h, i) => <th key={i} className="p-3 text-xs font-semibold text-slate-600 text-left">{h}</th>)}</tr></thead><tbody>{sends.map((s) => <tr key={s.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors"><td className="p-3"><p className="text-sm font-medium text-slate-900">{s.newsletters?.title ?? "—"}</p><p className="text-xs text-slate-400 truncate max-w-xs">{s.newsletters?.subject}</p></td><td className="p-3 text-xs text-slate-500 whitespace-nowrap"><div className="flex items-center gap-1"><Clock className="w-3 h-3" />{fmtDate(s.sent_at)}</div></td><td className="p-3 text-sm text-slate-700">{s.total_recipients ?? "—"}</td><td className="p-3">{s.successful_sends != null && <span className="flex items-center gap-1 text-sm text-green-600"><CheckCircle2 className="w-3.5 h-3.5" />{s.successful_sends}</span>}</td><td className="p-3">{s.failed_sends != null && s.failed_sends > 0 && <span className="flex items-center gap-1 text-sm text-red-600"><AlertCircle className="w-3.5 h-3.5" />{s.failed_sends}</span>}</td><td className="p-3"><StatusBadge status={s.status} /></td></tr>)}</tbody></table></div>}</CardContent></Card>
           </TabsContent>
         </Tabs>
       </AdminLayout>
