@@ -59,13 +59,21 @@ export default function PageHeader() {
     const fetchUnread = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) { setUnreadCount(0); return; }
-      const { count } = await supabase
-        .from("notifications")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", session.user.id)
-        .eq("is_read", false)
-        .eq("archived", false);
-      setUnreadCount(count ?? 0);
+      const { count, error } = await supabase
+  .from("notifications")
+  .select("id", { count: "exact" })
+  .eq("user_id", session.user.id)
+  .eq("is_read", false)
+  .eq("archived", false)
+  .limit(1);
+
+if (error) {
+  console.warn("Impossible de compter les notifications non lues", error);
+  setUnreadCount(0);
+  return;
+}
+
+setUnreadCount(count ?? 0);
     };
     fetchUnread();
     channel = supabase
