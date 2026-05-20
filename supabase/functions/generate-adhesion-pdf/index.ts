@@ -46,6 +46,15 @@ function fileSafeName(payload: Record<string, unknown>) {
   return name || "adherent";
 }
 
+function uint8ToBase64(bytes: Uint8Array) {
+  const chunkSize = 0x8000;
+  let binary = "";
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+  }
+  return btoa(binary);
+}
+
 async function fetchOfficialPdf(req: Request) {
   const configuredUrl = Deno.env.get("ADHESION_PDF_URL");
   const origin = req.headers.get("origin");
@@ -56,7 +65,9 @@ async function fetchOfficialPdf(req: Request) {
   }
 
   const pdfUrl = configuredUrl || `${fallbackBaseUrl}${DEFAULT_PDF_PATH}`;
-  const response = await fetch(pdfUrl);
+  const response = await fetch(pdfUrl, {
+    headers: { "cache-control": "max-age=3600" },
+  });
 
   if (!response.ok) {
     throw new Error(`PDF officiel introuvable (${response.status}) : ${pdfUrl}`);
@@ -214,7 +225,7 @@ Deno.serve(async (req) => {
   try {
     const payload = await req.json();
     const officialPdfBytes = await fetchOfficialPdf(req);
-    const pdfDoc = await PDFDocument.load(officialPdfBytes, { ignoreEncryption: true });
+    const pdfDoc = await PDFDocument.load(officialPdfBytes, { ignoreEncryption: true, updateMetadata: false });
 
     const formResult = await tryFillPdfForm(pdfDoc, payload);
     if (!formResult.filled) {
@@ -229,8 +240,8 @@ Deno.serve(async (req) => {
       // PDF non formulaire ou champs non compatibles
     }
 
-    const pdfBytes = await pdfDoc.save();
-    const base64 = btoa(String.fromCharCode(...pdfBytes));
+    const pdfBytes = await pdfDoc.save({ useObjectStreams: true, addDefaultPage: false });
+    const base64 = uint8ToBase64(pdfBytes);
 
     return json({
       pdf: base64,
