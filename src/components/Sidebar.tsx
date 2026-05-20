@@ -11,6 +11,7 @@ import {
   Calendar,
   Settings,
   AlertCircle,
+  UserPlus,
 } from "lucide-react";
 import logoFocom from "@/assets/logo-focom.png";
 
@@ -18,6 +19,7 @@ const navItems = [
   { to: "/", label: "Tableau de bord", icon: LayoutDashboard, end: true },
   { to: "/actualites", label: "Actualités", icon: Newspaper },
   { to: "/bilan-mandat", label: "Bilan de Mandat", icon: BarChart3 },
+  { to: "/adhesion", label: "Adhérer", icon: UserPlus },
   { to: "/profil", label: "Espace Adhérent", icon: UserCircle },
   { to: "/mes-reclamations", label: "Mes Réclamations", icon: AlertCircle },
   { to: "/admin", label: "Administration", icon: Settings },
@@ -63,7 +65,9 @@ const Sidebar = () => {
               className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
                 isActive
                   ? "bg-secondary text-secondary-foreground"
-                  : "text-foreground hover:bg-muted"
+                  : item.to === "/adhesion"
+                    ? "bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground"
+                    : "text-foreground hover:bg-muted"
               }`}
             >
               <Icon className="h-5 w-5 shrink-0" />
