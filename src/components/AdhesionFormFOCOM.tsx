@@ -16,7 +16,6 @@ import {
   FileText, CreditCard, PenLine, AlertCircle, Mail, MessageSquare,
 } from "lucide-react";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
 interface FormData {
   civilite: "mme" | "mr" | "";
   nom: string; prenom: string; entreprise: string; nss: string;
@@ -53,7 +52,24 @@ const EMPTY: FormData = {
   sepa_iban: "", sepa_bic: "", sepa_a: "", sepa_le: "",
 };
 
-// ─── Pill (radio visuel) ──────────────────────────────────────────────────────
+const getInvokeErrorMessage = async (fnError: unknown) => {
+  const fallback = fnError instanceof Error ? fnError.message : "Erreur Edge Function";
+  const context = (fnError as { context?: Response } | null)?.context;
+  if (!context) return fallback;
+
+  try {
+    const payload = await context.clone().json();
+    return payload?.error || payload?.message || payload?.details || fallback;
+  } catch {
+    try {
+      const text = await context.text();
+      return text || fallback;
+    } catch {
+      return fallback;
+    }
+  }
+};
+
 function Pill({ label, checked, onClick }: { label: string; checked: boolean; onClick: () => void }) {
   return (
     <button type="button" onClick={onClick}
@@ -67,11 +83,11 @@ function Pill({ label, checked, onClick }: { label: string; checked: boolean; on
   );
 }
 
-// ─── Canvas Signature ─────────────────────────────────────────────────────────
 function SignatureCanvas({ onSignature }: { onSignature: (b64: string | null) => void }) {
   const ref = useRef<HTMLCanvasElement>(null);
   const drawing = useRef(false);
   const hasContent = useRef(false);
+  const [, forceRender] = useState(0);
 
   const getPos = (e: MouseEvent | TouchEvent, c: HTMLCanvasElement) => {
     const r = c.getBoundingClientRect();
@@ -95,7 +111,10 @@ function SignatureCanvas({ onSignature }: { onSignature: (b64: string | null) =>
     const ctx = c.getContext("2d")!;
     const p = getPos(e, c);
     ctx.lineTo(p.x, p.y); ctx.stroke();
-    hasContent.current = true;
+    if (!hasContent.current) {
+      hasContent.current = true;
+      forceRender((value) => value + 1);
+    }
     onSignature(c.toDataURL("image/png"));
   }, [onSignature]);
 
@@ -139,7 +158,9 @@ function SignatureCanvas({ onSignature }: { onSignature: (b64: string | null) =>
         onClick={() => {
           const c = ref.current; if (!c) return;
           c.getContext("2d")!.clearRect(0, 0, c.width, c.height);
-          hasContent.current = false; onSignature(null);
+          hasContent.current = false;
+          forceRender((value) => value + 1);
+          onSignature(null);
         }}
         className="text-xs text-muted-foreground hover:text-destructive transition-colors">
         Effacer la signature
@@ -157,7 +178,6 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-// ─── Composant principal ──────────────────────────────────────────────────────
 export default function AdhesionFormFOCOM() {
   const [form, setForm] = useState<FormData>(EMPTY);
   const [signature, setSignature] = useState<string | null>(null);
@@ -180,7 +200,6 @@ export default function AdhesionFormFOCOM() {
     setErrMsg("");
 
     try {
-      // Appel via supabase.functions.invoke — cohérent avec generate-cv
       const { data, error } = await supabase.functions.invoke(
         "generate-adhesion-pdf",
         {
@@ -188,10 +207,10 @@ export default function AdhesionFormFOCOM() {
         },
       );
 
-      if (error) throw new Error(error.message);
+      if (error) throw new Error(await getInvokeErrorMessage(error));
       if (data?.error) throw new Error(data.error);
+      if (!data?.pdf) throw new Error("La fonction n'a pas retourné de PDF.");
 
-      // La fonction retourne { pdf: base64, filename } — même pattern que generate-cv
       const binaryStr = atob(data.pdf);
       const bytes = new Uint8Array(binaryStr.length);
       for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
@@ -199,7 +218,7 @@ export default function AdhesionFormFOCOM() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = data.filename;
+      a.download = data.filename || "bulletin-adhesion-focom.pdf";
       a.click();
       URL.revokeObjectURL(url);
 
@@ -229,8 +248,6 @@ export default function AdhesionFormFOCOM() {
       <CardContent>
         <form onSubmit={handleSubmit}>
           <Accordion type="multiple" value={open} onValueChange={setOpen} className="space-y-2">
-
-            {/* ── 1. IDENTITÉ ── */}
             <AccordionItem value="identite" className="border rounded-lg px-4">
               <AccordionTrigger className="hover:no-underline py-3">
                 <span className="flex items-center gap-2 text-sm font-semibold">
@@ -300,7 +317,6 @@ export default function AdhesionFormFOCOM() {
               </AccordionContent>
             </AccordionItem>
 
-            {/* ── 2. ADRESSES ── */}
             <AccordionItem value="adresses" className="border rounded-lg px-4">
               <AccordionTrigger className="hover:no-underline py-3">
                 <span className="flex items-center gap-2 text-sm font-semibold">
@@ -316,33 +332,21 @@ export default function AdhesionFormFOCOM() {
                     <Input value={form.adresse_pers} onChange={e => set("adresse_pers", e.target.value)} placeholder="12 rue des Lilas" className="h-8 text-sm" />
                   </Field>
                   <div className="grid grid-cols-5 gap-2">
-                    <div className="col-span-2">
-                      <Field label="Code postal *"><Input value={form.cp_pers} onChange={e => set("cp_pers", e.target.value)} placeholder="75001" className="h-8 text-sm" /></Field>
-                    </div>
-                    <div className="col-span-3">
-                      <Field label="Commune *"><Input value={form.commune_pers} onChange={e => set("commune_pers", e.target.value)} placeholder="Paris" className="h-8 text-sm" /></Field>
-                    </div>
+                    <div className="col-span-2"><Field label="Code postal *"><Input value={form.cp_pers} onChange={e => set("cp_pers", e.target.value)} placeholder="75001" className="h-8 text-sm" /></Field></div>
+                    <div className="col-span-3"><Field label="Commune *"><Input value={form.commune_pers} onChange={e => set("commune_pers", e.target.value)} placeholder="Paris" className="h-8 text-sm" /></Field></div>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <Field label="Tél. fixe"><Input type="tel" value={form.tel_fixe} onChange={e => set("tel_fixe", e.target.value)} placeholder="01 40 00 00 00" className="h-8 text-sm" /></Field>
                     <Field label="Portable"><Input type="tel" value={form.portable} onChange={e => set("portable", e.target.value)} placeholder="06 12 34 56 78" className="h-8 text-sm" /></Field>
                   </div>
-                  <Field label="Email *">
-                    <Input type="email" value={form.mail_pers} onChange={e => set("mail_pers", e.target.value)} placeholder="marie@free.fr" className="h-8 text-sm" />
-                  </Field>
+                  <Field label="Email *"><Input type="email" value={form.mail_pers} onChange={e => set("mail_pers", e.target.value)} placeholder="marie@free.fr" className="h-8 text-sm" /></Field>
                 </div>
                 <div className="border-t pt-3 space-y-3">
                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">■ Professionnelle</p>
-                  <Field label="Adresse">
-                    <Input value={form.adresse_pro} onChange={e => set("adresse_pro", e.target.value)} placeholder="1 place Carrée" className="h-8 text-sm" />
-                  </Field>
+                  <Field label="Adresse"><Input value={form.adresse_pro} onChange={e => set("adresse_pro", e.target.value)} placeholder="1 place Carrée" className="h-8 text-sm" /></Field>
                   <div className="grid grid-cols-5 gap-2">
-                    <div className="col-span-2">
-                      <Field label="Code postal"><Input value={form.cp_pro} onChange={e => set("cp_pro", e.target.value)} placeholder="93200" className="h-8 text-sm" /></Field>
-                    </div>
-                    <div className="col-span-3">
-                      <Field label="Commune"><Input value={form.commune_pro} onChange={e => set("commune_pro", e.target.value)} placeholder="Saint-Denis" className="h-8 text-sm" /></Field>
-                    </div>
+                    <div className="col-span-2"><Field label="Code postal"><Input value={form.cp_pro} onChange={e => set("cp_pro", e.target.value)} placeholder="93200" className="h-8 text-sm" /></Field></div>
+                    <div className="col-span-3"><Field label="Commune"><Input value={form.commune_pro} onChange={e => set("commune_pro", e.target.value)} placeholder="Saint-Denis" className="h-8 text-sm" /></Field></div>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <Field label="Tél. bureau"><Input type="tel" value={form.tel_bureau} onChange={e => set("tel_bureau", e.target.value)} placeholder="01 40 00 00 01" className="h-8 text-sm" /></Field>
@@ -352,7 +356,6 @@ export default function AdhesionFormFOCOM() {
               </AccordionContent>
             </AccordionItem>
 
-            {/* ── 3. DÉCLARATION & SIGNATURE ── */}
             <AccordionItem value="declaration" className="border rounded-lg px-4">
               <AccordionTrigger className="hover:no-underline py-3">
                 <span className="flex items-center gap-2 text-sm font-semibold">
@@ -366,15 +369,9 @@ export default function AdhesionFormFOCOM() {
                   Déclare adhérer à la <strong>Fédération Syndicaliste Force Ouvrière de la Communication</strong>
                 </div>
                 <div className="grid grid-cols-3 gap-3">
-                  <Field label="À partir du">
-                    <Input type="date" value={form.date_debut} onChange={e => set("date_debut", e.target.value)} className="h-8 text-sm" />
-                  </Field>
-                  <Field label="À (lieu)">
-                    <Input value={form.lieu_debut} onChange={e => set("lieu_debut", e.target.value)} placeholder="Paris" className="h-8 text-sm" />
-                  </Field>
-                  <Field label="Le (date)">
-                    <Input type="date" value={form.date_sign} onChange={e => set("date_sign", e.target.value)} className="h-8 text-sm" />
-                  </Field>
+                  <Field label="À partir du"><Input type="date" value={form.date_debut} onChange={e => set("date_debut", e.target.value)} className="h-8 text-sm" /></Field>
+                  <Field label="À (lieu)"><Input value={form.lieu_debut} onChange={e => set("lieu_debut", e.target.value)} placeholder="Paris" className="h-8 text-sm" /></Field>
+                  <Field label="Le (date)"><Input type="date" value={form.date_sign} onChange={e => set("date_sign", e.target.value)} className="h-8 text-sm" /></Field>
                 </div>
                 <div>
                   <Label className="text-xs text-muted-foreground mb-1.5 block">Prélèvement automatique des cotisations</Label>
@@ -390,61 +387,33 @@ export default function AdhesionFormFOCOM() {
               </AccordionContent>
             </AccordionItem>
 
-            {/* ── 4. SEPA (optionnel) ── */}
             <AccordionItem value="sepa" className="border rounded-lg px-4">
               <AccordionTrigger className="hover:no-underline py-3">
                 <span className="flex items-center gap-2 text-sm font-semibold">
                   <CreditCard className="w-4 h-4 text-primary" />
                   Mandat SEPA
-                  <Badge variant={form.sepa ? "default" : "outline"} className="text-xs">
-                    {form.sepa ? "Activé" : "Optionnel"}
-                  </Badge>
+                  <Badge variant={form.sepa ? "default" : "outline"} className="text-xs">{form.sepa ? "Activé" : "Optionnel"}</Badge>
                 </span>
               </AccordionTrigger>
               <AccordionContent className="pb-4 space-y-4">
-                <div className="flex items-center gap-3">
-                  <Switch checked={form.sepa} onCheckedChange={v => set("sepa", v)} />
-                  <span className="text-sm text-muted-foreground">Activer le prélèvement automatique</span>
-                </div>
+                <div className="flex items-center gap-3"><Switch checked={form.sepa} onCheckedChange={v => set("sepa", v)} /><span className="text-sm text-muted-foreground">Activer le prélèvement automatique</span></div>
                 {form.sepa && (
                   <div className="space-y-3">
-                    <Alert className="py-2 text-xs">
-                      <AlertDescription>
-                        <strong>Identifiant créancier SEPA :</strong> FR 80 ZZZ 52 45 04 · Joindre un RIB comportant BIC-IBAN.
-                      </AlertDescription>
-                    </Alert>
+                    <Alert className="py-2 text-xs"><AlertDescription><strong>Identifiant créancier SEPA :</strong> FR 80 ZZZ 52 45 04 · Joindre un RIB comportant BIC-IBAN.</AlertDescription></Alert>
                     <div className="grid grid-cols-2 gap-3">
-                      <Field label="Nom du débiteur">
-                        <Input value={form.sepa_nom} onChange={e => set("sepa_nom", e.target.value)} placeholder={`${form.nom} ${form.prenom}`.trim() || "DUPONT Marie"} className="h-8 text-sm" />
-                      </Field>
-                      <Field label="Banque (A)">
-                        <Input value={form.sepa_a} onChange={e => set("sepa_a", e.target.value)} placeholder="BNP Paribas" className="h-8 text-sm" />
-                      </Field>
+                      <Field label="Nom du débiteur"><Input value={form.sepa_nom} onChange={e => set("sepa_nom", e.target.value)} placeholder={`${form.nom} ${form.prenom}`.trim() || "DUPONT Marie"} className="h-8 text-sm" /></Field>
+                      <Field label="Banque (A)"><Input value={form.sepa_a} onChange={e => set("sepa_a", e.target.value)} placeholder="BNP Paribas" className="h-8 text-sm" /></Field>
                     </div>
-                    <Field label="Adresse débiteur">
-                      <Input value={form.sepa_adresse} onChange={e => set("sepa_adresse", e.target.value)} placeholder={form.adresse_pers || "12 rue des Lilas"} className="h-8 text-sm" />
-                    </Field>
+                    <Field label="Adresse débiteur"><Input value={form.sepa_adresse} onChange={e => set("sepa_adresse", e.target.value)} placeholder={form.adresse_pers || "12 rue des Lilas"} className="h-8 text-sm" /></Field>
                     <div className="grid grid-cols-3 gap-3">
-                      <Field label="Code postal">
-                        <Input value={form.sepa_cp} onChange={e => set("sepa_cp", e.target.value)} placeholder={form.cp_pers || "75001"} className="h-8 text-sm" />
-                      </Field>
-                      <Field label="Ville">
-                        <Input value={form.sepa_ville} onChange={e => set("sepa_ville", e.target.value)} placeholder={form.commune_pers || "Paris"} className="h-8 text-sm" />
-                      </Field>
-                      <Field label="Pays">
-                        <Input value={form.sepa_pays} onChange={e => set("sepa_pays", e.target.value)} placeholder="France" className="h-8 text-sm" />
-                      </Field>
+                      <Field label="Code postal"><Input value={form.sepa_cp} onChange={e => set("sepa_cp", e.target.value)} placeholder={form.cp_pers || "75001"} className="h-8 text-sm" /></Field>
+                      <Field label="Ville"><Input value={form.sepa_ville} onChange={e => set("sepa_ville", e.target.value)} placeholder={form.commune_pers || "Paris"} className="h-8 text-sm" /></Field>
+                      <Field label="Pays"><Input value={form.sepa_pays} onChange={e => set("sepa_pays", e.target.value)} placeholder="France" className="h-8 text-sm" /></Field>
                     </div>
-                    <Field label="IBAN">
-                      <Input value={form.sepa_iban} onChange={e => set("sepa_iban", e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))} placeholder="FR76 3000 6000 01 12 34 56 78 90 189" className="h-8 text-sm font-mono" />
-                    </Field>
+                    <Field label="IBAN"><Input value={form.sepa_iban} onChange={e => set("sepa_iban", e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))} placeholder="FR76 3000 6000 01 12 34 56 78 90 189" className="h-8 text-sm font-mono" /></Field>
                     <div className="grid grid-cols-2 gap-3">
-                      <Field label="BIC">
-                        <Input value={form.sepa_bic} onChange={e => set("sepa_bic", e.target.value.toUpperCase())} placeholder="BNPAFRPP" className="h-8 text-sm font-mono" />
-                      </Field>
-                      <Field label="Date du mandat">
-                        <Input type="date" value={form.sepa_le} onChange={e => set("sepa_le", e.target.value)} className="h-8 text-sm" />
-                      </Field>
+                      <Field label="BIC"><Input value={form.sepa_bic} onChange={e => set("sepa_bic", e.target.value.toUpperCase())} placeholder="BNPAFRPP" className="h-8 text-sm font-mono" /></Field>
+                      <Field label="Date du mandat"><Input type="date" value={form.sepa_le} onChange={e => set("sepa_le", e.target.value)} className="h-8 text-sm" /></Field>
                     </div>
                   </div>
                 )}
@@ -465,23 +434,11 @@ export default function AdhesionFormFOCOM() {
                 <div className="space-y-3">
                   <div>
                     <p className="font-semibold">Bulletin PDF généré et téléchargé avec succès.</p>
-                    <p className="mt-1 text-sm">
-                      Vérifiez le document téléchargé, puis envoyez-le à votre section FO COM par email ou via la messagerie du site.
-                    </p>
+                    <p className="mt-1 text-sm">Vérifiez le document téléchargé, puis envoyez-le à votre section FO COM par email ou via la messagerie du site.</p>
                   </div>
                   <div className="flex flex-col gap-2 sm:flex-row">
-                    <Button asChild size="sm" variant="outline" className="border-green-300 bg-white text-green-800 hover:bg-green-100">
-                      <Link to="/contact">
-                        <Mail className="mr-2 h-4 w-4" />
-                        Envoyer via Contact
-                      </Link>
-                    </Button>
-                    <Button asChild size="sm" variant="outline" className="border-green-300 bg-white text-green-800 hover:bg-green-100">
-                      <Link to="/mes-reclamations">
-                        <MessageSquare className="mr-2 h-4 w-4" />
-                        Transmettre via messagerie
-                      </Link>
-                    </Button>
+                    <Button asChild size="sm" variant="outline" className="border-green-300 bg-white text-green-800 hover:bg-green-100"><Link to="/contact"><Mail className="mr-2 h-4 w-4" />Envoyer via Contact</Link></Button>
+                    <Button asChild size="sm" variant="outline" className="border-green-300 bg-white text-green-800 hover:bg-green-100"><Link to="/mes-reclamations"><MessageSquare className="mr-2 h-4 w-4" />Transmettre via messagerie</Link></Button>
                   </div>
                 </div>
               </AlertDescription>
@@ -491,18 +448,17 @@ export default function AdhesionFormFOCOM() {
           <div className="flex gap-3 mt-4">
             <Button type="submit" disabled={status === "loading"} className="flex-1 gap-2">
               {status === "loading"
-                ? <><Loader2 className="w-4 h-4 animate-spin" />Génération en cours…</>
-                : <><Download className="w-4 h-4" />Générer et télécharger le PDF</>
-              }
+                ? <><Loader2 className="w-4 h-4 animate-spin" />Génération du bulletin officiel…</>
+                : <><Download className="w-4 h-4" />Générer et télécharger le PDF</>}
             </Button>
-            <Button type="button" variant="outline" size="sm"
-              onClick={() => { setForm(EMPTY); setSignature(null); setStatus("idle"); setOpen(["identite"]); }}>
-              Réinitialiser
-            </Button>
+            <Button type="button" variant="outline" size="sm" onClick={() => { setForm(EMPTY); setSignature(null); setStatus("idle"); setOpen(["identite"]); }}>Réinitialiser</Button>
           </div>
-          <p className="text-center text-xs text-muted-foreground mt-3">
-            Champs <span className="text-destructive">*</span> obligatoires
-          </p>
+          {status === "loading" && (
+            <p className="mt-2 text-center text-xs text-muted-foreground">
+              Merci de patienter quelques secondes, le PDF officiel est en cours de préparation.
+            </p>
+          )}
+          <p className="text-center text-xs text-muted-foreground mt-3">Champs <span className="text-destructive">*</span> obligatoires</p>
         </form>
       </CardContent>
     </Card>
