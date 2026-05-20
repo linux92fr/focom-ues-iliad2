@@ -36,7 +36,6 @@ type NewsletterSend = {
 };
 
 type NlForm = { title: string; subject: string; body_html: string };
-type SendMode = "all" | "selected";
 
 const emptyForm = (): NlForm => ({ title: "", subject: "", body_html: "" });
 
@@ -72,7 +71,6 @@ export default function AdminNewsletter() {
   const [showPreview, setShowPreview] = useState(false);
   const [search, setSearch] = useState("");
   const [sendingId, setSendingId] = useState<string | null>(null);
-  const [sendMode, setSendMode] = useState<SendMode>("selected");
   const [selectedEmails, setSelectedEmails] = useState<string[]>([]);
 
   const { data: subscribers = [], isLoading: subsLoading } = useQuery({
@@ -95,15 +93,15 @@ export default function AdminNewsletter() {
     [selectedEmails, activeSubscribers]
   );
 
-  const sendTargetCount = sendMode === "all" ? activeCount : selectedActiveEmails.length;
+  const sendTargetCount = selectedActiveEmails.length;
 
   const toggleEmail = (email: string) => {
     setSelectedEmails((prev) => prev.includes(email) ? prev.filter((e) => e !== email) : [...prev, email]);
   };
 
   const selectFilteredActive = () => {
-    const emails = filteredSubs.filter((s) => s.is_active).map((s) => s.email);
-    setSelectedEmails((prev) => Array.from(new Set([...prev, ...emails])));
+    const emails = filteredSubs.filter((s) => s.is_active).map((s) => s.email).slice(0, 10);
+    setSelectedEmails(emails);
   };
 
   const clearSelected = () => setSelectedEmails([]);
@@ -200,20 +198,19 @@ export default function AdminNewsletter() {
 
   const sendMutation = useMutation({
     mutationFn: async (newsletterId: string) => {
-      if (sendMode === "selected" && selectedActiveEmails.length === 0) {
+      if (selectedActiveEmails.length === 0) {
         throw new Error("Sélectionnez au moins un destinataire actif");
+      }
+      if (selectedActiveEmails.length > 10) {
+        throw new Error("Maximum 10 destinataires par envoi");
       }
 
       setSendingId(newsletterId);
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Non connecté");
 
-      const body = sendMode === "all"
-        ? { newsletterId, sendAll: true }
-        : { newsletterId, recipientEmails: selectedActiveEmails };
-
       const { data, error } = await supabase.functions.invoke("send-newsletter", {
-        body,
+        body: { newsletterId, recipientEmails: selectedActiveEmails },
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
 
@@ -250,16 +247,8 @@ export default function AdminNewsletter() {
   };
 
   const confirmSend = (nl: Newsletter) => {
-    if (sendMode === "all") {
-      const confirmation = window.prompt(
-        `ATTENTION : vous allez envoyer "${nl.subject}" à TOUS les abonnés actifs (${activeCount}).\n\nPour confirmer l'envoi global, tapez exactement : TOUS`
-      );
-      if (confirmation !== "TOUS") return;
-    } else {
-      const preview = selectedActiveEmails.slice(0, 5).join("\n");
-      const more = selectedActiveEmails.length > 5 ? `\n... et ${selectedActiveEmails.length - 5} autre(s)` : "";
-      if (!window.confirm(`Envoyer "${nl.subject}" à ${selectedActiveEmails.length} destinataire(s) sélectionné(s) ?\n\n${preview}${more}`)) return;
-    }
+    const preview = selectedActiveEmails.slice(0, 10).join("\n");
+    if (!window.confirm(`Envoyer "${nl.subject}" à ${selectedActiveEmails.length} destinataire(s) sélectionné(s) ?\n\n${preview}`)) return;
     sendMutation.mutate(nl.id);
   };
 
@@ -314,12 +303,12 @@ export default function AdminNewsletter() {
                   <div>
                     <CardTitle className="text-base">Liste des abonnés</CardTitle>
                     <p className="text-xs text-slate-500 mt-1">
-                      Sélectionnez certains abonnés pour envoyer une newsletter par petits groupes.
+                      Sélectionnez jusqu'à 10 abonnés actifs par envoi.
                     </p>
                   </div>
                   <div className="flex flex-col sm:flex-row gap-2">
                     <Input placeholder="Rechercher un email..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full sm:w-64 h-8 text-sm" />
-                    <Button variant="outline" size="sm" onClick={selectFilteredActive}>Sélectionner visibles</Button>
+                    <Button variant="outline" size="sm" onClick={selectFilteredActive}>Sélectionner 10 visibles</Button>
                     <Button variant="ghost" size="sm" onClick={clearSelected}>Vider</Button>
                   </div>
                 </div>
@@ -349,7 +338,7 @@ export default function AdminNewsletter() {
                                 <input
                                   type="checkbox"
                                   checked={checked}
-                                  disabled={!s.is_active}
+                                  disabled={!s.is_active || (!checked && selectedActiveEmails.length >= 10)}
                                   onChange={() => toggleEmail(s.email)}
                                   className="h-4 w-4 rounded border-slate-300"
                                   aria-label={`Sélectionner ${s.email}`}
@@ -390,26 +379,14 @@ export default function AdminNewsletter() {
                   <div>
                     <p className="text-sm font-bold text-teal-900">Destinataires de l'envoi</p>
                     <p className="text-xs text-teal-800 mt-1">
-                      Mode actuel : {sendMode === "all" ? "tous les abonnés actifs" : "sélection personnalisée"} — {sendTargetCount} destinataire{sendTargetCount > 1 ? "s" : ""}.
+                      Sélection obligatoire — {sendTargetCount}/10 destinataire{sendTargetCount > 1 ? "s" : ""} sélectionné{sendTargetCount > 1 ? "s" : ""}.
                     </p>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    <Button variant={sendMode === "selected" ? "default" : "outline"} size="sm" onClick={() => setSendMode("selected")} className={sendMode === "selected" ? "bg-teal-600 hover:bg-teal-700 text-white" : ""}>
-                      Sélection personnalisée
-                    </Button>
-                    <Button variant={sendMode === "all" ? "default" : "outline"} size="sm" onClick={() => setSendMode("all")} className={sendMode === "all" ? "bg-red-600 hover:bg-red-700 text-white" : ""}>
-                      Tous les actifs
-                    </Button>
-                  </div>
+                  <Badge className="bg-red-100 text-red-700 text-xs">Envoi global désactivé</Badge>
                 </div>
-                {sendMode === "selected" && selectedActiveEmails.length === 0 && (
+                {selectedActiveEmails.length === 0 && (
                   <p className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
-                    Aucun destinataire sélectionné. Va dans l'onglet Abonnés pour cocher les destinataires avant l'envoi.
-                  </p>
-                )}
-                {sendMode === "all" && (
-                  <p className="text-xs text-red-700 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
-                    Mode sensible : l'envoi global exige de taper TOUS dans une confirmation avant expédition.
+                    Aucun destinataire sélectionné. Va dans l'onglet Abonnés pour cocher jusqu'à 10 destinataires avant l'envoi.
                   </p>
                 )}
               </CardContent>
@@ -483,7 +460,7 @@ export default function AdminNewsletter() {
                             <p className="text-[10px] text-slate-400 mt-1">Modifiée {fmtDate(nl.updated_at)}</p>
                           </div>
                           <div className="flex items-center gap-1.5 flex-shrink-0">
-                            <Button variant="outline" size="sm" onClick={() => confirmSend(nl)} disabled={isSending || sendTargetCount === 0} className="gap-1.5 text-xs" title={sendTargetCount === 0 ? "Aucun destinataire" : `Envoyer à ${sendTargetCount} destinataires`}>
+                            <Button variant="outline" size="sm" onClick={() => confirmSend(nl)} disabled={isSending || sendTargetCount === 0 || sendTargetCount > 10} className="gap-1.5 text-xs" title={sendTargetCount === 0 ? "Aucun destinataire" : `Envoyer à ${sendTargetCount} destinataires`}>
                               {isSending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
                               {isSending ? "Envoi…" : `Envoyer (${sendTargetCount})`}
                             </Button>
