@@ -449,7 +449,7 @@ const Profile = () => {
             {/* ── Onglets principaux ─────────────────────────────────────── */}
             <div className="md:col-span-3">
               <Tabs defaultValue="infos" className="space-y-4">
-                <TabsList className="grid w-full grid-cols-5">
+                <TabsList className="grid w-full grid-cols-5 overflow-hidden">
                   <TabsTrigger value="infos" className="gap-1.5 text-xs">
                     <User className="w-3.5 h-3.5" />
                     <span className="hidden sm:inline">Profil</span>
@@ -532,8 +532,8 @@ const Profile = () => {
                           </div>
                         </div>
                         <Separator />
-                        <div className="flex justify-end">
-                          <Button type="submit" disabled={saving}>
+                        <div className="flex justify-stretch sm:justify-end">
+                          <Button type="submit" disabled={saving} className="w-full sm:w-auto">
                             {saving
                               ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Enregistrement...</>
                               : <><Save className="mr-2 h-4 w-4" />Enregistrer</>}
@@ -813,12 +813,12 @@ const Profile = () => {
                         </div>
 
                         <Separator />
-                        <div className="flex justify-end">
+                        <div className="flex justify-stretch sm:justify-end">
                           <Button
                             type="submit"
                             disabled={pwSaving || !pwData.next || !pwData.confirm}
                             variant="outline"
-                            className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+                            className="w-full sm:w-auto border-primary text-primary hover:bg-primary hover:text-primary-foreground"
                           >
                             {pwSaving
                               ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Modification...</>
@@ -871,7 +871,7 @@ function RdvCard({
       </div>
 
       {/* Date / lieu */}
-      <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-muted-foreground">
         <div className="flex items-center gap-1.5">
           <Calendar className="w-3.5 h-3.5 flex-shrink-0" />
           <span className="truncate">{formatDate(p.date_permanence)}</span>
