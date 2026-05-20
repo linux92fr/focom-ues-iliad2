@@ -1,6 +1,6 @@
 import { PDFDocument, StandardFonts, rgb } from "https://esm.sh/pdf-lib@1.17.1";
 
-const DEFAULT_PDF_PATH = "/bulletin-adhesion-focom.pdf";
+const DEFAULT_PDF_PATH = "/bulletin-adhesion.pdf";
 
 function corsHeaders(origin: string | null): Record<string, string> {
   return {
@@ -208,10 +208,10 @@ async function addSignature(pdfDoc: PDFDocument, signatureBase64: string | undef
   const imageBytes = Uint8Array.from(atob(signatureBase64.split(",").pop() || ""), (char) => char.charCodeAt(0));
   const png = await pdfDoc.embedPng(imageBytes);
   page.drawImage(png, {
-    x: 380,
-    y: 80,
-    width: 150,
-    height: 45,
+    x: 95,
+    y: 42,
+    width: 170,
+    height: 50,
   });
 }
 
