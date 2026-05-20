@@ -18,8 +18,6 @@ import {
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
 type Survey = {
   id: string; title: string; description: string | null;
   is_anonymous: boolean; allow_multiple_votes: boolean;
@@ -35,7 +33,7 @@ type Question = {
 
 type SurveyResponseInsert = {
   survey_id: string; question_id: string;
-  user_id: string; text_response?: string; option_id?: string;
+  user_id: string | null; text_response?: string; option_id?: string;
 };
 
 type ResultsData = {
@@ -46,8 +44,6 @@ type ResultsData = {
   text_response?: string | null;
 };
 
-// ─── Composant ────────────────────────────────────────────────────────────────
-
 const Sondages = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -55,9 +51,7 @@ const Sondages = () => {
   const [activeSurvey, setActiveSurvey] = useState<Survey | null>(null);
   const [answers, setAnswers] = useState<Record<string, string | string[]>>({});
   const [textAnswers, setTextAnswers] = useState<Record<string, string>>({});
-  const [showResults, setShowResults] = useState<string | null>(null); // survey id
-
-  // ─── Fetch sondages ───────────────────────────────────────────────────────
+  const [showResults, setShowResults] = useState<string | null>(null);
 
   const { data: surveys = [], isLoading } = useQuery({
     queryKey: ['surveys-public'],
@@ -74,8 +68,6 @@ const Sondages = () => {
     },
   });
 
-  // ─── Sondages déjà votés ──────────────────────────────────────────────────
-
   const { data: votedSurveyIds = new Set<string>() } = useQuery({
     queryKey: ['voted-surveys', user?.id],
     enabled: !!user,
@@ -87,8 +79,6 @@ const Sondages = () => {
       return new Set((data ?? []).map((r) => r.survey_id as string));
     },
   });
-
-  // ─── Questions du sondage actif ───────────────────────────────────────────
 
   const { data: questions = [], isLoading: questionsLoading } = useQuery({
     queryKey: ['survey-questions', activeSurvey?.id],
@@ -104,8 +94,6 @@ const Sondages = () => {
     },
   });
 
-  // ─── Résultats ────────────────────────────────────────────────────────────
-
   const { data: results = [] } = useQuery({
     queryKey: ['survey-results', showResults],
     enabled: !!showResults,
@@ -116,7 +104,6 @@ const Sondages = () => {
         .eq('survey_id', showResults!);
       if (error) throw error;
 
-      // Aggregate: count per (question_id, option_id)
       const counts: Record<string, number> = {};
       for (const r of data ?? []) {
         const key = `${r.question_id}__${r.option_id ?? '__text'}`;
@@ -129,8 +116,6 @@ const Sondages = () => {
     },
     refetchInterval: showResults ? 10000 : false,
   });
-
-  // ─── Nombre de participants ───────────────────────────────────────────────
 
   const { data: participantCount = 0 } = useQuery({
     queryKey: ['survey-participants', showResults],
@@ -146,8 +131,6 @@ const Sondages = () => {
     refetchInterval: showResults ? 10000 : false,
   });
 
-  // ─── Questions pour la vue résultats ─────────────────────────────────────
-
   const { data: resultQuestions = [] } = useQuery({
     queryKey: ['survey-questions-results', showResults],
     enabled: !!showResults,
@@ -162,30 +145,53 @@ const Sondages = () => {
     },
   });
 
-  // ─── Soumettre les réponses ───────────────────────────────────────────────
-
   const submitMutation = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error('Non connecté');
+      if (!activeSurvey) throw new Error('Aucun sondage sélectionné');
+
+      const now = new Date();
+      const { data: freshSurvey, error: surveyError } = await supabase
+        .from('surveys')
+        .select('id, is_active, allow_multiple_votes, ends_at, starts_at')
+        .eq('id', activeSurvey.id)
+        .maybeSingle();
+
+      if (surveyError) throw surveyError;
+      if (!freshSurvey || !freshSurvey.is_active) throw new Error('Ce sondage n’est plus actif.');
+      if (freshSurvey.starts_at && new Date(freshSurvey.starts_at) > now) throw new Error('Ce sondage n’est pas encore ouvert.');
+      if (freshSurvey.ends_at && new Date(freshSurvey.ends_at) < now) throw new Error('Ce sondage est clôturé.');
+
+      if (!freshSurvey.allow_multiple_votes) {
+        const { count, error: duplicateError } = await supabase
+          .from('survey_responses')
+          .select('id', { count: 'exact', head: true })
+          .eq('survey_id', activeSurvey.id)
+          .eq('user_id', user.id);
+
+        if (duplicateError) throw duplicateError;
+        if ((count ?? 0) > 0) throw new Error('Vous avez déjà participé à ce sondage.');
+      }
+
       const responses: SurveyResponseInsert[] = [];
       for (const q of questions) {
         if (q.question_type === 'text') {
           if (!textAnswers[q.id]?.trim()) throw new Error(`Veuillez répondre à : "${q.question_text}"`);
-          responses.push({ survey_id: activeSurvey!.id, question_id: q.id, text_response: textAnswers[q.id], user_id: user.id });
+          responses.push({ survey_id: activeSurvey.id, question_id: q.id, text_response: textAnswers[q.id].trim(), user_id: user.id });
         } else if (q.question_type === 'single_choice') {
           if (!answers[q.id]) throw new Error(`Veuillez répondre à : "${q.question_text}"`);
-          responses.push({ survey_id: activeSurvey!.id, question_id: q.id, option_id: answers[q.id] as string, user_id: user.id });
+          responses.push({ survey_id: activeSurvey.id, question_id: q.id, option_id: answers[q.id] as string, user_id: user.id });
         } else {
           const opts = answers[q.id] as string[] | undefined;
           if (!opts?.length) throw new Error(`Veuillez répondre à : "${q.question_text}"`);
           for (const optId of opts) {
-            responses.push({ survey_id: activeSurvey!.id, question_id: q.id, option_id: optId, user_id: user.id });
+            responses.push({ survey_id: activeSurvey.id, question_id: q.id, option_id: optId, user_id: user.id });
           }
         }
       }
       const { error } = await supabase.from('survey_responses').insert(responses);
       if (error) throw error;
-      return activeSurvey!.id;
+      return activeSurvey.id;
     },
     onSuccess: (surveyId) => {
       toast.success('Merci pour votre participation !');
@@ -206,12 +212,9 @@ const Sondages = () => {
 
   const isClosed = (s: Survey) => !!s.ends_at && new Date(s.ends_at) < new Date();
 
-  // ─── Rendu ────────────────────────────────────────────────────────────────
-
   return (
     <div className="p-4 lg:p-8">
       <main className="container mx-auto px-4 py-8 max-w-3xl">
-
         <div className="flex items-center gap-3 mb-6">
           <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
             <ClipboardList className="w-6 h-6 text-primary" />
@@ -222,7 +225,6 @@ const Sondages = () => {
           </div>
         </div>
 
-        {/* ── Formulaire de vote ──────────────────────────────────────────── */}
         {activeSurvey && (
           <div className="space-y-4">
             <PageBreadcrumb steps={[{ label: 'Sondages', href: '/sondages' }, { label: activeSurvey.title }]} />
@@ -289,12 +291,7 @@ const Sondages = () => {
                         </div>
                       )}
                       {q.question_type === 'text' && (
-                        <Textarea
-                          value={textAnswers[q.id] || ''}
-                          onChange={(e) => setTextAnswers({ ...textAnswers, [q.id]: e.target.value })}
-                          placeholder="Votre réponse..."
-                          rows={3}
-                        />
+                        <Textarea value={textAnswers[q.id] || ''} onChange={(e) => setTextAnswers({ ...textAnswers, [q.id]: e.target.value })} placeholder="Votre réponse..." rows={3} />
                       )}
                     </CardContent>
                   </Card>
@@ -308,14 +305,8 @@ const Sondages = () => {
                 )}
 
                 <div className="flex gap-3">
-                  <Button
-                    onClick={() => submitMutation.mutate()}
-                    disabled={submitMutation.isPending || !user}
-                    className="flex-1"
-                  >
-                    {submitMutation.isPending
-                      ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Envoi en cours...</>
-                      : 'Envoyer mes réponses'}
+                  <Button onClick={() => submitMutation.mutate()} disabled={submitMutation.isPending || !user} className="flex-1">
+                    {submitMutation.isPending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Envoi en cours...</> : 'Envoyer mes réponses'}
                   </Button>
                 </div>
               </>
@@ -323,7 +314,6 @@ const Sondages = () => {
           </div>
         )}
 
-        {/* ── Résultats ───────────────────────────────────────────────────── */}
         {!activeSurvey && showResults && (
           <div className="space-y-4">
             {(() => {
@@ -335,9 +325,7 @@ const Sondages = () => {
                       {survey && <PageBreadcrumb steps={[{ label: 'Sondages', href: '/sondages' }, { label: 'Résultats' }]} />}
                       <h2 className="text-lg font-semibold mt-2">{survey?.title}</h2>
                     </div>
-                    <Button variant="outline" size="sm" onClick={() => setShowResults(null)} className="gap-1.5">
-                      <ChevronLeft className="w-4 h-4" /> Retour
-                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => setShowResults(null)} className="gap-1.5"><ChevronLeft className="w-4 h-4" /> Retour</Button>
                   </div>
 
                   <div className="flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
@@ -367,27 +355,17 @@ const Sondages = () => {
                           {q.question_type === 'text' ? (
                             <p className="text-sm text-muted-foreground italic">Les réponses libres sont confidentielles.</p>
                           ) : (
-                            q.survey_options
-                              .sort((a, b) => a.display_order - b.display_order)
-                              .map((opt) => {
-                                const r = qResults.find((r) => r.option_id === opt.id);
-                                const count = r?.count ?? 0;
-                                const pct = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0;
-                                return (
-                                  <div key={opt.id} className="space-y-1">
-                                    <div className="flex items-center justify-between text-sm">
-                                      <span className="font-medium">{opt.option_text}</span>
-                                      <span className="text-muted-foreground text-xs">{count} vote{count > 1 ? 's' : ''} · {pct}%</span>
-                                    </div>
-                                    <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
-                                      <div
-                                        className="h-full rounded-full bg-primary transition-all duration-500"
-                                        style={{ width: `${pct}%` }}
-                                      />
-                                    </div>
-                                  </div>
-                                );
-                              })
+                            q.survey_options.sort((a, b) => a.display_order - b.display_order).map((opt) => {
+                              const r = qResults.find((r) => r.option_id === opt.id);
+                              const count = r?.count ?? 0;
+                              const pct = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0;
+                              return (
+                                <div key={opt.id} className="space-y-1">
+                                  <div className="flex items-center justify-between text-sm"><span className="font-medium">{opt.option_text}</span><span className="text-muted-foreground text-xs">{count} vote{count > 1 ? 's' : ''} · {pct}%</span></div>
+                                  <div className="h-2 w-full rounded-full bg-muted overflow-hidden"><div className="h-full rounded-full bg-primary transition-all duration-500" style={{ width: `${pct}%` }} /></div>
+                                </div>
+                              );
+                            })
                           )}
                         </CardContent>
                       </Card>
@@ -399,20 +377,12 @@ const Sondages = () => {
           </div>
         )}
 
-        {/* ── Liste des sondages ──────────────────────────────────────────── */}
         {!activeSurvey && !showResults && (
           <>
             {isLoading ? (
-              <div className="flex justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              </div>
+              <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
             ) : surveys.length === 0 ? (
-              <Card>
-                <CardContent className="py-12 text-center">
-                  <ClipboardList className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-                  <p className="text-muted-foreground">Aucun sondage actif pour le moment.</p>
-                </CardContent>
-              </Card>
+              <Card><CardContent className="py-12 text-center"><ClipboardList className="w-10 h-10 text-muted-foreground mx-auto mb-3" /><p className="text-muted-foreground">Aucun sondage actif pour le moment.</p></CardContent></Card>
             ) : (
               <div className="grid gap-4">
                 {surveys.map((s) => {
@@ -425,36 +395,17 @@ const Sondages = () => {
                         <div className="space-y-1.5 flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <h3 className="font-semibold text-foreground">{s.title}</h3>
-                            {hasVoted && (
-                              <Badge variant="outline" className="text-green-600 border-green-300 text-xs gap-1">
-                                <CheckCircle2 className="w-3 h-3" /> Voté
-                              </Badge>
-                            )}
+                            {hasVoted && <Badge variant="outline" className="text-green-600 border-green-300 text-xs gap-1"><CheckCircle2 className="w-3 h-3" /> Voté</Badge>}
                             {s.is_anonymous && <Badge variant="outline" className="text-xs">Anonyme</Badge>}
                             {closed && <Badge variant="secondary" className="text-xs">Clôturé</Badge>}
                           </div>
                           {s.description && <p className="text-sm text-muted-foreground truncate">{s.description}</p>}
-                          {s.ends_at && !closed && (
-                            <p className="text-xs text-muted-foreground flex items-center gap-1">
-                              <Clock className="w-3 h-3" />
-                              Clôture le {format(new Date(s.ends_at), 'dd MMM yyyy HH:mm', { locale: fr })}
-                            </p>
-                          )}
+                          {s.ends_at && !closed && <p className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="w-3 h-3" />Clôture le {format(new Date(s.ends_at), 'dd MMM yyyy HH:mm', { locale: fr })}</p>}
                         </div>
                         <div className="flex flex-col gap-2 flex-shrink-0">
-                          {canVote && (
-                            <Button size="sm" onClick={() => openSurvey(s)}>Participer</Button>
-                          )}
-                          {(hasVoted || closed) && (
-                            <Button size="sm" variant="outline" onClick={() => setShowResults(s.id)} className="gap-1.5">
-                              <BarChart3 className="w-3.5 h-3.5" /> Résultats
-                            </Button>
-                          )}
-                          {!user && !closed && (
-                            <Button size="sm" variant="outline" disabled className="gap-1.5">
-                              <Lock className="w-3.5 h-3.5" /> Connexion requise
-                            </Button>
-                          )}
+                          {canVote && <Button size="sm" onClick={() => openSurvey(s)}>Participer</Button>}
+                          {(hasVoted || closed) && <Button size="sm" variant="outline" onClick={() => setShowResults(s.id)} className="gap-1.5"><BarChart3 className="w-3.5 h-3.5" /> Résultats</Button>}
+                          {!user && !closed && <Button size="sm" variant="outline" disabled className="gap-1.5"><Lock className="w-3.5 h-3.5" /> Connexion requise</Button>}
                         </div>
                       </CardContent>
                     </Card>
