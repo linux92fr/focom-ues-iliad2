@@ -264,12 +264,12 @@ export default function AdhesionFormFOCOM() {
               <AccordionContent className="pb-4 space-y-3">
                 <div>
                   <Label className="text-xs text-muted-foreground mb-1.5 block">Civilité</Label>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     <Pill label="Mme" checked={form.civilite === "mme"} onClick={() => set("civilite", "mme")} />
                     <Pill label="M." checked={form.civilite === "mr"}  onClick={() => set("civilite", "mr")} />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <Field label="Nom *">
                     <Input value={form.nom} onChange={e => set("nom", e.target.value)} placeholder="DUPONT" className="h-8 text-sm" />
                   </Field>
@@ -283,7 +283,7 @@ export default function AdhesionFormFOCOM() {
                 <Field label="N° Sécu (7 premiers chiffres)">
                   <Input value={form.nss} onChange={e => set("nss", e.target.value.replace(/\D/g, "").slice(0, 7))} placeholder="2 85 05 …" className="h-8 text-sm font-mono" />
                 </Field>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <Label className="text-xs text-muted-foreground mb-1.5 block">Statut</Label>
                     <div className="flex flex-wrap gap-1.5">
@@ -301,14 +301,14 @@ export default function AdhesionFormFOCOM() {
                     </div>
                   </div>
                 </div>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <Field label="Classe"><Input value={form.classe} onChange={e => set("classe", e.target.value)} placeholder="A" className="h-8 text-sm" /></Field>
                   <Field label="Niveau"><Input value={form.niveau} onChange={e => set("niveau", e.target.value)} placeholder="3" className="h-8 text-sm" /></Field>
                   <Field label="Profession"><Input value={form.profession} onChange={e => set("profession", e.target.value)} placeholder="Ingénieur" className="h-8 text-sm" /></Field>
                 </div>
                 <div>
                   <Label className="text-xs text-muted-foreground mb-1.5 block">Temps partiel / CDD</Label>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     {(["50","60","70","80"] as const).map(p =>
                       <Pill key={p} label={`${p}%`} checked={form.tempPartiel === p} onClick={() => set("tempPartiel", form.tempPartiel === p ? "" : p)} />
                     )}
@@ -331,11 +331,11 @@ export default function AdhesionFormFOCOM() {
                   <Field label="Adresse (ligne 1) *">
                     <Input value={form.adresse_pers} onChange={e => set("adresse_pers", e.target.value)} placeholder="12 rue des Lilas" className="h-8 text-sm" />
                   </Field>
-                  <div className="grid grid-cols-5 gap-2">
-                    <div className="col-span-2"><Field label="Code postal *"><Input value={form.cp_pers} onChange={e => set("cp_pers", e.target.value)} placeholder="75001" className="h-8 text-sm" /></Field></div>
-                    <div className="col-span-3"><Field label="Commune *"><Input value={form.commune_pers} onChange={e => set("commune_pers", e.target.value)} placeholder="Paris" className="h-8 text-sm" /></Field></div>
+                  <div className="grid grid-cols-1 sm:grid-cols-5 gap-2">
+                    <div className="sm:col-span-2"><Field label="Code postal *"><Input value={form.cp_pers} onChange={e => set("cp_pers", e.target.value)} placeholder="75001" className="h-8 text-sm" /></Field></div>
+                    <div className="sm:col-span-3"><Field label="Commune *"><Input value={form.commune_pers} onChange={e => set("commune_pers", e.target.value)} placeholder="Paris" className="h-8 text-sm" /></Field></div>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <Field label="Tél. fixe"><Input type="tel" value={form.tel_fixe} onChange={e => set("tel_fixe", e.target.value)} placeholder="01 40 00 00 00" className="h-8 text-sm" /></Field>
                     <Field label="Portable"><Input type="tel" value={form.portable} onChange={e => set("portable", e.target.value)} placeholder="06 12 34 56 78" className="h-8 text-sm" /></Field>
                   </div>
@@ -344,11 +344,11 @@ export default function AdhesionFormFOCOM() {
                 <div className="border-t pt-3 space-y-3">
                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">■ Professionnelle</p>
                   <Field label="Adresse"><Input value={form.adresse_pro} onChange={e => set("adresse_pro", e.target.value)} placeholder="1 place Carrée" className="h-8 text-sm" /></Field>
-                  <div className="grid grid-cols-5 gap-2">
-                    <div className="col-span-2"><Field label="Code postal"><Input value={form.cp_pro} onChange={e => set("cp_pro", e.target.value)} placeholder="93200" className="h-8 text-sm" /></Field></div>
-                    <div className="col-span-3"><Field label="Commune"><Input value={form.commune_pro} onChange={e => set("commune_pro", e.target.value)} placeholder="Saint-Denis" className="h-8 text-sm" /></Field></div>
+                  <div className="grid grid-cols-1 sm:grid-cols-5 gap-2">
+                    <div className="sm:col-span-2"><Field label="Code postal"><Input value={form.cp_pro} onChange={e => set("cp_pro", e.target.value)} placeholder="93200" className="h-8 text-sm" /></Field></div>
+                    <div className="sm:col-span-3"><Field label="Commune"><Input value={form.commune_pro} onChange={e => set("commune_pro", e.target.value)} placeholder="Saint-Denis" className="h-8 text-sm" /></Field></div>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <Field label="Tél. bureau"><Input type="tel" value={form.tel_bureau} onChange={e => set("tel_bureau", e.target.value)} placeholder="01 40 00 00 01" className="h-8 text-sm" /></Field>
                     <Field label="Email pro"><Input type="email" value={form.mail_pro} onChange={e => set("mail_pro", e.target.value)} placeholder="marie.dupont@free.fr" className="h-8 text-sm" /></Field>
                   </div>
@@ -368,14 +368,14 @@ export default function AdhesionFormFOCOM() {
                 <div className="bg-primary/5 border border-primary/10 rounded-md px-3 py-2 text-xs text-muted-foreground">
                   Déclare adhérer à la <strong>Fédération Syndicaliste Force Ouvrière de la Communication</strong>
                 </div>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <Field label="À partir du"><Input type="date" value={form.date_debut} onChange={e => set("date_debut", e.target.value)} className="h-8 text-sm" /></Field>
                   <Field label="À (lieu)"><Input value={form.lieu_debut} onChange={e => set("lieu_debut", e.target.value)} placeholder="Paris" className="h-8 text-sm" /></Field>
                   <Field label="Le (date)"><Input type="date" value={form.date_sign} onChange={e => set("date_sign", e.target.value)} className="h-8 text-sm" /></Field>
                 </div>
                 <div>
                   <Label className="text-xs text-muted-foreground mb-1.5 block">Prélèvement automatique des cotisations</Label>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     <Pill label="✓ Je désire" checked={form.prelevement === "oui"} onClick={() => set("prelevement", "oui")} />
                     <Pill label="✗ Je ne désire pas" checked={form.prelevement === "non"} onClick={() => set("prelevement", "non")} />
                   </div>
@@ -400,18 +400,18 @@ export default function AdhesionFormFOCOM() {
                 {form.sepa && (
                   <div className="space-y-3">
                     <Alert className="py-2 text-xs"><AlertDescription><strong>Identifiant créancier SEPA :</strong> FR 80 ZZZ 52 45 04 · Joindre un RIB comportant BIC-IBAN.</AlertDescription></Alert>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <Field label="Nom du débiteur"><Input value={form.sepa_nom} onChange={e => set("sepa_nom", e.target.value)} placeholder={`${form.nom} ${form.prenom}`.trim() || "DUPONT Marie"} className="h-8 text-sm" /></Field>
                       <Field label="Banque (A)"><Input value={form.sepa_a} onChange={e => set("sepa_a", e.target.value)} placeholder="BNP Paribas" className="h-8 text-sm" /></Field>
                     </div>
                     <Field label="Adresse débiteur"><Input value={form.sepa_adresse} onChange={e => set("sepa_adresse", e.target.value)} placeholder={form.adresse_pers || "12 rue des Lilas"} className="h-8 text-sm" /></Field>
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <Field label="Code postal"><Input value={form.sepa_cp} onChange={e => set("sepa_cp", e.target.value)} placeholder={form.cp_pers || "75001"} className="h-8 text-sm" /></Field>
                       <Field label="Ville"><Input value={form.sepa_ville} onChange={e => set("sepa_ville", e.target.value)} placeholder={form.commune_pers || "Paris"} className="h-8 text-sm" /></Field>
                       <Field label="Pays"><Input value={form.sepa_pays} onChange={e => set("sepa_pays", e.target.value)} placeholder="France" className="h-8 text-sm" /></Field>
                     </div>
                     <Field label="IBAN"><Input value={form.sepa_iban} onChange={e => set("sepa_iban", e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))} placeholder="FR76 3000 6000 01 12 34 56 78 90 189" className="h-8 text-sm font-mono" /></Field>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <Field label="BIC"><Input value={form.sepa_bic} onChange={e => set("sepa_bic", e.target.value.toUpperCase())} placeholder="BNPAFRPP" className="h-8 text-sm font-mono" /></Field>
                       <Field label="Date du mandat"><Input type="date" value={form.sepa_le} onChange={e => set("sepa_le", e.target.value)} className="h-8 text-sm" /></Field>
                     </div>
@@ -445,7 +445,7 @@ export default function AdhesionFormFOCOM() {
             </Alert>
           )}
 
-          <div className="flex gap-3 mt-4">
+          <div className="flex flex-col sm:flex-row gap-3 mt-4">
             <Button type="submit" disabled={status === "loading"} className="flex-1 gap-2">
               {status === "loading"
                 ? <><Loader2 className="w-4 h-4 animate-spin" />Génération du bulletin officiel…</>
