@@ -373,7 +373,7 @@ function CreateReclamationDialog({ open, onClose, fallbackUserId, fallbackUserEm
           </div>
           <div><Label htmlFor="cr-title">Titre *</Label><Input id="cr-title" value={title} onChange={e => setTitle(e.target.value)} placeholder="Résumé de votre demande" required className="mt-1" /></div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div><Label>Catégorie</Label><Select value={category} onValueChange={setCategory}><SelectTrigger className="mt-1"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="rh">RH</SelectItem><SelectItem value="juridique">Juridique</SelectItem><SelectItem value="autre">Autre</SelectItem></SelectContent></Select></div>
+            <div><Label>Catégorie</Label><Select value={category} onValueChange={setCategory}><SelectTrigger className="mt-1"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="rh">RH</SelectItem><SelectItem value="juridique">Juridique</SelectItem><SelectItem value="autre">Adhésion / bulletin</SelectItem></SelectContent></Select></div>
             <div><Label>Entité</Label><Select value={entity} onValueChange={setEntity}><SelectTrigger className="mt-1"><SelectValue /></SelectTrigger><SelectContent>{Object.entries(ENTITY).map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}</SelectContent></Select></div>
             <div><Label>Priorité</Label><Select value={priority} onValueChange={setPriority}><SelectTrigger className="mt-1"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="normale">Normale</SelectItem><SelectItem value="urgente">Urgente</SelectItem><SelectItem value="critique">Critique</SelectItem></SelectContent></Select></div>
           </div>
