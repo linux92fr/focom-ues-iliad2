@@ -9,9 +9,20 @@
 -- mixed              : adhérent actif OU email professionnel vérifié
 ALTER TABLE public.surveys
   ADD COLUMN IF NOT EXISTS participation_mode text NOT NULL DEFAULT 'adherents_only',
-  ADD COLUMN IF NOT EXISTS allowed_email_domain text NOT NULL DEFAULT 'iliad-free.fr',
-  ADD CONSTRAINT surveys_participation_mode_check
-    CHECK (participation_mode IN ('adherents_only', 'professional_email', 'mixed'));
+  ADD COLUMN IF NOT EXISTS allowed_email_domain text NOT NULL DEFAULT 'iliad-free.fr';
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'surveys_participation_mode_check'
+  ) THEN
+    ALTER TABLE public.surveys
+      ADD CONSTRAINT surveys_participation_mode_check
+      CHECK (participation_mode IN ('adherents_only', 'professional_email', 'mixed'));
+  END IF;
+END $$;
 
 -- Codes temporaires de vérification.
 -- Aucun email n'est stocké en clair : uniquement une empreinte email_hash.
@@ -59,23 +70,25 @@ ALTER TABLE public.survey_external_participants ENABLE ROW LEVEL SECURITY;
 
 -- Les tables de vérification sont pilotées par Edge Functions avec service_role.
 -- Les admins peuvent consulter les participants externes sans voir les emails.
+DROP POLICY IF EXISTS "survey_external_participants_admin_select" ON public.survey_external_participants;
 CREATE POLICY "survey_external_participants_admin_select"
   ON public.survey_external_participants FOR SELECT
   USING (
     EXISTS (
       SELECT 1 FROM public.user_roles
       WHERE user_id = auth.uid()
-      AND role IN ('admin', 'moderator', 'secretaire')
+      AND role IN ('admin', 'secretaire')
     )
   );
 
+DROP POLICY IF EXISTS "survey_email_verifications_admin_select" ON public.survey_email_verifications;
 CREATE POLICY "survey_email_verifications_admin_select"
   ON public.survey_email_verifications FOR SELECT
   USING (
     EXISTS (
       SELECT 1 FROM public.user_roles
       WHERE user_id = auth.uid()
-      AND role IN ('admin', 'moderator')
+      AND role = 'admin'
     )
   );
 
