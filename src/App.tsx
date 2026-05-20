@@ -41,6 +41,7 @@ import Nao2026 from "./pages/nao2026/index";
 import FormulaireNao2026 from "./pages/nao2026/formulaire/index";
 import AccordGEPP from "./pages/AccordGEPP";
 
+import Newsletter from "./pages/Newsletter";
 import NewsletterUnsubscribe from "./pages/NewsletterUnsubscribe";
 import Notifications from "./pages/Notifications";
 
@@ -109,6 +110,7 @@ function App() {
                       <Route path="/nao2026" element={<Nao2026 />} />
                       <Route path="/nao2026/formulaire" element={<FormulaireNao2026 />} />
                       <Route path="/accords/gepp" element={<AccordGEPP />} />
+                      <Route path="/newsletter" element={<Newsletter />} />
                       <Route path="/newsletter/unsubscribe" element={<NewsletterUnsubscribe />} />
                       <Route path="/notifications" element={<Notifications />} />
                       <Route path="/ai" element={<AI />} />
