@@ -91,7 +91,6 @@ Deno.serve(async (req) => {
 
   const payload = await req.json();
   const newsletterId = payload?.newsletterId;
-  const sendAll = payload?.sendAll === true;
   const recipientEmails: string[] = Array.isArray(payload?.recipientEmails)
     ? Array.from(new Set(payload.recipientEmails
         .filter((email: unknown) => typeof email === "string" && email.includes("@"))
@@ -100,11 +99,14 @@ Deno.serve(async (req) => {
   const force = payload?.force === true;
 
   if (!newsletterId) return json({ error: "newsletterId requis" }, 400);
-  if (!sendAll && recipientEmails.length === 0) {
-    return json({ error: "Aucun destinataire sélectionné. L'envoi à tous nécessite sendAll=true." }, 400);
+  if (payload?.sendAll === true) {
+    return json({ error: "Envoi global désactivé par sécurité. Sélectionnez explicitement les destinataires." }, 400);
   }
-  if (sendAll && recipientEmails.length > 0) {
-    return json({ error: "Requête ambiguë : utilisez soit sendAll=true, soit recipientEmails, pas les deux." }, 400);
+  if (recipientEmails.length === 0) {
+    return json({ error: "Aucun destinataire sélectionné. recipientEmails est obligatoire." }, 400);
+  }
+  if (recipientEmails.length > 10) {
+    return json({ error: "Maximum 10 destinataires par envoi. Faites plusieurs sélections." }, 400);
   }
 
   const runningSendRes = await fetch(
@@ -114,22 +116,6 @@ Deno.serve(async (req) => {
   const runningSends = await runningSendRes.json();
   if (!force && Array.isArray(runningSends) && runningSends.length > 0) {
     return json({ error: "Un envoi de cette newsletter est déjà en cours." }, 409);
-  }
-
-  const recentSendRes = await fetch(
-    `${supabaseUrl}/rest/v1/newsletter_sends?newsletter_id=eq.${newsletterId}&status=in.(completed,partial)&select=id,sent_at&order=sent_at.desc&limit=1`,
-    { headers: { Authorization: `Bearer ${serviceKey}`, apikey: serviceKey } },
-  );
-  const recentSends = await recentSendRes.json();
-  if (!force && Array.isArray(recentSends) && recentSends.length > 0) {
-    const lastSentAt = recentSends[0]?.sent_at ? new Date(recentSends[0].sent_at).getTime() : 0;
-    const sixHours = 6 * 60 * 60 * 1000;
-    if (lastSentAt && Date.now() - lastSentAt < sixHours) {
-      return json({
-        error: "Cette newsletter a déjà été envoyée récemment. Relance volontaire possible avec force=true.",
-        lastSentAt: recentSends[0].sent_at,
-      }, 409);
-    }
   }
 
   const nlRes = await fetch(
@@ -142,16 +128,12 @@ Deno.serve(async (req) => {
   }
   const newsletter = newsletters[0];
 
+  const emailFilter = recipientEmails.map((email) => `"${email.replaceAll('"', '')}"`).join(",");
   const subsRes = await fetch(
-    `${supabaseUrl}/rest/v1/newsletter_subscribers?is_active=eq.true&select=email,unsubscribe_token`,
+    `${supabaseUrl}/rest/v1/newsletter_subscribers?is_active=eq.true&email=in.(${emailFilter})&select=email,unsubscribe_token`,
     { headers: { Authorization: `Bearer ${serviceKey}`, apikey: serviceKey } },
   );
-  const allSubscribers: Array<{ email: string; unsubscribe_token?: string | null }> = await subsRes.json();
-
-  const selectedEmailSet = new Set(recipientEmails);
-  const subscribers = sendAll
-    ? allSubscribers
-    : allSubscribers.filter((sub) => selectedEmailSet.has(sub.email.toLowerCase()));
+  const subscribers: Array<{ email: string; unsubscribe_token?: string | null }> = await subsRes.json();
 
   if (!subscribers.length) {
     return json({ success: false, error: "Aucun destinataire actif sélectionné", totalRecipients: 0, successfulSends: 0, failedSends: 0 }, 400);
@@ -179,42 +161,38 @@ Deno.serve(async (req) => {
 
   let successful = 0;
   let failed = 0;
-  const BATCH = 10;
 
-  for (let i = 0; i < subscribers.length; i += BATCH) {
-    const batch = subscribers.slice(i, i + BATCH);
-    const emails = batch.map((sub) => {
-      const unsubParam = sub.unsubscribe_token
-        ? `token=${sub.unsubscribe_token}`
-        : `email=${encodeURIComponent(sub.email)}`;
+  const emails = subscribers.map((sub) => {
+    const unsubParam = sub.unsubscribe_token
+      ? `token=${sub.unsubscribe_token}`
+      : `email=${encodeURIComponent(sub.email)}`;
 
-      return {
-        from: fromEmail,
-        to: [sub.email],
-        subject: newsletter.subject,
-        html: wrapHtml(
-          newsletter.body_html,
-          `${siteUrl}/newsletter/unsubscribe?${unsubParam}`,
-          siteUrl,
-        ),
-      };
-    });
+    return {
+      from: fromEmail,
+      to: [sub.email],
+      subject: newsletter.subject,
+      html: wrapHtml(
+        newsletter.body_html,
+        `${siteUrl}/newsletter/unsubscribe?${unsubParam}`,
+        siteUrl,
+      ),
+    };
+  });
 
-    const batchRes = await fetch("https://api.resend.com/emails/batch", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${resendKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(emails),
-    });
+  const batchRes = await fetch("https://api.resend.com/emails/batch", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${resendKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(emails),
+  });
 
-    if (batchRes.ok) {
-      successful += batch.length;
-    } else {
-      failed += batch.length;
-      console.error("Batch send error:", await batchRes.text());
-    }
+  if (batchRes.ok) {
+    successful = subscribers.length;
+  } else {
+    failed = subscribers.length;
+    console.error("Batch send error:", await batchRes.text());
   }
 
   if (sendId) {
@@ -226,7 +204,7 @@ Deno.serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        status: failed === 0 ? "completed" : failed === subscribers.length ? "failed" : "partial",
+        status: failed === 0 ? "completed" : "failed",
         successful_sends: successful,
         failed_sends: failed,
         sent_at: new Date().toISOString(),
@@ -239,5 +217,6 @@ Deno.serve(async (req) => {
     totalRecipients: subscribers.length,
     successfulSends: successful,
     failedSends: failed,
+    requestedRecipients: recipientEmails.length,
   });
 });
