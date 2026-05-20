@@ -21,6 +21,13 @@ function getCorsHeaders(origin: string | null): Record<string, string> {
   };
 }
 
+function json(data: unknown, status: number, headers: Record<string, string>) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { ...headers, "Content-Type": "application/json" },
+  });
+}
+
 Deno.serve(async (req) => {
   const origin = req.headers.get("origin");
   const corsHeaders = getCorsHeaders(origin);
@@ -29,14 +36,28 @@ Deno.serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  if (req.method !== "POST") {
+    return json({ error: "Méthode non autorisée" }, 405, corsHeaders);
+  }
+
   try {
     const { messages, ccntContext } = await req.json();
 
     if (!messages || !Array.isArray(messages)) {
-      return new Response(JSON.stringify({ error: "Messages requis" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return json({ error: "Messages requis" }, 400, corsHeaders);
+    }
+
+    const safeMessages = messages
+      .filter((m: { role?: string; content?: string }) =>
+        (m.role === "user" || m.role === "assistant") && typeof m.content === "string" && m.content.trim().length > 0,
+      )
+      .map((m: { role: string; content: string }) => ({
+        role: m.role,
+        content: m.content,
+      }));
+
+    if (safeMessages.length === 0) {
+      return json({ error: "Message vide" }, 400, corsHeaders);
     }
 
     const systemPrompt = [
@@ -63,11 +84,10 @@ Deno.serve(async (req) => {
 
     const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
     if (!apiKey) {
-      return new Response(JSON.stringify({ error: "Clé API manquante" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return json({ error: "Clé ANTHROPIC_API_KEY manquante dans les secrets Supabase" }, 500, corsHeaders);
     }
+
+    const model = Deno.env.get("ANTHROPIC_MODEL") ?? "claude-sonnet-4-20250514";
 
     const response = await fetch(ANTHROPIC_API_URL, {
       method: "POST",
@@ -77,36 +97,24 @@ Deno.serve(async (req) => {
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-6",
+        model,
         max_tokens: 1024,
         system: systemPrompt,
-        messages: messages.map((m: { role: string; content: string }) => ({
-          role: m.role,
-          content: m.content,
-        })),
+        messages: safeMessages,
       }),
     });
 
     const data = await response.json();
 
     if (!response.ok) {
-      return new Response(
-        JSON.stringify({ error: data.error?.message ?? "Erreur API" }),
-        {
-          status: response.status,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
-      );
+      const message = data?.error?.message ?? data?.message ?? "Erreur API Anthropic";
+      console.error("Anthropic chat-juridique error", { status: response.status, message, model });
+      return json({ error: message, status: response.status, model }, response.status, corsHeaders);
     }
 
-    return new Response(
-      JSON.stringify({ reply: data.content?.[0]?.text ?? "" }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
-  } catch {
-    return new Response(JSON.stringify({ error: "Erreur serveur" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return json({ reply: data.content?.[0]?.text ?? "" }, 200, corsHeaders);
+  } catch (error) {
+    console.error("chat-juridique server error", error);
+    return json({ error: "Erreur serveur chat-juridique" }, 500, corsHeaders);
   }
 });
