@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback, FormEvent } from "react";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,7 +13,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import {
   Download, Loader2, CheckCircle2, User, MapPin,
-  FileText, CreditCard, PenLine, AlertCircle,
+  FileText, CreditCard, PenLine, AlertCircle, Mail, MessageSquare,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -128,9 +129,11 @@ function SignatureCanvas({ onSignature }: { onSignature: (b64: string | null) =>
       <div className="relative border-2 border-dashed border-border rounded-lg overflow-hidden bg-muted/20 hover:border-primary/40 transition-colors">
         <canvas ref={ref} width={560} height={100}
           className="w-full cursor-crosshair touch-none block" style={{ height: 100 }} />
-        <span className="absolute inset-0 flex items-center justify-center text-muted-foreground text-sm pointer-events-none select-none">
-          Signez ici (souris ou doigt)
-        </span>
+        {!hasContent.current && (
+          <span className="absolute inset-0 flex items-center justify-center text-muted-foreground text-sm pointer-events-none select-none">
+            Signez ici (souris ou doigt)
+          </span>
+        )}
       </div>
       <button type="button"
         onClick={() => {
@@ -201,7 +204,7 @@ export default function AdhesionFormFOCOM() {
       URL.revokeObjectURL(url);
 
       setStatus("success");
-      setTimeout(() => setStatus("idle"), 6000);
+      setTimeout(() => setStatus("idle"), 12000);
     } catch (err) {
       setErrMsg(err instanceof Error ? err.message : "Erreur inconnue");
       setStatus("error");
@@ -459,7 +462,28 @@ export default function AdhesionFormFOCOM() {
             <Alert className="mt-4 border-green-200 bg-green-50 text-green-800">
               <CheckCircle2 className="h-4 w-4 text-green-600" />
               <AlertDescription>
-                Bulletin PDF téléchargé. Retournez-le signé à votre section syndicale.
+                <div className="space-y-3">
+                  <div>
+                    <p className="font-semibold">Bulletin PDF généré et téléchargé avec succès.</p>
+                    <p className="mt-1 text-sm">
+                      Vérifiez le document téléchargé, puis envoyez-le à votre section FO COM par email ou via la messagerie du site.
+                    </p>
+                  </div>
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <Button asChild size="sm" variant="outline" className="border-green-300 bg-white text-green-800 hover:bg-green-100">
+                      <Link to="/contact">
+                        <Mail className="mr-2 h-4 w-4" />
+                        Envoyer via Contact
+                      </Link>
+                    </Button>
+                    <Button asChild size="sm" variant="outline" className="border-green-300 bg-white text-green-800 hover:bg-green-100">
+                      <Link to="/mes-reclamations">
+                        <MessageSquare className="mr-2 h-4 w-4" />
+                        Transmettre via messagerie
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
               </AlertDescription>
             </Alert>
           )}
