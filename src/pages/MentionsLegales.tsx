@@ -43,7 +43,7 @@ const MentionsLegales = () => {
                   Email : contact@focomues-iliad.fr
                 </p>
                 <p>
-                  Directeur de la publication : [Nom du responsable syndical]
+                  Directeur de la publication : KENDIRA Fadil
                 </p>
               </CardContent>
             </Card>
@@ -55,7 +55,7 @@ const MentionsLegales = () => {
               <CardContent className="prose prose-sm max-w-none text-muted-foreground">
                 <p>
                   Ce site est hébergé par :<br />
-                  <strong>Lovable / Supabase</strong><br />
+                  <strong>O2switch / Supabase</strong><br />
                   Services d'hébergement web
                 </p>
               </CardContent>
