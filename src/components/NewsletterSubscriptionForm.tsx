@@ -7,7 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Mail, CheckCircle2, Loader2 } from 'lucide-react';
 import { z } from 'zod';
 
-const emailSchema = z.string().email("Veuillez entrer une adresse email valide").max(255, "L'email est trop long");
+const emailSchema = z.string().trim().toLowerCase().email("Veuillez entrer une adresse email valide").max(255, "L'email est trop long");
 
 export function NewsletterSubscriptionForm() {
   const [email, setEmail] = useState('');
@@ -21,7 +21,6 @@ export function NewsletterSubscriptionForm() {
         body: { email: emailAddress, unsubscribeToken },
       });
     } catch (err) {
-      // Non-bloquant : l'abonnement est réussi même si l'email échoue
       console.error('Failed to send welcome email:', err);
     }
   };
@@ -32,56 +31,54 @@ export function NewsletterSubscriptionForm() {
     setIsSubscribed(false);
 
     try {
-      emailSchema.parse(email);
+      const normalizedEmail = emailSchema.parse(email);
 
-      // Nouvel abonné — générer un token unique
       const unsubscribeToken = crypto.randomUUID();
 
       const { error: insertError } = await supabase
         .from('newsletter_subscribers')
         .insert({
-          email,
+          email: normalizedEmail,
           is_active: true,
           unsubscribe_token: unsubscribeToken,
-          subscribed_at: new Date().toISOString()
+          subscribed_at: new Date().toISOString(),
         });
 
       if (insertError) {
-        // Handle unique constraint violation (already subscribed)
         if (insertError.code === '23505') {
           toast({
-            title: "Déjà abonné",
-            description: "Cette adresse email est déjà abonnée à notre newsletter.",
+            title: 'Déjà abonné',
+            description: 'Cette adresse email est déjà abonnée à notre newsletter.',
           });
           setIsSubscribed(true);
+          setEmail('');
           return;
         }
         throw insertError;
       }
 
-      // Envoyer l'email de bienvenue
-      await sendWelcomeEmail(email, unsubscribeToken);
+      await sendWelcomeEmail(normalizedEmail, unsubscribeToken);
 
       toast({
-        title: "Abonnement réussi",
-        description: "Merci de vous être abonné ! Un email de bienvenue vous a été envoyé.",
+        title: 'Abonnement réussi',
+        description: 'Merci de vous être abonné ! Un email de bienvenue vous a été envoyé.',
       });
       setIsSubscribed(true);
       setEmail('');
     } catch (error: unknown) {
       if (error instanceof z.ZodError) {
         toast({
-          title: "Erreur de validation",
+          title: 'Erreur de validation',
           description: error.errors[0].message,
-          variant: "destructive",
+          variant: 'destructive',
         });
       } else {
         console.error('Newsletter subscription error:', error);
         const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue lors de l'abonnement.";
         toast({
-          title: "Erreur",
+          title: 'Erreur',
           description: errorMessage,
-          variant: "destructive",
+          variant: 'destructive',
         });
       }
     } finally {
@@ -99,6 +96,7 @@ export function NewsletterSubscriptionForm() {
           placeholder="votre@email.com"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
+          onBlur={() => setEmail((value) => value.trim().toLowerCase())}
           required
           disabled={isSubmitting || isSubscribed}
           className="bg-background text-foreground placeholder:text-muted-foreground"
