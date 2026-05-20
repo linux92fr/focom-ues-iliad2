@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -11,43 +11,30 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { PageBreadcrumb } from '@/components/PageBreadcrumb';
 import { toast } from 'sonner';
-import {
-  ClipboardList, CheckCircle2, Clock, ChevronLeft,
-  Users, BarChart3, Loader2, Lock,
-} from 'lucide-react';
+import { ClipboardList, CheckCircle2, Clock, ChevronLeft, Users, BarChart3, Loader2, Lock } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
 type Survey = {
-  id: string; title: string; description: string | null;
-  is_anonymous: boolean; allow_multiple_votes: boolean;
-  ends_at: string | null; starts_at: string | null; created_at: string;
+  id: string;
+  title: string;
+  description: string | null;
+  is_anonymous: boolean;
+  allow_multiple_votes: boolean;
+  ends_at: string | null;
+  starts_at: string | null;
+  created_at: string;
 };
 
 type SurveyOption = { id: string; option_text: string; display_order: number };
-
-type Question = {
-  id: string; question_text: string; question_type: string; display_order: number;
-  survey_options: SurveyOption[];
-};
-
-type SurveyResponseInsert = {
-  survey_id: string; question_id: string;
-  user_id: string | null; text_response?: string; option_id?: string;
-};
-
-type ResultsData = {
-  question_id: string;
-  option_id: string | null;
-  count: number;
-  option_text?: string;
-  text_response?: string | null;
-};
+type Question = { id: string; question_text: string; question_type: string; display_order: number; survey_options: SurveyOption[] };
+type SurveyResponseInsert = { survey_id: string; question_id: string; user_id: string; text_response?: string; option_id?: string };
+type ResultsData = { question_id: string; option_id: string | null; count: number; option_text?: string; text_response?: string | null };
+type VoterProfile = { id: string; status: string | null };
 
 const Sondages = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-
   const [activeSurvey, setActiveSurvey] = useState<Survey | null>(null);
   const [answers, setAnswers] = useState<Record<string, string | string[]>>({});
   const [textAnswers, setTextAnswers] = useState<Record<string, string>>({});
@@ -67,6 +54,22 @@ const Sondages = () => {
       return data as Survey[];
     },
   });
+
+  const { data: voterProfile = null, isLoading: profileLoading } = useQuery({
+    queryKey: ['survey-voter-profile', user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, status')
+        .eq('id', user!.id)
+        .maybeSingle();
+      if (error) throw error;
+      return data as VoterProfile | null;
+    },
+  });
+
+  const hasActiveProfile = !!voterProfile && voterProfile.status === 'actif';
 
   const { data: votedSurveyIds = new Set<string>() } = useQuery({
     queryKey: ['voted-surveys', user?.id],
@@ -103,7 +106,6 @@ const Sondages = () => {
         .select('question_id, option_id, text_response')
         .eq('survey_id', showResults!);
       if (error) throw error;
-
       const counts: Record<string, number> = {};
       for (const r of data ?? []) {
         const key = `${r.question_id}__${r.option_id ?? '__text'}`;
@@ -125,8 +127,7 @@ const Sondages = () => {
         .from('survey_responses')
         .select('user_id')
         .eq('survey_id', showResults!);
-      const unique = new Set((data ?? []).map((r) => r.user_id));
-      return unique.size;
+      return new Set((data ?? []).map((r) => r.user_id)).size;
     },
     refetchInterval: showResults ? 10000 : false,
   });
@@ -147,8 +148,18 @@ const Sondages = () => {
 
   const submitMutation = useMutation({
     mutationFn: async () => {
-      if (!user) throw new Error('Non connecté');
+      if (!user) throw new Error('Vous devez être connecté pour participer.');
       if (!activeSurvey) throw new Error('Aucun sondage sélectionné');
+
+      const { data: freshProfile, error: profileError } = await supabase
+        .from('profiles')
+        .select('id, status')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (profileError) throw profileError;
+      if (!freshProfile) throw new Error('Votre compte ne possède pas de profil adhérent. Participation impossible.');
+      if (freshProfile.status !== 'actif') throw new Error('Votre profil adhérent doit être actif pour participer à ce sondage.');
 
       const now = new Date();
       const { data: freshSurvey, error: surveyError } = await supabase
@@ -168,7 +179,6 @@ const Sondages = () => {
           .select('id', { count: 'exact', head: true })
           .eq('survey_id', activeSurvey.id)
           .eq('user_id', user.id);
-
         if (duplicateError) throw duplicateError;
         if ((count ?? 0) > 0) throw new Error('Vous avez déjà participé à ce sondage.');
       }
@@ -184,11 +194,10 @@ const Sondages = () => {
         } else {
           const opts = answers[q.id] as string[] | undefined;
           if (!opts?.length) throw new Error(`Veuillez répondre à : "${q.question_text}"`);
-          for (const optId of opts) {
-            responses.push({ survey_id: activeSurvey.id, question_id: q.id, option_id: optId, user_id: user.id });
-          }
+          for (const optId of opts) responses.push({ survey_id: activeSurvey.id, question_id: q.id, option_id: optId, user_id: user.id });
         }
       }
+
       const { error } = await supabase.from('survey_responses').insert(responses);
       if (error) throw error;
       return activeSurvey.id;
@@ -237,12 +246,7 @@ const Sondages = () => {
                 {activeSurvey.description && <CardDescription>{activeSurvey.description}</CardDescription>}
                 <div className="flex flex-wrap gap-2 pt-1">
                   {activeSurvey.is_anonymous && <Badge variant="outline" className="text-xs">Anonyme</Badge>}
-                  {activeSurvey.ends_at && (
-                    <Badge variant="outline" className="text-xs gap-1">
-                      <Clock className="w-3 h-3" />
-                      Clôture {format(new Date(activeSurvey.ends_at), 'dd MMM yyyy', { locale: fr })}
-                    </Badge>
-                  )}
+                  {activeSurvey.ends_at && <Badge variant="outline" className="text-xs gap-1"><Clock className="w-3 h-3" />Clôture {format(new Date(activeSurvey.ends_at), 'dd MMM yyyy', { locale: fr })}</Badge>}
                 </div>
               </CardHeader>
             </Card>
@@ -290,22 +294,17 @@ const Sondages = () => {
                           ))}
                         </div>
                       )}
-                      {q.question_type === 'text' && (
-                        <Textarea value={textAnswers[q.id] || ''} onChange={(e) => setTextAnswers({ ...textAnswers, [q.id]: e.target.value })} placeholder="Votre réponse..." rows={3} />
-                      )}
+                      {q.question_type === 'text' && <Textarea value={textAnswers[q.id] || ''} onChange={(e) => setTextAnswers({ ...textAnswers, [q.id]: e.target.value })} placeholder="Votre réponse..." rows={3} />}
                     </CardContent>
                   </Card>
                 ))}
 
-                {!user && (
-                  <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
-                    <Lock className="w-4 h-4 flex-shrink-0" />
-                    Vous devez être connecté pour participer à ce sondage.
-                  </div>
-                )}
+                {!user && <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700"><Lock className="w-4 h-4 flex-shrink-0" />Vous devez être connecté pour participer à ce sondage.</div>}
+                {user && !profileLoading && !voterProfile && <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700"><Lock className="w-4 h-4 flex-shrink-0" />Votre compte ne possède pas de profil adhérent. Participation impossible.</div>}
+                {user && voterProfile && voterProfile.status !== 'actif' && <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700"><Lock className="w-4 h-4 flex-shrink-0" />Votre profil adhérent doit être actif pour participer.</div>}
 
                 <div className="flex gap-3">
-                  <Button onClick={() => submitMutation.mutate()} disabled={submitMutation.isPending || !user} className="flex-1">
+                  <Button onClick={() => submitMutation.mutate()} disabled={submitMutation.isPending || !user || !hasActiveProfile} className="flex-1">
                     {submitMutation.isPending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Envoi en cours...</> : 'Envoyer mes réponses'}
                   </Button>
                 </div>
@@ -318,101 +317,33 @@ const Sondages = () => {
           <div className="space-y-4">
             {(() => {
               const survey = surveys.find((s) => s.id === showResults);
-              return (
-                <>
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      {survey && <PageBreadcrumb steps={[{ label: 'Sondages', href: '/sondages' }, { label: 'Résultats' }]} />}
-                      <h2 className="text-lg font-semibold mt-2">{survey?.title}</h2>
-                    </div>
-                    <Button variant="outline" size="sm" onClick={() => setShowResults(null)} className="gap-1.5"><ChevronLeft className="w-4 h-4" /> Retour</Button>
-                  </div>
-
-                  <div className="flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
-                    <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-                    <span>Votre réponse a été enregistrée. Voici les résultats en temps réel.</span>
-                  </div>
-
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Users className="w-4 h-4" />
-                    <span>{participantCount} participant{participantCount > 1 ? 's' : ''}</span>
-                    <BarChart3 className="w-4 h-4 ml-2" />
-                    <span>Mise à jour toutes les 10s</span>
-                  </div>
-
-                  {resultQuestions.map((q, i) => {
-                    const qResults = results.filter((r) => r.question_id === q.id);
-                    const totalVotes = qResults.reduce((sum, r) => sum + r.count, 0);
-                    return (
-                      <Card key={q.id}>
-                        <CardHeader className="pb-3">
-                          <CardTitle className="text-base flex items-start gap-2">
-                            <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center mt-0.5">{i + 1}</span>
-                            {q.question_text}
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="pl-8 space-y-3">
-                          {q.question_type === 'text' ? (
-                            <p className="text-sm text-muted-foreground italic">Les réponses libres sont confidentielles.</p>
-                          ) : (
-                            q.survey_options.sort((a, b) => a.display_order - b.display_order).map((opt) => {
-                              const r = qResults.find((r) => r.option_id === opt.id);
-                              const count = r?.count ?? 0;
-                              const pct = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0;
-                              return (
-                                <div key={opt.id} className="space-y-1">
-                                  <div className="flex items-center justify-between text-sm"><span className="font-medium">{opt.option_text}</span><span className="text-muted-foreground text-xs">{count} vote{count > 1 ? 's' : ''} · {pct}%</span></div>
-                                  <div className="h-2 w-full rounded-full bg-muted overflow-hidden"><div className="h-full rounded-full bg-primary transition-all duration-500" style={{ width: `${pct}%` }} /></div>
-                                </div>
-                              );
-                            })
-                          )}
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
-                </>
-              );
+              return <>
+                <div className="flex items-center justify-between gap-3">
+                  <div>{survey && <PageBreadcrumb steps={[{ label: 'Sondages', href: '/sondages' }, { label: 'Résultats' }]} />}<h2 className="text-lg font-semibold mt-2">{survey?.title}</h2></div>
+                  <Button variant="outline" size="sm" onClick={() => setShowResults(null)} className="gap-1.5"><ChevronLeft className="w-4 h-4" /> Retour</Button>
+                </div>
+                <div className="flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700"><CheckCircle2 className="w-4 h-4 flex-shrink-0" /><span>Votre réponse a été enregistrée. Voici les résultats en temps réel.</span></div>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground"><Users className="w-4 h-4" /><span>{participantCount} participant{participantCount > 1 ? 's' : ''}</span><BarChart3 className="w-4 h-4 ml-2" /><span>Mise à jour toutes les 10s</span></div>
+                {resultQuestions.map((q, i) => {
+                  const qResults = results.filter((r) => r.question_id === q.id);
+                  const totalVotes = qResults.reduce((sum, r) => sum + r.count, 0);
+                  return <Card key={q.id}><CardHeader className="pb-3"><CardTitle className="text-base flex items-start gap-2"><span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center mt-0.5">{i + 1}</span>{q.question_text}</CardTitle></CardHeader><CardContent className="pl-8 space-y-3">{q.question_type === 'text' ? <p className="text-sm text-muted-foreground italic">Les réponses libres sont confidentielles.</p> : q.survey_options.sort((a, b) => a.display_order - b.display_order).map((opt) => { const r = qResults.find((r) => r.option_id === opt.id); const count = r?.count ?? 0; const pct = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0; return <div key={opt.id} className="space-y-1"><div className="flex items-center justify-between text-sm"><span className="font-medium">{opt.option_text}</span><span className="text-muted-foreground text-xs">{count} vote{count > 1 ? 's' : ''} · {pct}%</span></div><div className="h-2 w-full rounded-full bg-muted overflow-hidden"><div className="h-full rounded-full bg-primary transition-all duration-500" style={{ width: `${pct}%` }} /></div></div>; })}</CardContent></Card>;
+                })}
+              </>;
             })()}
           </div>
         )}
 
         {!activeSurvey && !showResults && (
           <>
-            {isLoading ? (
-              <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
-            ) : surveys.length === 0 ? (
-              <Card><CardContent className="py-12 text-center"><ClipboardList className="w-10 h-10 text-muted-foreground mx-auto mb-3" /><p className="text-muted-foreground">Aucun sondage actif pour le moment.</p></CardContent></Card>
-            ) : (
-              <div className="grid gap-4">
-                {surveys.map((s) => {
-                  const hasVoted = votedSurveyIds.has(s.id);
-                  const closed = isClosed(s);
-                  const canVote = !closed && (!hasVoted || s.allow_multiple_votes) && !!user;
-                  return (
-                    <Card key={s.id} className="hover:shadow-md transition-shadow">
-                      <CardContent className="flex items-center justify-between py-5 gap-4">
-                        <div className="space-y-1.5 flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <h3 className="font-semibold text-foreground">{s.title}</h3>
-                            {hasVoted && <Badge variant="outline" className="text-green-600 border-green-300 text-xs gap-1"><CheckCircle2 className="w-3 h-3" /> Voté</Badge>}
-                            {s.is_anonymous && <Badge variant="outline" className="text-xs">Anonyme</Badge>}
-                            {closed && <Badge variant="secondary" className="text-xs">Clôturé</Badge>}
-                          </div>
-                          {s.description && <p className="text-sm text-muted-foreground truncate">{s.description}</p>}
-                          {s.ends_at && !closed && <p className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="w-3 h-3" />Clôture le {format(new Date(s.ends_at), 'dd MMM yyyy HH:mm', { locale: fr })}</p>}
-                        </div>
-                        <div className="flex flex-col gap-2 flex-shrink-0">
-                          {canVote && <Button size="sm" onClick={() => openSurvey(s)}>Participer</Button>}
-                          {(hasVoted || closed) && <Button size="sm" variant="outline" onClick={() => setShowResults(s.id)} className="gap-1.5"><BarChart3 className="w-3.5 h-3.5" /> Résultats</Button>}
-                          {!user && !closed && <Button size="sm" variant="outline" disabled className="gap-1.5"><Lock className="w-3.5 h-3.5" /> Connexion requise</Button>}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-            )}
+            {isLoading ? <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div> : surveys.length === 0 ? <Card><CardContent className="py-12 text-center"><ClipboardList className="w-10 h-10 text-muted-foreground mx-auto mb-3" /><p className="text-muted-foreground">Aucun sondage actif pour le moment.</p></CardContent></Card> : <div className="grid gap-4">
+              {surveys.map((s) => {
+                const hasVoted = votedSurveyIds.has(s.id);
+                const closed = isClosed(s);
+                const canVote = !closed && (!hasVoted || s.allow_multiple_votes) && !!user && hasActiveProfile;
+                return <Card key={s.id} className="hover:shadow-md transition-shadow"><CardContent className="flex items-center justify-between py-5 gap-4"><div className="space-y-1.5 flex-1 min-w-0"><div className="flex items-center gap-2 flex-wrap"><h3 className="font-semibold text-foreground">{s.title}</h3>{hasVoted && <Badge variant="outline" className="text-green-600 border-green-300 text-xs gap-1"><CheckCircle2 className="w-3 h-3" /> Voté</Badge>}{s.is_anonymous && <Badge variant="outline" className="text-xs">Anonyme</Badge>}{closed && <Badge variant="secondary" className="text-xs">Clôturé</Badge>}</div>{s.description && <p className="text-sm text-muted-foreground truncate">{s.description}</p>}{s.ends_at && !closed && <p className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="w-3 h-3" />Clôture le {format(new Date(s.ends_at), 'dd MMM yyyy HH:mm', { locale: fr })}</p>}</div><div className="flex flex-col gap-2 flex-shrink-0">{canVote && <Button size="sm" onClick={() => openSurvey(s)}>Participer</Button>}{(hasVoted || closed) && <Button size="sm" variant="outline" onClick={() => setShowResults(s.id)} className="gap-1.5"><BarChart3 className="w-3.5 h-3.5" /> Résultats</Button>}{!user && !closed && <Button size="sm" variant="outline" disabled className="gap-1.5"><Lock className="w-3.5 h-3.5" /> Connexion requise</Button>}{user && !closed && !hasActiveProfile && <Button size="sm" variant="outline" disabled className="gap-1.5"><Lock className="w-3.5 h-3.5" /> Profil adhérent requis</Button>}</div></CardContent></Card>;
+              })}
+            </div>}
           </>
         )}
       </main>
