@@ -2,29 +2,49 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { HoverCardGrid } from "@/components/HoverCard";
 import {
-  FileText, Users, Shield, HelpCircle, Lock, Phone, Mail,
-  ChevronRight, CheckCircle2, TrendingUp, Calendar, Handshake,
-  Award, Target, Heart, Zap, BookOpen, Globe, Vote, Bell,
+  FileText,
+  Users,
+  Shield,
+  HelpCircle,
+  Lock,
+  Phone,
+  Mail,
+  ChevronRight,
+  CheckCircle2,
+  TrendingUp,
+  Calendar,
+  Handshake,
+  Award,
+  Heart,
+  Bell,
+  UserPlus,
+  MessageSquare,
+  Newspaper,
+  FolderOpen,
+  Scale,
+  ClipboardList,
+  Sparkles,
+  Trophy,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
-const HERO_IMAGE      = "https://d2xsxph8kpxj0f.cloudfront.net/310519663612648040/CNuRjrgGqWcQ7xt7rtMbHT/hero-banner-VHxfVX6tjRfujGise9ibwf.webp";
+const HERO_IMAGE = "https://d2xsxph8kpxj0f.cloudfront.net/310519663612648040/CNuRjrgGqWcQ7xt7rtMbHT/hero-banner-VHxfVX6tjRfujGise9ibwf.webp";
 const SOLIDARITY_IMAGE = "https://d2xsxph8kpxj0f.cloudfront.net/310519663612648040/CNuRjrgGqWcQ7xt7rtMbHT/solidarity-icon-GxfeM5FU9pzPmnbJUShvCH.webp";
 
-const DEFAULT_HERO_TITLE    = "Ensemble, connectés, plus forts.";
-const DEFAULT_HERO_SUBTITLE = "Le syndicat des travailleurs et travailleuses des télécommunications. Notre force, c'est l'union.";
+const DEFAULT_HERO_TITLE = "Ensemble, connectés, plus forts.";
+const DEFAULT_HERO_SUBTITLE = "FO COM UES ILIAD accompagne, informe et défend les salariés du groupe au quotidien.";
 
 function AnimatedCounter({ target, suffix = "" }: { target: number; suffix?: string }) {
   const [count, setCount] = useState(0);
   const ref = useRef<HTMLDivElement>(null);
   const hasAnimated = useRef(false);
+
   useEffect(() => {
     const observer = new IntersectionObserver(([entry]) => {
       if (entry.isIntersecting && !hasAnimated.current) {
         hasAnimated.current = true;
-        const duration = 1500;
+        const duration = 1200;
         const startTime = performance.now();
         const animate = (currentTime: number) => {
           const elapsed = currentTime - startTime;
@@ -39,24 +59,29 @@ function AnimatedCounter({ target, suffix = "" }: { target: number; suffix?: str
     if (ref.current) observer.observe(ref.current);
     return () => observer.disconnect();
   }, [target]);
+
   return <div ref={ref} className="text-3xl font-extrabold text-red-600">{count}{suffix}</div>;
 }
 
 function ProgressBar({ label, value, color = "bg-teal-500" }: { label: string; value: number; color?: string }) {
   const ref = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
+
   useEffect(() => {
-    const observer = new IntersectionObserver(([entry]) => { if (entry.isIntersecting) setWidth(value); }, { threshold: 0.3 });
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) setWidth(value);
+    }, { threshold: 0.3 });
     if (ref.current) observer.observe(ref.current);
     return () => observer.disconnect();
   }, [value]);
+
   return (
     <div ref={ref} className="space-y-1.5">
-      <div className="flex justify-between text-sm">
-        <span className="text-slate-700 font-medium">{label}</span>
-        <span className="text-slate-500 font-semibold">{value}%</span>
+      <div className="flex justify-between gap-3 text-sm">
+        <span className="font-medium text-slate-700">{label}</span>
+        <span className="font-semibold text-slate-500">{value}%</span>
       </div>
-      <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
+      <div className="h-3 overflow-hidden rounded-full bg-slate-100">
         <div className={`h-full ${color} rounded-full transition-all duration-1000 ease-out`} style={{ width: `${width}%` }} />
       </div>
     </div>
@@ -65,10 +90,10 @@ function ProgressBar({ label, value, color = "bg-teal-500" }: { label: string; v
 
 export default function Home() {
   const navigate = useNavigate();
-  const [heroTitle,    setHeroTitle]    = useState(DEFAULT_HERO_TITLE);
+  const [heroTitle, setHeroTitle] = useState(DEFAULT_HERO_TITLE);
   const [heroSubtitle, setHeroSubtitle] = useState(DEFAULT_HERO_SUBTITLE);
-  const [nlEmail,   setNlEmail]   = useState("");
-  const [nlStatus,  setNlStatus]  = useState<"idle" | "loading" | "success" | "error" | "duplicate">("idle");
+  const [nlEmail, setNlEmail] = useState("");
+  const [nlStatus, setNlStatus] = useState<"idle" | "loading" | "success" | "error" | "duplicate">("idle");
 
   useEffect(() => {
     supabase
@@ -80,9 +105,11 @@ export default function Home() {
         if (data?.value) {
           try {
             const parsed = JSON.parse(data.value);
-            if (parsed.title)    setHeroTitle(parsed.title);
+            if (parsed.title) setHeroTitle(parsed.title);
             if (parsed.subtitle) setHeroSubtitle(parsed.subtitle);
-          } catch { /* garde les valeurs par défaut */ }
+          } catch {
+            // garde les valeurs par défaut
+          }
         }
       });
   }, []);
@@ -99,11 +126,7 @@ export default function Home() {
       .single();
 
     if (error) {
-      if (error.code === "23505") {
-        setNlStatus("duplicate");
-      } else {
-        setNlStatus("error");
-      }
+      setNlStatus(error.code === "23505" ? "duplicate" : "error");
       return;
     }
 
@@ -115,370 +138,322 @@ export default function Home() {
     setNlEmail("");
   };
 
+  const quickActions = [
+    { icon: UserPlus, title: "Adhérer", desc: "Générer le bulletin officiel pré-rempli", href: "/adhesion", accent: "bg-red-50 text-red-600" },
+    { icon: Shield, title: "Vos droits", desc: "Comprendre vos droits au travail", href: "/vos-droits", accent: "bg-teal-50 text-teal-600" },
+    { icon: MessageSquare, title: "Mes demandes", desc: "Transmettre un bulletin ou suivre un dossier", href: "/mes-reclamations", accent: "bg-red-50 text-red-600" },
+    { icon: Calendar, title: "Agenda", desc: "Voir les événements et temps forts", href: "/agenda", accent: "bg-teal-50 text-teal-600" },
+    { icon: FolderOpen, title: "Documents utiles", desc: "Modèles, accords et ressources", href: "/documents-utiles", accent: "bg-red-50 text-red-600" },
+    { icon: Newspaper, title: "Actualités", desc: "Suivre les dernières publications", href: "/actualites", accent: "bg-teal-50 text-teal-600" },
+  ];
+
+  const focusCards = [
+    {
+      icon: Handshake,
+      title: "NAO 2026",
+      desc: "Suivez les revendications, propositions de la Direction et positions FO COM.",
+      href: "/nao2026",
+      label: "Négociations",
+    },
+    {
+      icon: Trophy,
+      title: "Après les élections",
+      desc: "Merci pour votre mobilisation. Retrouvez les informations et suites du scrutin CSE.",
+      href: "/elections",
+      label: "CSE 2026",
+    },
+    {
+      icon: Scale,
+      title: "Assistant juridique",
+      desc: "Obtenez une première orientation sur vos droits avec l’outil interne du site.",
+      href: "/vos-droits",
+      label: "Vos droits",
+    },
+  ];
+
   return (
-    <main className="p-4 lg:p-8 bg-slate-50 min-h-screen">
-
-      {/* Bannière élections */}
-      <Link to="/elections" className="block mb-6">
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-red-700 via-red-600 to-red-700 p-4 sm:p-5 shadow-lg hover:shadow-xl transition-shadow group">
-          <div className="pointer-events-none absolute inset-0 opacity-10">
-            <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full border-[30px] border-white" />
-            <div className="absolute -left-6 -bottom-6 h-32 w-32 rounded-full border-[20px] border-white" />
+    <main className="min-h-screen overflow-x-hidden bg-slate-50 p-3 sm:p-4 lg:p-8">
+      <section className="relative mb-6 overflow-hidden rounded-3xl bg-slate-950 shadow-xl">
+        <img src={HERO_IMAGE} alt="FO COM UES ILIAD" className="absolute inset-0 h-full w-full object-cover opacity-35" />
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-slate-950/90 to-red-950/75" />
+        <div className="relative grid gap-8 px-5 py-10 sm:px-8 lg:grid-cols-[1.15fr_0.85fr] lg:px-12 lg:py-14">
+          <div className="flex flex-col justify-center">
+            <div className="mb-4 inline-flex w-fit items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-white/85 backdrop-blur">
+              <Sparkles className="h-3.5 w-3.5 text-red-300" /> Notre force, vos droits
+            </div>
+            <h1 className="max-w-3xl text-3xl font-extrabold leading-tight text-white sm:text-5xl lg:text-6xl">
+              {heroTitle}
+            </h1>
+            <p className="mt-4 max-w-2xl text-sm leading-relaxed text-white/85 sm:text-lg">
+              {heroSubtitle}
+            </p>
+            <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+              <Button onClick={() => navigate("/adhesion")} className="bg-red-600 px-6 py-3 text-white hover:bg-red-700">
+                <UserPlus className="mr-2 h-4 w-4" /> Adhérer maintenant
+              </Button>
+              <Button onClick={() => navigate("/vos-droits")} variant="outline" className="border-white/30 bg-white/10 px-6 py-3 text-white backdrop-blur hover:bg-white/20">
+                <Shield className="mr-2 h-4 w-4" /> Consulter mes droits
+              </Button>
+            </div>
           </div>
-          <div className="relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
-                <Vote className="w-5 h-5 text-white" />
+
+          <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
+            {[
+              { icon: CheckCircle2, title: "Élections terminées", text: "Place au suivi, au bilan et au rapport de force." },
+              { icon: Handshake, title: "NAO 2026", text: "Les négociations restent un enjeu prioritaire." },
+              { icon: MessageSquare, title: "Accompagnement", text: "Une demande, une question, un bulletin à transmettre : FO COM répond présent." },
+            ].map((item) => (
+              <div key={item.title} className="rounded-2xl border border-white/10 bg-white/10 p-4 text-white shadow-lg backdrop-blur">
+                <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-white/15">
+                  <item.icon className="h-5 w-5" />
+                </div>
+                <p className="font-bold">{item.title}</p>
+                <p className="mt-1 text-xs leading-relaxed text-white/75">{item.text}</p>
               </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="mb-6 rounded-2xl border border-teal-100 bg-white p-4 shadow-sm sm:p-5">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-600">
+              <Trophy className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-sm font-extrabold text-slate-900">Élections CSE 2026 : scrutin terminé</p>
+              <p className="mt-1 text-sm text-slate-500">
+                L’appel au vote est retiré. L’accueil met désormais en avant le suivi du mandat, les droits, l’adhésion et vos demandes.
+              </p>
+            </div>
+          </div>
+          <Button asChild variant="outline" className="w-full border-teal-200 text-teal-700 hover:bg-teal-50 sm:w-auto">
+            <Link to="/elections">Voir la page élections <ChevronRight className="ml-1 h-4 w-4" /></Link>
+          </Button>
+        </div>
+      </section>
+
+      <section className="mb-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {quickActions.map((item) => (
+          <Link key={item.title} to={item.href} className="group rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:border-teal-200 hover:shadow-md">
+            <div className="flex items-start gap-3">
+              <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${item.accent}`}>
+                <item.icon className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="font-bold text-slate-900 group-hover:text-red-600">{item.title}</p>
+                <p className="mt-1 text-xs leading-relaxed text-slate-500">{item.desc}</p>
+              </div>
+              <ChevronRight className="ml-auto h-4 w-4 shrink-0 text-slate-300 group-hover:text-red-500" />
+            </div>
+          </Link>
+        ))}
+      </section>
+
+      <section className="mb-8 grid gap-5 lg:grid-cols-3">
+        {focusCards.map((card) => (
+          <Link key={card.title} to={card.href} className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg">
+            <div className="h-1.5 bg-gradient-to-r from-red-600 to-teal-500" />
+            <div className="p-5">
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
+                  <card.icon className="h-5 w-5" />
+                </div>
+                <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-slate-500">{card.label}</span>
+              </div>
+              <h2 className="text-lg font-extrabold text-slate-900 group-hover:text-red-600">{card.title}</h2>
+              <p className="mt-2 text-sm leading-relaxed text-slate-500">{card.desc}</p>
+              <div className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-teal-700">
+                Accéder <ChevronRight className="h-4 w-4" />
+              </div>
+            </div>
+          </Link>
+        ))}
+      </section>
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="space-y-6 lg:col-span-2">
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+            <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <div className="flex items-center gap-2 mb-0.5">
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-white" />
-                  </span>
-                  <p className="text-white/80 text-xs font-semibold uppercase tracking-widest">En cours · 2ème tour</p>
-                </div>
-                <p className="text-white font-extrabold text-base sm:text-lg leading-tight">
-                  🗳️ Élections CSE 2026 — Votez FO COM UES ILIAD !
-                </p>
-                <p className="text-red-100 text-xs mt-0.5">Vote électronique du 29 avril au <strong className="text-white">6 mai 2026</strong> · e-votez.net</p>
+                <h2 className="text-xl font-extrabold text-slate-900">Actualités & priorités</h2>
+                <p className="text-sm text-slate-500">Les sujets à suivre maintenant.</p>
               </div>
+              <Link to="/actualites" className="inline-flex items-center gap-1 text-sm font-semibold text-red-600 hover:text-red-700">
+                Voir toutes les actualités <ChevronRight className="h-4 w-4" />
+              </Link>
             </div>
-            <div className="flex items-center gap-2 sm:flex-shrink-0">
-              <span className="hidden sm:inline-flex items-center gap-1.5 bg-white text-red-700 font-bold text-sm px-4 py-2 rounded-full shadow group-hover:bg-red-50 transition-colors">
-                Voir la page élections <ChevronRight className="w-4 h-4" />
-              </span>
-              <span className="sm:hidden text-white font-bold text-sm flex items-center gap-1">
-                En savoir plus <ChevronRight className="w-4 h-4" />
-              </span>
-            </div>
-          </div>
-        </div>
-      </Link>
-
-      {/* Hero Banner */}
-      <section className="relative rounded-2xl overflow-hidden mb-8 shadow-lg">
-        <img src={HERO_IMAGE} alt="FO Com" className="w-full h-64 sm:h-80 lg:h-96 object-cover" />
-        <div className="absolute inset-0 bg-slate-900/90" />
-        <div className="absolute inset-0 flex flex-col items-center justify-center p-6 sm:p-10 lg:p-14 text-center">
-          <h2 className="text-2xl sm:text-4xl lg:text-5xl font-extrabold text-white leading-tight">
-            {heroTitle}
-          </h2>
-          <p className="text-white/90 mt-3 text-sm sm:text-base max-w-lg">
-            {heroSubtitle}
-          </p>
-          <div className="flex gap-3 mt-5">
-            <Button onClick={() => navigate("/adhesion")} className="bg-red-600 hover:bg-red-700 text-white rounded-full px-6 py-2.5 text-sm font-semibold shadow-lg">
-              Rejoignez-nous
-            </Button>
-            <Button onClick={() => navigate("/elections")} variant="outline" className="bg-white/10 border-white/30 text-white hover:bg-white/20 rounded-full px-6 py-2.5 text-sm font-semibold backdrop-blur-sm">
-              Élections 2026
-            </Button>
-          </div>
-        </div>
-      </section>
-
-      {/* Hover Cards Section */}
-      <section className="mb-8">
-        <div className="text-center mb-8">
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 mb-2">
-            Découvrez la <span className="text-teal-600">FOCOM</span>
-          </h2>
-          <p className="text-slate-500 max-w-2xl mx-auto">Survolez nos cartes pour découvrir tout ce que nous offrons à nos adhérents</p>
-        </div>
-        <HoverCardGrid columns={3} cards={[
-          {
-            title: "Vos Droits", subtitle: "Protection & accompagnement",
-            icon: <Shield className="w-6 h-6" />, variant: "default" as const,
-            content: <p className="text-sm text-slate-600">La FOCOM défend vos droits au quotidien auprès de la direction.</p>,
-            revealContent: (
-              <ul className="space-y-2">
-                {["Droit à la déconnexion","Égalité professionnelle","Santé & sécurité","Protection sociale"].map((item, i) => (
-                  <li key={i} className="flex items-center gap-2 text-sm text-slate-700">
-                    <CheckCircle2 className="w-4 h-4 text-teal-600 flex-shrink-0" />{item}
-                  </li>
-                ))}
-              </ul>
-            ),
-          },
-          {
-            title: "Négociations", subtitle: "Salaires & conditions",
-            icon: <Handshake className="w-6 h-6" />, variant: "gradient" as const,
-            gradientFrom: "from-red-600", gradientTo: "to-red-700",
-            content: <p className="text-sm text-white/80">Nous négocions les meilleurs accords pour tous les salariés.</p>,
-            revealContent: (
-              <div className="space-y-3">
-                <div className="flex justify-between text-sm"><span className="text-white/70">NAO 2026</span><span className="text-white font-semibold">En cours</span></div>
-                <div className="flex justify-between text-sm"><span className="text-white/70">Accords signés</span><span className="text-white font-semibold">42</span></div>
-                <Button onClick={() => navigate("/bilan-mandat")} className="w-full bg-white/20 hover:bg-white/30 text-white border border-white/30 text-sm">Voir les détails</Button>
-              </div>
-            ),
-          },
-          {
-            title: "Formation", subtitle: "Développement des compétences",
-            icon: <BookOpen className="w-6 h-6" />, variant: "bordered" as const,
-            content: <p className="text-sm text-slate-600">Accédez à des formations professionnelles et syndicales.</p>,
-            revealContent: (
-              <div className="space-y-2">
-                {["Formations CPF","Perfectionnement","Préparation aux élections","Formation syndicale"].map((item, i) => (
-                  <div key={i} className="flex items-center justify-between p-2 bg-slate-50 rounded-lg">
-                    <span className="text-sm text-slate-700">{item}</span>
-                    <ChevronRight className="w-4 h-4 text-teal-600" />
-                  </div>
-                ))}
-              </div>
-            ),
-          },
-          {
-            title: "Élections Professionnelles", subtitle: "Votre voix compte",
-            icon: <Target className="w-6 h-6" />, variant: "image" as const,
-            image: "https://images.unsplash.com/photo-1587560699334-cc4ff634909a?w=400&h=300&fit=crop",
-            content: <p className="text-sm text-white/80">Votez en masse jusqu'au 6 mai 2026 !</p>,
-            revealContent: (
-              <div className="space-y-3">
-                <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3">
-                  <p className="text-xs text-white/70 mb-1">Date limite</p>
-                  <p className="text-lg font-bold text-white">6 Mai 2026</p>
-                </div>
-                <Button onClick={() => navigate("/elections")} className="w-full bg-red-600 hover:bg-red-700 text-white text-sm">Voir la page élections →</Button>
-              </div>
-            ),
-          },
-          {
-            title: "Avantages Adhérents", subtitle: "Des services exclusifs",
-            icon: <Award className="w-6 h-6" />, variant: "default" as const,
-            content: <p className="text-sm text-slate-600">Découvrez tous les avantages réservés à nos adhérents.</p>,
-            revealContent: (
-              <div className="grid grid-cols-2 gap-2">
-                {[{icon:<Heart className="w-4 h-4"/>,label:"Protection juridique"},{icon:<Zap className="w-4 h-4"/>,label:"Assistance rapide"},{icon:<Globe className="w-4 h-4"/>,label:"Réseau national"},{icon:<Users className="w-4 h-4"/>,label:"Communauté active"}].map((item,i)=>(
-                  <div key={i} className="flex items-center gap-2 p-2 bg-teal-50 rounded-lg">
-                    <span className="text-teal-600">{item.icon}</span>
-                    <span className="text-xs text-slate-700">{item.label}</span>
-                  </div>
-                ))}
-              </div>
-            ),
-          },
-          {
-            title: "Actualités", subtitle: "Restez informé",
-            icon: <FileText className="w-6 h-6" />, variant: "gradient" as const,
-            gradientFrom: "from-teal-600", gradientTo: "to-cyan-600",
-            content: <p className="text-sm text-white/80">Suivez les dernières nouvelles et actions de la FOCOM.</p>,
-            revealContent: (
-              <div className="space-y-2">
-                {[{label:"NAO 2026 : Nos revendications",href:"/nao2026"},{label:"Élections : Votez jusqu'au 6 mai",href:"/elections"},{label:"GEPP : Tout savoir",href:"/accords/gepp"}].map((item,i)=>(
-                  <div key={i} onClick={()=>navigate(item.href)} className="flex items-center gap-2 p-2 bg-white/10 rounded-lg cursor-pointer hover:bg-white/20 transition-colors">
-                    <div className="w-2 h-2 rounded-full bg-red-400 flex-shrink-0" />
-                    <span className="text-sm text-white">{item.label}</span>
-                  </div>
-                ))}
-              </div>
-            ),
-          },
-        ]} />
-      </section>
-
-      {/* Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
-          {/* Actualités */}
-          <section className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-5">
-              <h3 className="text-xl font-bold text-slate-900">ACTUALITÉS</h3>
-              <Link to="/actualites" className="text-red-600 hover:text-red-700 text-sm font-medium flex items-center gap-1">Voir toutes les actualités <ChevronRight className="w-4 h-4" /></Link>
-            </div>
-            <div className="space-y-4">
+            <div className="space-y-3">
               {[
-                { badge:"À LA UNE", title:"Négociation Annuelle Obligatoire 2026 : Nos revendications avancent", date:"29 octobre 2026", category:"Négociations", href:"/nao2026", image:"https://images.unsplash.com/photo-1521791136064-7986c2920216?w=200&h=150&fit=crop" },
-                { title:"VOTEZ EN MASSE POUR FO COM JUSQU'AU 6 MAI 2026 ! VOTRE VOIX EST UN ATOUT", date:"29 octobre 2026", category:"Élections", href:"/elections", image:"https://images.unsplash.com/photo-1587560699334-cc4ff634909a?w=200&h=150&fit=crop" },
-                { title:"GEPP : POUR TOUT SAVOIR", date:"29 octobre 2026", category:"Mobilisation", href:"/accords/gepp", image:"https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=200&h=150&fit=crop" },
-              ].map((article, idx) => (
-                <Link key={idx} to={article.href} className="flex gap-4 p-3 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer group">
-                  <img loading="lazy" src={article.image} alt={article.title} className="w-24 h-20 object-cover rounded-lg flex-shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    {article.badge && <span className="inline-block bg-red-100 text-red-700 text-[10px] font-bold px-2 py-0.5 rounded-full mb-1.5 uppercase tracking-wide">{article.badge}</span>}
-                    <h4 className="font-semibold text-slate-900 text-sm leading-snug group-hover:text-red-600 transition-colors line-clamp-2">{article.title}</h4>
-                    <p className="text-xs text-slate-500 mt-1.5">{article.date} • <span className="text-teal-600 font-medium">{article.category}</span></p>
+                { title: "NAO 2026 UES ILIAD : propositions insuffisantes face aux attentes des salariés", category: "Négociations", href: "/nao2026" },
+                { title: "Arrêts maladie : la suspicion plutôt que la prévention", category: "Vos droits", href: "/actualites" },
+                { title: "GEPP : comprendre l’accord et ses impacts", category: "Emploi", href: "/accords/gepp" },
+              ].map((article) => (
+                <Link key={article.title} to={article.href} className="flex items-center gap-4 rounded-xl border border-slate-100 p-3 transition-colors hover:bg-slate-50">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-600">
+                    <FileText className="h-5 w-5" />
                   </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="line-clamp-2 text-sm font-bold text-slate-900">{article.title}</p>
+                    <p className="mt-1 text-xs font-medium text-teal-600">{article.category}</p>
+                  </div>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-slate-300" />
                 </Link>
               ))}
             </div>
           </section>
 
-          {/* Espace Adhérent */}
-          <section className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
-            <h3 className="text-xl font-bold text-slate-900 mb-2">ESPACE ADHÉRENT</h3>
-            <p className="text-sm text-slate-500 mb-5">Un espace dédié pour vous informer et vous accompagner</p>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+            <div className="mb-5 flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-extrabold text-slate-900">Espace salariés & adhérents</h2>
+                <p className="mt-1 text-sm text-slate-500">Des outils utiles pour agir rapidement.</p>
+              </div>
+              <Users className="h-6 w-6 text-teal-600" />
+            </div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {[
-                {icon:FileText,title:"Mes Documents",desc:"Accédez à vos documents et modèles utiles",color:"text-teal-600 bg-teal-50",href:"/documents-utiles"},
-                {icon:Users,title:"Mes Avantages",desc:"Découvrez vos avantages adhérents",color:"text-red-600 bg-red-50",href:"/adhesion"},
-                {icon:Calendar,title:"Prendre RDV",desc:"Prenez rendez-vous avec un élu FOCOM",color:"text-teal-600 bg-teal-50",href:"/contact"},
-                {icon:HelpCircle,title:"Poser une Question",desc:"Une question ? Nous vous répondons",color:"text-red-600 bg-red-50",href:"/faq"},
-                {icon:Mail,title:"Vos Contacts",desc:"Trouvez vos interlocuteurs FOCOM",color:"text-teal-600 bg-teal-50",href:"/contact"},
-                {icon:Lock,title:"Accès Réservés",desc:"Contenus réservés aux adhérents",color:"text-red-600 bg-red-50",href:"/admin/login"},
-              ].map((item,idx)=>(
-                <Link key={idx} to={item.href} className="p-4 rounded-xl border border-slate-100 hover:border-slate-200 hover:shadow-md transition-all cursor-pointer group text-center">
-                  <div className={`w-10 h-10 rounded-lg ${item.color} flex items-center justify-center mx-auto mb-2.5`}><item.icon className="w-5 h-5" /></div>
-                  <h4 className="font-semibold text-slate-900 text-xs group-hover:text-teal-600 transition-colors">{item.title}</h4>
-                  <p className="text-[10px] text-slate-500 mt-1 leading-relaxed">{item.desc}</p>
+                { icon: ClipboardList, title: "Faire une demande", href: "/mes-reclamations" },
+                { icon: Calendar, title: "Prendre RDV", href: "/permanences" },
+                { icon: HelpCircle, title: "FAQ", href: "/faq" },
+                { icon: Mail, title: "Nous contacter", href: "/contact" },
+                { icon: Lock, title: "Espace adhérent", href: "/profil" },
+                { icon: Award, title: "Adhérer", href: "/adhesion" },
+              ].map((item) => (
+                <Link key={item.title} to={item.href} className="flex items-center gap-3 rounded-xl border border-slate-100 p-3 text-sm font-semibold text-slate-700 transition-colors hover:border-red-100 hover:bg-red-50 hover:text-red-700">
+                  <item.icon className="h-4 w-4 shrink-0" />
+                  {item.title}
                 </Link>
               ))}
             </div>
-            <Button onClick={()=>navigate("/admin/login")} className="w-full mt-5 bg-teal-600 hover:bg-teal-700 text-white rounded-lg py-3 text-sm font-semibold shadow-md shadow-teal-100">
-              <Lock className="w-4 h-4 mr-2" />Se connecter à mon espace adhérent
-            </Button>
           </section>
         </div>
 
         <div className="space-y-6">
-          {/* Bilan de Mandat */}
-          <section className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-bold text-slate-900">BILAN DE MANDAT 2022–2026</h3>
-              <Link to="/bilan-mandat" className="text-red-600 text-xs font-medium flex items-center gap-0.5">Voir <ChevronRight className="w-3 h-3" /></Link>
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <h2 className="text-base font-extrabold text-slate-900">Bilan de mandat 2022–2026</h2>
+              <Link to="/bilan-mandat" className="text-xs font-bold text-red-600">Voir</Link>
             </div>
-            <p className="text-xs text-slate-500 mb-5">3 années d'actions au service de tous les salariés</p>
-            <div className="grid grid-cols-2 gap-3 mb-6">
+            <p className="mb-5 text-xs leading-relaxed text-slate-500">Un mandat d’actions, de présence terrain et de défense collective.</p>
+            <div className="mb-6 grid grid-cols-2 gap-3">
               {[
-                {value:42,label:"Accords signés",suffix:"",icon:CheckCircle2,color:"bg-teal-50 text-teal-600"},
-                {value:78,label:"Réunions",suffix:"",icon:Users,color:"bg-red-50 text-red-600"},
-                {value:126,label:"Dossiers",suffix:"",icon:FileText,color:"bg-teal-50 text-teal-600"},
-                {value:100,label:"Présents",suffix:"%",icon:TrendingUp,color:"bg-red-50 text-red-600"},
-              ].map((stat,idx)=>(
-                <div key={idx} className="text-center p-3 rounded-xl bg-slate-50">
-                  <div className={`w-8 h-8 rounded-lg ${stat.color} flex items-center justify-center mx-auto mb-2`}><stat.icon className="w-4 h-4" /></div>
+                { value: 42, label: "Accords", suffix: "", icon: CheckCircle2 },
+                { value: 78, label: "Réunions", suffix: "", icon: Users },
+                { value: 126, label: "Dossiers", suffix: "", icon: FileText },
+                { value: 100, label: "Présence", suffix: "%", icon: TrendingUp },
+              ].map((stat) => (
+                <div key={stat.label} className="rounded-xl bg-slate-50 p-3 text-center">
+                  <stat.icon className="mx-auto mb-2 h-4 w-4 text-teal-600" />
                   <AnimatedCounter target={stat.value} suffix={stat.suffix} />
-                  <p className="text-[10px] text-slate-500 mt-1">{stat.label}</p>
+                  <p className="mt-1 text-[10px] text-slate-500">{stat.label}</p>
                 </div>
               ))}
             </div>
-            <h4 className="text-xs font-bold text-slate-700 mb-3 uppercase tracking-wide">Nos avancées principales</h4>
             <div className="space-y-3">
-              <ProgressBar label="Pouvoir d'achat" value={85} />
+              <ProgressBar label="Pouvoir d’achat" value={85} />
               <ProgressBar label="Conditions de travail" value={90} />
               <ProgressBar label="Égalité professionnelle" value={75} />
               <ProgressBar label="Gestion des emplois" value={80} />
-              <ProgressBar label="Qualité de vie au travail" value={70} color="bg-teal-400" />
             </div>
           </section>
 
-          {/* Nos Combats */}
-          <section className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
-            <h3 className="text-base font-bold text-slate-900 mb-4">NOS COMBATS, VOS DROITS</h3>
-            <p className="text-xs text-slate-500 mb-4">La FOCOM agit chaque jour pour défendre vos droits</p>
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+            <h2 className="mb-4 text-base font-extrabold text-slate-900">Nos combats, vos droits</h2>
             <div className="space-y-4">
               {[
-                {icon:Shield,title:"Défendre",color:"text-red-600 bg-red-50",items:["Respect des accords","Égalité & non-discrimination","Santé & sécurité","Droit à la déconnexion"]},
-                {icon:Handshake,title:"Négocier",color:"text-teal-600 bg-teal-50",items:["Salaires & primes","Télétravail","Organisation du temps de travail","Formation"]},
-                {icon:Users,title:"Agir ensemble",color:"text-red-600 bg-red-50",items:["Mobilisations","Actions collectives","Écoute & proximité","Informations régulières"]},
-              ].map((s,idx)=>(
-                <div key={idx}>
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className={`w-7 h-7 rounded-lg ${s.color} flex items-center justify-center`}><s.icon className="w-3.5 h-3.5" /></div>
-                    <h4 className="font-bold text-sm text-slate-900">{s.title}</h4>
+                { icon: Shield, title: "Défendre", items: ["Respect des accords", "Santé & sécurité", "Droit à la déconnexion"] },
+                { icon: Handshake, title: "Négocier", items: ["Salaires & primes", "Télétravail", "Formation"] },
+                { icon: Heart, title: "Agir ensemble", items: ["Écoute", "Mobilisation", "Informations régulières"] },
+              ].map((block) => (
+                <div key={block.title}>
+                  <div className="mb-2 flex items-center gap-2">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-50 text-teal-600">
+                      <block.icon className="h-4 w-4" />
+                    </div>
+                    <p className="font-bold text-slate-900">{block.title}</p>
                   </div>
-                  <ul className="text-xs text-slate-600 space-y-1 ml-9">
-                    {s.items.map((item,i)=>(
-                      <li key={i} className="flex items-center gap-1.5"><span className="w-1 h-1 rounded-full bg-slate-400"/>{item}</li>
-                    ))}
+                  <ul className="ml-10 space-y-1 text-xs text-slate-600">
+                    {block.items.map((item) => <li key={item}>• {item}</li>)}
                   </ul>
                 </div>
               ))}
             </div>
           </section>
 
-          <div className="bg-gradient-to-br from-teal-600 to-teal-700 rounded-xl p-6 text-white shadow-lg">
-            <img loading="lazy" src={SOLIDARITY_IMAGE} alt="Solidarité" className="w-16 h-16 rounded-xl mb-3 object-cover" />
-            <h4 className="font-bold text-base">Notre engagement</h4>
-            <p className="text-teal-100 text-xs mt-2 leading-relaxed">Transparence, écoute et action : notre priorité, c'est vous.</p>
+          <div className="rounded-2xl bg-gradient-to-br from-teal-600 to-teal-700 p-6 text-white shadow-lg">
+            <img loading="lazy" src={SOLIDARITY_IMAGE} alt="Solidarité" className="mb-3 h-16 w-16 rounded-xl object-cover" />
+            <h2 className="font-bold">Notre engagement</h2>
+            <p className="mt-2 text-xs leading-relaxed text-teal-100">Transparence, écoute et action : notre priorité, c’est vous.</p>
           </div>
         </div>
       </div>
 
-      {/* Newsletter subscription */}
-      <section className="mt-8 bg-gradient-to-r from-slate-800 to-slate-900 rounded-2xl p-6 sm:p-8 shadow-lg overflow-hidden relative">
+      <section className="relative mt-8 overflow-hidden rounded-2xl bg-gradient-to-r from-slate-800 to-slate-950 p-5 shadow-lg sm:p-8">
         <div className="pointer-events-none absolute inset-0 opacity-10">
           <div className="absolute -right-16 -top-16 h-64 w-64 rounded-full border-[40px] border-white" />
           <div className="absolute -left-8 -bottom-8 h-48 w-48 rounded-full border-[24px] border-white" />
         </div>
-        <div className="relative flex flex-col sm:flex-row items-center gap-6">
-          <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-red-600 flex items-center justify-center">
-            <Bell className="w-6 h-6 text-white" />
+        <div className="relative flex flex-col gap-5 lg:flex-row lg:items-center">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-red-600">
+            <Bell className="h-6 w-6 text-white" />
           </div>
-          <div className="flex-1 text-center sm:text-left">
-            <h3 className="text-white font-bold text-lg">Restez informé avec notre newsletter</h3>
-            <p className="text-slate-400 text-sm mt-1">Recevez directement dans votre boîte mail nos actualités, droits et informations syndicales.</p>
+          <div className="flex-1">
+            <h2 className="text-lg font-bold text-white">Restez informé avec notre newsletter</h2>
+            <p className="mt-1 text-sm text-slate-400">Recevez nos actualités, droits et informations syndicales directement par email.</p>
           </div>
-          <div className="w-full sm:w-auto">
+          <div className="w-full lg:w-auto">
             {nlStatus === "success" ? (
-              <div className="flex items-center gap-2 text-teal-400 font-semibold text-sm">
-                <CheckCircle2 className="w-5 h-5" />
-                Inscription confirmée !
+              <div className="flex items-center gap-2 text-sm font-semibold text-teal-300">
+                <CheckCircle2 className="h-5 w-5" /> Inscription confirmée !
               </div>
             ) : (
-              <form onSubmit={handleSubscribe} className="flex gap-2">
+              <form onSubmit={handleSubscribe} className="flex flex-col gap-2 sm:flex-row">
                 <Input
                   type="email"
                   required
                   placeholder="votre@email.fr"
                   value={nlEmail}
                   onChange={(e) => { setNlEmail(e.target.value); setNlStatus("idle"); }}
-                  className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus-visible:ring-red-500 w-56"
+                  className="w-full border-white/20 bg-white/10 text-white placeholder:text-slate-400 focus-visible:ring-red-500 sm:w-64"
                 />
-                <Button
-                  type="submit"
-                  disabled={nlStatus === "loading"}
-                  className="bg-red-600 hover:bg-red-700 text-white font-semibold px-4 flex-shrink-0"
-                >
-                  {nlStatus === "loading" ? "..." : "S'abonner"}
+                <Button type="submit" disabled={nlStatus === "loading"} className="bg-red-600 font-semibold text-white hover:bg-red-700">
+                  {nlStatus === "loading" ? "..." : "S’abonner"}
                 </Button>
               </form>
             )}
-            {nlStatus === "duplicate" && (
-              <p className="text-amber-400 text-xs mt-2">Cette adresse est déjà abonnée.</p>
-            )}
-            {nlStatus === "error" && (
-              <p className="text-red-400 text-xs mt-2">Une erreur est survenue, veuillez réessayer.</p>
-            )}
+            {nlStatus === "duplicate" && <p className="mt-2 text-xs text-amber-300">Cette adresse est déjà abonnée.</p>}
+            {nlStatus === "error" && <p className="mt-2 text-xs text-red-300">Une erreur est survenue, veuillez réessayer.</p>}
           </div>
         </div>
       </section>
 
-      {/* Footer Contact Bar */}
-      <section className="mt-6 bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="grid gap-4 sm:grid-cols-3">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-teal-50 flex items-center justify-center flex-shrink-0"><HelpCircle className="w-5 h-5 text-teal-600" /></div>
-            <div><p className="font-semibold text-sm text-slate-900">Une question ? Besoin d'aide ?</p><p className="text-xs text-slate-500">Les élus FOCOM sont à votre écoute.</p></div>
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-teal-50"><HelpCircle className="h-5 w-5 text-teal-600" /></div>
+            <div><p className="text-sm font-semibold text-slate-900">Une question ?</p><p className="text-xs text-slate-500">Les élus FO COM sont à votre écoute.</p></div>
           </div>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0"><Phone className="w-5 h-5 text-red-600" /></div>
-            <div><p className="font-semibold text-sm text-slate-900">01 87 15 43 11</p><p className="text-xs text-slate-500">Appel non surtaxé</p></div>
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-50"><Phone className="h-5 w-5 text-red-600" /></div>
+            <div><p className="text-sm font-semibold text-slate-900">01 87 15 43 11</p><p className="text-xs text-slate-500">Appel non surtaxé</p></div>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0"><Mail className="w-5 h-5 text-red-600" /></div>
-            <div><p className="font-semibold text-sm text-slate-900">contact@focomues-iliad.fr</p><p className="text-xs text-slate-500">Nous vous répondons rapidement</p></div>
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-50"><Mail className="h-5 w-5 text-red-600" /></div>
+            <div className="min-w-0"><p className="truncate text-sm font-semibold text-slate-900">contact@focomues-iliad.fr</p><p className="text-xs text-slate-500">Nous vous répondons rapidement</p></div>
           </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="mt-8 py-6 border-t border-slate-200">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex flex-col sm:flex-row items-center gap-3">
-            <p className="text-xs text-slate-500">© 2026 FOCOM UES ILIAD – Tous droits réservés</p>
-            <span className="hidden sm:inline text-slate-300">|</span>
-            <div className="flex items-center gap-4">
-              <Link to="/mentions-legales" className="text-xs text-slate-400 hover:text-slate-700 transition-colors underline-offset-2 hover:underline">Mentions légales</Link>
-              <Link to="/rgpd" className="text-xs text-slate-400 hover:text-slate-700 transition-colors underline-offset-2 hover:underline">Politique de confidentialité (RGPD)</Link>
-            </div>
+      <footer className="mt-8 border-t border-slate-200 py-6">
+        <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
+          <p className="text-center text-xs text-slate-500 sm:text-left">© 2026 FO COM UES ILIAD – Tous droits réservés</p>
+          <div className="flex flex-wrap justify-center gap-4 text-xs text-slate-500">
+            <Link to="/mentions-legales" className="hover:text-red-600">Mentions légales</Link>
+            <Link to="/rgpd" className="hover:text-red-600">RGPD</Link>
+            <Link to="/contact" className="hover:text-red-600">Contact</Link>
           </div>
-          <Link to="/contact">
-            <Button variant="outline" className="rounded-full text-sm border-red-200 text-red-600 hover:bg-red-50 px-5">
-              Nous contacter <ChevronRight className="w-4 h-4 ml-1" />
-            </Button>
-          </Link>
         </div>
       </footer>
     </main>
