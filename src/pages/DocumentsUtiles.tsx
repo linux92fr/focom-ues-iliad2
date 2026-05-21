@@ -1,9 +1,27 @@
-import { useNavigate } from "react-router-dom";
-import { ArrowLeft, FileText, Download, Search, Filter, FolderOpen, FileCheck, FileSpreadsheet, FileBadge, Loader2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  BookOpen,
+  Download,
+  FileBadge,
+  FileCheck,
+  FileSpreadsheet,
+  FileText,
+  Filter,
+  FolderOpen,
+  Handshake,
+  Loader2,
+  Mail,
+  Search,
+  Shield,
+  Trophy,
+  UserPlus,
+} from "lucide-react";
 
-const LOGO_IMAGE = "https://files.manuscdn.com/user_upload_by_module/session_file/310519663612648040/LldXxCbhFdcPcHwX.png";
 const BUCKET = "documents";
 
 type DocumentRow = {
@@ -21,6 +39,13 @@ type DocumentRow = {
 type CategoryRow = { id: string; name: string };
 
 const types = ["Tous", "PDF", "Excel", "Word", "Autres"];
+
+const defaultCategories = [
+  { icon: Handshake, title: "Accords collectifs", text: "Accords UES, temps de travail, prévoyance, mutuelle, GEPP." },
+  { icon: Trophy, title: "CSE / élections", text: "Résultats, communications CSE, bilans et documents électoraux." },
+  { icon: UserPlus, title: "Adhésion", text: "Bulletins, informations pratiques et documents à transmettre." },
+  { icon: Shield, title: "Droits salariés", text: "Repères, modèles et ressources utiles pour vos démarches." },
+];
 
 const formatSize = (bytes?: number | null) => {
   if (!bytes) return "—";
@@ -47,7 +72,6 @@ const getIcon = (type: string) => {
 };
 
 export default function DocumentsUtiles() {
-  const navigate = useNavigate();
   const [documents, setDocuments] = useState<DocumentRow[]>([]);
   const [categories, setCategories] = useState<CategoryRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -87,14 +111,14 @@ export default function DocumentsUtiles() {
     const category = doc.document_categories?.name || "Sans catégorie";
     const type = getDocType(doc.file_type, doc.file_name);
     const q = searchQuery.toLowerCase();
-    const matchCategory = selectedCategory === "Toutes" || category === selectedCategory;
-    const matchType = selectedType === "Tous" || type === selectedType;
-    const matchSearch =
-      q === "" ||
-      doc.title.toLowerCase().includes(q) ||
-      (doc.description || "").toLowerCase().includes(q) ||
-      doc.file_name.toLowerCase().includes(q);
-    return matchCategory && matchType && matchSearch;
+    return (
+      (selectedCategory === "Toutes" || category === selectedCategory) &&
+      (selectedType === "Tous" || type === selectedType) &&
+      (q === "" ||
+        doc.title.toLowerCase().includes(q) ||
+        (doc.description || "").toLowerCase().includes(q) ||
+        doc.file_name.toLowerCase().includes(q))
+    );
   });
 
   const downloadDocument = (doc: DocumentRow) => {
@@ -103,116 +127,129 @@ export default function DocumentsUtiles() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
-        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16 lg:h-18">
-            <div className="flex items-center gap-3">
-              <button onClick={() => navigate("/")} className="p-2 rounded-lg hover:bg-slate-100">
-                <ArrowLeft className="w-5 h-5" />
-              </button>
-              <img loading="lazy" src={LOGO_IMAGE} alt="FO Com" className="h-12 w-12 object-contain" />
-              <div className="hidden sm:block">
-                <h1 className="text-lg font-bold text-slate-900 leading-tight">FOCOM UES ILIAD</h1>
-                <p className="text-[11px] text-slate-500 font-medium tracking-wide uppercase">Documents Utiles</p>
+    <main className="min-h-screen overflow-x-hidden bg-slate-50 p-3 sm:p-4 lg:p-8">
+      <section className="relative overflow-hidden rounded-3xl bg-[#13233A] p-6 text-white shadow-xl sm:p-8 lg:p-10">
+        <div className="pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full border-[52px] border-white/5" />
+        <div className="pointer-events-none absolute -bottom-24 -left-24 h-80 w-80 rounded-full bg-red-600/25 blur-3xl" />
+        <div className="relative grid gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
+          <div>
+            <Badge className="mb-4 border border-white/15 bg-white/10 text-white hover:bg-white/10">
+              <FolderOpen className="mr-1 h-3.5 w-3.5" /> Documents utiles
+            </Badge>
+            <h1 className="text-3xl font-extrabold leading-tight sm:text-5xl lg:text-6xl">
+              Accords, ressources et documents FO COM
+            </h1>
+            <p className="mt-4 max-w-3xl text-sm leading-relaxed text-white/80 sm:text-lg">
+              Retrouvez les documents importants : accords collectifs, ressources CSE, tracts, bulletins, modèles et guides pratiques.
+            </p>
+            <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+              <Button asChild className="bg-red-600 text-white hover:bg-red-700">
+                <Link to="/adhesion"><UserPlus className="mr-2 h-4 w-4" /> Adhérer</Link>
+              </Button>
+              <Button asChild variant="outline" className="border-white/30 bg-white/10 text-white hover:bg-white/20">
+                <Link to="/contact"><Mail className="mr-2 h-4 w-4" /> Demander un document</Link>
+              </Button>
+            </div>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            {defaultCategories.map((item) => (
+              <div key={item.title} className="rounded-2xl border border-white/10 bg-white/10 p-4 backdrop-blur">
+                <item.icon className="mb-3 h-5 w-5 text-red-200" />
+                <p className="font-bold">{item.title}</p>
+                <p className="mt-1 text-xs leading-relaxed text-white/70">{item.text}</p>
               </div>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-[1440px] mx-auto p-4 lg:p-8">
-        <section className="bg-gradient-to-r from-teal-600 to-cyan-600 rounded-2xl p-8 sm:p-12 mb-8 text-white">
-          <div className="flex items-center gap-3 mb-4">
-            <FolderOpen className="w-10 h-10" />
-            <h2 className="text-2xl sm:text-4xl font-extrabold">Documents Utiles</h2>
-          </div>
-          <p className="text-teal-100 text-base sm:text-lg max-w-2xl">
-            Accédez à tous les documents importants : accords, PV de CSE, bilans sociaux et guides pratiques.
-          </p>
-        </section>
-
-        <div className="bg-white rounded-xl border border-slate-200 p-4 mb-6 shadow-sm">
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Rechercher un document..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <Filter className="w-4 h-4 text-slate-400" />
-              <span className="text-sm text-slate-500 hidden sm:inline">Filtrer :</span>
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-2 mt-3">
-            {categoryFilters.map((cat) => (
-              <button key={cat} onClick={() => setSelectedCategory(cat)} className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${selectedCategory === cat ? "bg-teal-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>{cat}</button>
-            ))}
-          </div>
-          <div className="flex flex-wrap gap-2 mt-2">
-            {types.map((type) => (
-              <button key={type} onClick={() => setSelectedType(type)} className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${selectedType === type ? "bg-red-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>{type}</button>
             ))}
           </div>
         </div>
+      </section>
 
+      <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Rechercher un document..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full rounded-lg border border-slate-200 py-2.5 pl-10 pr-4 text-sm focus:border-transparent focus:outline-none focus:ring-2 focus:ring-teal-500"
+            />
+          </div>
+          <div className="flex items-center gap-2 text-sm text-slate-500">
+            <Filter className="h-4 w-4" /> Filtrer
+          </div>
+        </div>
+
+        <div className="mt-3 flex flex-wrap gap-2">
+          {categoryFilters.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setSelectedCategory(cat)}
+              className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                selectedCategory === cat ? "bg-teal-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {types.map((type) => (
+            <button
+              key={type}
+              onClick={() => setSelectedType(type)}
+              className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                selectedType === type ? "bg-red-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              }`}
+            >
+              {type}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section className="mt-6">
         {loading ? (
-          <div className="flex items-center justify-center py-16 text-slate-400 gap-3">
-            <Loader2 className="w-5 h-5 animate-spin" /> Chargement des documents…
+          <div className="flex items-center justify-center gap-3 py-16 text-slate-400">
+            <Loader2 className="h-5 w-5 animate-spin" /> Chargement des documents…
           </div>
-        ) : (
-          <div className="space-y-3">
+        ) : filteredDocuments.length > 0 ? (
+          <div className="grid gap-3">
             {filteredDocuments.map((doc) => {
               const type = getDocType(doc.file_type, doc.file_name);
               const Icon = getIcon(type);
               return (
-                <div key={doc.id} className="bg-white rounded-xl border border-slate-200 p-4 hover:shadow-md transition-shadow flex flex-col sm:flex-row sm:items-center gap-4">
-                  <div className="w-12 h-12 rounded-lg bg-teal-50 flex items-center justify-center flex-shrink-0">
-                    <Icon className="w-6 h-6 text-teal-600" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-slate-900 text-sm truncate">{doc.title}</h3>
-                    <p className="text-xs text-slate-500 mt-0.5">{doc.description || doc.file_name}</p>
-                    <div className="flex flex-wrap items-center gap-3 mt-2">
-                      <span className="text-[10px] text-slate-400">{formatDate(doc.created_at)}</span>
-                      <span className="text-[10px] px-2 py-0.5 bg-slate-100 rounded-full text-slate-500">{doc.document_categories?.name || "Sans catégorie"}</span>
-                      <span className="text-[10px] px-2 py-0.5 bg-red-50 rounded-full text-red-600">{type}</span>
-                      <span className="text-[10px] text-slate-400">{formatSize(doc.file_size)}</span>
+                <Card key={doc.id} className="border-slate-200 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
+                  <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-600">
+                      <Icon className="h-6 w-6" />
                     </div>
-                  </div>
-                  <button onClick={() => downloadDocument(doc)} className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-sm font-medium transition-colors flex-shrink-0">
-                    <Download className="w-4 h-4" /> Télécharger
-                  </button>
-                </div>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="truncate text-sm font-extrabold text-slate-900">{doc.title}</h3>
+                      <p className="mt-0.5 text-xs text-slate-500">{doc.description || doc.file_name}</p>
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-500">{formatDate(doc.created_at)}</span>
+                        <span className="rounded-full bg-teal-50 px-2 py-0.5 text-[10px] font-semibold text-teal-700">{doc.document_categories?.name || "Sans catégorie"}</span>
+                        <span className="rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-semibold text-red-600">{type}</span>
+                        <span className="text-[10px] text-slate-400">{formatSize(doc.file_size)}</span>
+                      </div>
+                    </div>
+                    <Button onClick={() => downloadDocument(doc)} className="shrink-0 bg-teal-600 text-white hover:bg-teal-700">
+                      <Download className="mr-2 h-4 w-4" /> Télécharger
+                    </Button>
+                  </CardContent>
+                </Card>
               );
             })}
           </div>
-        )}
-
-        {!loading && filteredDocuments.length === 0 && (
-          <div className="text-center py-12">
-            <FileText className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+        ) : (
+          <div className="py-12 text-center">
+            <BookOpen className="mx-auto mb-3 h-12 w-12 text-slate-300" />
             <p className="text-slate-500">Aucun document trouvé</p>
           </div>
         )}
-      </main>
-
-      <footer className="mt-12 bg-white border-t border-slate-200 py-6">
-        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <p className="text-xs text-slate-500">© 2026 FOCOM UES ILIAD – Tous droits réservés</p>
-            <div className="flex gap-4">
-              <button onClick={() => navigate("/mentions-legales")} className="text-xs text-slate-500 hover:text-slate-700">Mentions légales</button>
-              <button onClick={() => navigate("/rgpd")} className="text-xs text-slate-500 hover:text-slate-700">Politique de confidentialité</button>
-            </div>
-          </div>
-        </div>
-      </footer>
-    </div>
+      </section>
+    </main>
   );
 }
