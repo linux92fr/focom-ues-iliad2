@@ -13,6 +13,7 @@ import PosterComposer from "./components/PosterComposer";
 import Home from "./pages/Home";
 import NotFound from "./pages/NotFound";
 import BilanMandat from "./pages/BilanMandat";
+import LeSyndicat from "./pages/LeSyndicat";
 import VosDroits from "./pages/VosDroits";
 import DocumentsUtiles from "./pages/DocumentsUtiles";
 import FAQ from "./pages/FAQ";
@@ -89,6 +90,7 @@ function App() {
                   <Routes>
                     <Route element={<PublicLayout />}>
                       <Route path="/" element={<Home />} />
+                      <Route path="/le-syndicat" element={<LeSyndicat />} />
                       <Route path="/bilan-mandat" element={<BilanMandat />} />
                       <Route path="/vos-droits" element={<VosDroits />} />
                       <Route path="/documents-utiles" element={<DocumentsUtiles />} />
