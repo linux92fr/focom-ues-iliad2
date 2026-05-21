@@ -1,99 +1,122 @@
-import { useNavigate } from "react-router-dom";
-import { ArrowLeft, HelpCircle, Search, ChevronDown, ChevronUp, MessageSquare, Phone, Mail } from "lucide-react";
 import { useState } from "react";
-
-const LOGO_IMAGE = "https://files.manuscdn.com/user_upload_by_module/session_file/310519663612648040/LldXxCbhFdcPcHwX.png";
+import { Link } from "react-router-dom";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { HelpCircle, Search, ChevronDown, ChevronUp, MessageSquare, Phone, Mail, UserPlus, Shield, FileText, Trophy, FolderOpen } from "lucide-react";
 
 const faqData = [
   {
     category: "Adhésion",
+    icon: UserPlus,
     questions: [
       {
-        question: "Comment adhérer à la FOCOM ?",
-        answer: "Pour adhérer à la FOCOM, vous pouvez remplir le formulaire d'adhésion disponible sur le site ou contacter directement vos élus. La cotisation est déduite directement de votre salaire.",
+        question: "Comment adhérer à FO COM UES ILIAD ?",
+        answer: "Depuis la page Adhésion, remplissez le formulaire. Le site génère un bulletin officiel PDF pré-rempli que vous pouvez télécharger, signer puis transmettre à FO COM via Mes demandes ou par email.",
       },
       {
-        question: "Quel est le montant de la cotisation ?",
-        answer: "La cotisation syndicale est calculée en fonction de votre salaire brut. Elle est généralement d'environ 1% de votre rémunération, avec un minimum et un maximum définis.",
+        question: "Le bulletin PDF est-il le document officiel ?",
+        answer: "Oui. Le formulaire sert à remplir automatiquement le bulletin officiel avec les champs correspondants. Vous gardez la main pour le télécharger et l’envoyer.",
       },
       {
-        question: "Quels sont les avantages de l'adhésion ?",
-        answer: "En adhérant à la FOCOM, vous bénéficiez d'une protection juridique, d'un accompagnement personnalisé, d'un accès à des formations, et vous participez à la défense collective de vos droits.",
+        question: "Puis-je transmettre mon bulletin via le site ?",
+        answer: "Oui. Après téléchargement, vous pouvez utiliser Mes demandes pour transmettre le bulletin ou contacter directement un représentant FO COM.",
       },
     ],
   },
   {
-    category: "Droits des salariés",
+    category: "Droits salariés",
+    icon: Shield,
     questions: [
       {
-        question: "Qu'est-ce que le droit à la déconnexion ?",
-        answer: "Le droit à la déconnexion permet à chaque salarié de ne pas être joignable en dehors de ses horaires de travail. Cela inclut les emails, appels téléphoniques et messages professionnels.",
+        question: "À quoi sert la page Vos droits ?",
+        answer: "Elle regroupe des repères pratiques sur le temps de travail, les congés, la santé au travail, la rémunération, les contrats et les droits collectifs. En cas de doute, contactez FO COM.",
       },
       {
-        question: "Comment fonctionne le droit de retrait ?",
-        answer: "Le droit de retrait permet à un salarié de se retirer d'une situation de travail dont il a un motif raisonnable de penser qu'elle présente un danger grave et imminent pour sa vie ou sa santé.",
+        question: "L’assistant juridique remplace-t-il un conseil personnalisé ?",
+        answer: "Non. Il donne une première orientation. Une situation juridique dépend des faits, des documents et du contexte. FO COM peut vous aider à analyser votre dossier.",
       },
       {
-        question: "Quels sont mes droits en matière de télétravail ?",
-        answer: "Le télétravail est encadré par un accord d'entreprise qui définit les conditions d'éligibilité, le nombre de jours autorisés, les modalités de demande et les obligations de l'employeur.",
+        question: "Que faire en cas de difficulté au travail ?",
+        answer: "Conservez les éléments factuels, notez les dates, gardez les messages utiles et contactez rapidement un représentant FO COM ou utilisez Mes demandes.",
       },
     ],
   },
   {
-    category: "Négociations",
+    category: "CSE et élections",
+    icon: Trophy,
     questions: [
       {
-        question: "Que sont les NAO ?",
-        answer: "Les Négociations Annuelles Obligatoires (NAO) portent sur les salaires, la durée du travail, l'égalité professionnelle et la qualité de vie au travail. Elles doivent avoir lieu chaque année.",
+        question: "Les élections CSE 2026 sont-elles terminées ?",
+        answer: "Oui. La page Élections est désormais une page d’archive et de bilan : résultats définitifs, participation et élus FO COM.",
       },
       {
-        question: "Qu'est-ce que la GEPP ?",
-        answer: "La GEPP (Gestion des Emplois et des Parcours Professionnels) est une négociation qui vise à anticiper les évolutions des métiers et des compétences pour accompagner les salariés dans leur parcours professionnel.",
+        question: "Où trouver les élus FO COM ?",
+        answer: "Les élus sont visibles sur la page Élections et les représentants FO COM sont présentés sur la page Le syndicat.",
       },
       {
-        question: "Comment sont prises les décisions lors des négociations ?",
-        answer: "Les décisions sont prises par accord entre les organisations syndicales représentatives et la direction. Un accord est validé s'il recueille au moins 50% des suffrages exprimés aux élections professionnelles.",
+        question: "À quoi sert le CSE ?",
+        answer: "Le CSE est consulté sur les sujets économiques, sociaux, organisationnels et conditions de travail. Les élus portent également les réclamations individuelles et collectives.",
       },
     ],
   },
   {
-    category: "Élections professionnelles",
+    category: "Mes demandes",
+    icon: MessageSquare,
     questions: [
       {
-        question: "Qui peut voter aux élections professionnelles ?",
-        answer: "Tous les salariés de l'entreprise âgés d'au moins 16 ans et ayant 3 mois d'ancienneté peuvent voter. Les électeurs doivent être inscrits sur les listes électorales.",
+        question: "À quoi sert Mes demandes ?",
+        answer: "Cet espace permet de transmettre une question, un document, un bulletin d’adhésion ou un dossier à FO COM, puis de suivre les échanges.",
       },
       {
-        question: "Quand ont lieu les élections professionnelles ?",
-        answer: "Les élections professionnelles ont lieu tous les 4 ans. Le prochain scrutin est prévu le 6 mai 2026 pour la FOCOM UES ILIAD.",
+        question: "Puis-je joindre un document ?",
+        answer: "Oui, selon les fonctionnalités disponibles, vous pouvez transmettre les éléments nécessaires à l’analyse de votre dossier.",
       },
       {
-        question: "Comment se déroule le vote ?",
-        answer: "Le vote peut se faire par bulletin papier dans l'isoloir ou par vote électronique selon les modalités définies par le protocole d'accord préélectoral.",
+        question: "Mes échanges sont-ils confidentiels ?",
+        answer: "Les demandes sont destinées aux personnes habilitées à les traiter. Évitez toutefois d’envoyer des informations inutiles ou excessives.",
       },
     ],
   },
   {
-    category: "Formation",
+    category: "Documents utiles",
+    icon: FolderOpen,
     questions: [
       {
-        question: "Comment accéder à mon Compte Personnel de Formation (CPF) ?",
-        answer: "Votre CPF est accessible via l'application mobile ou le site moncompteformation.gouv.fr. Vous pouvez y consulter vos droits et sélectionner des formations éligibles.",
+        question: "Où trouver les accords et documents ?",
+        answer: "La page Documents utiles centralise les accords, modèles, ressources pratiques et documents syndicaux disponibles.",
       },
       {
-        question: "Qu'est-ce que l'entretien professionnel ?",
-        answer: "L'entretien professionnel est un rendez-vous tous les 2 ans avec votre employeur pour faire le point sur vos perspectives d'évolution professionnelle et vos besoins de formation.",
+        question: "Je ne trouve pas un document, que faire ?",
+        answer: "Contactez FO COM via la page Contact ou Mes demandes. Un représentant pourra vous orienter vers le bon document.",
       },
       {
-        question: "Puis-je suivre une formation pendant mon temps de travail ?",
-        answer: "Oui, les formations inscrites au plan de développement des compétences de l'entreprise se déroulent généralement pendant le temps de travail et sont rémunérées.",
+        question: "Les documents sont-ils régulièrement mis à jour ?",
+        answer: "Ils sont mis à jour progressivement. Les contenus liés aux négociations, élections et droits sont priorisés.",
+      },
+    ],
+  },
+  {
+    category: "Contact FO COM",
+    icon: Mail,
+    questions: [
+      {
+        question: "Comment contacter FO COM ?",
+        answer: "Vous pouvez utiliser la page Contact, envoyer un message via Mes demandes ou joindre directement un représentant FO COM depuis la page Le syndicat.",
+      },
+      {
+        question: "Quel numéro appeler ?",
+        answer: "Vous pouvez appeler le 01 87 15 43 11 ou utiliser les numéros directs des représentants quand ils sont affichés.",
+      },
+      {
+        question: "Puis-je contacter FO COM sans être adhérent ?",
+        answer: "Oui. FO COM peut vous orienter et vous informer. L’adhésion permet ensuite de renforcer l’action collective et l’accompagnement syndical.",
       },
     ],
   },
 ];
 
 export default function FAQ() {
-  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [openQuestions, setOpenQuestions] = useState<Record<string, boolean>>({});
   const [activeCategory, setActiveCategory] = useState("Toutes");
@@ -118,151 +141,136 @@ export default function FAQ() {
     .filter((section) => section.questions.length > 0);
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      {/* Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
-        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16 lg:h-18">
-            <div className="flex items-center gap-3">
-              <button onClick={() => navigate("/")} className="p-2 rounded-lg hover:bg-slate-100">
-                <ArrowLeft className="w-5 h-5" />
-              </button>
-              <img loading="lazy" src={LOGO_IMAGE} alt="FO Com" className="h-12 w-12 object-contain" />
-              <div className="hidden sm:block">
-                <h1 className="text-lg font-bold text-slate-900 leading-tight">FOCOM UES ILIAD</h1>
-                <p className="text-[11px] text-slate-500 font-medium tracking-wide uppercase">FAQ</p>
-              </div>
+    <main className="min-h-screen overflow-x-hidden bg-slate-50 p-3 sm:p-4 lg:p-8">
+      <section className="relative overflow-hidden rounded-3xl bg-[#13233A] p-6 text-white shadow-xl sm:p-8 lg:p-10">
+        <div className="pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full border-[52px] border-white/5" />
+        <div className="pointer-events-none absolute -bottom-24 -left-24 h-80 w-80 rounded-full bg-red-600/25 blur-3xl" />
+        <div className="relative grid gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
+          <div>
+            <Badge className="mb-4 border border-white/15 bg-white/10 text-white hover:bg-white/10">
+              <HelpCircle className="mr-1 h-3.5 w-3.5" /> FAQ
+            </Badge>
+            <h1 className="text-3xl font-extrabold leading-tight sm:text-5xl lg:text-6xl">
+              Questions fréquentes
+            </h1>
+            <p className="mt-4 max-w-3xl text-sm leading-relaxed text-white/80 sm:text-lg">
+              Retrouvez rapidement les réponses utiles sur l’adhésion, vos droits, le CSE, les demandes, les documents et les contacts FO COM.
+            </p>
+            <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+              <Button asChild className="bg-red-600 text-white hover:bg-red-700">
+                <Link to="/contact"><Mail className="mr-2 h-4 w-4" /> Contacter FO COM</Link>
+              </Button>
+              <Button asChild variant="outline" className="border-white/30 bg-white/10 text-white hover:bg-white/20">
+                <Link to="/mes-reclamations"><MessageSquare className="mr-2 h-4 w-4" /> Faire une demande</Link>
+              </Button>
             </div>
           </div>
-        </div>
-      </header>
 
-      {/* Main Content */}
-      <main className="max-w-[1440px] mx-auto p-4 lg:p-8">
-        {/* Hero Section */}
-        <section className="bg-gradient-to-r from-red-600 to-red-700 rounded-2xl p-8 sm:p-12 mb-8 text-white">
-          <div className="flex items-center gap-3 mb-4">
-            <HelpCircle className="w-10 h-10" />
-            <h2 className="text-2xl sm:text-4xl font-extrabold">Questions Fréquentes</h2>
-          </div>
-          <p className="text-red-100 text-base sm:text-lg max-w-2xl">
-            Trouvez rapidement les réponses à vos questions sur vos droits, les négociations et la vie syndicale.
-          </p>
-        </section>
-
-        {/* Search */}
-        <div className="bg-white rounded-xl border border-slate-200 p-4 mb-6 shadow-sm">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Rechercher une question..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-            />
-          </div>
-          <div className="flex flex-wrap gap-2 mt-3">
-            {categories.map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setActiveCategory(cat)}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                  activeCategory === cat
-                    ? "bg-red-600 text-white"
-                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                }`}
-              >
-                {cat}
-              </button>
+          <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
+            {[
+              { icon: UserPlus, title: "Adhésion", text: "Bulletin PDF, transmission, parcours." },
+              { icon: Shield, title: "Droits", text: "Repères et accompagnement FO COM." },
+              { icon: FileText, title: "Documents", text: "Accords, ressources et modèles." },
+            ].map((item) => (
+              <div key={item.title} className="rounded-2xl border border-white/10 bg-white/10 p-4 backdrop-blur">
+                <item.icon className="mb-3 h-5 w-5 text-red-200" />
+                <p className="font-bold">{item.title}</p>
+                <p className="mt-1 text-xs leading-relaxed text-white/70">{item.text}</p>
+              </div>
             ))}
           </div>
         </div>
+      </section>
 
-        {/* FAQ Sections */}
-        <div className="space-y-6">
-          {filteredData.map((section, idx) => (
-            <div key={idx} className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
-              <h3 className="text-lg font-bold text-slate-900 mb-4">{section.category}</h3>
-              <div className="space-y-3">
-                {section.questions.map((q, i) => {
-                  const key = `${idx}-${i}`;
-                  const isOpen = openQuestions[key];
-                  return (
-                    <div key={i} className="border border-slate-100 rounded-lg overflow-hidden">
-                      <button
-                        onClick={() => toggleQuestion(key)}
-                        className="w-full flex items-center justify-between p-4 text-left hover:bg-slate-50 transition-colors"
-                      >
-                        <span className="text-sm font-semibold text-slate-900 pr-4">{q.question}</span>
-                        {isOpen ? (
-                          <ChevronUp className="w-5 h-5 text-slate-400 flex-shrink-0" />
-                        ) : (
-                          <ChevronDown className="w-5 h-5 text-slate-400 flex-shrink-0" />
-                        )}
-                      </button>
-                      {isOpen && (
-                        <div className="px-4 pb-4 text-sm text-slate-600 leading-relaxed">{q.answer}</div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+      <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Rechercher une question..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full rounded-lg border border-slate-200 py-2.5 pl-10 pr-4 text-sm focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500"
+          />
+        </div>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {categories.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setActiveCategory(cat)}
+              className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                activeCategory === cat
+                  ? "bg-red-600 text-white"
+                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              }`}
+            >
+              {cat}
+            </button>
           ))}
         </div>
+      </section>
 
-        {filteredData.length === 0 && (
-          <div className="text-center py-12">
-            <HelpCircle className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-            <p className="text-slate-500">Aucune question trouvée</p>
-          </div>
-        )}
+      <section className="mt-6 space-y-5">
+        {filteredData.map((section, idx) => {
+          const Icon = section.icon;
+          return (
+            <Card key={section.category} className="border-slate-200 bg-white shadow-sm">
+              <CardContent className="p-5 sm:p-6">
+                <div className="mb-4 flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-50 text-teal-600">
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <h2 className="text-lg font-extrabold text-slate-900">{section.category}</h2>
+                </div>
+                <div className="space-y-3">
+                  {section.questions.map((q, i) => {
+                    const key = `${idx}-${i}`;
+                    const isOpen = openQuestions[key];
+                    return (
+                      <div key={q.question} className="overflow-hidden rounded-xl border border-slate-100">
+                        <button
+                          onClick={() => toggleQuestion(key)}
+                          className="flex w-full items-center justify-between gap-4 p-4 text-left transition-colors hover:bg-slate-50"
+                        >
+                          <span className="text-sm font-semibold text-slate-900">{q.question}</span>
+                          {isOpen ? <ChevronUp className="h-5 w-5 shrink-0 text-slate-400" /> : <ChevronDown className="h-5 w-5 shrink-0 text-slate-400" />}
+                        </button>
+                        {isOpen && <div className="px-4 pb-4 text-sm leading-relaxed text-slate-600">{q.answer}</div>}
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </section>
 
-        {/* Contact CTA */}
-        <div className="mt-8 bg-gradient-to-br from-teal-600 to-teal-700 rounded-xl p-8 text-white shadow-lg">
-          <div className="flex items-center gap-3 mb-4">
-            <MessageSquare className="w-8 h-8" />
-            <h4 className="font-bold text-xl">Vous ne trouvez pas votre réponse ?</h4>
+      {filteredData.length === 0 && (
+        <div className="py-12 text-center">
+          <HelpCircle className="mx-auto mb-3 h-12 w-12 text-slate-300" />
+          <p className="text-slate-500">Aucune question trouvée</p>
+        </div>
+      )}
+
+      <section className="mt-8 rounded-3xl bg-gradient-to-br from-teal-600 to-teal-700 p-6 text-white shadow-lg sm:p-8">
+        <div className="grid gap-5 lg:grid-cols-[1fr_auto] lg:items-center">
+          <div>
+            <h2 className="text-xl font-extrabold">Vous ne trouvez pas votre réponse ?</h2>
+            <p className="mt-2 max-w-3xl text-sm leading-relaxed text-teal-50">
+              Contactez vos représentants FO COM ou transmettez une demande depuis votre espace. Nous sommes là pour vous aider.
+            </p>
           </div>
-          <p className="text-teal-100 mb-5 max-w-lg">
-            N'hésitez pas à contacter vos élus FOCOM. Nous sommes là pour vous aider et vous accompagner.
-          </p>
-          <div className="flex flex-wrap gap-4">
-            <button
-              onClick={() => navigate("/contact")}
-              className="bg-white text-teal-600 hover:bg-teal-50 rounded-full px-6 py-3 text-sm font-semibold shadow-md inline-flex items-center gap-2"
-            >
-              <Mail className="w-4 h-4" />
-              Nous contacter
-            </button>
-            <a
-              href="tel:0187154311"
-              className="bg-white/20 hover:bg-white/30 text-white rounded-full px-6 py-3 text-sm font-semibold backdrop-blur-sm inline-flex items-center gap-2"
-            >
-              <Phone className="w-4 h-4" />
-              01 87 15 43 11
-            </a>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <Button asChild className="bg-white text-teal-700 hover:bg-teal-50">
+              <Link to="/contact"><Mail className="mr-2 h-4 w-4" /> Contact</Link>
+            </Button>
+            <Button asChild variant="outline" className="border-white/40 bg-white/10 text-white hover:bg-white/20">
+              <a href="tel:0187154311"><Phone className="mr-2 h-4 w-4" /> 01 87 15 43 11</a>
+            </Button>
           </div>
         </div>
-      </main>
-
-      {/* Footer */}
-      <footer className="mt-12 bg-white border-t border-slate-200 py-6">
-        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <p className="text-xs text-slate-500">© 2026 FOCOM UES ILIAD – Tous droits réservés</p>
-            <div className="flex gap-4">
-              <button onClick={() => navigate("/mentions-legales")} className="text-xs text-slate-500 hover:text-slate-700">
-                Mentions légales
-              </button>
-              <button onClick={() => navigate("/rgpd")} className="text-xs text-slate-500 hover:text-slate-700">
-                Politique de confidentialité
-              </button>
-            </div>
-          </div>
-        </div>
-      </footer>
-    </div>
+      </section>
+    </main>
   );
 }
