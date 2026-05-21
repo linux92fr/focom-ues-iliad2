@@ -1,234 +1,294 @@
-import { useNavigate } from "react-router-dom";
-import { ArrowLeft, CheckCircle2, Users, FileText, TrendingUp, Award, Target, Heart, Handshake, Shield } from "lucide-react";
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import {
+  AlertTriangle,
+  BookOpen,
+  CheckCircle2,
+  ChevronDown,
+  Eye,
+  FileText,
+  Handshake,
+  Heart,
+  Shield,
+  TrendingUp,
+  Users,
+} from "lucide-react";
 
-const LOGO_IMAGE = "https://files.manuscdn.com/user_upload_by_module/session_file/310519663612648040/LldXxCbhFdcPcHwX.png";
-
-function AnimatedCounter({ target, suffix = "" }: { target: number; suffix?: string }) {
-  return (
-    <div className="text-3xl font-extrabold text-red-600">
-      {target}{suffix}
-    </div>
-  );
-}
-
-function ProgressBar({ label, value, color = "bg-teal-500" }: { label: string; value: number; color?: string }) {
-  return (
-    <div className="space-y-1.5">
-      <div className="flex justify-between text-sm">
-        <span className="text-slate-700 font-medium">{label}</span>
-        <span className="text-slate-500 font-semibold">{value}%</span>
-      </div>
-      <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
-        <div
-          className={`h-full ${color} rounded-full transition-all duration-1000 ease-out`}
-          style={{ width: `${value}%` }}
-        />
-      </div>
-    </div>
-  );
-}
-
-const achievements = [
+const YEARS = [
   {
-    year: "2022",
-    items: [
-      "Accord sur la rémunération et les primes",
-      "Mise en place du droit à la déconnexion",
-      "Négociation sur le télétravail",
-      "Accord sur l'égalité professionnelle",
+    year: 2022,
+    label: "Fondations du mandat",
+    reclamations: 122,
+    consultations: 20,
+    accords: 4,
+    expertises: 3,
+    highlights: [
+      { icon: "shield", text: "Fort de sa majorité au CSE, FO COM a pesé de tout son poids dans les négociations pour défendre les salariés de l'UES ILIAD." },
+      { icon: "alert", text: "Expertise RPS engagée malgré la contestation de l'employeur devant le tribunal — la justice a donné raison au CSE." },
+      { icon: "eye", text: "Expertise sur les orientations stratégiques et la situation économique et financière de l'entreprise." },
+      { icon: "handshake", text: "4 accords signés : dialogue social, financement du CSE, mutuelle & prévoyance, rémunération NAO." },
     ],
   },
   {
-    year: "2023",
-    items: [
-      "Revalorisation salariale de 4,2%",
-      "Accord sur la qualité de vie au travail",
-      "Création de la commission santé-sécurité",
-      "Négociation GEPP : Gestion des emplois et parcours professionnels",
+    year: 2023,
+    label: "Mobilisation et avancées sociales",
+    reclamations: 171,
+    consultations: 32,
+    accords: 3,
+    expertises: 4,
+    highlights: [
+      { icon: "trending", text: "Refonte complète du régime des astreintes : révision des rémunérations soirs/week-ends, respect des repos obligatoires et revalorisation des primes." },
+      { icon: "users", text: "Grèves et pétitions organisées par FO COM pour faire entendre les salariés face aux décisions de la Direction." },
+      { icon: "eye", text: "Expertise économique révélant les marges financières du groupe ILIAD." },
+      { icon: "handshake", text: "3 accords signés : minima conventionnels 2023, communications du CSE, temps de travail." },
     ],
   },
   {
-    year: "2024",
-    items: [
-      "Accord NAO : Augmentation générale de 3,5%",
-      "Prime exceptionnelle de pouvoir d'achat",
-      "Amélioration du régime de mutuelle",
-      "Renforcement du droit à la formation",
+    year: 2024,
+    label: "Vigilance et résistance",
+    reclamations: 190,
+    consultations: 51,
+    accords: 1,
+    expertises: 5,
+    highlights: [
+      { icon: "alert", text: "Opposition du CSE à la suspension du télétravail — la Direction a maintenu sa décision malgré l'expertise et l'avis défavorable." },
+      { icon: "shield", text: "Expertise RPS avec recommandations cruciales sur l'organisation du travail et les pratiques managériales." },
+      { icon: "trending", text: "Alerte sur les fragilités structurelles : baisse des embauches, tensions organisationnelles." },
+      { icon: "handshake", text: "Mise en place d'un plan d'épargne retraite obligatoire Assunet." },
     ],
   },
   {
-    year: "2025",
-    items: [
-      "NAO 2025 : Accord salarial signé",
-      "Développement des actions de formation",
-      "Renforcement de la représentation syndicale",
-      "Actions pour l'emploi et la sécurisation des parcours",
+    year: 2025,
+    label: "Conquêtes concrètes",
+    reclamations: 192,
+    consultations: 53,
+    accords: 0,
+    expertises: 4,
+    highlights: [
+      { icon: "check", text: "Temps de repos imposé avant et après les HNO pour les techniciens itinérants Free Réseau Maintenance." },
+      { icon: "check", text: "Panier repas porté à 9 € pour les techniciens itinérants, contre 6,50 € proposés par la Direction." },
+      { icon: "eye", text: "Expertise majeure sur la réorganisation Maintenance & Transport et sur les orientations stratégiques 2028." },
+      { icon: "file", text: "192 réclamations déposées, 53 consultations traitées — un record sur le mandat." },
+    ],
+  },
+  {
+    year: 2026,
+    label: "En cours — 1er trimestre",
+    reclamations: 70,
+    consultations: 8,
+    accords: 0,
+    expertises: 2,
+    badge: "En cours",
+    highlights: [
+      { icon: "shield", text: "Expertise sur les orientations stratégiques en cours." },
+      { icon: "alert", text: "Expertise Risques Psychosociaux engagée." },
+      { icon: "file", text: "70 réclamations individuelles et collectives déposées." },
+      { icon: "eye", text: "8 consultations traitées au premier trimestre 2026." },
     ],
   },
 ];
 
-export default function BilanMandat() {
-  const navigate = useNavigate();
+const TOTALS = {
+  reclamations: 745,
+  consultations: 164,
+  accords: 8,
+  expertises: 18,
+};
+
+const commitments = [
+  {
+    icon: Shield,
+    title: "Défendre",
+    color: "bg-red-50 text-red-600",
+    items: ["Respect des accords", "Santé & sécurité", "RPS", "Droit à la déconnexion"],
+  },
+  {
+    icon: Handshake,
+    title: "Négocier",
+    color: "bg-teal-50 text-teal-600",
+    items: ["Salaires & primes", "Astreintes", "Temps de travail", "Mutuelle & prévoyance"],
+  },
+  {
+    icon: Users,
+    title: "Agir ensemble",
+    color: "bg-red-50 text-red-600",
+    items: ["Réclamations", "Pétitions", "Expertises", "Informations régulières"],
+  },
+];
+
+function HighlightIcon({ type }: { type: string }) {
+  const cls = "h-4 w-4 shrink-0";
+  switch (type) {
+    case "shield": return <Shield className={cls} />;
+    case "alert": return <AlertTriangle className={cls} />;
+    case "eye": return <Eye className={cls} />;
+    case "handshake": return <Handshake className={cls} />;
+    case "trending": return <TrendingUp className={cls} />;
+    case "users": return <Users className={cls} />;
+    case "check": return <CheckCircle2 className={cls} />;
+    case "file": return <FileText className={cls} />;
+    default: return <BookOpen className={cls} />;
+  }
+}
+
+function YearCard({ data, index }: { data: typeof YEARS[number]; index: number }) {
+  const [open, setOpen] = useState(index === 0);
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      {/* Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
-        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16 lg:h-18">
-            <div className="flex items-center gap-3">
-              <button onClick={() => navigate("/")} className="p-2 rounded-lg hover:bg-slate-100">
-                <ArrowLeft className="w-5 h-5" />
-              </button>
-              <img loading="lazy" src={LOGO_IMAGE} alt="FO Com" className="h-12 w-12 object-contain" />
-              <div className="hidden sm:block">
-                <h1 className="text-lg font-bold text-slate-900 leading-tight">FOCOM UES ILIAD</h1>
-                <p className="text-[11px] text-slate-500 font-medium tracking-wide uppercase">Bilan de Mandat</p>
-              </div>
+    <article className="relative">
+      {index < YEARS.length - 1 && (
+        <div className="absolute left-8 top-20 hidden h-[calc(100%+2rem)] w-0.5 bg-red-200 lg:block" />
+      )}
+
+      <div className="relative overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition-all hover:border-red-100 hover:shadow-md">
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          className="flex w-full items-center gap-4 px-4 py-5 text-left sm:px-6"
+        >
+          <div className="flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-2xl bg-red-600 text-white shadow-lg">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-white/70">Année</span>
+            <span className="text-lg font-black">{data.year}</span>
+          </div>
+
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="text-xl font-black text-slate-900">{data.year}</h2>
+              {data.badge && (
+                <span className="rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">
+                  {data.badge}
+                </span>
+              )}
+            </div>
+            <p className="mt-0.5 text-sm text-slate-500">{data.label}</p>
+            <div className="mt-3 grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
+              <span className="rounded-lg bg-slate-50 px-2 py-1 font-semibold text-slate-600">{data.reclamations} réclamations</span>
+              <span className="rounded-lg bg-slate-50 px-2 py-1 font-semibold text-slate-600">{data.consultations} consultations</span>
+              <span className="rounded-lg bg-slate-50 px-2 py-1 font-semibold text-slate-600">{data.accords} accords</span>
+              <span className="rounded-lg bg-slate-50 px-2 py-1 font-semibold text-slate-600">{data.expertises} expertises</span>
             </div>
           </div>
-        </div>
-      </header>
 
-      {/* Main Content */}
-      <main className="max-w-[1440px] mx-auto p-4 lg:p-8">
-        {/* Hero Section */}
-        <section className="bg-gradient-to-r from-red-600 to-red-700 rounded-2xl p-8 sm:p-12 mb-8 text-white">
-          <h2 className="text-2xl sm:text-4xl font-extrabold mb-4">
-            Bilan de Mandat 2022–2026
-          </h2>
-          <p className="text-red-100 text-base sm:text-lg max-w-2xl">
-            4 années d'actions au service de tous les salariés. Découvrez nos réalisations et nos avancées pour défendre vos droits.
-          </p>
-        </section>
+          <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-all ${open ? "rotate-180 bg-red-600 text-white" : "bg-slate-100 text-slate-400"}`}>
+            <ChevronDown className="h-5 w-5" />
+          </div>
+        </button>
 
-        {/* Stats */}
-        <section className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          {[
-            { value: 42, label: "Accords signés", icon: CheckCircle2, color: "bg-teal-50 text-teal-600" },
-            { value: 78, label: "Réunions CSE", icon: Users, color: "bg-red-50 text-red-600" },
-            { value: 126, label: "Dossiers traités", icon: FileText, color: "bg-teal-50 text-teal-600" },
-            { value: 100, label: "Engagement", suffix: "%", icon: TrendingUp, color: "bg-red-50 text-red-600" },
-          ].map((stat, idx) => (
-            <div key={idx} className="bg-white rounded-xl border border-slate-200 p-5 text-center shadow-sm">
-              <div className={`w-10 h-10 rounded-lg ${stat.color} flex items-center justify-center mx-auto mb-3`}>
-                <stat.icon className="w-5 h-5" />
-              </div>
-              <AnimatedCounter target={stat.value} suffix={stat.suffix} />
-              <p className="text-sm text-slate-500 mt-1">{stat.label}</p>
+        {open && (
+          <div className="border-t border-slate-100 bg-slate-50/60 px-4 pb-6 pt-4 sm:px-6">
+            <ul className="space-y-3">
+              {data.highlights.map((highlight, i) => (
+                <li key={i} className="flex items-start gap-3 rounded-2xl bg-white p-3 text-sm leading-relaxed text-slate-600 shadow-sm">
+                  <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-600">
+                    <HighlightIcon type={highlight.icon} />
+                  </span>
+                  <span>{highlight.text}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    </article>
+  );
+}
+
+export default function BilanMandat() {
+  return (
+    <main className="min-h-screen overflow-x-hidden bg-slate-50 p-3 sm:p-4 lg:p-8">
+      <section className="relative overflow-hidden rounded-3xl bg-[#13233A] p-6 text-white shadow-xl sm:p-8 lg:p-10">
+        <div className="pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full border-[52px] border-white/5" />
+        <div className="pointer-events-none absolute -bottom-24 -left-24 h-80 w-80 rounded-full bg-red-600/25 blur-3xl" />
+        <div className="relative grid gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
+          <div>
+            <div className="mb-4 inline-flex w-fit items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-white/85 backdrop-blur">
+              <Shield className="h-3.5 w-3.5 text-red-300" /> Bilan CSE 2022–2026
             </div>
-          ))}
-        </section>
-
-        {/* Progress Bars */}
-        <section className="bg-white rounded-xl border border-slate-200 p-6 mb-8 shadow-sm">
-          <h3 className="text-lg font-bold text-slate-900 mb-6">Nos avancées principales</h3>
-          <div className="space-y-4">
-            <ProgressBar label="Pouvoir d'achat" value={85} />
-            <ProgressBar label="Conditions de travail" value={90} />
-            <ProgressBar label="Égalité professionnelle" value={75} />
-            <ProgressBar label="Gestion des emplois" value={80} />
-            <ProgressBar label="Qualité de vie au travail" value={70} color="bg-teal-400" />
+            <h1 className="text-3xl font-extrabold leading-tight sm:text-5xl lg:text-6xl">
+              Un mandat d’actions concrètes pour défendre les salariés
+            </h1>
+            <p className="mt-4 max-w-3xl text-sm leading-relaxed text-white/80 sm:text-lg">
+              Réclamations, consultations, expertises, accords et mobilisations : FO COM UES ILIAD a agi tout au long du mandat pour défendre les droits, la santé, les conditions de travail et le pouvoir d’achat des salariés.
+            </p>
+            <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+              <Link to="/contact" className="inline-flex items-center justify-center rounded-lg bg-red-600 px-5 py-3 text-sm font-bold text-white hover:bg-red-700">
+                Contacter FO COM
+              </Link>
+              <Link to="/elections" className="inline-flex items-center justify-center rounded-lg border border-white/30 bg-white/10 px-5 py-3 text-sm font-bold text-white hover:bg-white/20">
+                Voir les résultats CSE
+              </Link>
+            </div>
           </div>
-        </section>
 
-        {/* Timeline */}
-        <section className="mb-8">
-          <h3 className="text-xl font-bold text-slate-900 mb-6">Notre action année par année</h3>
-          <div className="space-y-6">
-            {achievements.map((year, idx) => (
-              <div key={idx} className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 rounded-full bg-red-600 text-white flex items-center justify-center font-bold text-lg">
-                    {year.year}
-                  </div>
-                  <h4 className="text-lg font-bold text-slate-900">Année {year.year}</h4>
-                </div>
-                <ul className="space-y-2 ml-16">
-                  {year.items.map((item, i) => (
-                    <li key={i} className="flex items-start gap-2 text-sm text-slate-700">
-                      <CheckCircle2 className="w-4 h-4 text-teal-600 flex-shrink-0 mt-0.5" />
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Nos combats */}
-        <section className="bg-white rounded-xl border border-slate-200 p-6 mb-8 shadow-sm">
-          <h3 className="text-xl font-bold text-slate-900 mb-6">Nos combats, vos droits</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-2 gap-3">
             {[
-              {
-                icon: Shield,
-                title: "Défendre",
-                color: "text-red-600 bg-red-50",
-                items: ["Respect des accords", "Égalité & non-discrimination", "Santé & sécurité", "Droit à la déconnexion"],
-              },
-              {
-                icon: Handshake,
-                title: "Négocier",
-                color: "text-teal-600 bg-teal-50",
-                items: ["Salaires & primes", "Télétravail", "Organisation du temps de travail", "Formation"],
-              },
-              {
-                icon: Users,
-                title: "Agir ensemble",
-                color: "text-red-600 bg-red-50",
-                items: ["Mobilisations", "Actions collectives", "Écoute & proximité", "Informations régulières"],
-              },
-            ].map((section, idx) => (
-              <div key={idx}>
-                <div className="flex items-center gap-2 mb-3">
-                  <div className={`w-10 h-10 rounded-lg ${section.color} flex items-center justify-center`}>
-                    <section.icon className="w-5 h-5" />
-                  </div>
-                  <h4 className="font-bold text-base text-slate-900">{section.title}</h4>
-                </div>
-                <ul className="text-sm text-slate-600 space-y-2">
-                  {section.items.map((item, i) => (
-                    <li key={i} className="flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
-                      {item}
-                    </li>
-                  ))}
-                </ul>
+              { label: "Réclamations", value: `${TOTALS.reclamations}+`, icon: FileText },
+              { label: "Consultations", value: TOTALS.consultations, icon: Users },
+              { label: "Accords", value: TOTALS.accords, icon: Handshake },
+              { label: "Expertises", value: TOTALS.expertises, icon: Eye },
+            ].map((stat) => (
+              <div key={stat.label} className="rounded-2xl border border-white/10 bg-white/10 p-4 backdrop-blur">
+                <stat.icon className="mb-3 h-5 w-5 text-red-200" />
+                <p className="text-3xl font-black text-white">{stat.value}</p>
+                <p className="mt-1 text-xs font-bold uppercase tracking-wide text-white/60">{stat.label}</p>
               </div>
             ))}
           </div>
-        </section>
-
-        {/* Engagement */}
-        <div className="bg-gradient-to-br from-teal-600 to-teal-700 rounded-xl p-8 text-white shadow-lg">
-          <div className="flex items-center gap-3 mb-4">
-            <Heart className="w-8 h-8" />
-            <h4 className="font-bold text-xl">Notre engagement</h4>
-          </div>
-          <p className="text-teal-100 text-base leading-relaxed max-w-2xl">
-            Transparence, écoute et action : notre priorité, c'est vous. Ensemble, nous continuons à construire un monde du travail plus juste et plus respectueux de chacun.
-          </p>
         </div>
-      </main>
+      </section>
 
-      {/* Footer */}
-      <footer className="mt-12 bg-white border-t border-slate-200 py-6">
-        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <p className="text-xs text-slate-500">© 2026 FOCOM UES ILIAD – Tous droits réservés</p>
-            <div className="flex gap-4">
-              <button onClick={() => navigate("/mentions-legales")} className="text-xs text-slate-500 hover:text-slate-700">
-                Mentions légales
-              </button>
-              <button onClick={() => navigate("/rgpd")} className="text-xs text-slate-500 hover:text-slate-700">
-                Politique de confidentialité
-              </button>
+      <section className="mt-6 grid gap-4 md:grid-cols-3">
+        {commitments.map((item) => (
+          <div key={item.title} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className={`mb-4 flex h-11 w-11 items-center justify-center rounded-xl ${item.color}`}>
+              <item.icon className="h-5 w-5" />
+            </div>
+            <h2 className="font-extrabold text-slate-900">{item.title}</h2>
+            <ul className="mt-3 space-y-2 text-sm text-slate-600">
+              {item.items.map((entry) => (
+                <li key={entry} className="flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-slate-400" /> {entry}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </section>
+
+      <section className="mt-8 space-y-5">
+        <div>
+          <h2 className="text-2xl font-extrabold text-slate-900">Notre action année par année</h2>
+          <p className="mt-1 text-sm text-slate-500">Les temps forts du mandat, de 2022 au premier trimestre 2026.</p>
+        </div>
+        <div className="space-y-5">
+          {YEARS.map((year, index) => (
+            <YearCard key={year.year} data={year} index={index} />
+          ))}
+        </div>
+      </section>
+
+      <section className="mt-8 rounded-3xl bg-gradient-to-br from-teal-600 to-teal-700 p-6 text-white shadow-lg sm:p-8">
+        <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+          <div className="flex gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/15">
+              <Heart className="h-6 w-6" />
+            </div>
+            <div>
+              <h2 className="text-xl font-extrabold">Notre engagement</h2>
+              <p className="mt-2 max-w-3xl text-sm leading-relaxed text-teal-50">
+                Transparence, écoute et action : notre priorité, c’est vous. Ensemble, nous continuons à construire un monde du travail plus juste, plus respectueux et plus protecteur pour chaque salarié.
+              </p>
             </div>
           </div>
+          <Link to="/adhesion" className="inline-flex w-full items-center justify-center rounded-lg bg-white px-5 py-3 text-sm font-bold text-teal-700 hover:bg-teal-50 md:w-auto">
+            Rejoindre FO COM
+          </Link>
         </div>
-      </footer>
-    </div>
+      </section>
+
+      <p className="mt-8 text-center text-xs text-slate-400">
+        CSE 2022–2026 | FO COM UES ILIAD — mis à jour le 25 avril 2026.
+      </p>
+    </main>
   );
 }
