@@ -1,361 +1,297 @@
-import { Link } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Award, CheckCircle, Clock, Info, ShieldCheck, TrendingUp, Users } from 'lucide-react';
+
+import type { Candidat, Candidate, ElectionEvent, ElectionDocument, ParticipationSnapshot } from './elections.data';
+
 import {
-  Vote,
-  Users,
-  CheckCircle,
-  AlertTriangle,
-  TrendingUp,
-  Award,
-  Trophy,
-  FileText,
-  ChevronRight,
-  ShieldCheck,
-  BarChart3,
-  Handshake,
-  Info,
-  MessageSquare,
-} from 'lucide-react';
+  CANDIDATS_T2_TITULAIRES,
+  CANDIDATS_T2_SUPPLEANTS,
+  FO_TITULAIRES_CAD,
+  FO_SUPPLEANTS_CAD,
+  getInitials,
+} from './elections.data';
 
-const FO_COLOR = '#E05C1F';
-const CFDT_COLOR = '#003189';
-const UNSA_COLOR = '#F5A623';
-const CGT_COLOR = '#E30613';
-const SUD_COLOR = '#7B1FA2';
-const CFECGC_COLOR = '#0077B6';
-const CFTC_COLOR = '#2E7D32';
+const T1_COLLEGES = [
+  {
+    nom: 'Cadres',
+    inscrits: 2112,
+    tit_votants: 1239,
+    tit_taux: 58.66,
+    sup_votants: 1238,
+    sup_taux: 58.62,
+    tour: '1er tour — résultats définitifs',
+    color: 'red',
+  },
+  {
+    nom: 'Employés / Techniciens / Non-Cadres',
+    inscrits: 2774,
+    tit_votants: 1045,
+    tit_taux: 37.67,
+    sup_votants: 1043,
+    sup_taux: 37.60,
+    tour: '1er tour — 2ème tour requis',
+    color: 'amber',
+  },
+];
 
-const PARTICIPATION = {
-  tauxEtablissement: 46.72,
-  colleges: [
-    {
-      nom: 'Techniciens, employés, non cadres',
-      quorum: false,
-      tauxCollege: 37.64,
-      titulaires: { inscrits: 2774, votants: 1045, taux: 37.67 },
-      suppleants: { inscrits: 2774, votants: 1043, taux: 37.60 },
-    },
-    {
-      nom: 'Cadres',
-      quorum: true,
-      tauxCollege: 58.64,
-      titulaires: { inscrits: 2112, votants: 1239, taux: 58.66 },
-      suppleants: { inscrits: 2112, votants: 1238, taux: 58.62 },
-    },
-  ],
+const FO_TITULAIRES_EMP_T2_VOIX = [
+  { nom: "SIDIBE N'deye Yacine", voix: 313, elu: true },
+  { nom: 'RACAULT Fabien', voix: 313, elu: true },
+  { nom: 'BA DIALLO Awa', voix: 314, elu: true },
+  { nom: 'KENDIRA Fadil', voix: 312, elu: true },
+  { nom: 'DESMARS Aurelien', voix: 311, elu: true },
+  { nom: 'DADIA Yann', voix: 312, elu: true },
+  { nom: 'ZIOUI Sofiane', voix: 311, elu: true },
+  { nom: 'DIBOUE IPOUMB Henri', voix: 312, elu: true },
+  { nom: 'DE BOISROLIN Jean Patrick', voix: 311, elu: false },
+  { nom: 'NDAO Souleymane', voix: 311, elu: false },
+  { nom: 'ABDOU Kaissane', voix: 313, elu: false },
+  { nom: 'LAVILLE Anthony', voix: 311, elu: false },
+  { nom: 'ADNANE Abdelhakim', voix: 312, elu: false },
+  { nom: 'TCHAKOUNTE BANEKIA Saint Cyr', voix: 310, elu: false },
+  { nom: 'SOSPEDRA Ugo', voix: 310, elu: false },
+  { nom: 'RIVES Nicolas', voix: 313, elu: false },
+  { nom: 'BURRET Romain', voix: 310, elu: false },
+];
+
+const FO_SUPPLEANTS_EMP_T2_VOIX = [
+  { nom: 'JAYAKUMAR Sylvie', voix: 129, elu: true },
+  { nom: 'DIAWARA Mody', voix: 103, elu: true },
+  { nom: 'BEGUEDAR Aicha', voix: 102, elu: true },
+  { nom: 'ETTLIN David', voix: 127, elu: true },
+  { nom: 'LATIF Mohamed Ali', voix: 110, elu: true },
+  { nom: 'DELATTRE Jose', voix: 97, elu: true },
+  { nom: 'LOUBACHE Ronald', voix: 96, elu: true },
+  { nom: 'TIKZI Mohamed Anas', voix: 111, elu: false },
+  { nom: 'EBERHARD Lucas', voix: 115, elu: false },
+  { nom: 'LAMAALLEM Ahmed', voix: 98, elu: false },
+  { nom: 'SYLLA Ibrahim', voix: 95, elu: false },
+  { nom: 'DOUVILLE Benoit', voix: 93, elu: false },
+  { nom: 'BENIDIR Chawki', voix: 94, elu: false },
+  { nom: 'ERRADI El Hassan', voix: 96, elu: false },
+  { nom: 'YOUSSOUF Alwarid', voix: 112, elu: false },
+  { nom: 'CISSE Sekou Oumar', voix: 102, elu: false },
+  { nom: 'AUBRY Bertrand', voix: 102, elu: false },
+];
+
+const normalize = (value: string) => value
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .replace(/[^a-zA-Z]/g, '')
+  .toLowerCase();
+
+const findCandidate = (candidates: Candidat[], officialName: string) => {
+  const officialParts = normalize(officialName);
+  return candidates.find((candidate) => {
+    const candidateParts = candidate.name.split(' ').map(normalize).filter((part) => part.length > 3);
+    return candidateParts.some((part) => officialParts.includes(part));
+  });
 };
 
-type SyndicatResult = {
-  nom: string;
-  couleur: string;
-  titulaires: { signatures: number; pct: number; sieges: number } | null;
-  suppleants: { signatures: number; pct: number; sieges: number } | null;
-};
+const buildElectedList = (candidates: Candidat[], results: typeof FO_TITULAIRES_EMP_T2_VOIX) =>
+  results
+    .filter((result) => result.elu)
+    .map((result) => ({
+      ...(findCandidate(candidates, result.nom) || { name: result.nom }),
+      voix: result.voix,
+    }));
 
-const RESULTATS_EMPLOYES: SyndicatResult[] = [
-  { nom: 'FO', couleur: FO_COLOR, titulaires: { signatures: 358, pct: 35.10, sieges: 0 }, suppleants: { signatures: 352, pct: 34.65, sieges: 0 } },
-  { nom: 'CFDT', couleur: CFDT_COLOR, titulaires: { signatures: 230, pct: 22.55, sieges: 0 }, suppleants: { signatures: 229, pct: 22.54, sieges: 0 } },
-  { nom: 'SUD', couleur: SUD_COLOR, titulaires: { signatures: 196, pct: 19.22, sieges: 0 }, suppleants: { signatures: 202, pct: 19.88, sieges: 0 } },
-  { nom: 'UNSA', couleur: UNSA_COLOR, titulaires: { signatures: 115, pct: 11.27, sieges: 0 }, suppleants: { signatures: 107, pct: 10.53, sieges: 0 } },
-  { nom: 'CGT', couleur: CGT_COLOR, titulaires: { signatures: 115, pct: 11.27, sieges: 0 }, suppleants: { signatures: 118, pct: 11.61, sieges: 0 } },
-  { nom: 'CFTC', couleur: CFTC_COLOR, titulaires: { signatures: 6, pct: 0.59, sieges: 0 }, suppleants: { signatures: 8, pct: 0.79, sieges: 0 } },
-];
-
-const RESULTATS_CADRES: SyndicatResult[] = [
-  { nom: 'CFE/CGC', couleur: CFECGC_COLOR, titulaires: { signatures: 267, pct: 21.85, sieges: 3 }, suppleants: { signatures: 274, pct: 22.48, sieges: 3 } },
-  { nom: 'UNSA', couleur: UNSA_COLOR, titulaires: { signatures: 258, pct: 21.11, sieges: 3 }, suppleants: { signatures: 251, pct: 20.59, sieges: 3 } },
-  { nom: 'FO', couleur: FO_COLOR, titulaires: { signatures: 252, pct: 20.62, sieges: 3 }, suppleants: { signatures: 238, pct: 19.52, sieges: 3 } },
-  { nom: 'CFDT', couleur: CFDT_COLOR, titulaires: { signatures: 217, pct: 17.76, sieges: 2 }, suppleants: { signatures: 228, pct: 18.70, sieges: 2 } },
-  { nom: 'SUD', couleur: SUD_COLOR, titulaires: { signatures: 190, pct: 15.55, sieges: 2 }, suppleants: { signatures: 189, pct: 15.50, sieges: 2 } },
-  { nom: 'CGT', couleur: CGT_COLOR, titulaires: { signatures: 38, pct: 3.11, sieges: 0 }, suppleants: { signatures: 39, pct: 3.29, sieges: 0 } },
-  { nom: 'CFTC', couleur: CFTC_COLOR, titulaires: { signatures: 0, pct: 0, sieges: 0 }, suppleants: null },
-];
-
-const FO_ELUS_CADRES = [
-  'NOUATIN Cornelia',
-  'ZERARKA Mounir',
-  'ALLARD Eloise',
-  'EL KHOURY Elise',
-  'DOGHEMANE Haissa',
-  'THON Amandine',
-];
-
-const TauxBar = ({ taux, color = '#0f766e' }: { taux: number; color?: string }) => (
-  <div className="flex items-center gap-3">
-    <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100">
-      <div className="h-full rounded-full transition-all duration-700" style={{ width: `${Math.min(taux, 100)}%`, background: color }} />
-    </div>
-    <span className="w-16 text-right text-sm font-bold tabular-nums" style={{ color }}>{taux.toFixed(2)} %</span>
-  </div>
-);
-
-const SiegeBadge = ({ n }: { n: number }) => (
-  <span className={`inline-flex h-6 min-w-6 items-center justify-center rounded-md px-1.5 text-xs font-bold ${n > 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-400'}`}>
-    {n > 0 ? `${n} siège${n > 1 ? 's' : ''}` : '—'}
-  </span>
-);
-
-const SyndicatRow = ({ s, type }: { s: SyndicatResult; type: 'titulaires' | 'suppleants' }) => {
-  const data = type === 'titulaires' ? s.titulaires : s.suppleants;
-  if (!data) return null;
+const CandidateCard = ({ candidat, index, label }: { candidat: Candidat & { voix?: number; role?: string; fonction?: string }; index: number; label: string }) => {
+  const [imgError, setImgError] = useState(false);
+  const fonction = candidat.role || candidat.fonction;
 
   return (
-    <div className={`space-y-1 rounded-xl p-2 ${s.nom === 'FO' ? 'bg-orange-50 ring-1 ring-orange-100' : ''}`}>
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2">
-          <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: s.couleur }} />
-          <span className={`truncate text-sm font-semibold ${s.nom === 'FO' ? 'text-orange-700' : 'text-slate-800'}`}>{s.nom}</span>
-          <span className="shrink-0 text-xs tabular-nums text-slate-500">{data.signatures} sig.</span>
-        </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <span className="w-16 text-right text-sm font-bold tabular-nums" style={{ color: s.couleur }}>{data.pct.toFixed(2)} %</span>
-          <SiegeBadge n={data.sieges} />
-        </div>
+    <div className="group flex items-center gap-3 p-3 rounded-lg border border-border hover:border-green-300 bg-card hover:shadow-lg hover:-translate-y-1 hover:scale-[1.02] transition-all duration-300 cursor-default">
+      <div className="h-12 w-12 shrink-0 rounded-full overflow-hidden flex items-center justify-center shadow-sm bg-gradient-to-br from-green-500 to-green-700">
+        {candidat.photo && !imgError ? (
+          <img src={candidat.photo} alt={candidat.name} className="h-full w-full object-cover" onError={() => setImgError(true)} />
+        ) : (
+          <span className="text-white font-bold text-sm">{getInitials(candidat.name)}</span>
+        )}
       </div>
-      <div className="h-1.5 overflow-hidden rounded-full bg-slate-100">
-        <div className="h-full rounded-full" style={{ width: `${data.pct}%`, background: s.couleur }} />
+      <div className="min-w-0 flex-1">
+        <p className="font-semibold text-sm truncate text-foreground group-hover:text-green-700 transition-colors">
+          {candidat.name}
+        </p>
+        <div className="flex flex-col mt-0.5">
+          {fonction && <span className="text-xs text-muted-foreground truncate font-medium">{fonction}</span>}
+          <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+            <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-muted text-muted-foreground">
+              N°{index + 1}
+            </span>
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-700">
+              ✓ {label}
+            </span>
+            {typeof candidat.voix === 'number' && (
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-orange-100 text-orange-700">
+                {candidat.voix} voix
+              </span>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
 };
 
-const ResultatsBloc = ({ title, description, data }: { title: string; description: string; data: SyndicatResult[] }) => (
-  <section className="space-y-4">
-    <div>
-      <h2 className="flex items-center gap-2 text-xl font-extrabold text-slate-900">
-        <Trophy className="h-5 w-5 text-teal-600" /> {title}
-      </h2>
-      <p className="mt-1 text-sm text-slate-500">{description}</p>
-    </div>
-    <div className="grid gap-4 lg:grid-cols-2">
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-bold uppercase tracking-wide text-slate-500">Titulaires</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          {[...data].filter(s => s.titulaires).sort((a, b) => (b.titulaires?.pct ?? 0) - (a.titulaires?.pct ?? 0)).map(s => <SyndicatRow key={`${s.nom}-tit`} s={s} type="titulaires" />)}
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-bold uppercase tracking-wide text-slate-500">Suppléants</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          {[...data].filter(s => s.suppleants).sort((a, b) => (b.suppleants?.pct ?? 0) - (a.suppleants?.pct ?? 0)).map(s => <SyndicatRow key={`${s.nom}-sup`} s={s} type="suppleants" />)}
-        </CardContent>
-      </Card>
-    </div>
-  </section>
-);
-
 const Elections = () => {
-  return (
-    <main className="min-h-screen overflow-x-hidden bg-slate-50 p-3 sm:p-4 lg:p-8">
-      <section className="relative overflow-hidden rounded-3xl bg-[#13233A] p-6 text-white shadow-xl sm:p-8 lg:p-10">
-        <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full border-[48px] border-white/5" />
-        <div className="pointer-events-none absolute -bottom-20 -left-20 h-72 w-72 rounded-full bg-red-600/20 blur-3xl" />
-        <div className="relative grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
-          <div>
-            <Badge className="mb-4 bg-teal-500/20 text-teal-100 border border-teal-300/20 hover:bg-teal-500/20">
-              Archive CSE 2026 · Scrutin terminé
-            </Badge>
-            <h1 className="text-3xl font-extrabold leading-tight sm:text-5xl">
-              Élections professionnelles 2026
-            </h1>
-            <p className="mt-4 max-w-2xl text-sm leading-relaxed text-white/80 sm:text-lg">
-              Retrouvez les résultats, la participation et les suites du scrutin CSE de l’UES ILIAD. La page n’est plus un appel au vote : elle sert désormais d’espace de bilan et de suivi.
-            </p>
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-              <Button asChild className="bg-red-600 text-white hover:bg-red-700">
-                <Link to="/bilan-mandat"><FileText className="mr-2 h-4 w-4" /> Voir le bilan FO COM</Link>
-              </Button>
-              <Button asChild variant="outline" className="border-white/30 bg-white/10 text-white hover:bg-white/20">
-                <Link to="/actualites"><TrendingUp className="mr-2 h-4 w-4" /> Suivre les actualités</Link>
-              </Button>
-            </div>
-          </div>
+  const [_candidates, setCandidates] = useState<Candidate[]>([]);
+  const [_events, setEvents] = useState<ElectionEvent[]>([]);
+  const [_documents, setDocuments] = useState<ElectionDocument[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [participationData, setParticipationData] = useState<ParticipationSnapshot[]>([]);
 
-          <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
-            {[
-              { icon: Users, label: 'Participation globale', value: `${PARTICIPATION.tauxEtablissement} %`, text: 'Taux établissement au 1er tour' },
-              { icon: Award, label: 'FO cadres', value: '3 + 3 sièges', text: 'Titulaires et suppléants obtenus' },
-              { icon: TrendingUp, label: 'FO employés', value: '1ère liste', text: '35,10 % titulaires au 1er tour' },
-            ].map((item) => (
-              <div key={item.label} className="rounded-2xl border border-white/10 bg-white/10 p-4 backdrop-blur">
-                <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-white/15">
-                  <item.icon className="h-5 w-5" />
-                </div>
-                <p className="text-xs font-bold uppercase tracking-wide text-white/60">{item.label}</p>
-                <p className="mt-1 text-2xl font-extrabold">{item.value}</p>
-                <p className="mt-1 text-xs text-white/70">{item.text}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [candidatesRes, eventsRes, documentsRes, participationRes] = await Promise.all([
+          supabase.from('election_candidates').select('*').order('display_order'),
+          supabase.from('election_events').select('*').order('event_date'),
+          supabase.from('election_documents').select('*').order('published_at', { ascending: false }),
+          supabase.from('participation_snapshots').select('*, participation_colleges(*)').order('created_at'),
+        ]);
 
-      <section className="mt-6 rounded-2xl border border-teal-100 bg-white p-4 shadow-sm sm:p-5">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-600">
-              <CheckCircle className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-sm font-extrabold text-slate-900">Le vote électronique est clôturé</p>
-              <p className="mt-1 text-sm text-slate-500">
-                Les contenus de campagne sont archivés. Les informations importantes sont désormais les résultats, les suites du scrutin et le suivi du mandat.
-              </p>
-            </div>
-          </div>
-          <Button asChild variant="outline" className="w-full border-teal-200 text-teal-700 hover:bg-teal-50 sm:w-auto">
-            <Link to="/contact">Contacter FO COM <ChevronRight className="ml-1 h-4 w-4" /></Link>
-          </Button>
-        </div>
-      </section>
+        if (candidatesRes.error) throw new Error(`Candidats : ${candidatesRes.error.message}`);
+        if (eventsRes.error) throw new Error(`Événements : ${eventsRes.error.message}`);
+        if (documentsRes.error) throw new Error(`Documents : ${documentsRes.error.message}`);
+        if (participationRes.error) throw new Error(`Participation : ${participationRes.error.message}`);
 
-      <section className="mt-6 grid gap-4 md:grid-cols-3">
-        {[
-          { icon: ShieldCheck, title: 'Représenter', text: 'Porter les revendications des salariés dans les instances.' },
-          { icon: Handshake, title: 'Négocier', text: 'Défendre le pouvoir d’achat, les conditions de travail et les droits collectifs.' },
-          { icon: Info, title: 'Informer', text: 'Rendre compte des suites du scrutin, des réunions et des négociations.' },
-        ].map((item) => (
-          <Card key={item.title} className="border-slate-200 shadow-sm">
-            <CardContent className="p-5">
-              <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
-                <item.icon className="h-5 w-5" />
-              </div>
-              <h2 className="font-extrabold text-slate-900">{item.title}</h2>
-              <p className="mt-2 text-sm leading-relaxed text-slate-500">{item.text}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </section>
+        setCandidates((candidatesRes.data as Candidate[]) || []);
+        setEvents((eventsRes.data as ElectionEvent[]) || []);
+        setDocuments((documentsRes.data as ElectionDocument[]) || []);
+        setParticipationData(
+          ((participationRes.data as ParticipationSnapshot[]) || []).sort((a, b) => {
+            const toTs = (d: string, h: string) => {
+              if (!d || !h) return 0;
+              const parts = d.split('/');
+              if (parts.length !== 3) return 0;
+              const [day, month, year] = parts.map(Number);
+              const hMatch = h.match(/^(\d+)h(\d*)/);
+              const hour = hMatch ? parseInt(hMatch[1]) : 0;
+              const min = hMatch && hMatch[2] ? parseInt(hMatch[2]) : 0;
+              return new Date(year, month - 1, day, hour, min).getTime();
+            };
+            return toTs(a.date, a.heure) - toTs(b.date, b.heure);
+          })
+        );
+      } catch (err) {
+        console.error('[Elections] Fetch error:', err);
+        setError(err instanceof Error ? err.message : 'Erreur inconnue');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
 
-      <section className="mt-8 space-y-5">
-        <h2 className="flex items-center gap-2 text-xl font-extrabold text-slate-900">
-          <BarChart3 className="h-5 w-5 text-teal-600" /> Participation
-        </h2>
-        <Card className="border-t-4 border-t-slate-400">
-          <CardContent className="flex flex-col gap-4 py-5 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="mb-1 text-xs font-bold uppercase tracking-wider text-slate-500">Taux établissement global</p>
-              <p className="text-4xl font-extrabold text-slate-900">{PARTICIPATION.tauxEtablissement} %</p>
-            </div>
-            <div className="w-full sm:max-w-md"><TauxBar taux={PARTICIPATION.tauxEtablissement} color="#64748b" /></div>
-          </CardContent>
-        </Card>
+  const t2ParticipationData = participationData.filter((snap) => {
+    if (!snap.date) return false;
+    const parts = snap.date.split('/');
+    if (parts.length !== 3) return false;
+    const [day, month, year] = parts.map(Number);
+    return new Date(year, month - 1, day) >= new Date(2026, 3, 29);
+  });
+  const latestT2Snap = t2ParticipationData[t2ParticipationData.length - 1] ?? null;
 
-        <div className="grid gap-4 lg:grid-cols-2">
-          {PARTICIPATION.colleges.map((col) => (
-            <Card key={col.nom} className={`border-l-4 ${col.quorum ? 'border-l-emerald-500' : 'border-l-amber-500'}`}>
-              <CardHeader className="pb-3">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <CardTitle className="text-base font-extrabold text-slate-900">{col.nom}</CardTitle>
-                  <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${col.quorum ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
-                    {col.quorum ? <><CheckCircle className="h-3.5 w-3.5" /> Quorum atteint</> : <><AlertTriangle className="h-3.5 w-3.5" /> Quorum non atteint au 1er tour</>}
-                  </span>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-xl bg-slate-50 p-3">
-                    <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Titulaires</p>
-                    <p className="mt-1 text-sm text-slate-600">{col.titulaires.votants.toLocaleString('fr-FR')} votants / {col.titulaires.inscrits.toLocaleString('fr-FR')} inscrits</p>
-                    <p className="mt-2 text-2xl font-extrabold text-slate-900">{col.titulaires.taux} %</p>
-                  </div>
-                  <div className="rounded-xl bg-slate-50 p-3">
-                    <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Suppléants</p>
-                    <p className="mt-1 text-sm text-slate-600">{col.suppleants.votants.toLocaleString('fr-FR')} votants / {col.suppleants.inscrits.toLocaleString('fr-FR')} inscrits</p>
-                    <p className="mt-2 text-2xl font-extrabold text-slate-900">{col.suppleants.taux} %</p>
-                  </div>
-                </div>
-                <TauxBar taux={col.tauxCollege} color={col.quorum ? '#10b981' : '#f59e0b'} />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </section>
+  const elusTitulairesCad = FO_TITULAIRES_CAD.filter((c) => c.elu === true).map((c) => ({ name: c.nom, voix: c.voix }));
+  const elusSuppleantsCad = FO_SUPPLEANTS_CAD.filter((c) => c.elu === true).map((c) => ({ name: c.nom, voix: c.voix }));
+  const elusTitulairesEmp = buildElectedList(CANDIDATS_T2_TITULAIRES, FO_TITULAIRES_EMP_T2_VOIX);
+  const elusSuppleantsEmp = buildElectedList(CANDIDATS_T2_SUPPLEANTS, FO_SUPPLEANTS_EMP_T2_VOIX);
 
-      <section className="mt-8 rounded-3xl border-2 border-orange-200 bg-orange-50/70 p-5 shadow-sm sm:p-6">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex gap-4">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-xl font-black text-white" style={{ background: FO_COLOR }}>
-              FO
-            </div>
-            <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-orange-700">Résultat FO COM</p>
-              <h2 className="mt-1 text-2xl font-extrabold text-slate-900">FO confirme sa place dans le paysage social de l’UES ILIAD</h2>
-              <p className="mt-2 text-sm leading-relaxed text-slate-600">
-                FO arrive en tête sur le collège Techniciens / Employés / Non-Cadres au 1er tour et obtient des sièges dans le collège Cadres.
-              </p>
-            </div>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2 lg:w-[360px]">
-            <div className="rounded-2xl bg-white p-4 shadow-sm">
-              <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Employés</p>
-              <p className="mt-1 text-2xl font-extrabold text-orange-700">35,10 %</p>
-              <p className="text-xs text-slate-500">Titulaires · 1ère liste</p>
-            </div>
-            <div className="rounded-2xl bg-white p-4 shadow-sm">
-              <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Cadres</p>
-              <p className="mt-1 text-2xl font-extrabold text-orange-700">3 sièges</p>
-              <p className="text-xs text-slate-500">Titulaires + 3 suppléants</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <div className="mt-8 space-y-8">
-        <ResultatsBloc
-          title="Résultats — Techniciens / Employés / Non-Cadres"
-          description="Résultats du 1er tour. Le quorum n’ayant pas été atteint, le collège a nécessité un 2e tour."
-          data={RESULTATS_EMPLOYES}
-        />
-        <ResultatsBloc
-          title="Résultats — Cadres"
-          description="Résultats définitifs du 1er tour. 13 sièges pourvus sur 13."
-          data={RESULTATS_CADRES}
-        />
+  if (error) {
+    return (
+      <div className="p-8 text-center space-y-3">
+        <p className="text-destructive font-semibold">Une erreur est survenue lors du chargement des données.</p>
+        <p className="text-muted-foreground text-sm">{error}</p>
+        <button className="text-sm underline text-muted-foreground" onClick={() => window.location.reload()}>Réessayer</button>
       </div>
+    );
+  }
 
-      <section className="mt-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <div>
-            <h2 className="text-xl font-extrabold text-slate-900">Élus FO cadres</h2>
-            <p className="mt-1 text-sm text-slate-500">Titulaires et suppléants élus au 1er tour.</p>
+  return (
+    <main className="min-h-screen overflow-x-hidden bg-background p-4 lg:p-8">
+      <div className="container mx-auto max-w-5xl space-y-10">
+        <section className="space-y-4">
+          <div className="rounded-2xl overflow-hidden shadow-lg border border-border bg-card">
+            <img src="/focomues_VF.png" alt="FO COM UES Iliad — 1er syndicat de l'UES Iliad" className="w-full h-auto object-cover" />
           </div>
-          <Award className="h-6 w-6 text-orange-600" />
-        </div>
-        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-          {FO_ELUS_CADRES.map((nom) => (
-            <div key={nom} className="flex items-center gap-2 rounded-xl bg-slate-50 p-3 text-sm font-semibold text-slate-700">
-              <CheckCircle className="h-4 w-4 shrink-0 text-emerald-600" />
-              <span className="truncate">{nom}</span>
-            </div>
-          ))}
-        </div>
-      </section>
+          <div className="flex flex-wrap justify-center gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-medium text-green-700"><CheckCircle className="h-3 w-3" />1er tour terminé — 21 avr. 2026</span>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-green-300 bg-green-50 px-3 py-1 text-xs font-semibold text-green-700"><CheckCircle className="h-3 w-3" />2e tour Employés terminé — 6 mai 2026</span>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-orange-300 bg-orange-50 px-3 py-1 text-xs font-bold text-orange-700">🏆 FO 1ère liste — 37,65 %</span>
+          </div>
+        </section>
 
-      <section className="mt-8 grid gap-4 md:grid-cols-3">
-        {[
-          { title: 'Lire le bilan de mandat', text: 'Comprendre les actions menées et les priorités défendues.', href: '/bilan-mandat', icon: FileText },
-          { title: 'Suivre les actualités', text: 'Rester informé des suites du scrutin et des négociations.', href: '/actualites', icon: TrendingUp },
-          { title: 'Faire une demande', text: 'Contacter FO COM ou transmettre un document via la messagerie.', href: '/mes-reclamations', icon: MessageSquare },
-        ].map((item) => (
-          <Link key={item.title} to={item.href} className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-teal-200 hover:shadow-md">
-            <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-teal-50 text-teal-600">
-              <item.icon className="h-5 w-5" />
-            </div>
-            <p className="font-extrabold text-slate-900 group-hover:text-red-600">{item.title}</p>
-            <p className="mt-2 text-sm leading-relaxed text-slate-500">{item.text}</p>
-            <div className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-teal-700">
-              Accéder <ChevronRight className="h-4 w-4" />
-            </div>
-          </Link>
-        ))}
-      </section>
+        {loading ? (
+          <div className="flex justify-center py-16"><div className="w-8 h-8 border-4 border-red-600 border-t-transparent rounded-full animate-spin" /></div>
+        ) : (
+          <>
+            <section className="rounded-xl bg-gradient-to-r from-red-600 to-red-800 p-6 sm:p-8 text-center shadow-lg space-y-4">
+              <div className="mx-auto w-16 h-16 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-sm border border-white/30"><Award className="h-8 w-8 text-white" /></div>
+              <div className="space-y-2">
+                <h1 className="text-2xl md:text-3xl font-black text-white tracking-wide uppercase">FO COM : 1ère force syndicale !</h1>
+                <p className="text-red-100 font-medium text-sm sm:text-base max-w-2xl mx-auto">Grâce à vous, FO obtient <strong>37,65 %</strong> des suffrages titulaires et <strong>35,29 %</strong> des suffrages suppléants au 2ème tour. Scrutin clos le <strong>6 mai 2026 à 14h00</strong> — résultats proclamés à 14h05.</p>
+              </div>
+            </section>
+
+            <section className="space-y-6">
+              <h2 className="text-lg font-bold text-foreground flex items-center gap-2"><TrendingUp className="h-5 w-5 text-purple-500" />Participation</h2>
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div className="rounded-xl border border-border bg-card p-5 space-y-1 shadow-sm"><div className="flex items-center gap-2 text-muted-foreground font-semibold text-sm mb-2"><Users className="h-4 w-4" />1er tour — 14–21 avr. 2026</div><p className="text-3xl font-black text-foreground">37,64 %</p><p className="text-xs text-muted-foreground">Collège employés au 1er tour</p></div>
+                <div className="rounded-xl border-2 border-red-100 bg-red-50/50 p-5 space-y-1 shadow-sm"><div className="flex items-center gap-2 text-red-700 font-semibold text-sm mb-2"><TrendingUp className="h-4 w-4" />2ème tour — 29 avr. – 6 mai 2026</div><p className="text-3xl font-black text-red-700">30,75 %</p><p className="text-xs text-red-800/70"><strong>853 votants</strong> / 2 774 inscrits — Collège Employés</p></div>
+              </div>
+
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Détail par collège — 1er tour</h3>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  {T1_COLLEGES.map((col) => (
+                    <div key={col.nom} className="rounded-xl border border-border bg-card overflow-hidden shadow-sm">
+                      <div className={`px-4 py-2.5 ${col.color === 'red' ? 'bg-red-600' : 'bg-amber-500'}`}><p className="font-bold text-white text-sm">{col.nom}</p><p className="text-xs text-white/80">{col.tour} · {col.inscrits.toLocaleString('fr-FR')} inscrits</p></div>
+                      <div className="px-4 py-3 space-y-3">
+                        {[{ label: 'Titulaires', votants: col.tit_votants, taux: col.tit_taux }, { label: 'Suppléants', votants: col.sup_votants, taux: col.sup_taux }].map((row) => (
+                          <div key={row.label} className="space-y-1"><div className="flex justify-between items-center text-xs gap-3"><span className="text-muted-foreground">{row.label}</span><span className="font-bold text-foreground tabular-nums text-right">{row.votants.toLocaleString('fr-FR')} votants · {row.taux.toFixed(2)} %</span></div><div className="h-2 rounded-full bg-muted overflow-hidden"><div className={`h-full rounded-full transition-all ${col.color === 'red' ? 'bg-red-500' : 'bg-amber-500'}`} style={{ width: `${Math.min(row.taux, 100)}%` }} /></div></div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Détail par collège — 2ème tour</h3>
+                {latestT2Snap ? (
+                  <div className="rounded-xl border border-purple-200 bg-purple-50/40 overflow-hidden">
+                    <div className="flex items-center justify-between flex-wrap gap-3 px-4 py-3 border-b border-purple-200"><div className="flex items-center gap-2 text-muted-foreground text-xs"><Clock className="h-3.5 w-3.5 shrink-0" />Relevé final : <strong className="text-foreground ml-1">{latestT2Snap.date}</strong>&nbsp;à&nbsp;<strong className="text-foreground">{latestT2Snap.heure}</strong></div><div className="rounded-full bg-purple-600 px-3 py-1 text-white text-xs font-bold">Établissement : {(latestT2Snap.taux_etablissement ?? 0).toFixed(2)} %</div></div>
+                    <div className="px-4 py-4 space-y-5">
+                      {(latestT2Snap.participation_colleges ?? []).sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0)).map((col) => {
+                        const tauxTit = col.tit_taux ?? 0;
+                        const tauxSup = col.sup_taux ?? 0;
+                        return <div key={col.nom} className="space-y-2"><div className="flex items-center justify-between flex-wrap gap-2"><p className="font-semibold text-foreground text-sm">{col.nom}</p><Badge variant="outline" className="text-xs border-purple-300 text-purple-700">Taux global : {(col.taux_college ?? 0).toFixed(2)} %</Badge></div><div className="space-y-2">{[{ label: 'Titulaires', votants: col.tit_votants ?? 0, inscrits: col.tit_inscrits ?? 0, taux: tauxTit, color: 'bg-purple-600' }, { label: 'Suppléants', votants: col.sup_votants ?? 0, inscrits: col.sup_inscrits ?? 0, taux: tauxSup, color: 'bg-purple-400' }].map((row) => <div key={row.label} className="space-y-1"><div className="flex justify-between items-center text-xs gap-3"><span className="text-muted-foreground">{row.label}</span><span className="font-bold text-purple-700 tabular-nums text-right">{row.votants} / {row.inscrits} inscrits · {row.taux.toFixed(2)} %</span></div><div className="h-2 rounded-full bg-purple-100 overflow-hidden"><div className={`h-full rounded-full ${row.color} transition-all duration-700`} style={{ width: `${Math.min(row.taux, 100)}%` }} /></div></div>)}</div></div>;
+                      })}
+                      <div className="rounded-lg border border-purple-200 bg-white/60 px-3 py-2 flex items-center gap-3 text-xs text-muted-foreground"><Info className="h-3.5 w-3.5 shrink-0 text-purple-400" /><span>Taux au 1er tour Employés : <strong className="text-foreground">37,64 %</strong> — le quorum n'est pas requis au 2ème tour.</span></div>
+                    </div>
+                  </div>
+                ) : <div className="rounded-xl border border-border bg-muted/20 px-5 py-7 text-center space-y-2"><TrendingUp className="h-7 w-7 text-muted-foreground/30 mx-auto" /><p className="text-sm text-muted-foreground">Aucune donnée disponible pour le 2ème tour.</p></div>}
+              </div>
+            </section>
+
+            <section className="space-y-8">
+              <h2 className="text-lg font-bold text-foreground flex items-center gap-2"><Award className="h-5 w-5 text-emerald-600" />Élus CSE — FO COM UES ILIAD</h2>
+              {[{ title: 'Collège Cadres', tour: '1er tour', titulaires: elusTitulairesCad, suppleants: elusSuppleantsCad, color: 'red' }, { title: 'Collège Employés / Techniciens', tour: '2ème tour', titulaires: elusTitulairesEmp, suppleants: elusSuppleantsEmp, color: 'emerald' }].map((section) => (
+                <div key={section.title} className="space-y-5">
+                  <div className="flex items-center justify-between border-b border-border pb-2 gap-3"><div className="flex items-center gap-2"><span className={`h-6 w-1.5 rounded-full ${section.color === 'red' ? 'bg-red-600' : 'bg-emerald-600'} inline-block`} /><h3 className="text-xl font-bold text-foreground">{section.title}</h3></div><Badge variant="outline" className={section.color === 'red' ? 'text-red-600 border-red-200 bg-red-50' : 'text-emerald-600 border-emerald-200 bg-emerald-50'}>{section.tour}</Badge></div>
+                  <div className="space-y-3"><h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2"><span className={`h-3 w-3 rounded-full ${section.color === 'red' ? 'bg-red-600' : 'bg-emerald-600'} inline-block`} />Titulaires</h4><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{section.titulaires.map((candidat, i) => <CandidateCard key={candidat.name} candidat={{ ...candidat, role: candidat.role || 'Élu Titulaire' }} index={i} label="Élu" />)}</div></div>
+                  <div className="space-y-3"><h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2"><span className="h-3 w-3 rounded-full bg-slate-400 inline-block" />Suppléants</h4><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{section.suppleants.map((candidat, i) => <CandidateCard key={candidat.name} candidat={{ ...candidat, role: candidat.role || 'Élu Suppléant' }} index={i} label="Élu" />)}</div></div>
+                </div>
+              ))}
+              <div className="rounded-lg border border-red-100 bg-red-50/50 p-5 text-center flex flex-col items-center gap-3"><ShieldCheck className="h-8 w-8 text-red-600" /><p className="text-sm text-foreground font-medium">Vos élus FO COM s'engagent à défendre vos droits au quotidien au sein du CSE.</p><p className="text-xs text-muted-foreground">N'hésitez pas à les contacter pour toute question, accompagnement ou démarche auprès de la direction.</p></div>
+            </section>
+          </>
+        )}
+      </div>
     </main>
   );
 };
