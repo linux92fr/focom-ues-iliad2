@@ -82,6 +82,7 @@ const representants = [
     email: "fabien@focomues-iliad.fr",
     telephone: "06.31.57.33.42",
     mandat: "Élu Titulaire CSE, Délégué syndical, Membre CSSCT",
+    photo: "/candidats/fracault.webp",
   },
   {
     nom: "Didier BROU",
@@ -99,6 +100,7 @@ const representants = [
     email: "fadil@focomues-iliad.fr",
     telephone: "06.50.77.28.25",
     mandat: "Délégué syndical, Élu Titulaire CSE, Administrateur du site",
+    photo: "/candidats/fkendira.webp",
   },
   {
     nom: "Régis CRITON",
