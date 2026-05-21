@@ -1,705 +1,338 @@
+import { Link } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
-  TrendingUp, Users, Scale, Award, Clock, Umbrella,
-  Calendar, UtensilsCrossed, ArrowRight, Target,
-  Banknote, ShieldCheck, Star, Megaphone, Coffee, TreePine,
-  Car, Laptop, Medal, Gift, Brain, RefreshCw, FileText,
-  HeartPulse, Home, Leaf, BarChart2, Smartphone, RefreshCcw,
+  AlertTriangle,
+  ArrowRight,
+  Banknote,
+  CalendarDays,
+  Car,
+  CheckCircle2,
+  Clock,
+  FileText,
+  Handshake,
+  HeartPulse,
+  Home,
+  Mail,
+  Megaphone,
+  Scale,
+  ShieldCheck,
+  Ticket,
+  TrendingDown,
+  TrendingUp,
+  Users,
+  XCircle,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { Link } from 'react-router-dom';
-import logoFocom from '@/assets/jolly-roger.png';
 
-// ===============================================================================
-//  Données des revendications
-// ===============================================================================
+const meetings = [
+  '15/04/2026',
+  '29/04/2026',
+  '05/05/2026',
+  '13/05/2026',
+];
 
-interface Revendication {
-  id: number;
-  titre: string;
-  sousTitre: string;
-  detail: string;
-  icon: React.ElementType;
-  categorie: 'salaire' | 'temps' | 'social' | 'egalite' | 'negociation';
-  accroche?: string;
-  chiffre?: string;
-}
+const directionBudgets = [
+  { entite: 'UES ILIAD', budget: '1,6 %', revisions: '1,2 %', social: '0,4 %' },
+  { entite: 'FREE RÉSEAU / ROF', budget: '1,7 %', revisions: '1,2 %', social: '0,5 %' },
+  { entite: 'FREE MOBILE', budget: '1,2 %', revisions: '1,2 %', social: '—' },
+  { entite: 'ILIAD / ASSUNET / FREE SAS', budget: '1,2 %', revisions: '1,2 %', social: '—' },
+];
 
-const CATEGORIES = {
-  salaire:      { label: 'Salaires & Primes',        color: 'emerald', bg: 'bg-emerald-500', light: 'bg-emerald-50 dark:bg-emerald-950/30', border: 'border-emerald-300 dark:border-emerald-700', text: 'text-emerald-700 dark:text-emerald-400' },
-  temps:        { label: 'Temps de travail',          color: 'blue',    bg: 'bg-blue-500',    light: 'bg-blue-50 dark:bg-blue-950/30',       border: 'border-blue-300 dark:border-blue-700',       text: 'text-blue-700 dark:text-blue-400'       },
-  social:       { label: 'Avantages sociaux',         color: 'rose',  bg: 'bg-rose-500',  light: 'bg-rose-50 dark:bg-rose-950/30',   border: 'border-rose-300 dark:border-rose-700',   text: 'text-rose-700 dark:text-rose-400'   },
-  egalite:      { label: 'Égalité & Reconnaissance',  color: 'purple',  bg: 'bg-purple-500',  light: 'bg-purple-50 dark:bg-purple-950/30',   border: 'border-purple-300 dark:border-purple-700',   text: 'text-purple-700 dark:text-purple-400'   },
-  negociation:  { label: 'Négociation',               color: 'red',     bg: 'bg-red-600',     light: 'bg-red-50 dark:bg-red-950/30',         border: 'border-red-300 dark:border-red-700',         text: 'text-red-700 dark:text-red-400'         },
-} as const;
-
-const REVENDICATIONS: Revendication[] = [
-  // ── Salaires (6) ──────────────────────────────────────────────────────────
+const comparisonSections = [
   {
-    id: 1,
-    titre: 'Augmentation salariale',
-    sousTitre: 'Minimum 2,5 % pour tous les salariés',
-    detail:
-      "Face à l'inflation cumulée depuis 2022 et à la revalorisation du SMIC de janvier 2026, une augmentation de l'ensemble des rémunérations fixes d'au moins 2,5 % est indispensable pour maintenir le pouvoir d'achat réel des collaborateurs, avec rétroactivité au 1er janvier 2026.",
-    icon: TrendingUp,
-    categorie: 'salaire',
-    chiffre: '+2,5 %',
-    accroche: "Neutraliser l'inflation, c'est le minimum",
-  },
-  {
-    id: 2,
-    titre: 'Indexation sur le SMIC',
-    sousTitre: 'Garantir la revalorisation automatique des années suivantes',
-    detail:
-      "Nous demandons que les augmentations des salaires fixes soient indexées sur l'évolution du SMIC pour les années à venir, afin de ne plus jamais subir de décrochage du pouvoir d'achat. Une garantie de revalorisation est également exigée après 3 années consécutives sans augmentation sur un même emploi.",
-    icon: RefreshCw,
-    categorie: 'salaire',
-    accroche: 'Plus jamais de salaires figés sur plusieurs années',
-  },
-  {
-    id: 3,
-    titre: 'Transparence fiches de paie',
-    sousTitre: "Deux lignes distinctes et une note d'information sur les critères",
-    detail:
-      "Nous demandons que les fiches de paie mentionnent clairement deux lignes séparées : une pour l'augmentation conventionnelle et une pour la NAO. Une note d'information expliquant les critères des augmentations individuelles devra être annexée à l'accord NAO ou à la fiche de paie.",
-    icon: FileText,
-    categorie: 'salaire',
-    accroche: "Chaque salarié a le droit de comprendre sa rémunération",
-  },
-  {
-    id: 4,
-    titre: 'Prime de partage de la valeur',
-    sousTitre: "Répartir les richesses entre salariés et actionnaires",
-    detail:
-      "Nous revendiquons la mise en place d'une prime de partage prenant en compte l'implication de chaque salarié et s'inscrivant dans une logique de répartition équitable des richesses générées par le Groupe entre ses salariés et ses actionnaires.",
+    title: 'Mesures salariales',
     icon: Banknote,
-    categorie: 'salaire',
-    accroche: "La valeur créée doit profiter à ceux qui la produisent",
+    rows: [
+      ['Enveloppe globale demandée par les OS : 2,2 % à 2,9 %', '1,6 % seulement pour l’UES ILIAD'],
+      ['Augmentation collective pour tous les salariés', '1 % uniquement pour les packages ≤ 30 000 €'],
+      ['Augmentation automatique après 3 ans sans évolution', 'Refusé'],
+      ['Rétroactivité au 1er janvier 2026', 'Refusé'],
+      ['Revalorisation significative du salaire d’entrée', '+240 €/an seulement'],
+    ],
   },
   {
-    id: 5,
-    titre: 'Subrogation & délai de carence',
-    sousTitre: 'Maintien de salaire et suppression du délai de carence maladie',
-    detail:
-      "En cas d'arrêt maladie, nous exigeons la mise en place de la subrogation, le maintien intégral du salaire et la suppression du délai de carence. Tomber malade ne doit pas entraîner une perte financière pour le salarié.",
-    icon: HeartPulse,
-    categorie: 'salaire',
-    accroche: "La santé ne devrait pas coûter de l'argent",
-  },
-  {
-    id: 6,
-    titre: 'Prime de vacances',
-    sousTitre: 'Mise en place pour tous les salariés',
-    detail:
-      "Nous demandons la mise en place d'une prime de vacances pour l'ensemble des salariés afin d'améliorer la qualité de vie estivale. Les vacances ne sont pas un luxe : elles contribuent au bien-être et à la performance de chacun.",
-    icon: Umbrella,
-    categorie: 'salaire',
-    accroche: "Les vacances ne sont pas un luxe",
-  },
-
-  // ── Temps de travail (3) ──────────────────────────────────────────────────
-  {
-    id: 7,
-    titre: 'Temps de trajet = temps de travail',
-    sousTitre: 'Trajets domicile-lieu de mission en début et fin de journée',
-    detail:
-      "Le temps de trajet des salariés itinérants dans le cadre de leurs missions doit être reconnu comme du temps de travail effectif et rémunéré comme tel. Ce temps n'est pas du temps personnel : il est consacré à l'entreprise. Cette revendication porte spécifiquement sur les trajets entre le domicile et le premier ou dernier lieu de mission de la journée, conformément aux évolutions jurisprudentielles récentes.",
+    title: 'Ancienneté',
     icon: Clock,
-    categorie: 'temps',
-    accroche: "Le temps passé en route, c'est du travail",
+    rows: [
+      ['Prime d’ancienneté dès 3 ans puis progression régulière', 'Refusé'],
+      ['Congés supplémentaires selon ancienneté', 'Refusé'],
+    ],
   },
   {
-    id: 8,
-    titre: 'Ouverture de négociation temps de travail',
-    sousTitre: 'Conformité européenne et jurisprudences de la Cour de cassation',
-    detail:
-      "L'ouverture d'une négociation sur un accord temps de travail est nécessaire pour mettre l'entreprise en conformité avec les recommandations européennes, les nombreuses jurisprudences de la Cour de cassation française, ainsi que les préconisations de l'Inspection du Travail.",
-    icon: Calendar,
-    categorie: 'temps',
-    accroche: "L'organisation du travail doit évoluer",
+    title: 'Temps de travail',
+    icon: CalendarDays,
+    rows: [
+      ['Temps de trajet rémunéré comme temps de travail effectif', 'Refusé'],
+      ['Cadres au forfait : réduction de 3 jours ou passage à 39h', 'Négociation promise dans 12 mois'],
+      ['Revalorisation des astreintes', 'Refusé'],
+      ['Deuxième fenêtre CET', 'Refusé'],
+      ['Congés exceptionnels revalorisés', 'Refusé'],
+    ],
   },
   {
-    id: 9,
-    titre: 'Négociation IA & Digitalisation',
-    sousTitre: "Les gains de productivité doivent profiter aux salariés",
-    detail:
-      "L'intégration de l'IA dans nos métiers génère des gains de productivité significatifs. Nous demandons l'ouverture d'une négociation sur un accord Digitalisation des métiers et IA, afin de garantir que ces gains bénéficient également aux collaborateurs et que l'accompagnement au changement soit structuré.",
-    icon: Brain,
-    categorie: 'temps',
-    accroche: "L'IA progresse — les conditions de travail aussi",
-  },
-
-  // ── Égalité & Reconnaissance (4) ─────────────────────────────────────────
-  {
-    id: 10,
-    titre: 'Égalité Femmes-Hommes',
-    sousTitre: 'Rattrapage systématique des écarts de rémunération',
-    detail:
-      "Nous exigeons un rattrapage systématique et budgétisé de tous les écarts de rémunération injustifiés entre femmes et hommes. L'égalité professionnelle ne peut rester une déclaration d'intention : elle doit se traduire par des mesures concrètes et chiffrées, inscrites dans l'accord NAO.",
-    icon: ShieldCheck,
-    categorie: 'egalite',
-    accroche: "Des actes, pas des chiffres d'index",
-  },
-  {
-    id: 11,
-    titre: 'Reclassification en Agents de Maîtrise',
-    sousTitre: 'Requalifier les techniciens seuil D en AM',
-    detail:
-      "Les salariés classés en seuil D (techniciens) exercent des responsabilités qui correspondent à celles d'Agents de Maîtrise. Nous demandons leur reclassification officielle, pour une reconnaissance juste de leurs compétences et de leur engagement au quotidien.",
-    icon: Award,
-    categorie: 'egalite',
-    accroche: "Justice pour une catégorie sous-reconnue",
-  },
-  {
-    id: 12,
-    titre: 'Médaille du travail',
-    sousTitre: 'Attribution systématique pour les départs en retraite',
-    detail:
-      "Nous demandons que chaque salarié partant à la retraite se voit attribuer une médaille du travail, en reconnaissance de son parcours et de sa contribution à l'entreprise. Un geste symbolique et humain, qui ne coûte rien mais signifie beaucoup.",
-    icon: Medal,
-    categorie: 'egalite',
-    accroche: "Chaque départ mérite une reconnaissance",
-  },
-  {
-    id: 13,
-    titre: 'Accord PPV',
-    sousTitre: 'Prime de Partage de la Valeur — accord structurant',
-    detail:
-      "Mise en place d'un accord PPV structurant et pérenne garantissant une répartition équitable de la valeur ajoutée. Un partage de valeur inscrit dans la durée, au-delà des décisions unilatérales annuelles.",
-    icon: BarChart2,
-    categorie: 'egalite',
-    accroche: "Un partage de valeur pérenne",
-  },
-
-  // ── Avantages sociaux (7) ─────────────────────────────────────────────────
-  {
-    id: 14,
-    titre: 'Ticket-restaurant & panier repas',
-    sousTitre: 'Revalorisation à 12,50 € pour tous',
-    detail:
-      "Nous demandons la revalorisation du ticket-restaurant à 12,50 € (valeur faciale alignée sur le plafond d'exonération URSSAF, prise en charge employeur à 60 %), ainsi que le panier repas des salariés itinérants à 12,50 € conformément aux barèmes URSSAF 2026.",
-    icon: UtensilsCrossed,
-    categorie: 'social',
-    chiffre: '12,50 €',
-    accroche: "Se nourrir correctement ne doit pas être un luxe",
-  },
-  {
-    id: 15,
-    titre: 'Budget convivialité QVCT',
-    sousTitre: '150 € par collaborateur + 50 € repas de Noël',
-    detail:
-      "Dans le cadre de la Qualité de Vie et des Conditions de Travail, nous demandons la garantie et l'uniformisation d'un budget convivialité annuel de 150 € par collaborateur à disposition du manager, ainsi qu'un budget repas de Noël supplémentaire de 50 € par collaborateur.",
-    icon: Coffee,
-    categorie: 'social',
-    chiffre: '200 €',
-    accroche: "La cohésion d'équipe, ça se cultive",
-  },
-  {
-    id: 16,
-    titre: 'Indemnité télétravail',
-    sousTitre: "Revalorisation à 59 € mensuels",
-    detail:
-      "Les indemnités d'occupation du domicile liées au télétravail (électricité, assurance, eau) doivent être revalorisées à 59 € par mois. Cette somme correspond aux charges réelles supportées par les salariés pour leur environnement de travail à domicile.",
-    icon: Laptop,
-    categorie: 'social',
-    chiffre: '59 €',
-    accroche: "Le bureau à la maison a un coût réel",
-  },
-  {
-    id: 17,
-    titre: 'Budget œuvres sociales',
-    sousTitre: "Augmentation à 1 % de la masse salariale",
-    detail:
-      "Nous demandons l'augmentation de la dotation du budget des œuvres sociales à 1 % de la masse salariale, pour se rapprocher du taux le mieux disant de la profession.",
-    icon: Star,
-    categorie: 'social',
-    chiffre: '1 %',
-    accroche: "Pour tous les salariés et leurs familles",
-  },
-  {
-    id: 18,
-    titre: 'Véhicules de fonction',
-    sousTitre: 'Mise en place pour les salariés qui le souhaitent',
-    detail:
-      "Nous revendiquons la mise en place d'une politique de véhicules de fonction ouverte aux salariés qui le souhaitent, en complément des avantages existants. Ce dispositif participe à l'attractivité de l'entreprise et à la fidélisation des talents dans un secteur très concurrentiel.",
-    icon: Car,
-    categorie: 'social',
-    accroche: "Un avantage concret pour attirer et fidéliser",
-  },
-  {
-    id: 19,
-    titre: 'Offre collaborateur mobile',
-    sousTitre: 'Pour le salarié et toute sa famille',
-    detail:
-      "Mise en place d'une offre préférentielle pour l'achat d'un mobile et la souscription d'un forfait, accessible à l'ensemble des membres de la famille du salarié. Un avantage différenciant, concret et apprécié.",
-    icon: Smartphone,
-    categorie: 'social',
-    accroche: "Un avantage différenciant",
-  },
-  {
-    id: 20,
-    titre: 'Accord intéressement',
-    sousTitre: 'Ouverture de négociation',
-    detail:
-      "Négociation d'un accord d'intéressement pour associer durablement les salariés aux performances économiques du Groupe. Les collaborateurs doivent bénéficier des succès collectifs qu'ils contribuent à construire.",
-    icon: TrendingUp,
-    categorie: 'social',
-    accroche: "Associer les salariés aux résultats du Groupe",
-  },
-
-  // ── Négociation (2) ───────────────────────────────────────────────────────
-  {
-    id: 21,
-    titre: 'Accord télétravail',
-    sousTitre: 'Négociation dédiée pour un cadre clair',
-    detail:
-      "Ouverture d'une négociation pour un accord télétravail structurant définissant les droits et les modalités d'organisation hybride. Les salariés ont besoin d'un cadre clair, juste et opposable.",
+    title: 'Télétravail',
     icon: Home,
-    categorie: 'negociation',
-    accroche: "Un cadre clair et juste",
+    rows: [
+      ['2 jours de télétravail par semaine pour tous', 'Refusé'],
+      ['2 jours consécutifs possibles', 'Refusé'],
+      ['Harmonisation UES des règles de télétravail', 'Refusé'],
+      ['Réexamen des non-éligibilités', 'Refusé'],
+      ['Revalorisation / défiscalisation de la prime domicile', 'Refusé'],
+    ],
   },
   {
-    id: 22,
-    titre: 'Accord QVT',
-    sousTitre: 'Qualité de Vie au Travail — accord ambitieux',
-    detail:
-      "Ouverture d'une négociation pour un accord QVT ambitieux couvrant les conditions de travail, la prévention des RPS, la santé au travail et l'équilibre vie professionnelle / vie personnelle. La QVT doit être une priorité, pas un slogan.",
-    icon: Leaf,
-    categorie: 'negociation',
-    accroche: "Une priorité, pas un slogan",
+    title: 'Transport et mobilité',
+    icon: Car,
+    rows: [
+      ['Pass Navigo : meilleure prise en charge', '75 % — avancée mais insuffisante face aux hausses'],
+      ['Véhicule de fonction ouvert aux salariés', 'Refusé'],
+      ['Prime carburant pour tous', '50 € avec conditions très restrictives'],
+    ],
+  },
+  {
+    title: 'Avantages sociaux',
+    icon: Ticket,
+    rows: [
+      ['Tickets restaurant et paniers repas revalorisés', '9 € pour Free Mobile uniquement'],
+      ['Budget convivialité 150 € + 50 € Noël', 'Refusé'],
+      ['Prime salissure uniformisée', 'Refusé'],
+      ['Prime vacances pour tous', 'Refusé'],
+    ],
+  },
+  {
+    title: 'Égalité femmes-hommes',
+    icon: Scale,
+    rows: [
+      ['Rattrapage des écarts salariaux femmes-hommes', 'Refusé'],
+      ['Congé endométriose supplémentaire', 'Refusé'],
+      ['Prise en charge d’un mois du congé naissance collaboratrices', 'Refusé'],
+      ['Doublement prime cooptation recrutements féminins', 'Refusé'],
+    ],
+  },
+  {
+    title: 'CSE et négociations collectives',
+    icon: Handshake,
+    rows: [
+      ['Dotation CSE à 1 %', 'Refusé'],
+      ['Communication CSE trimestrielle par email', 'Refusé'],
+      ['Assistante sociale siège + régions', 'Refusé'],
+      ['Ouverture PPV, IA, intéressement, participation, dialogue social', 'Refusé sauf temps de travail dans 12 mois'],
+      ['Réouverture GEPP, égalité pro, CET', 'Refusé'],
+    ],
   },
 ];
 
-// ===============================================================================
-//  Composant carte revendication
-// ===============================================================================
-
-const CarteRevendication = ({ r, index }: { r: Revendication; index: number }) => {
-  const cat  = CATEGORIES[r.categorie];
-  const Icon = r.icon;
-
-  return (
-    <div
-      className={cn(
-        'group relative flex flex-col rounded-2xl border-2 overflow-hidden transition-all duration-300',
-        'hover:shadow-xl hover:-translate-y-1',
-        cat.border,
-        cat.light,
-      )}
-      style={{ animationDelay: `${index * 60}ms` }}
-    >
-      {/* Bandeau numéro + catégorie */}
-      <div className={cn('flex items-center justify-between px-5 py-3', cat.bg)}>
-        <span className="text-white/80 font-black text-3xl leading-none select-none">
-          {String(r.id).padStart(2, '0')}
-        </span>
-        <Badge className="bg-white/20 text-white border-0 text-[10px] font-semibold backdrop-blur-sm">
-          {cat.label}
-        </Badge>
-      </div>
-
-      {/* Corps */}
-      <div className="flex flex-col flex-1 px-5 py-4 gap-3">
-        <div className="flex items-start gap-3">
-          <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center shrink-0 mt-0.5', cat.bg + '/10')}>
-            <Icon className={cn('w-5 h-5', cat.text)} />
-          </div>
-          <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="font-bold text-base text-foreground leading-tight">{r.titre}</h3>
-              {r.chiffre && (
-                <span className={cn('font-black text-lg tabular-nums', cat.text)}>{r.chiffre}</span>
-              )}
-            </div>
-            <p className="text-xs text-muted-foreground mt-0.5 leading-snug">{r.sousTitre}</p>
-          </div>
-        </div>
-
-        {r.accroche && (
-          <div className={cn('rounded-lg px-3 py-2 border', cat.light, cat.border)}>
-            <p className={cn('text-xs font-semibold italic', cat.text)}>{'« '}{r.accroche}{' »'}</p>
-          </div>
-        )}
-
-        <p className="text-xs text-muted-foreground leading-relaxed flex-1">{r.detail}</p>
-      </div>
-    </div>
-  );
-};
-
-// ===============================================================================
-//  Compteurs résumé
-// ===============================================================================
-
-const STATS = [
-  { label: 'Revendications',    value: '22', icon: Target,     color: 'text-primary'                           },
-  { label: 'Salaires & Primes', value: '6',  icon: TrendingUp, color: 'text-emerald-600 dark:text-emerald-400' },
-  { label: 'Négociations',      value: '6',  icon: Clock,      color: 'text-blue-600 dark:text-blue-400'       },
-  { label: 'Social & Égalité',  value: '11', icon: Users,      color: 'text-purple-600 dark:text-purple-400'   },
+const refusalReasons = [
+  'Budget global de 1,6 % insuffisant face à l’inflation et aux résultats du Groupe.',
+  'Augmentation collective de 1 % réservée aux seuls packages ≤ 30 000 €, excluant une grande partie des salariés.',
+  'Aucune rétroactivité au 1er janvier 2026 : perte de pouvoir d’achat sur plusieurs mois.',
+  'Prime carburant de 50 € assortie de conditions tellement restrictives qu’elle concernera très peu de salariés.',
+  'Aucune avancée réelle sur l’ancienneté, le temps de travail, le télétravail, l’égalité femmes-hommes ou les congés.',
+  'Absence de véritables négociations : la Direction impose ses propositions sans répondre aux revendications portées par les salariés.',
 ];
 
-// ===============================================================================
-//  Page principale
-// ===============================================================================
+const naoTimeline = [
+  { date: '15 avril', title: 'Réunion 1', text: 'Ouverture des échanges et présentation des premières orientations.' },
+  { date: '29 avril', title: 'Réunion 2', text: 'Les organisations syndicales portent leurs demandes salariales et sociales.' },
+  { date: '5 mai', title: 'Réunion 3', text: 'La Direction maintient une ligne très limitée malgré les revendications.' },
+  { date: '13 mai', title: 'Réunion 4', text: 'Propositions finales : FO dénonce une absence de véritables négociations.' },
+];
+
+const statusCards = [
+  { label: 'Réunions', value: '4', detail: '15/04, 29/04, 05/05, 13/05', icon: CalendarDays },
+  { label: 'Budget Direction', value: '1,6 %', detail: 'dont 1,2 % révisions salariales', icon: TrendingDown },
+  { label: 'Demandes OS', value: '2,2 à 2,9 %', detail: 'enveloppe revendiquée', icon: TrendingUp },
+  { label: 'Position FO', value: 'Refus', detail: 'FO ne signera pas', icon: XCircle },
+];
 
 const Nao2026 = () => {
-  const categoriesUniques = Object.entries(CATEGORIES) as [keyof typeof CATEGORIES, typeof CATEGORIES[keyof typeof CATEGORIES]][];
-
   return (
-    <div className="p-4 lg:p-8">
-
-      <main className="container mx-auto px-4 py-24">
-        <div className="max-w-6xl mx-auto space-y-14">
-
-          {/* Hero */}
-          <div className="relative overflow-hidden rounded-3xl bg-primary px-8 py-12 md:px-14 md:py-16 text-primary-foreground">
-            <div className="absolute inset-0 opacity-10 pointer-events-none select-none" aria-hidden>
-              <div className="absolute -top-10 -right-10 w-72 h-72 rounded-full bg-white" />
-              <div className="absolute -bottom-16 -left-10 w-96 h-96 rounded-full bg-white" />
-              <div className="absolute top-1/2 left-1/3 w-40 h-40 rounded-full bg-white" />
-            </div>
-
-            <div className="relative z-10 flex flex-col md:flex-row md:items-center gap-8">
-              <div className="flex-1 space-y-4">
-                <div className="flex flex-wrap items-center gap-3">
-                  <img
-                    src={logoFocom}
-                    alt="Logo FOCOM"
-                    className="h-10 w-auto object-contain brightness-0 invert opacity-90"
-                  />
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge className="bg-white/20 text-white border-0 text-xs font-bold gap-1.5 backdrop-blur-sm">
-                      <Megaphone className="w-3 h-3" />NAO 2026
-                    </Badge>
-                    <Badge className="bg-white/20 text-white border-0 text-xs font-semibold backdrop-blur-sm">
-                      UES ILIAD
-                    </Badge>
-                    <Badge className="bg-yellow-400 text-yellow-900 border-0 text-xs font-bold">
-                      FOCOM
-                    </Badge>
-                  </div>
-                </div>
-
-                <h1 className="text-4xl md:text-5xl font-black leading-tight tracking-tight">
-                  Négociation Annuelle<br />
-                  <span className="text-yellow-300">Obligatoire 2026</span>
-                </h1>
-
-                <p className="text-primary-foreground/80 text-lg leading-relaxed max-w-xl">
-                  Nos <strong className="text-white">22 revendications</strong> pour cette année de négociation.
-                  Des mesures concrètes, chiffrées, pour améliorer la vie de tous les salariés de l&apos;UES ILIAD.
-                </p>
-
-                <blockquote className="border-l-2 border-yellow-300/50 pl-4 text-sm text-primary-foreground/70 italic max-w-xl">
-                  &laquo; Le capital humain reste la première ressource de l&apos;entreprise et la principale composante de sa réussite. &raquo;
-                </blockquote>
-
-                <div className="flex flex-wrap gap-2 pt-2">
-                  {categoriesUniques.map(([key, cat]) => (
-                    <span key={key} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 text-white text-xs font-semibold backdrop-blur-sm">
-                      <span className={cn('w-2 h-2 rounded-full', cat.bg)} />
-                      {cat.label}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              {/* Stats hero */}
-              <div className="grid grid-cols-2 gap-3 md:w-56 shrink-0">
-                {STATS.map(s => {
-                  const Icon = s.icon;
-                  return (
-                    <div key={s.label} className="rounded-2xl bg-white/10 backdrop-blur-sm px-4 py-3 text-center border border-white/20">
-                      <Icon className="w-4 h-4 mx-auto mb-1 text-white/70" />
-                      <p className="text-2xl font-black text-white">{s.value}</p>
-                      <p className="text-[10px] text-white/70 leading-tight mt-0.5">{s.label}</p>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-
-          {/* Préambule */}
-          <div className="rounded-2xl border border-border bg-muted/30 p-6 md:p-8 space-y-3">
-            <h2 className="text-lg font-bold text-foreground">Préambule — Contexte 2026</h2>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              Depuis l'épisode inflationniste de 2022 à 2024, les salaires réels ont reculé : l'inflation cumulée a été nettement supérieure aux augmentations générales.
-              L'année 2026 est de plus marquée par une <strong>chute brutale de l'intéressement</strong> et par l'envolée des prix de l'énergie.
-              Dans ce contexte, et face à l'accélération de l'IA dans nos métiers,{' '}
-              <strong>la juste répartition de la valeur ajoutée</strong> n'est plus une option — c'est une urgence.
-            </p>
-          </div>
-
-          {/* Actualité des négociations */}
-          <div className="rounded-2xl border-2 border-primary/30 bg-primary/5 p-6 md:p-8 space-y-5">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shrink-0">
-                <Megaphone className="w-5 h-5 text-primary-foreground" />
-              </div>
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-primary">En direct des négociations</p>
-                <h2 className="text-lg font-bold text-foreground">Actualité NAO 2026</h2>
-              </div>
-              <Badge className="ml-auto bg-yellow-400 text-yellow-900 border-0 text-xs font-bold shrink-0">
-                Mise à jour
+    <main className="min-h-screen overflow-x-hidden bg-slate-50 p-3 sm:p-4 lg:p-8">
+      <section className="relative overflow-hidden rounded-3xl bg-[#13233A] p-6 text-white shadow-xl sm:p-8 lg:p-10">
+        <div className="pointer-events-none absolute -right-16 -top-16 h-72 w-72 rounded-full border-[52px] border-white/5" />
+        <div className="pointer-events-none absolute -bottom-24 -left-24 h-80 w-80 rounded-full bg-red-600/25 blur-3xl" />
+        <div className="relative grid gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
+          <div>
+            <div className="mb-4 flex flex-wrap gap-2">
+              <Badge className="border border-red-300/20 bg-red-500/20 text-red-100 hover:bg-red-500/20">
+                <Megaphone className="mr-1 h-3.5 w-3.5" /> NAO 2026
               </Badge>
+              <Badge className="border border-white/15 bg-white/10 text-white hover:bg-white/10">UES ILIAD</Badge>
+              <Badge className="border-0 bg-yellow-400 text-yellow-950 hover:bg-yellow-400">Position FO COM</Badge>
             </div>
-
-            {/* Timeline des séances */}
-            <div className="space-y-4">
-
-              {/* Séance 1 — passée */}
-<div className="relative pl-6 border-l-2 border-primary/30">
-  <div className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-primary border-2 border-background" />
-  <div className="space-y-2">
-    <div className="flex flex-wrap items-center gap-2">
-      <span className="text-xs font-black text-primary">1ère réunion — 15 avril 2026</span>
-      <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300 border-0 text-[10px] font-semibold">
-        Ouverture
-      </Badge>
-    </div>
-    <p className="text-sm text-foreground font-semibold">
-      La direction propose <span className="text-primary font-black">+1,5 %</span> d'augmentation collective ou individuelle, on attend les précisions.
-    </p>
-    <p className="text-sm text-muted-foreground leading-relaxed">
-      Cette proposition s'appuie sur l'inflation du 1er trimestre 2026 selon les sources INSEE — une base de calcul
-      qui minore délibérément l'érosion réelle du pouvoir d'achat subie depuis 2022.
-      Quant aux <strong className="text-foreground">critères d'attribution individuelle</strong> : rien, pour l'instant.
-    </p>
-  </div>
-</div>
-
-{/* Séance 2 — passée */}
-<div className="relative pl-6 border-l-2 border-primary/30">
-  <div className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-primary border-2 border-background" />
-  <div className="space-y-2">
-    <div className="flex flex-wrap items-center gap-2">
-      <span className="text-xs font-black text-primary">2ème réunion — 29 avril 2026</span>
-      <Badge className="bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300 border-0 text-[10px] font-semibold">
-        Tenue
-      </Badge>
-    </div>
-    <p className="text-sm text-muted-foreground leading-relaxed">
-      Réunion tenue avec les nouvelles OS représentatives désignées à l'issue du 1er tour des élections professionnelles.
-      Les négociations se poursuivent dans ce nouveau cadre de représentation.
-    </p>
-  </div>
-</div>
-
-{/* Séance 3 — à venir */}
-<div className="relative pl-6 border-l-2 border-dashed border-primary/20">
-  <div className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-background border-2 border-primary/40" />
-  <div className="space-y-2">
-    <div className="flex flex-wrap items-center gap-2">
-      <span className="text-xs font-black text-muted-foreground">3ème réunion — 5 mai 2026</span>
-      <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300 border-0 text-[10px] font-semibold">
-        À venir
-      </Badge>
-    </div>
-    <p className="text-sm text-muted-foreground leading-relaxed">
-      Poursuite des négociations — nous y serons, déterminés et avec des contre-propositions argumentées
-      sur l'ensemble de nos revendications.
-    </p>
-  </div>
-</div>
-
-{/* Séance 4 — à venir */}
-<div className="relative pl-6 border-l-2 border-dashed border-primary/20">
-  <div className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-background border-2 border-primary/40" />
-  <div className="space-y-2">
-    <div className="flex flex-wrap items-center gap-2">
-      <span className="text-xs font-black text-muted-foreground">4ème réunion — 13 mai 2026</span>
-      <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300 border-0 text-[10px] font-semibold">
-        À venir
-      </Badge>
-    </div>
-    <p className="text-sm text-muted-foreground leading-relaxed">
-      Séance de conclusion prévue — nous visons un accord ambitieux à la hauteur des attentes des salariés.
-    </p>
-  </div>
-</div>
-
-            </div>
-
-            {/* Message de la délégation */}
-            <div className="rounded-xl bg-primary/10 border border-primary/20 px-5 py-4 space-y-2">
-              <p className="text-xs font-bold text-primary uppercase tracking-wide">Le mot de la délégation FOCOM</p>
-              <p className="text-sm text-foreground leading-relaxed">
-                Suite à la GEPP, nous sommes plus déterminés que jamais. Les élections professionnelles nous donnent
-                un poids supplémentaire pour imposer un véritable rapport de force.{' '}
-                <strong>Nous lutterons pour une qualité de vie au travail à la hauteur de votre engagement au quotidien.</strong>
-              </p>
-            </div>
-          </div>
-
-          {/* Reconduction NAO 2025 */}
-          <div className="rounded-2xl bg-gradient-to-r from-blue-900 to-blue-700 text-white p-6 md:p-8 flex items-center gap-5">
-            <div className="text-4xl shrink-0">🔄</div>
-            <div>
-              <h3 className="text-base font-black mb-1">Reconduction des mesures NAO 2025</h3>
-              <p className="text-sm text-white/85 leading-relaxed">
-                Nous exigeons la reconduction intégrale de toutes les mesures et avantages acquis lors des précédentes
-                négociations annuelles (NAO 2025), sans régression sociale d'aucune sorte.
-              </p>
-            </div>
-          </div>
-
-          {/* Légende catégories */}
-          <div className="flex flex-wrap gap-3 justify-center">
-            {categoriesUniques.map(([key, cat]) => (
-              <div key={key} className={cn('flex items-center gap-2 px-4 py-2 rounded-full border', cat.light, cat.border)}>
-                <span className={cn('w-2.5 h-2.5 rounded-full', cat.bg)} />
-                <span className={cn('text-xs font-semibold', cat.text)}>{cat.label}</span>
-                <span className="text-xs text-muted-foreground">
-                  ({REVENDICATIONS.filter(r => r.categorie === key).length})
-                </span>
-              </div>
-            ))}
-          </div>
-
-          {/* Grille des revendications */}
-          <div>
-            <div className="flex items-center gap-3 mb-6">
-              <h2 className="text-2xl font-bold text-foreground">Nos 22 revendications</h2>
-              <div className="flex-1 h-px bg-border" />
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {REVENDICATIONS.map((r, i) => (
-                <CarteRevendication key={r.id} r={r} index={i} />
-              ))}
-            </div>
-          </div>
-
-          {/* Bloc synthèse chiffrée */}
-          <div className="rounded-2xl border-2 border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/30 p-6 md:p-8">
-            <div className="flex items-start gap-4 mb-6">
-              <div className="w-12 h-12 rounded-xl bg-emerald-500 flex items-center justify-center shrink-0">
-                <TrendingUp className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-emerald-800 dark:text-emerald-300 mb-1">
-                  Synthèse de l&apos;enveloppe
-                </h3>
-                <p className="text-sm text-emerald-700 dark:text-emerald-400 leading-relaxed">
-                  Restaurer le pouvoir d&apos;achat et corriger les inégalités structurelles.
-                </p>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {[
-                { label: 'Augmentation collective', value: '+2,5 %', detail: 'Rétroactivité au 1er janv. 2026' },
-                { label: 'Ticket-restaurant',        value: '12,50 €', detail: 'Valeur faciale revalorisée'    },
-                { label: 'Budget œuvres sociales',   value: '1 %',     detail: 'De la masse salariale'         },
-                { label: 'Prime de vacances',         value: '150 €',   detail: 'Pour tous les salariés'        },
-                { label: 'Indemnité télétravail',     value: '59 €',    detail: 'Mensuelle revalorisée'         },
-                { label: 'Budget QVCT',               value: '200 €',   detail: 'Convivialité + Noël'           },
-              ].map(item => (
-                <div key={item.label} className="rounded-xl bg-white dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 px-4 py-3 text-center">
-                  <p className="text-3xl font-black text-emerald-600 dark:text-emerald-400 tabular-nums">{item.value}</p>
-                  <p className="text-xs font-semibold text-emerald-800 dark:text-emerald-300 mt-1">{item.label}</p>
-                  <p className="text-[10px] text-emerald-600/70 dark:text-emerald-400/70 mt-0.5">{item.detail}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Timeline des priorités */}
-          <div>
-            <div className="flex items-center gap-3 mb-6">
-              <h2 className="text-2xl font-bold text-foreground">Nos priorités pour 2026</h2>
-              <div className="flex-1 h-px bg-border" />
-            </div>
-
-            <div className="space-y-4">
-              {[
-                {
-                  priorite: 'Priorité 1',
-                  titre: "Défendre le pouvoir d'achat",
-                  desc: "Augmentation de 2,5 % pour tous, indexation sur le SMIC, revalorisation du ticket-restaurant et du panier repas, prime de partage de la valeur : des mesures immédiates et concrètes.",
-                  color: 'emerald',
-                  items: ["Augmentation 2,5 % rétroactive", 'Indexation SMIC', 'Ticket-restaurant 12,50 €', 'Prime de partage de la valeur', 'Subrogation & 0 délai de carence'],
-                },
-                {
-                  priorite: 'Priorité 2',
-                  titre: 'Justice et égalité au travail',
-                  desc: "Égalité femmes-hommes, reclassification des techniciens en Agents de Maîtrise, transparence sur les fiches de paie et reconnaissance des départs en retraite.",
-                  color: 'purple',
-                  items: ['Rattrapage F/H systématique', 'Reclassification seuil D → AM', 'Transparence fiches de paie', 'Médaille du travail retraite'],
-                },
-                {
-                  priorite: 'Priorité 3',
-                  titre: "Améliorer les conditions de travail",
-                  desc: "Temps de trajet reconnu, ouvertures de négociation sur le temps de travail et l'IA, budget QVCT, indemnité télétravail, véhicules de fonction.",
-                  color: 'blue',
-                  items: ['Temps de trajet itinérants', 'Négociation temps de travail', 'Négociation IA & Digitalisation', 'Budget QVCT 200 €', 'Indemnité télétravail 59 €'],
-                },
-              ].map((bloc, i) => {
-                const colors = {
-                  emerald: { bg: 'bg-emerald-500', light: 'bg-emerald-50 dark:bg-emerald-950/30', border: 'border-emerald-300 dark:border-emerald-700', text: 'text-emerald-700 dark:text-emerald-400', badge: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300' },
-                  purple:  { bg: 'bg-purple-500',  light: 'bg-purple-50 dark:bg-purple-950/30',   border: 'border-purple-300 dark:border-purple-700',   text: 'text-purple-700 dark:text-purple-400',   badge: 'bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-300'   },
-                  blue:    { bg: 'bg-blue-500',    light: 'bg-blue-50 dark:bg-blue-950/30',       border: 'border-blue-300 dark:border-blue-700',       text: 'text-blue-700 dark:text-blue-400',       badge: 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300'           },
-                } as const;
-                const c = colors[bloc.color as keyof typeof colors];
-                return (
-                  <div key={i} className={cn('rounded-2xl border-2 p-5 md:p-6', c.light, c.border)}>
-                    <div className="flex flex-col md:flex-row md:items-start gap-4">
-                      <div className="flex items-center gap-3 md:w-48 shrink-0">
-                        <div className={cn('w-8 h-8 rounded-full flex items-center justify-center text-white font-black text-sm shrink-0', c.bg)}>
-                          {i + 1}
-                        </div>
-                        <div>
-                          <p className={cn('text-[10px] font-bold uppercase tracking-widest', c.text)}>{bloc.priorite}</p>
-                          <p className="font-bold text-sm text-foreground leading-tight">{bloc.titre}</p>
-                        </div>
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-sm text-muted-foreground mb-3 leading-relaxed">{bloc.desc}</p>
-                        <div className="flex flex-wrap gap-2">
-                          {bloc.items.map(item => (
-                            <span key={item} className={cn('inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium', c.badge)}>
-                              <ArrowRight className="w-3 h-3" />{item}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* CTA contact */}
-          <div className="rounded-2xl bg-primary/5 border border-primary/20 px-6 py-8 md:px-10 flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="text-center md:text-left">
-              <h3 className="text-xl font-bold text-foreground mb-1">Vous avez des questions sur la NAO ?</h3>
-              <p className="text-sm text-muted-foreground max-w-md">
-                Nos représentants FOCOM UES ILIAD sont disponibles pour vous informer et recueillir vos besoins avant et pendant la négociation.
-              </p>
-            </div>
-            <div className="flex gap-3 shrink-0">
-              <Button asChild>
-                <Link to="/nao2026/formulaire">
-                  <Megaphone className="w-4 h-4 mr-2" />
-                  Donner mon avis sur la NAO
-                </Link>
+            <h1 className="text-3xl font-extrabold leading-tight sm:text-5xl">
+              La Direction refuse de négocier : FO ne signera pas cet accord insuffisant
+            </h1>
+            <p className="mt-4 max-w-3xl text-sm leading-relaxed text-white/80 sm:text-lg">
+              Après quatre réunions de pseudo-négociations, la Direction présente une enveloppe globale limitée à 1,6 %. Pour FO COM, ces propositions ne répondent ni à l’inflation, ni aux attentes légitimes des salariés.
+            </p>
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+              <Button asChild className="bg-red-600 text-white hover:bg-red-700">
+                <Link to="/contact"><Mail className="mr-2 h-4 w-4" /> Contacter FO COM</Link>
+              </Button>
+              <Button asChild variant="outline" className="border-white/30 bg-white/10 text-white hover:bg-white/20">
+                <Link to="/nao2026/formulaire"><Megaphone className="mr-2 h-4 w-4" /> Donner mon avis</Link>
               </Button>
             </div>
           </div>
 
-          {/* Disclaimer */}
-          <p className="text-center text-xs text-muted-foreground">
-            Document FOCOM UES ILIAD &mdash; NAO 2026. Ces revendications sont celles portées par la délégation FOCOM
-            et ne constituent pas un engagement contractuel. Les négociations sont en cours.
-          </p>
-
+          <div className="grid gap-3 sm:grid-cols-2">
+            {statusCards.map((card) => (
+              <div key={card.label} className="rounded-2xl border border-white/10 bg-white/10 p-4 backdrop-blur">
+                <card.icon className="mb-3 h-5 w-5 text-red-200" />
+                <p className="text-xs font-bold uppercase tracking-wide text-white/60">{card.label}</p>
+                <p className="mt-1 text-2xl font-extrabold text-white">{card.value}</p>
+                <p className="mt-1 text-xs text-white/70">{card.detail}</p>
+              </div>
+            ))}
+          </div>
         </div>
-      </main>
+      </section>
 
-    </div>
+      <section className="mt-6 rounded-2xl border-2 border-red-200 bg-red-50 p-5 shadow-sm sm:p-6">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-red-600 text-white">
+              <AlertTriangle className="h-6 w-6" />
+            </div>
+            <div>
+              <p className="text-lg font-extrabold text-red-900">FO refuse de cautionner cette mascarade</p>
+              <p className="mt-1 text-sm leading-relaxed text-red-800/80">
+                FO dénonce l’absence de véritable dialogue social : les revendications portées par les organisations syndicales sont massivement rejetées, tandis que la Direction maintient une enveloppe insuffisante.
+              </p>
+            </div>
+          </div>
+          <div className="rounded-xl bg-white px-4 py-3 text-center shadow-sm lg:w-56">
+            <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Conclusion FO</p>
+            <p className="text-2xl font-black text-red-600">Non-signature</p>
+          </div>
+        </div>
+      </section>
+
+      <section className="mt-8 grid gap-4 md:grid-cols-4">
+        {directionBudgets.map((item) => (
+          <Card key={item.entite} className="border-slate-200 shadow-sm">
+            <CardContent className="p-4">
+              <p className="text-xs font-bold uppercase tracking-wide text-slate-500">{item.entite}</p>
+              <p className="mt-2 text-3xl font-extrabold text-red-600">{item.budget}</p>
+              <p className="mt-1 text-xs text-slate-500">Révisions salariales : <strong>{item.revisions}</strong></p>
+              <p className="text-xs text-slate-500">Mesures sociales : <strong>{item.social}</strong></p>
+            </CardContent>
+          </Card>
+        ))}
+      </section>
+
+      <section className="mt-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+        <div className="mb-5 flex items-center gap-3">
+          <CalendarDays className="h-5 w-5 text-teal-600" />
+          <div>
+            <h2 className="text-xl font-extrabold text-slate-900">Chronologie des négociations</h2>
+            <p className="text-sm text-slate-500">Quatre réunions, aucune avancée majeure.</p>
+          </div>
+        </div>
+        <div className="grid gap-3 md:grid-cols-4">
+          {naoTimeline.map((step, index) => (
+            <div key={step.date} className="relative rounded-2xl border border-slate-100 bg-slate-50 p-4">
+              <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-full bg-teal-600 text-sm font-black text-white">{index + 1}</div>
+              <p className="text-xs font-bold uppercase tracking-wide text-teal-700">{step.date}</p>
+              <p className="mt-1 font-bold text-slate-900">{step.title}</p>
+              <p className="mt-2 text-xs leading-relaxed text-slate-500">{step.text}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="mt-8 space-y-5">
+        <div>
+          <h2 className="text-2xl font-extrabold text-slate-900">Demandes OS vs propositions Direction</h2>
+          <p className="mt-1 text-sm text-slate-500">Une synthèse claire des refus et des mesures insuffisantes.</p>
+        </div>
+
+        <div className="grid gap-4 lg:grid-cols-2">
+          {comparisonSections.map((section) => (
+            <Card key={section.title} className="overflow-hidden border-slate-200 shadow-sm">
+              <CardHeader className="border-b border-slate-100 bg-slate-50 pb-3">
+                <CardTitle className="flex items-center gap-2 text-base font-extrabold text-slate-900">
+                  <section.icon className="h-5 w-5 text-teal-600" /> {section.title}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                {section.rows.map(([demand, proposal], index) => {
+                  const refused = proposal.toLowerCase().includes('refusé');
+                  return (
+                    <div key={`${section.title}-${index}`} className="grid gap-2 border-b border-slate-100 p-4 last:border-b-0 sm:grid-cols-2">
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Demandes</p>
+                        <p className="mt-1 text-sm font-medium leading-relaxed text-slate-700">{demand}</p>
+                      </div>
+                      <div className={refused ? 'rounded-xl bg-red-50 p-3' : 'rounded-xl bg-amber-50 p-3'}>
+                        <p className={refused ? 'text-[10px] font-bold uppercase tracking-wide text-red-500' : 'text-[10px] font-bold uppercase tracking-wide text-amber-600'}>Direction</p>
+                        <p className={refused ? 'mt-1 text-sm font-bold leading-relaxed text-red-700' : 'mt-1 text-sm font-bold leading-relaxed text-amber-700'}>{proposal}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </section>
+
+      <section className="mt-8 rounded-3xl bg-slate-950 p-5 text-white shadow-xl sm:p-8">
+        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-2xl font-extrabold">Pourquoi FO ne signera pas</h2>
+            <p className="mt-1 text-sm text-white/60">Les raisons principales de notre refus.</p>
+          </div>
+          <Badge className="w-fit border border-red-300/20 bg-red-500/20 text-red-100 hover:bg-red-500/20">Position officielle FO</Badge>
+        </div>
+        <div className="grid gap-3 md:grid-cols-2">
+          {refusalReasons.map((reason, index) => (
+            <div key={reason} className="flex gap-3 rounded-2xl border border-white/10 bg-white/5 p-4">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-600 text-sm font-black text-white">{index + 1}</div>
+              <p className="text-sm leading-relaxed text-white/85">{reason}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="mt-8 grid gap-4 lg:grid-cols-3">
+        <Card className="border-teal-100 bg-teal-50/60 shadow-sm lg:col-span-2">
+          <CardContent className="p-5 sm:p-6">
+            <div className="mb-3 flex items-center gap-3">
+              <ShieldCheck className="h-6 w-6 text-teal-700" />
+              <h2 className="text-xl font-extrabold text-slate-900">FO reste mobilisé pour les salariés</h2>
+            </div>
+            <p className="text-sm leading-relaxed text-slate-700">
+              Force Ouvrière continuera à porter les revendications légitimes des salariés et à dénoncer l’absence de dialogue social. Les salariés méritent mieux que des mesures partielles, conditionnées et largement insuffisantes.
+            </p>
+            <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+              <Button asChild className="bg-teal-700 text-white hover:bg-teal-800">
+                <Link to="/contact">Nous contacter <ArrowRight className="ml-2 h-4 w-4" /></Link>
+              </Button>
+              <Button asChild variant="outline" className="border-teal-200 text-teal-700 hover:bg-teal-50">
+                <Link to="/actualites">Suivre les actualités</Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-red-100 bg-white shadow-sm">
+          <CardContent className="p-5 sm:p-6">
+            <HeartPulse className="mb-4 h-8 w-8 text-red-600" />
+            <h3 className="font-extrabold text-slate-900">Le pouvoir d’achat reste prioritaire</h3>
+            <p className="mt-2 text-sm leading-relaxed text-slate-500">
+              Dans un contexte de pression sur les prix, les salariés attendent des mesures générales, justes et lisibles, pas des enveloppes limitées ni des primes inaccessibles.
+            </p>
+          </CardContent>
+        </Card>
+      </section>
+
+      <p className="mt-8 text-center text-xs text-slate-400">
+        Document FO COM UES ILIAD — actualisation NAO 2026 après les réunions des {meetings.join(', ')}. Les éléments présentés synthétisent la position FO et les propositions finales communiquées.
+      </p>
+    </main>
   );
 };
 
