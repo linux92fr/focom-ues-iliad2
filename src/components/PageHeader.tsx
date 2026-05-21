@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Link, NavLink, useNavigate } from "react-router-dom";
+import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
   Search, Bell, Settings, X, ArrowRight, LogOut, User, Lock, Home, Menu,
   LayoutDashboard, Newspaper, BarChart3, UserCircle, Shield, FolderOpen,
@@ -54,6 +54,8 @@ export default function PageHeader() {
   const inputRef = useRef<HTMLInputElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+  const location = useLocation();
+  const isHomePage = location.pathname === "/";
   const { user, signOut } = useAuth();
 
   const initials = user
@@ -144,7 +146,7 @@ export default function PageHeader() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 w-full max-w-full overflow-x-hidden bg-card border-b border-border shadow-sm">
+      <header className="shrink-0 z-40 w-full max-w-full overflow-x-hidden bg-card border-b border-border shadow-sm">
         <div className="h-14 w-full max-w-full px-2 sm:px-4 flex items-center justify-between gap-1 overflow-hidden">
           <div className="flex min-w-0 items-center gap-1 sm:gap-2">
             <button
@@ -156,14 +158,16 @@ export default function PageHeader() {
               <Menu className="h-5 w-5" />
             </button>
 
-            <Link
-              to="/"
-              className="inline-flex min-w-0 items-center gap-1 sm:gap-2 rounded-full border border-border bg-background px-2 sm:px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-primary hover:border-primary/40 transition-colors"
-            >
-              <Home className="h-3.5 w-3.5 shrink-0" />
-              <span className="hidden sm:inline truncate">Retour vers le site</span>
-              <span className="sm:hidden truncate">Accueil</span>
-            </Link>
+            {!isHomePage && (
+              <Link
+                to="/"
+                className="inline-flex min-w-0 items-center gap-1 sm:gap-2 rounded-full border border-border bg-background px-2 sm:px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-primary hover:border-primary/40 transition-colors"
+              >
+                <Home className="h-3.5 w-3.5 shrink-0" />
+                <span className="hidden sm:inline truncate">Retour vers le site</span>
+                <span className="sm:hidden truncate">Accueil</span>
+              </Link>
+            )}
           </div>
 
           <div className="flex shrink-0 items-center justify-end gap-1 sm:gap-2">
