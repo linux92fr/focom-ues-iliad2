@@ -14,7 +14,7 @@ function ProfileHelpShortcuts() {
       <p className="mb-3 text-xs text-slate-500">Accès rapides depuis votre espace adhérent.</p>
       <div className="space-y-2">
         <Link to="/mes-reclamations" className="flex items-center gap-2 rounded-xl bg-slate-50 p-3 text-sm font-medium hover:bg-red-50">
-          <MessageSquare className="h-4 w-4 text-red-600" /> Mes réclamations
+          <MessageSquare className="h-4 w-4 text-red-600" /> Mes demandes
         </Link>
         <Link to="/permanences" className="flex items-center gap-2 rounded-xl bg-slate-50 p-3 text-sm font-medium hover:bg-red-50">
           <Calendar className="h-4 w-4 text-red-600" /> Prendre RDV
@@ -29,14 +29,14 @@ function ProfileHelpShortcuts() {
 
 export default function PublicLayout() {
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex h-screen max-h-screen overflow-hidden bg-background">
       <ScrollToTop />
-      <div className="sticky top-0 h-screen shrink-0">
-        <Sidebar />
-      </div>
-      <div className="flex-1 min-w-0 flex flex-col">
+      <Sidebar />
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <PageHeader />
-        <Outlet />
+        <main id="main-scroll-area" className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain">
+          <Outlet />
+        </main>
         <ProfileHelpShortcuts />
       </div>
     </div>
