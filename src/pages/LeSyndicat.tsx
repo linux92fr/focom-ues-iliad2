@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -6,11 +7,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   ArrowRight,
   BookOpen,
+  Briefcase,
+  Building2,
   Calendar,
   ClipboardList,
+  Flag,
   Globe,
   Handshake,
   Mail,
+  MapPin,
   Phone,
   ShieldCheck,
   Target,
@@ -42,6 +47,88 @@ const keyFigures = [
 ];
 
 const entities = ["Free SAS", "ILIAD SA", "Free Réseau", "Free Mobile", "Assunet"];
+
+const representants = [
+  {
+    nom: "N'deye Yacine SIDIBÉ",
+    poste: "Secrétaire Générale du Syndicat FOCOM UES ILIAD",
+    service: "FREE RÉSEAU",
+    email: "nysidibe@focomues-iliad.fr",
+    telephone: "06.23.29.02.23",
+    mandat: "Élue Titulaire CSE, Déléguée Syndicale",
+    photo: "/candidats/nysidibe.jpg",
+  },
+  {
+    nom: "Mounir ZERARKA",
+    poste: "Conducteur de Travaux",
+    service: "FREE MOBILE",
+    email: "mounir@focomues-iliad.fr",
+    telephone: "06.50.95.86.66",
+    mandat: "Délégué Syndical, Élu Titulaire CSE",
+    photo: "/candidats/mzerarka.png",
+  },
+  {
+    nom: "Anthony LAVILLE",
+    poste: "TMF (ex-TFO)",
+    service: "FREE RÉSEAU",
+    email: "alaville@focomues-iliad.fr",
+    telephone: "07.60.15.10.79",
+    mandat: "Délégué Syndical",
+    photo: "/candidats/alaville.png",
+  },
+  {
+    nom: "Fabien RACAULT",
+    poste: "TMF (ex-TFO)",
+    service: "ROF (ex-Free Infra)",
+    email: "fabien@focomues-iliad.fr",
+    telephone: "06.31.57.33.42",
+    mandat: "Élu Titulaire CSE, Délégué syndical, Membre CSSCT",
+    photo: "/candidats/fracault.png",
+  },
+  {
+    nom: "Didier BROU",
+    poste: "CIR (ex-VPI)",
+    service: "FREE RÉSEAU",
+    email: "didier@focomues-iliad.fr",
+    telephone: "06.50.54.10.32",
+    mandat: "Représentant syndical",
+    photo: "/candidats/dbrou.png",
+  },
+  {
+    nom: "Fadil KENDIRA",
+    poste: "TMRE (ex-PDEM)",
+    service: "FREE RÉSEAU",
+    email: "fadil@focomues-iliad.fr",
+    telephone: "06.50.77.28.25",
+    mandat: "Délégué syndical, Élu Titulaire CSE, Administrateur du site",
+    photo: "/candidats/fkendira.png",
+  },
+  {
+    nom: "Régis CRITON",
+    poste: "Retraité — Ex Concepteur FM",
+    service: "FREE MOBILE",
+    email: "",
+    mandat: "Ex-Délégué syndical, Ex-Élu du CSE, Ex-Commission Économique",
+  },
+];
+
+const presenceTerrain = [
+  {
+    icon: Building2,
+    title: "Présence dans les entités",
+    text: "Des représentants et relais FO COM présents dans les sociétés de l’UES : Free SAS, ILIAD SA, Free Réseau, Free Mobile et Assunet.",
+  },
+  {
+    icon: MapPin,
+    title: "Relais régionaux et terrain",
+    text: "Un lien direct avec les équipes terrain, les techniciens, les fonctions support, les cadres et les salariés des différents sites.",
+  },
+  {
+    icon: Handshake,
+    title: "Accompagnement de proximité",
+    text: "Écoute, conseils, préparation des dossiers, accompagnement individuel et remontée des situations collectives auprès des instances.",
+  },
+];
 
 const historyTimeline = [
   {
@@ -85,6 +172,78 @@ const representatives = [
     text: "FO COM s’appuie sur des salariés engagés dans les différentes entités de l’UES pour rester au plus près du terrain.",
   },
 ];
+
+function getInitials(nom: string) {
+  return nom
+    .split(" ")
+    .filter(Boolean)
+    .map((part) => part[0]?.toUpperCase())
+    .slice(0, 2)
+    .join("");
+}
+
+function cleanTel(phone: string) {
+  return phone.replace(/[^0-9+]/g, "");
+}
+
+function RepresentantCard({ rep }: { rep: typeof representants[number] }) {
+  const [imgError, setImgError] = useState(false);
+  const showPhoto = Boolean(rep.photo && !imgError);
+
+  return (
+    <Card className="group overflow-hidden border-slate-200 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:border-red-100 hover:shadow-md">
+      <CardContent className="flex h-full flex-col items-center p-5 text-center">
+        <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-red-600 to-red-800 text-xl font-black text-white shadow-md">
+          {showPhoto ? (
+            <img
+              src={rep.photo}
+              alt={rep.nom}
+              className="h-full w-full object-cover"
+              loading="lazy"
+              decoding="async"
+              onError={() => setImgError(true)}
+            />
+          ) : (
+            <span>{getInitials(rep.nom)}</span>
+          )}
+        </div>
+
+        <div className="mt-4 min-w-0">
+          <h3 className="text-base font-extrabold leading-tight text-slate-900 group-hover:text-red-600">{rep.nom}</h3>
+          <Badge variant="outline" className="mt-2 whitespace-normal border-red-200 bg-red-50 text-center text-[10px] leading-tight text-red-700">
+            {rep.mandat}
+          </Badge>
+        </div>
+
+        <div className="mt-4 w-full space-y-2 text-sm">
+          <div className="flex items-center justify-center gap-1.5 font-medium text-slate-700">
+            <Briefcase className="h-3.5 w-3.5 shrink-0 text-teal-600" />
+            <span className="truncate">{rep.poste}</span>
+          </div>
+          <div className="flex items-center justify-center gap-1.5 text-slate-500">
+            <Flag className="h-3.5 w-3.5 shrink-0 text-teal-600" />
+            <span>{rep.service}</span>
+          </div>
+        </div>
+
+        <div className="mt-4 w-full border-t border-slate-100 pt-4 text-xs text-slate-500">
+          {rep.email && (
+            <a href={`mailto:${rep.email}`} className="flex items-center justify-center gap-1.5 hover:text-red-600">
+              <Mail className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">{rep.email}</span>
+            </a>
+          )}
+          {rep.telephone && (
+            <a href={`tel:${cleanTel(rep.telephone)}`} className="mt-2 flex items-center justify-center gap-1.5 hover:text-red-600">
+              <Phone className="h-3.5 w-3.5 shrink-0" />
+              <span>{rep.telephone}</span>
+            </a>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function LeSyndicat() {
   return (
@@ -142,6 +301,45 @@ export default function LeSyndicat() {
             </CardContent>
           </Card>
         ))}
+      </section>
+
+      <section className="mt-8 space-y-5">
+        <div className="text-center">
+          <Badge variant="secondary" className="mb-3">Équipe syndicale</Badge>
+          <h2 className="text-2xl font-extrabold text-slate-900 sm:text-3xl">Nos Représentants FOCOM UES ILIAD</h2>
+          <p className="mx-auto mt-2 max-w-3xl text-sm leading-relaxed text-slate-500 sm:text-base">
+            Une équipe de représentants élus et mandatés pour défendre vos droits, vous accompagner et porter vos revendications au sein de l’UES ILIAD.
+          </p>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {representants.map((rep) => (
+            <RepresentantCard key={rep.nom} rep={rep} />
+          ))}
+        </div>
+      </section>
+
+      <section className="mt-8 rounded-3xl border border-teal-100 bg-white p-5 shadow-sm sm:p-6">
+        <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <Badge className="mb-3 bg-teal-50 text-teal-700 hover:bg-teal-50">Présence terrain</Badge>
+            <h2 className="text-2xl font-extrabold text-slate-900">Un syndicat au plus près des salariés</h2>
+            <p className="mt-1 text-sm text-slate-500">Une alternative plus claire qu’une carte : qui nous représentons, où nous intervenons, comment nous accompagnons.</p>
+          </div>
+          <Button asChild variant="outline" className="border-teal-200 text-teal-700 hover:bg-teal-50">
+            <Link to="/contact">Demander un contact</Link>
+          </Button>
+        </div>
+        <div className="grid gap-4 md:grid-cols-3">
+          {presenceTerrain.map((item) => (
+            <div key={item.title} className="rounded-2xl bg-slate-50 p-4">
+              <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-teal-50 text-teal-600">
+                <item.icon className="h-5 w-5" />
+              </div>
+              <h3 className="font-extrabold text-slate-900">{item.title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-slate-500">{item.text}</p>
+            </div>
+          ))}
+        </div>
       </section>
 
       <section className="mt-8 rounded-2xl border border-red-100 bg-white p-5 shadow-sm sm:p-6">
