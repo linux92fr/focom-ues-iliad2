@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -17,6 +18,10 @@ import {
   GraduationCap,
   Phone,
   Bot,
+  Mail,
+  FileText,
+  Users,
+  ChevronRight,
 } from "lucide-react";
 import ChatbotJuridique from "@/components/ChatbotJuridique";
 
@@ -137,86 +142,158 @@ const categories = [
   },
 ];
 
+const quickAccess = [
+  {
+    icon: Bot,
+    title: "Assistant juridique",
+    description: "Posez une question et obtenez une première orientation.",
+    href: "#assistant-juridique",
+  },
+  {
+    icon: FileText,
+    title: "Documents utiles",
+    description: "Accords, modèles, ressources et documents pratiques.",
+    href: "/documents-utiles",
+  },
+  {
+    icon: Users,
+    title: "Contacter FO COM",
+    description: "Un représentant peut vous aider à analyser votre situation.",
+    href: "/contact",
+  },
+];
+
 export default function VosDroits() {
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <section className="py-16 gradient-hero">
-        <div className="container mx-auto px-4 text-center">
-          <Scale className="h-16 w-16 text-primary-foreground mx-auto mb-4" />
-          <h1 className="font-serif text-4xl md:text-5xl font-bold text-primary-foreground mb-4">
-            Vos Droits
-          </h1>
-          <p className="text-primary-foreground/90 max-w-2xl mx-auto">
-            Informez-vous sur vos droits en tant que salarié
-          </p>
+    <main className="min-h-screen overflow-x-hidden bg-slate-50 p-3 sm:p-4 lg:p-8">
+      <section className="relative overflow-hidden rounded-3xl bg-[#13233A] p-6 text-white shadow-xl sm:p-8 lg:p-10">
+        <div className="pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full border-[52px] border-white/5" />
+        <div className="pointer-events-none absolute -bottom-24 -left-24 h-80 w-80 rounded-full bg-red-600/25 blur-3xl" />
+        <div className="relative grid gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
+          <div>
+            <Badge className="mb-4 border border-white/15 bg-white/10 text-white hover:bg-white/10">
+              <Scale className="mr-1 h-3.5 w-3.5" /> Vos droits
+            </Badge>
+            <h1 className="text-3xl font-extrabold leading-tight sm:text-5xl lg:text-6xl">
+              Comprendre, vérifier et défendre vos droits
+            </h1>
+            <p className="mt-4 max-w-3xl text-sm leading-relaxed text-white/80 sm:text-lg">
+              Retrouvez des repères pratiques sur le travail, la rémunération, le contrat, la protection sociale, la santé au travail et la formation. En cas de doute, FO COM peut vous accompagner.
+            </p>
+            <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+              <Button asChild className="bg-red-600 text-white hover:bg-red-700">
+                <a href="#assistant-juridique"><Bot className="mr-2 h-4 w-4" /> Poser une question</a>
+              </Button>
+              <Button asChild variant="outline" className="border-white/30 bg-white/10 text-white hover:bg-white/20">
+                <Link to="/contact"><Mail className="mr-2 h-4 w-4" /> Contacter FO COM</Link>
+              </Button>
+            </div>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
+            {[
+              { icon: Scale, title: "Repères", text: "Identifier rapidement les sujets à vérifier." },
+              { icon: Shield, title: "Protection", text: "Ne pas rester seul face à une difficulté." },
+              { icon: Bot, title: "Assistant", text: "Une première orientation disponible en ligne." },
+            ].map((item) => (
+              <div key={item.title} className="rounded-2xl border border-white/10 bg-white/10 p-4 backdrop-blur">
+                <item.icon className="mb-3 h-5 w-5 text-red-200" />
+                <p className="font-bold">{item.title}</p>
+                <p className="mt-1 text-xs leading-relaxed text-white/70">{item.text}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
-      <main className="flex-grow py-12">
-        <div className="container mx-auto px-4">
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {categories.map((category) => (
-              <Card key={category.title} className="overflow-hidden">
-                <CardHeader className="pb-4">
-                  <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
-                    <category.icon className="h-6 w-6 text-primary" />
-                  </div>
-                  <CardTitle className="font-serif">{category.title}</CardTitle>
-                  <CardDescription>{category.description}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Accordion type="single" collapsible className="w-full">
-                    {category.items.map((item, itemIndex) => (
-                      <AccordionItem key={item.question} value={`item-${itemIndex}`}>
-                        <AccordionTrigger className="text-left text-sm">
-                          {item.question}
-                        </AccordionTrigger>
-                        <AccordionContent className="text-muted-foreground text-sm">
-                          {item.answer}
-                        </AccordionContent>
-                      </AccordionItem>
-                    ))}
-                  </Accordion>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          <section className="mt-12">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
-                <Bot className="w-5 h-5 text-primary-foreground" />
+      <section className="mt-6 grid gap-4 md:grid-cols-3">
+        {quickAccess.map((item) => (
+          <Card key={item.title} className="border-slate-200 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
+            <CardContent className="p-5">
+              <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-teal-50 text-teal-600">
+                <item.icon className="h-5 w-5" />
               </div>
-              <div>
-                <h2 className="text-xl font-bold text-foreground">Assistant juridique FO COM</h2>
-                <p className="text-sm text-muted-foreground">
-                  Les échanges passent par l'Edge Function Supabase sécurisée <span className="font-medium">chat-juridique</span>.
-                </p>
-              </div>
-            </div>
-            <ChatbotJuridique themeId="vos-droits" />
-          </section>
-
-          <Card className="mt-12 gradient-hero border-0">
-            <CardContent className="p-8 text-center">
-              <h2 className="font-serif text-2xl font-bold text-primary-foreground mb-4">
-                Besoin d'aide personnalisée ?
-              </h2>
-              <p className="text-primary-foreground/90 mb-6 max-w-2xl mx-auto">
-                Nos délégués syndicaux sont à votre disposition pour vous accompagner dans vos démarches et défendre vos droits.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button size="lg" variant="secondary" asChild>
-                  <Link to="/contact">
-                    <Phone className="h-4 w-4 mr-2" />
-                    Nous contacter
-                  </Link>
+              <h2 className="font-extrabold text-slate-900">{item.title}</h2>
+              <p className="mt-2 text-sm leading-relaxed text-slate-500">{item.description}</p>
+              {item.href.startsWith("#") ? (
+                <Button asChild variant="ghost" className="mt-3 px-0 text-red-600 hover:bg-transparent hover:text-red-700">
+                  <a href={item.href}>Accéder <ChevronRight className="ml-1 h-4 w-4" /></a>
                 </Button>
-              </div>
+              ) : (
+                <Button asChild variant="ghost" className="mt-3 px-0 text-red-600 hover:bg-transparent hover:text-red-700">
+                  <Link to={item.href}>Accéder <ChevronRight className="ml-1 h-4 w-4" /></Link>
+                </Button>
+              )}
             </CardContent>
           </Card>
+        ))}
+      </section>
+
+      <section className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+        {categories.map((category) => (
+          <Card key={category.title} className="overflow-hidden border-slate-200 bg-white shadow-sm">
+            <CardHeader className="border-b border-slate-100 bg-white pb-4">
+              <div className="flex gap-3">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-600">
+                  <category.icon className="h-5 w-5" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg font-extrabold text-slate-900">{category.title}</CardTitle>
+                  <CardDescription>{category.description}</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="p-4">
+              <Accordion type="single" collapsible className="w-full">
+                {category.items.map((item, itemIndex) => (
+                  <AccordionItem key={item.question} value={`item-${category.title}-${itemIndex}`}>
+                    <AccordionTrigger className="text-left text-sm font-semibold text-slate-900">
+                      {item.question}
+                    </AccordionTrigger>
+                    <AccordionContent className="text-sm leading-relaxed text-slate-500">
+                      {item.answer}
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            </CardContent>
+          </Card>
+        ))}
+      </section>
+
+      <section id="assistant-juridique" className="mt-8 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+        <div className="mb-5 flex items-start gap-3">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-red-600 text-white">
+            <Bot className="h-5 w-5" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-extrabold text-slate-900">Assistant juridique FO COM</h2>
+            <p className="mt-1 text-sm leading-relaxed text-slate-500">
+              Les échanges passent par l'Edge Function Supabase sécurisée <span className="font-medium">chat-juridique</span>. L’outil donne une première orientation et ne remplace pas un accompagnement personnalisé.
+            </p>
+          </div>
         </div>
-      </main>
-    </div>
+        <ChatbotJuridique themeId="vos-droits" />
+      </section>
+
+      <section className="mt-8 rounded-3xl bg-gradient-to-br from-teal-600 to-teal-700 p-6 text-white shadow-lg sm:p-8">
+        <div className="grid gap-5 lg:grid-cols-[1fr_auto] lg:items-center">
+          <div>
+            <h2 className="text-xl font-extrabold">Besoin d’aide personnalisée ?</h2>
+            <p className="mt-2 max-w-3xl text-sm leading-relaxed text-teal-50">
+              Une réponse dépend toujours des faits, du contrat, des accords applicables et des preuves disponibles. FO COM peut vous accompagner.
+            </p>
+          </div>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <Button asChild className="bg-white text-teal-700 hover:bg-teal-50">
+              <Link to="/contact"><Mail className="mr-2 h-4 w-4" /> Contact</Link>
+            </Button>
+            <Button asChild variant="outline" className="border-white/40 bg-white/10 text-white hover:bg-white/20">
+              <a href="tel:0187154311"><Phone className="mr-2 h-4 w-4" /> 01 87 15 43 11</a>
+            </Button>
+          </div>
+        </div>
+      </section>
+    </main>
   );
 }
