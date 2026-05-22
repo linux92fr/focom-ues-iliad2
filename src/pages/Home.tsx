@@ -47,6 +47,12 @@ const HERO_REPRESENTATIVES = [
   { name: "Fadil KENDIRA", photo: "/candidats/fkendira.webp" },
 ];
 
+const HERO_SUPPORT_ADVISORS = {
+  title: "Conseillers & soutien terrain",
+  names: "Aurélien & Awa",
+  photo: "/candidats/aurelien_awa.webp",
+};
+
 type LatestArticle = {
   id: string;
   title: string | null;
@@ -241,6 +247,24 @@ export default function Home() {
                     </div>
                   </div>
                 ))}
+              </div>
+
+              <div className="mt-3 rounded-2xl border border-white/10 bg-black/15 p-2.5 backdrop-blur">
+                <div className="flex items-center gap-3">
+                  <div className="h-16 w-24 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-white/10 sm:h-20 sm:w-32">
+                    <img
+                      src={HERO_SUPPORT_ADVISORS.photo}
+                      alt={HERO_SUPPORT_ADVISORS.names}
+                      loading="lazy"
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-black uppercase tracking-wider text-teal-100">{HERO_SUPPORT_ADVISORS.title}</p>
+                    <p className="mt-1 text-sm font-extrabold leading-tight text-white">{HERO_SUPPORT_ADVISORS.names}</p>
+                    <p className="mt-1 text-[11px] leading-relaxed text-white/65">Backup, conseil et appui aux représentants FO COM.</p>
+                  </div>
+                </div>
               </div>
 
               <div className="mt-4 grid grid-cols-3 gap-2">
