@@ -3,7 +3,7 @@ import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
   Search, Bell, Settings, X, ArrowRight, LogOut, User, Lock, Home, Menu,
   LayoutDashboard, Newspaper, BarChart3, UserCircle, Shield, FolderOpen,
-  HelpCircle, Mail, Calendar, AlertCircle, UserPlus,
+  Mail, Calendar, AlertCircle, UserPlus, Users, Scale,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,6 +11,7 @@ import { useAuth } from "@/hooks/useAuth";
 import logoFocom from "@/assets/logo-focom.png";
 
 const SEARCH_LINKS = [
+  { label: "Le syndicat", href: "/le-syndicat" },
   { label: "Élections CSE 2026", href: "/elections" },
   { label: "Négociation Annuelle (NAO 2026)", href: "/nao2026" },
   { label: "Bilan de mandat 2022–2026", href: "/bilan-mandat" },
@@ -30,18 +31,19 @@ const SEARCH_LINKS = [
 ];
 
 const MOBILE_NAV = [
-  { to: "/", label: "Tableau de bord", icon: LayoutDashboard, end: true },
+  { to: "/", label: "Accueil", icon: LayoutDashboard, end: true },
+  { to: "/le-syndicat", label: "Le syndicat", icon: Users },
   { to: "/actualites", label: "Actualités", icon: Newspaper },
-  { to: "/bilan-mandat", label: "Bilan de Mandat", icon: BarChart3 },
+  { to: "/nao2026", label: "NAO 2026", icon: Scale },
+  { to: "/bilan-mandat", label: "Bilan", icon: BarChart3 },
+  { to: "/vos-droits", label: "Vos droits", icon: Shield },
   { to: "/adhesion", label: "Adhérer", icon: UserPlus },
-  { to: "/profil", label: "Espace Adhérent", icon: UserCircle },
   { to: "/mes-reclamations", label: "Mes demandes", icon: AlertCircle },
-  { to: "/vos-droits", label: "Vos Droits", icon: Shield },
+  { to: "/profil", label: "Espace adhérent", icon: UserCircle },
   { to: "/agenda", label: "Agenda", icon: Calendar },
-  { to: "/documents-utiles", label: "Documents Utiles", icon: FolderOpen },
-  { to: "/faq", label: "FAQ", icon: HelpCircle },
-  { to: "/contact", label: "Nous Contacter", icon: Mail },
-  { to: "/admin", label: "Administration", icon: Settings },
+  { to: "/documents-utiles", label: "Documents", icon: FolderOpen },
+  { to: "/contact", label: "Contact", icon: Mail },
+  { to: "/admin", label: "Admin", icon: Settings },
 ];
 
 export default function PageHeader() {
@@ -291,7 +293,7 @@ export default function PageHeader() {
               <div className="px-4 py-4">
                 <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">Accès rapides</p>
                 <div className="flex flex-wrap gap-2">
-                  {["Élections", "NAO 2026", "Adhésion", "FAQ", "Contact"].map((label) => {
+                  {["Le syndicat", "NAO 2026", "Adhésion", "Vos droits", "Contact"].map((label) => {
                     const item = SEARCH_LINKS.find((l) => l.label.startsWith(label));
                     return item ? <button key={label} onClick={() => handleSelect(item.href)} className="px-3 py-1.5 text-xs bg-slate-100 hover:bg-red-50 hover:text-red-600 text-slate-600 rounded-full transition-colors">{label}</button> : null;
                   })}
