@@ -38,6 +38,15 @@ const SOLIDARITY_IMAGE = "https://d2xsxph8kpxj0f.cloudfront.net/3105196636126480
 const DEFAULT_HERO_TITLE = "Informer. Défendre. Agir ensemble.";
 const DEFAULT_HERO_SUBTITLE = "FO COM UES ILIAD accompagne les salariés du groupe : droits, adhésion, demandes, documents utiles et actualités sociales.";
 
+const HERO_REPRESENTATIVES = [
+  { name: "N'deye Yacine SIDIBÉ", photo: "/candidats/nysidibe.jpg" },
+  { name: "Mounir ZERARKA", photo: "/candidats/mzerarka.png" },
+  { name: "Anthony LAVILLE", photo: "/candidats/alaville.png" },
+  { name: "Fabien RACAULT", photo: "/candidats/fracault.webp" },
+  { name: "Didier BROU", photo: "/candidats/dbrou.png" },
+  { name: "Fadil KENDIRA", photo: "/candidats/fkendira.webp" },
+];
+
 type LatestArticle = {
   id: string;
   title: string | null;
@@ -193,9 +202,9 @@ export default function Home() {
   return (
     <main className="min-h-screen overflow-x-hidden bg-slate-50 p-3 sm:p-4 lg:p-8">
       <section className="relative mb-6 overflow-hidden rounded-3xl bg-[#13233A] shadow-xl">
-        <img src={HERO_IMAGE} alt="FO COM UES ILIAD" className="absolute inset-0 h-full w-full object-cover opacity-30" />
+        <img src={HERO_IMAGE} alt="FO COM UES ILIAD" className="absolute inset-0 h-full w-full object-cover opacity-22" />
         <div className="absolute inset-0 bg-gradient-to-br from-[#13233A] via-[#13233A]/95 to-red-950/75" />
-        <div className="relative grid gap-8 px-5 py-10 sm:px-8 lg:grid-cols-[1.15fr_0.85fr] lg:px-12 lg:py-14">
+        <div className="relative grid gap-8 px-5 py-10 sm:px-8 lg:grid-cols-[1.05fr_0.95fr] lg:px-12 lg:py-14">
           <div className="flex flex-col justify-center">
             <div className="mb-4 inline-flex w-fit items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-white/85 backdrop-blur">
               <Sparkles className="h-3.5 w-3.5 text-red-300" /> Notre force, vos droits
@@ -209,18 +218,45 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
-            {[
-              { icon: CheckCircle2, title: "FO 1ère force", text: "Merci pour votre mobilisation aux élections CSE 2026." },
-              { icon: Handshake, title: "NAO 2026", text: "FO refuse de signer des propositions insuffisantes." },
-              { icon: MessageSquare, title: "Accompagnement", text: "Une question, un dossier, une adhésion : FO COM répond présent." },
-            ].map((item) => (
-              <div key={item.title} className="rounded-2xl border border-white/10 bg-white/10 p-4 text-white shadow-lg backdrop-blur">
-                <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-white/15"><item.icon className="h-5 w-5" /></div>
-                <p className="font-bold">{item.title}</p>
-                <p className="mt-1 text-xs leading-relaxed text-white/75">{item.text}</p>
+          <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-white/10 p-4 text-white shadow-2xl backdrop-blur-md">
+            <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-red-500/25 blur-2xl" />
+            <div className="absolute -bottom-12 -left-12 h-36 w-36 rounded-full bg-teal-400/20 blur-2xl" />
+            <div className="relative">
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-wider text-red-100">FO COM UES ILIAD</p>
+                  <h2 className="mt-1 text-xl font-extrabold">Une équipe de terrain à vos côtés</h2>
+                </div>
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/15">
+                  <Users className="h-6 w-6" />
+                </div>
               </div>
-            ))}
+
+              <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                {HERO_REPRESENTATIVES.map((person) => (
+                  <div key={person.name} className="group relative aspect-square overflow-hidden rounded-2xl border border-white/10 bg-white/10 shadow-lg">
+                    <img src={person.photo} alt={person.name} loading="lazy" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent p-2">
+                      <p className="line-clamp-2 text-[10px] font-bold leading-tight text-white">{person.name}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-4 grid grid-cols-3 gap-2">
+                {[
+                  { icon: CheckCircle2, title: "FO 1ère force", text: "CSE 2026" },
+                  { icon: Handshake, title: "NAO 2026", text: "FO mobilisé" },
+                  { icon: MessageSquare, title: "Accompagnement", text: "Vos dossiers" },
+                ].map((item) => (
+                  <div key={item.title} className="rounded-2xl border border-white/10 bg-black/15 p-3 text-center backdrop-blur">
+                    <item.icon className="mx-auto mb-2 h-4 w-4 text-red-200" />
+                    <p className="text-[11px] font-extrabold leading-tight">{item.title}</p>
+                    <p className="mt-1 text-[10px] text-white/65">{item.text}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </section>
