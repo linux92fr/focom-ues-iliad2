@@ -1,0 +1,31 @@
+name: Styliser les portraits candidats
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  stylize:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Installer Pillow
+        run: python -m pip install --upgrade pillow
+
+      - name: Styliser les portraits
+        run: python scripts/stylize_candidats.py
+
+      - name: Commit des portraits stylisés
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: Stylise les portraits candidats FO
+          file_pattern: public/candidats/dbrou.png public/candidats/mzerarka.png public/candidats/nysidibe.jpg
