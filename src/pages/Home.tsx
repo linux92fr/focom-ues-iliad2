@@ -41,7 +41,7 @@ const DEFAULT_HERO_SUBTITLE = "FO COM UES ILIAD accompagne les salariés du grou
 const HERO_REPRESENTATIVES = [
   { name: "N'deye Yacine SIDIBÉ", photo: "/candidats/nysidibe.webp" },
   { name: "Mounir ZERARKA", photo: "/candidats/mzerarka.webp" },
-  { name: "Anthony LAVILLE", photo: "/candidats/alaville.png" },
+  { name: "Anthony LAVILLE", photo: "/candidats/alaville.webp" },
   { name: "Fabien RACAULT", photo: "/candidats/fracault.webp" },
   { name: "Didier BROU", photo: "/candidats/dbrou.webp" },
   { name: "Fadil KENDIRA", photo: "/candidats/fkendira.webp" },
