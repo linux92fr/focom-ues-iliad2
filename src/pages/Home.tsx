@@ -39,12 +39,42 @@ const DEFAULT_HERO_TITLE = "Informer. Défendre. Agir ensemble.";
 const DEFAULT_HERO_SUBTITLE = "FO COM UES ILIAD accompagne les salariés du groupe : droits, adhésion, demandes, documents utiles et actualités sociales.";
 
 const HERO_REPRESENTATIVES = [
-  { name: "N'deye Yacine SIDIBÉ", photo: "/candidats/nysidibe.webp" },
-  { name: "Mounir ZERARKA", photo: "/candidats/mzerarka.webp" },
-  { name: "Anthony LAVILLE", photo: "/candidats/alaville.webp" },
-  { name: "Fabien RACAULT", photo: "/candidats/fracault.webp" },
-  { name: "Didier BROU", photo: "/candidats/dbrou.webp" },
-  { name: "Fadil KENDIRA", photo: "/candidats/fkendira.webp" },
+  {
+    name: "N'deye Yacine SIDIBÉ",
+    photo: "/candidats/nysidibe.webp",
+    job: "Support administratif — Free Réseau",
+    role: "Secrétaire Générale FO COM UES ILIAD, élue titulaire CSE, déléguée syndicale",
+  },
+  {
+    name: "Mounir ZERARKA",
+    photo: "/candidats/mzerarka.webp",
+    job: "Conducteur de travaux — Free Mobile",
+    role: "Délégué syndical, élu titulaire CSE",
+  },
+  {
+    name: "Anthony LAVILLE",
+    photo: "/candidats/alaville.webp",
+    job: "TMF ex-TFO — Free Réseau",
+    role: "Délégué syndical",
+  },
+  {
+    name: "Fabien RACAULT",
+    photo: "/candidats/fracault.webp",
+    job: "TMF ex-TFO — ROF ex-Free Infra",
+    role: "Élu titulaire CSE, délégué syndical, membre CSSCT",
+  },
+  {
+    name: "Didier BROU",
+    photo: "/candidats/dbrou.webp",
+    job: "CIR ex-VPI — Free Réseau",
+    role: "Représentant syndical",
+  },
+  {
+    name: "Fadil KENDIRA",
+    photo: "/candidats/fkendira.webp",
+    job: "TMRE ex-PDEM — Free Réseau",
+    role: "Délégué syndical, élu titulaire CSE, administrateur du site",
+  },
 ];
 
 const HERO_SUPPORT_ADVISORS = {
@@ -240,12 +270,22 @@ export default function Home() {
 
               <div className="grid grid-cols-3 gap-2 sm:gap-3">
                 {HERO_REPRESENTATIVES.map((person) => (
-                  <div key={person.name} className="group relative aspect-square overflow-hidden rounded-2xl border border-white/10 bg-white/10 shadow-lg">
-                    <img src={person.photo} alt={person.name} loading="lazy" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent p-2">
+                  <button
+                    key={person.name}
+                    type="button"
+                    className="group relative aspect-square overflow-hidden rounded-2xl border border-white/10 bg-white/10 text-left shadow-lg focus:outline-none focus:ring-2 focus:ring-teal-300"
+                    aria-label={`${person.name}, ${person.job}, ${person.role}`}
+                  >
+                    <img src={person.photo} alt={person.name} loading="lazy" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105 group-focus:scale-105" />
+                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent p-2 transition-opacity duration-300 group-hover:opacity-0 group-focus:opacity-0">
                       <p className="line-clamp-2 text-[10px] font-bold leading-tight text-white">{person.name}</p>
                     </div>
-                  </div>
+                    <div className="absolute inset-0 flex translate-y-3 flex-col justify-end bg-gradient-to-t from-black/95 via-black/70 to-black/10 p-2.5 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100 group-focus:translate-y-0 group-focus:opacity-100">
+                      <p className="text-[11px] font-black leading-tight text-white">{person.name}</p>
+                      <p className="mt-1 text-[10px] font-semibold leading-tight text-teal-100">{person.job}</p>
+                      <p className="mt-1 line-clamp-3 text-[9px] leading-tight text-white/75">{person.role}</p>
+                    </div>
+                  </button>
                 ))}
               </div>
 
