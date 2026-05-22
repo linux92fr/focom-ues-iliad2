@@ -42,38 +42,38 @@ const HERO_REPRESENTATIVES = [
   {
     name: "N'deye Yacine SIDIBÉ",
     photo: "/candidats/nysidibe.webp",
-    job: "Support administratif — Free Réseau",
-    role: "Secrétaire Générale FO COM UES ILIAD, élue titulaire CSE, déléguée syndicale",
+    job: "Assistante Administrative • Opérations Réseau - FREE RÉSEAU",
+    role: "Secrétaire Syndicat - Élue titulaire du CSE - Déléguée Syndicale",
   },
   {
     name: "Mounir ZERARKA",
     photo: "/candidats/mzerarka.webp",
-    job: "Conducteur de travaux — Free Mobile",
-    role: "Délégué syndical, élu titulaire CSE",
+    job: "CDT Free Mobile",
+    role: "Élu Titulaire du CSE - Délégué Syndical",
   },
   {
     name: "Anthony LAVILLE",
     photo: "/candidats/alaville.webp",
-    job: "TMF ex-TFO — Free Réseau",
-    role: "Délégué syndical",
+    job: "TMF - FREE RÉSEAU",
+    role: "Délégué Syndical",
   },
   {
     name: "Fabien RACAULT",
     photo: "/candidats/fracault.webp",
-    job: "TMF ex-TFO — ROF ex-Free Infra",
-    role: "Élu titulaire CSE, délégué syndical, membre CSSCT",
+    job: "TMF - ROF",
+    role: "Élu Titulaire du CSE - Délégué Syndical",
   },
   {
     name: "Didier BROU",
     photo: "/candidats/dbrou.webp",
-    job: "CIR ex-VPI — Free Réseau",
-    role: "Représentant syndical",
+    job: "CIR FREE RÉSEAU",
+    role: "Représentant Syndical",
   },
   {
     name: "Fadil KENDIRA",
     photo: "/candidats/fkendira.webp",
-    job: "TMRE ex-PDEM — Free Réseau",
-    role: "Délégué syndical, élu titulaire CSE, administrateur du site",
+    job: "TMRE FREE RÉSEAU",
+    role: "Élu Titulaire du CSE - Délégué Syndical",
   },
 ];
 
@@ -81,6 +81,7 @@ const HERO_SUPPORT_ADVISORS = {
   title: "Conseillers & soutien terrain",
   names: "Aurélien & Awa",
   photo: "/candidats/aurelien_awa.webp",
+  description: "Élus Titulaires du CSE",
 };
 
 type LatestArticle = {
@@ -302,7 +303,7 @@ export default function Home() {
                   <div className="min-w-0">
                     <p className="text-[10px] font-black uppercase tracking-wider text-teal-100">{HERO_SUPPORT_ADVISORS.title}</p>
                     <p className="mt-1 text-sm font-extrabold leading-tight text-white">{HERO_SUPPORT_ADVISORS.names}</p>
-                    <p className="mt-1 text-[11px] leading-relaxed text-white/65">Backup, conseil et appui aux représentants FO COM.</p>
+                    <p className="mt-1 text-[11px] leading-relaxed text-white/65">{HERO_SUPPORT_ADVISORS.description}</p>
                   </div>
                 </div>
               </div>
