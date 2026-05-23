@@ -1,6 +1,102 @@
 # Contrat API partagé — Web & Android
 
-Ce document décrit les interfaces partagées entre le site web (`focom-ues-iliad2`) et l'application Android dérivée. Les deux applications utilisent le **même projet Supabase** comme backend. Toute modification ici est un **breaking change potentiel** pour l'Android.
+Ce document décrit les interfaces partagées entre le site web (`focom-ues-iliad2`) et l'application Android (`Android_FOCOM`). Les deux applications utilisent le **même projet Supabase** comme backend. Toute modification ici est un **breaking change potentiel** pour l'Android.
+
+---
+
+## Applications concernées
+
+| App | Dépôt | Stack | Client Supabase |
+|---|---|---|---|
+| Site web | `linux92fr/focom-ues-iliad2` | React 18 + Vite + TypeScript | `@supabase/supabase-js` v2 |
+| App Android | `linux92fr/Android_FOCOM` | Kotlin + Jetpack Compose + MVVM | Retrofit + OkHttp (appels REST directs) |
+
+> L'app Android n'utilise **pas** le SDK Supabase officiel Kotlin — elle appelle directement les endpoints REST PostgREST avec Retrofit.
+
+---
+
+## Fichier de données partagé (GitHub Raw)
+
+L'app Android charge ce fichier JSON pour alimenter les sections News, Droits, Délégués et Publications **sans rebuilder l'APK** :
+
+```
+GET https://raw.githubusercontent.com/linux92fr/focom-ues-iliad2/main/data/focom-content.json
+```
+
+**Localisation dans ce dépôt :** `data/focom-content.json`
+
+### Structure attendue
+
+```json
+{
+  "newsList": [
+    {
+      "id": "string",
+      "title": "string",
+      "description": "string",
+      "content": "string (texte brut, pas de HTML)",
+      "date": "string (ex: '22 mai 2026')",
+      "category": "NAO | CSE | Accords | Vie Syndicale",
+      "isHotState": "boolean",
+      "imageUrl": "string | null"
+    }
+  ],
+  "rightsList": [
+    {
+      "id": "string",
+      "title": "string",
+      "category": "Télétravail | Congés | Santé | Rémunération | Législation | Sécurité",
+      "summary": "string",
+      "detailMarkdown": "string (Markdown rendu dans l'app)",
+      "focomAdvice": "string"
+    }
+  ],
+  "delegatesList": [
+    {
+      "id": "string",
+      "name": "string",
+      "role": "string",
+      "entity": "Free Réseau | Free Mobile | ILIAD | Free SAS | Assunet | ROF",
+      "region": "string",
+      "email": "string",
+      "phone": "string",
+      "avatarLetters": "string (2 initiales)"
+    }
+  ],
+  "publicationsList": [
+    {
+      "id": "string",
+      "title": "string",
+      "type": "Journal | Tract | Affiche",
+      "date": "string",
+      "thumbnailUrl": "string | null",
+      "pdfUrl": "string (URL publique du PDF)",
+      "excerpt": "string"
+    }
+  ]
+}
+```
+
+> **Important :** Ce fichier est la **source de vérité** pour les droits et les délégués dans l'app Android. Modifier ce fichier met à jour l'app sans publication d'un nouvel APK.
+
+---
+
+## Mapping articles Supabase → Publications Android
+
+L'app Android lit aussi la table `articles` de Supabase et la transforme ainsi :
+
+| Colonne `articles` | Champ `FocomPublication` | Transformation |
+|---|---|---|
+| `id` | `id` | Direct |
+| `title` | `title` | Direct |
+| `content` | `content` | HTML strippé côté Android |
+| `excerpt` | `excerpt` | Direct (ou `""`) |
+| `category` | `type` | Mapping : `actualite` → `"Actualité"`, etc. |
+| `image_url` | `thumbnailUrl` | Direct |
+| `published_at` | `date` | Formaté `DD/MM/YYYY` en français |
+| `slug` | *(construit pdfUrl)* | `https://focomues-iliad.fr/actualites/{slug}` |
+
+> **Point de vigilance :** L'URL vers l'article web est construite côté Android avec le `slug`. Si la structure des routes web change (`/actualites/` → `/articles/`), tous les liens dans l'app seront cassés.
 
 ---
 
@@ -521,6 +617,60 @@ Pour construire une URL publique :
 ```
 https://qinekdmyycyujsrcsfbe.supabase.co/storage/v1/object/public/<bucket>/<file_path>
 ```
+
+---
+
+## Données non synchronisées (hardcodées Android)
+
+Ces données existent uniquement en dur dans l'app Android (`FocomDataRepository.kt`) et **ne sont pas** dans Supabase. Pour les mettre à jour, il faut modifier `data/focom-content.json` dans ce dépôt web ou créer les tables Supabase correspondantes.
+
+| Donnée | Statut actuel | Solution recommandée |
+|---|---|---|
+| Délégués | Hardcodé + `focom-content.json` | ✅ Déjà dans `focom-content.json` |
+| Droits salariés | Hardcodé + `focom-content.json` | ✅ Déjà dans `focom-content.json` |
+| Actualités | `focom-content.json` + Supabase `articles` | Les deux sources actives |
+| Calculs simulateur (bonus, congés) | Logique métier Android (`SimulatorLogic.kt`) | À documenter si le web ajoute un simulateur |
+
+---
+
+## Endpoints REST utilisés par l'Android
+
+L'app Android appelle Supabase via Retrofit avec ces en-têtes obligatoires sur chaque requête :
+
+```
+apikey: <SUPABASE_PUBLISHABLE_KEY>
+Authorization: Bearer <SUPABASE_PUBLISHABLE_KEY>
+Content-Type: application/json
+```
+
+### `GET /rest/v1/articles`
+
+```
+select=id,title,content,excerpt,category,slug,image_url,published_at,created_at
+is_published=eq.true
+order=published_at.desc.nullslast
+```
+
+**Réponse :** tableau de `SupabaseArticle`
+
+### `POST /rest/v1/contact_messages`
+
+```
+Prefer: return=minimal
+```
+
+**Corps :**
+```json
+{
+  "name": "string",
+  "email": "string",
+  "subject": "string",
+  "message": "string",
+  "category": "Application Android"
+}
+```
+
+> Le champ `category` est toujours `"Application Android"` — permet de distinguer les messages venant de l'app vs du site web dans le dashboard admin.
 
 ---
 
