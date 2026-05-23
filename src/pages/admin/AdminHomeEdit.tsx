@@ -82,17 +82,17 @@ export default function AdminHomeEdit() {
       const heroValue     = JSON.stringify({ title: heroTitle, subtitle: heroSubtitle });
       const sectionsValue = JSON.stringify(sections);
 
-      // Upsert hero
-      await supabase.from("site_content").upsert(
-        { key: HERO_KEY, value: heroValue, title: "Hero page d'accueil", subtitle: "" },
+      const { error: e1 } = await supabase.from("site_content").upsert(
+        { key: HERO_KEY, value: heroValue },
         { onConflict: "key" }
       );
+      if (e1) throw e1;
 
-      // Upsert sections
-      await supabase.from("site_content").upsert(
-        { key: SECTIONS_KEY, value: sectionsValue, title: "Sections de navigation", subtitle: "" },
+      const { error: e2 } = await supabase.from("site_content").upsert(
+        { key: SECTIONS_KEY, value: sectionsValue },
         { onConflict: "key" }
       );
+      if (e2) throw e2;
 
       toast.success("Modifications enregistrées avec succès");
     } catch {
