@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   ArrowRight,
   BookOpen,
@@ -20,6 +22,10 @@ import {
   Target,
   Users,
 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
+
+type Representative = Database["public"]["Tables"]["representatives"]["Row"];
 
 const missions = [
   {
@@ -47,69 +53,6 @@ const keyFigures = [
 
 const entities = ["Free SAS", "ILIAD SA", "Free Réseau", "Free Mobile", "Assunet"];
 
-const representants = [
-  {
-    nom: "N'deye Yacine SIDIBÉ",
-    poste: "Secrétaire Générale du Syndicat FOCOM UES ILIAD",
-    service: "FREE RÉSEAU",
-    email: "nysidibe@focomues-iliad.fr",
-    telephone: "06.23.29.02.23",
-    mandat: "Élue Titulaire CSE, Déléguée Syndicale",
-    photo: "/candidats/nysidibe.jpg",
-  },
-  {
-    nom: "Mounir ZERARKA",
-    poste: "Conducteur de Travaux",
-    service: "FREE MOBILE",
-    email: "mounir@focomues-iliad.fr",
-    telephone: "06.50.95.86.66",
-    mandat: "Délégué Syndical, Élu Titulaire CSE",
-    photo: "/candidats/mzerarka.png",
-  },
-  {
-    nom: "Anthony LAVILLE",
-    poste: "TMF (ex-TFO)",
-    service: "FREE RÉSEAU",
-    email: "alaville@focomues-iliad.fr",
-    telephone: "07.60.15.10.79",
-    mandat: "Délégué Syndical",
-    photo: "/candidats/alaville.png",
-  },
-  {
-    nom: "Fabien RACAULT",
-    poste: "TMF (ex-TFO)",
-    service: "ROF (ex-Free Infra)",
-    email: "fabien@focomues-iliad.fr",
-    telephone: "06.31.57.33.42",
-    mandat: "Élu Titulaire CSE, Délégué syndical, Membre CSSCT",
-    photo: "/candidats/fracault.webp",
-  },
-  {
-    nom: "Didier BROU",
-    poste: "CIR (ex-VPI)",
-    service: "FREE RÉSEAU",
-    email: "didier@focomues-iliad.fr",
-    telephone: "06.50.54.10.32",
-    mandat: "Représentant syndical",
-    photo: "/candidats/dbrou.png",
-  },
-  {
-    nom: "Fadil KENDIRA",
-    poste: "TMRE (ex-PDEM)",
-    service: "FREE RÉSEAU",
-    email: "fadil@focomues-iliad.fr",
-    telephone: "06.50.77.28.25",
-    mandat: "Délégué syndical, Élu Titulaire CSE, Administrateur du site",
-    photo: "/candidats/fkendira.webp",
-  },
-  {
-    nom: "Régis CRITON",
-    poste: "Retraité — Ex Concepteur FM",
-    service: "FREE MOBILE",
-    email: "",
-    mandat: "Ex-Délégué syndical, Ex-Élu du CSE, Ex-Commission Économique",
-  },
-];
 
 const presenceTerrain = [
   {
@@ -172,22 +115,13 @@ const representatives = [
   },
 ];
 
-function getInitials(nom: string) {
-  return nom
-    .split(" ")
-    .filter(Boolean)
-    .map((part) => part[0]?.toUpperCase())
-    .slice(0, 2)
-    .join("");
-}
-
 function cleanTel(phone: string) {
   return phone.replace(/[^0-9+]/g, "");
 }
 
-function RepresentantCard({ rep }: { rep: typeof representants[number] }) {
+function RepresentantCard({ rep }: { rep: Representative }) {
   const [imgError, setImgError] = useState(false);
-  const showPhoto = Boolean(rep.photo && !imgError);
+  const showPhoto = Boolean(rep.photo_url && !imgError);
 
   return (
     <Card className="group overflow-hidden border-slate-200 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:border-red-100 hover:shadow-md">
@@ -195,7 +129,7 @@ function RepresentantCard({ rep }: { rep: typeof representants[number] }) {
         <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-red-600 to-red-800 text-xl font-black text-white shadow-md">
           {showPhoto ? (
             <img
-              src={rep.photo}
+              src={rep.photo_url!}
               alt={rep.nom}
               className="h-full w-full object-cover"
               loading="lazy"
@@ -203,7 +137,7 @@ function RepresentantCard({ rep }: { rep: typeof representants[number] }) {
               onError={() => setImgError(true)}
             />
           ) : (
-            <span>{getInitials(rep.nom)}</span>
+            <span>{rep.avatar_letters}</span>
           )}
         </div>
 
@@ -221,7 +155,7 @@ function RepresentantCard({ rep }: { rep: typeof representants[number] }) {
           </div>
           <div className="flex items-center justify-center gap-1.5 text-slate-500">
             <Flag className="h-3.5 w-3.5 shrink-0 text-teal-600" />
-            <span>{rep.service}</span>
+            <span>{rep.entity}</span>
           </div>
         </div>
 
@@ -244,7 +178,38 @@ function RepresentantCard({ rep }: { rep: typeof representants[number] }) {
   );
 }
 
+function RepresentantsSkeleton() {
+  return (
+    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <Card key={i} className="border-slate-200 bg-white shadow-sm">
+          <CardContent className="flex flex-col items-center p-5">
+            <Skeleton className="h-20 w-20 rounded-full" />
+            <Skeleton className="mt-4 h-4 w-36" />
+            <Skeleton className="mt-2 h-3 w-48" />
+            <Skeleton className="mt-4 h-3 w-32" />
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
 export default function LeSyndicat() {
+  const { data: representants = [], isLoading: repLoading } = useQuery({
+    queryKey: ["representatives"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("representatives")
+        .select("*")
+        .order("ordre");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const actifs = representants.filter((r) => r.actif);
+
   return (
     <main className="min-h-screen overflow-x-hidden bg-slate-50 p-3 sm:p-4 lg:p-8">
       <section className="relative overflow-hidden rounded-3xl bg-[#13233A] p-6 text-white shadow-xl sm:p-8 lg:p-10">
@@ -310,11 +275,15 @@ export default function LeSyndicat() {
             Une équipe de représentants élus et mandatés pour défendre vos droits, vous accompagner et porter vos revendications au sein de l’UES ILIAD.
           </p>
         </div>
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {representants.map((rep) => (
-            <RepresentantCard key={rep.nom} rep={rep} />
-          ))}
-        </div>
+        {repLoading ? (
+          <RepresentantsSkeleton />
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {actifs.map((rep) => (
+              <RepresentantCard key={rep.id} rep={rep} />
+            ))}
+          </div>
+        )}
       </section>
 
       <section className="mt-8 rounded-3xl border border-teal-100 bg-white p-5 shadow-sm sm:p-6">

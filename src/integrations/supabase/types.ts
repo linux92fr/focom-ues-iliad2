@@ -132,48 +132,6 @@ export type Database = {
         }
         Relationships: []
       }
-      contact_messages: {
-        Row: {
-          id: string
-          name: string
-          email: string
-          subject: string
-          message: string
-          category: string
-          status: "non-lu" | "lu" | "repondu"
-          admin_reply: string | null
-          replied_at: string | null
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          name: string
-          email: string
-          subject: string
-          message: string
-          category?: string
-          status?: "non-lu" | "lu" | "repondu"
-          admin_reply?: string | null
-          replied_at?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          name?: string
-          email?: string
-          subject?: string
-          message?: string
-          category?: string
-          status?: "non-lu" | "lu" | "repondu"
-          admin_reply?: string | null
-          replied_at?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
       article_notifications: {
         Row: {
           article_id: string
@@ -354,6 +312,48 @@ export type Database = {
           success?: boolean | null
           user_agent?: string | null
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      contact_messages: {
+        Row: {
+          admin_reply: string | null
+          category: string
+          created_at: string
+          email: string
+          id: string
+          message: string
+          name: string
+          replied_at: string | null
+          status: string
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          admin_reply?: string | null
+          category?: string
+          created_at?: string
+          email: string
+          id?: string
+          message: string
+          name: string
+          replied_at?: string | null
+          status?: string
+          subject: string
+          updated_at?: string
+        }
+        Update: {
+          admin_reply?: string | null
+          category?: string
+          created_at?: string
+          email?: string
+          id?: string
+          message?: string
+          name?: string
+          replied_at?: string | null
+          status?: string
+          subject?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -779,6 +779,89 @@ export type Database = {
         }
         Relationships: []
       }
+      formation_inscriptions: {
+        Row: {
+          adresse_direction: string | null
+          adresse_personnelle: string | null
+          code_postal_direction: string | null
+          code_postal_personnel: string | null
+          created_at: string | null
+          direction_rattachement: string | null
+          email: string
+          id: string
+          lieu_travail: string | null
+          niveau_fonction: string | null
+          nom: string
+          nom_drh: string | null
+          nom_entreprise: string | null
+          numero_departement: string | null
+          prenom: string
+          region_fo: string | null
+          session_id: string | null
+          statut_inscription: string | null
+          telephone: string | null
+          updated_at: string | null
+          ville_direction: string | null
+          ville_personnelle: string | null
+        }
+        Insert: {
+          adresse_direction?: string | null
+          adresse_personnelle?: string | null
+          code_postal_direction?: string | null
+          code_postal_personnel?: string | null
+          created_at?: string | null
+          direction_rattachement?: string | null
+          email: string
+          id?: string
+          lieu_travail?: string | null
+          niveau_fonction?: string | null
+          nom: string
+          nom_drh?: string | null
+          nom_entreprise?: string | null
+          numero_departement?: string | null
+          prenom: string
+          region_fo?: string | null
+          session_id?: string | null
+          statut_inscription?: string | null
+          telephone?: string | null
+          updated_at?: string | null
+          ville_direction?: string | null
+          ville_personnelle?: string | null
+        }
+        Update: {
+          adresse_direction?: string | null
+          adresse_personnelle?: string | null
+          code_postal_direction?: string | null
+          code_postal_personnel?: string | null
+          created_at?: string | null
+          direction_rattachement?: string | null
+          email?: string
+          id?: string
+          lieu_travail?: string | null
+          niveau_fonction?: string | null
+          nom?: string
+          nom_drh?: string | null
+          nom_entreprise?: string | null
+          numero_departement?: string | null
+          prenom?: string
+          region_fo?: string | null
+          session_id?: string | null
+          statut_inscription?: string | null
+          telephone?: string | null
+          updated_at?: string | null
+          ville_direction?: string | null
+          ville_personnelle?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "formation_inscriptions_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "formation_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       formation_participants: {
         Row: {
           created_at: string
@@ -817,6 +900,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      formation_sessions: {
+        Row: {
+          adresse_formation: string | null
+          code_postal: string
+          created_at: string | null
+          date_debut: string
+          date_fin: string
+          id: string
+          intitule: string
+          lieu: string
+          places_max: number | null
+          places_restantes: number | null
+          statut: string | null
+          type_formation: string
+          updated_at: string | null
+        }
+        Insert: {
+          adresse_formation?: string | null
+          code_postal: string
+          created_at?: string | null
+          date_debut: string
+          date_fin: string
+          id?: string
+          intitule: string
+          lieu: string
+          places_max?: number | null
+          places_restantes?: number | null
+          statut?: string | null
+          type_formation: string
+          updated_at?: string | null
+        }
+        Update: {
+          adresse_formation?: string | null
+          code_postal?: string
+          created_at?: string | null
+          date_debut?: string
+          date_fin?: string
+          id?: string
+          intitule?: string
+          lieu?: string
+          places_max?: number | null
+          places_restantes?: number | null
+          statut?: string | null
+          type_formation?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       formations: {
         Row: {
@@ -1063,6 +1194,42 @@ export type Database = {
           temps_commentaire?: string | null
           temps_priorite?: string | null
           top5?: string[] | null
+        }
+        Relationships: []
+      }
+      nao_sessions: {
+        Row: {
+          badge_label: string
+          created_at: string | null
+          date_session: string
+          description: string
+          id: string
+          ordre: number
+          statut: string
+          titre: string
+          updated_at: string | null
+        }
+        Insert: {
+          badge_label: string
+          created_at?: string | null
+          date_session: string
+          description: string
+          id?: string
+          ordre: number
+          statut: string
+          titre: string
+          updated_at?: string | null
+        }
+        Update: {
+          badge_label?: string
+          created_at?: string | null
+          date_session?: string
+          description?: string
+          id?: string
+          ordre?: number
+          statut?: string
+          titre?: string
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -1589,6 +1756,172 @@ export type Database = {
         }
         Relationships: []
       }
+      reclamation_attachments: {
+        Row: {
+          created_at: string
+          file_name: string
+          file_path: string
+          file_size: number | null
+          id: string
+          mime_type: string | null
+          reclamation_id: string
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          id?: string
+          mime_type?: string | null
+          reclamation_id: string
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          mime_type?: string | null
+          reclamation_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reclamation_attachments_reclamation_id_fkey"
+            columns: ["reclamation_id"]
+            isOneToOne: false
+            referencedRelation: "reclamations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reclamation_messages: {
+        Row: {
+          author_id: string | null
+          content: string
+          created_at: string
+          id: string
+          is_admin: boolean
+          reclamation_id: string
+        }
+        Insert: {
+          author_id?: string | null
+          content: string
+          created_at?: string
+          id?: string
+          is_admin?: boolean
+          reclamation_id: string
+        }
+        Update: {
+          author_id?: string | null
+          content?: string
+          created_at?: string
+          id?: string
+          is_admin?: boolean
+          reclamation_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reclamation_messages_reclamation_id_fkey"
+            columns: ["reclamation_id"]
+            isOneToOne: false
+            referencedRelation: "reclamations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reclamations: {
+        Row: {
+          category: string
+          created_at: string
+          description: string
+          entity: string
+          id: string
+          priority: string
+          status: string
+          title: string
+          updated_at: string
+          user_email: string | null
+          user_id: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description: string
+          entity?: string
+          id?: string
+          priority?: string
+          status?: string
+          title: string
+          updated_at?: string
+          user_email?: string | null
+          user_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string
+          entity?: string
+          id?: string
+          priority?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          user_email?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      representatives: {
+        Row: {
+          actif: boolean
+          avatar_letters: string | null
+          created_at: string
+          email: string
+          entity: string
+          id: string
+          mandat: string
+          nom: string
+          ordre: number
+          photo_url: string | null
+          poste: string
+          region: string
+          telephone: string
+          updated_at: string
+        }
+        Insert: {
+          actif?: boolean
+          avatar_letters?: string | null
+          created_at?: string
+          email?: string
+          entity?: string
+          id?: string
+          mandat?: string
+          nom: string
+          ordre?: number
+          photo_url?: string | null
+          poste?: string
+          region?: string
+          telephone?: string
+          updated_at?: string
+        }
+        Update: {
+          actif?: boolean
+          avatar_letters?: string | null
+          created_at?: string
+          email?: string
+          entity?: string
+          id?: string
+          mandat?: string
+          nom?: string
+          ordre?: number
+          photo_url?: string | null
+          poste?: string
+          region?: string
+          telephone?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       role_permissions: {
         Row: {
           created_at: string
@@ -1678,6 +2011,79 @@ export type Database = {
         }
         Relationships: []
       }
+      survey_email_verifications: {
+        Row: {
+          code_hash: string
+          created_at: string
+          email_hash: string
+          expires_at: string
+          id: string
+          survey_id: string
+          used_at: string | null
+        }
+        Insert: {
+          code_hash: string
+          created_at?: string
+          email_hash: string
+          expires_at: string
+          id?: string
+          survey_id: string
+          used_at?: string | null
+        }
+        Update: {
+          code_hash?: string
+          created_at?: string
+          email_hash?: string
+          expires_at?: string
+          id?: string
+          survey_id?: string
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "survey_email_verifications_survey_id_fkey"
+            columns: ["survey_id"]
+            isOneToOne: false
+            referencedRelation: "surveys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      survey_external_participants: {
+        Row: {
+          created_at: string
+          email_hash: string
+          first_name: string
+          id: string
+          last_name: string
+          survey_id: string
+        }
+        Insert: {
+          created_at?: string
+          email_hash: string
+          first_name: string
+          id?: string
+          last_name: string
+          survey_id: string
+        }
+        Update: {
+          created_at?: string
+          email_hash?: string
+          first_name?: string
+          id?: string
+          last_name?: string
+          survey_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "survey_external_participants_survey_id_fkey"
+            columns: ["survey_id"]
+            isOneToOne: false
+            referencedRelation: "surveys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       survey_options: {
         Row: {
           display_order: number
@@ -1745,6 +2151,7 @@ export type Database = {
       survey_responses: {
         Row: {
           created_at: string
+          external_participant_id: string | null
           id: string
           option_id: string | null
           question_id: string
@@ -1754,6 +2161,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          external_participant_id?: string | null
           id?: string
           option_id?: string | null
           question_id: string
@@ -1763,6 +2171,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          external_participant_id?: string | null
           id?: string
           option_id?: string | null
           question_id?: string
@@ -1771,6 +2180,13 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "survey_responses_external_participant_id_fkey"
+            columns: ["external_participant_id"]
+            isOneToOne: false
+            referencedRelation: "survey_external_participants"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "survey_responses_option_id_fkey"
             columns: ["option_id"]
@@ -1797,6 +2213,7 @@ export type Database = {
       surveys: {
         Row: {
           allow_multiple_votes: boolean
+          allowed_email_domain: string
           created_at: string
           created_by: string | null
           description: string | null
@@ -1804,12 +2221,14 @@ export type Database = {
           id: string
           is_active: boolean
           is_anonymous: boolean
+          participation_mode: string
           starts_at: string | null
           title: string
           updated_at: string
         }
         Insert: {
           allow_multiple_votes?: boolean
+          allowed_email_domain?: string
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -1817,12 +2236,14 @@ export type Database = {
           id?: string
           is_active?: boolean
           is_anonymous?: boolean
+          participation_mode?: string
           starts_at?: string | null
           title: string
           updated_at?: string
         }
         Update: {
           allow_multiple_votes?: boolean
+          allowed_email_domain?: string
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -1830,6 +2251,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           is_anonymous?: boolean
+          participation_mode?: string
           starts_at?: string | null
           title?: string
           updated_at?: string
