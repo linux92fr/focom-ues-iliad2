@@ -4,7 +4,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Mail, Phone, MapPin, Clock, Send, Loader2 } from "lucide-react";
+import { Mail, Phone, MapPin, Clock, Send, Loader2, MessageSquare } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
@@ -78,23 +79,33 @@ const Contact = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <main className="min-h-screen overflow-x-hidden bg-slate-50 p-3 sm:p-4 lg:p-8 space-y-6">
 
       {/* Hero */}
-      <section className="py-16 gradient-hero">
-        <div className="container mx-auto px-4 text-center">
-          <h1 className="font-serif text-4xl md:text-5xl font-bold text-primary-foreground mb-4">
-            Contactez-nous
+      <section className="relative overflow-hidden rounded-3xl bg-[#13233A] p-6 text-white shadow-xl sm:p-8 lg:p-10">
+        <div className="pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full border-[52px] border-white/5" />
+        <div className="pointer-events-none absolute -bottom-24 -left-24 h-80 w-80 rounded-full bg-red-600/25 blur-3xl" />
+        <div className="relative">
+          <Badge className="mb-4 border border-white/15 bg-white/10 text-white hover:bg-white/10">
+            <MessageSquare className="mr-1 h-3.5 w-3.5" /> Contact
+          </Badge>
+          <h1 className="text-3xl font-extrabold leading-tight sm:text-5xl lg:text-6xl">
+            Contactez FO COM UES ILIAD
           </h1>
-          <p className="text-primary-foreground/90 max-w-2xl mx-auto">
-            Une question ? Un besoin d'assistance ? Notre équipe est à votre écoute
+          <p className="mt-4 max-w-3xl text-sm leading-relaxed text-white/80 sm:text-lg">
+            Une question, un dossier individuel ou une difficulté au travail ? Nos représentants sont à votre écoute.
           </p>
+          <div className="mt-6 flex flex-wrap gap-4 text-sm text-white/70">
+            <span className="flex items-center gap-1.5"><Phone className="h-3.5 w-3.5" /> 01 87 15 43 11</span>
+            <span className="flex items-center gap-1.5"><Mail className="h-3.5 w-3.5" /> contact@focomues-iliad.fr</span>
+            <span className="flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" /> Lun–Ven, 9h–18h</span>
+          </div>
         </div>
       </section>
 
       {/* Content */}
-      <main className="flex-grow py-12">
-        <div className="container mx-auto px-4">
+      <section>
+        <div className="mx-auto max-w-7xl">
           <div className="grid lg:grid-cols-3 gap-8">
 
             {/* Contact Info */}
@@ -187,8 +198,8 @@ const Contact = () => {
             </div>
           </div>
         </div>
-      </main>
-    </div>
+      </section>
+    </main>
   );
 };
 
