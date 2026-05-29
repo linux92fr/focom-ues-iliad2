@@ -19,8 +19,9 @@ test.describe('Navigation publique', () => {
     await page.goto('/espace-adherent');
     await page.waitForLoadState('domcontentloaded');
     await page.getByRole('button', { name: /Se connecter/i }).click({ timeout: 10000 });
-    await expect(page.getByRole('dialog')).toBeVisible({ timeout: 10000 });
-    await expect(page.getByText(/Espace Adhérent/i)).toBeVisible({ timeout: 10000 });
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toBeVisible({ timeout: 10000 });
+    await expect(dialog.getByText(/Espace Adhérent/i)).toBeVisible({ timeout: 10000 });
   });
 
   test('page FAQ accessible sans connexion', async ({ page }) => {
