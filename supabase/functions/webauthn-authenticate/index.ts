@@ -160,8 +160,8 @@ Deno.serve(async (req) => {
     }
 
     return json({ error: 'Action non reconnue' }, 400, corsHeaders);
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('[webauthn-authenticate]', err);
-    return json({ error: err.message || 'Erreur interne' }, 500, corsHeaders);
+    return json({ error: err instanceof Error ? err.message : 'Erreur interne' }, 500, corsHeaders);
   }
 });
