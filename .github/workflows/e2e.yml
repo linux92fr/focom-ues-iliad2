@@ -29,16 +29,23 @@ jobs:
       - name: Build app
         run: npm run build
         env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          # Fallback vers le projet de production si les secrets ne sont pas configurés.
+          # La clé anon est publique (protégée par RLS) — un placeholder non-vide suffit
+          # pour les tests UI qui ne font pas d'appels Supabase réels.
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || 'https://qinekdmyycyujsrcsfbe.supabase.co' }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || 'ci_placeholder_anon_key' }}
 
-      - name: Start preview server & run E2E tests
-        run: |
-          npx serve dist -l 5173 &
-          sleep 3
-          PLAYWRIGHT_BASE_URL=http://localhost:5173 npx playwright test --project=chromium
+      - name: Start preview server
+        run: npx serve dist -l 5173 &
+
+      - name: Wait for server
+        run: npx wait-on http://localhost:5173 --timeout 30000
+
+      - name: Run E2E tests
+        run: npx playwright test --project=chromium
         env:
           CI: true
+          PLAYWRIGHT_BASE_URL: http://localhost:5173
 
       - uses: actions/upload-artifact@v4
         if: failure()
