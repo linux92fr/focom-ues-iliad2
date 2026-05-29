@@ -1,10 +1,14 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
-};
+const CORS_ALLOW_HEADERS = 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version';
+
+function getCorsHeaders(origin: string): Record<string, string> {
+  return {
+    'Access-Control-Allow-Origin': isAllowedOrigin(origin) ? origin : 'null',
+    'Access-Control-Allow-Headers': CORS_ALLOW_HEADERS,
+  };
+}
 
 function getRpIdFromOrigin(origin: string): string {
   try {
@@ -164,8 +168,10 @@ function generateChallenge(): string {
 }
 
 serve(async (req) => {
+  const origin = req.headers.get('origin') || 'https://focomues-iliad.fr';
+
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: getCorsHeaders(origin) });
   }
 
   try {
@@ -174,8 +180,6 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
     const { action, ...data } = await req.json();
-
-    const origin = req.headers.get('origin') || data.origin || 'https://focomues-iliad.fr';
     const rpId = getRpIdFromOrigin(origin);
 
     console.log(`[webauthn-authenticate] Action: ${action}, Origin: ${origin}, RP_ID: ${rpId}`);
@@ -195,7 +199,7 @@ serve(async (req) => {
           console.error('[webauthn-authenticate] Error listing users:', userError);
           return new Response(
             JSON.stringify({ error: "Erreur lors de la recherche de l'utilisateur", details: userError.message }),
-            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            { status: 500, headers: { ...getCorsHeaders(origin), 'Content-Type': 'application/json' } }
           );
         }
 
@@ -215,8 +219,8 @@ serve(async (req) => {
           if (!creds || creds.length === 0) {
             console.log(`[webauthn-authenticate] No passkeys found for user ${email}`);
             return new Response(
-              JSON.stringify({ error: 'Aucun passkey enregistré pour cet utilisateur. Veuillez d\'abord en créer un depuis votre profil.' }),
-              { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+              JSON.stringify({ error: 'Aucun passkey trouvé pour cet email. Vérifiez votre adresse ou créez un passkey depuis votre profil.' }),
+              { status: 400, headers: { ...getCorsHeaders(origin), 'Content-Type': 'application/json' } }
             );
           }
 
@@ -237,8 +241,8 @@ serve(async (req) => {
         } else {
           console.log(`[webauthn-authenticate] No user found with email: ${email}`);
           return new Response(
-            JSON.stringify({ error: 'Aucun utilisateur trouvé avec cet email' }),
-            { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            JSON.stringify({ error: 'Aucun passkey trouvé pour cet email. Vérifiez votre adresse ou créez un passkey depuis votre profil.' }),
+            { status: 400, headers: { ...getCorsHeaders(origin), 'Content-Type': 'application/json' } }
           );
         }
       } else {
@@ -258,7 +262,7 @@ serve(async (req) => {
         console.error('[webauthn-authenticate] Error storing challenge:', challengeInsertError);
         return new Response(
           JSON.stringify({ error: 'Erreur lors de la création du challenge', details: challengeInsertError.message }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 500, headers: { ...getCorsHeaders(origin), 'Content-Type': 'application/json' } }
         );
       }
 
@@ -272,7 +276,7 @@ serve(async (req) => {
 
       return new Response(
         JSON.stringify({ options, rpId }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { headers: { ...getCorsHeaders(origin), 'Content-Type': 'application/json' } }
       );
     }
 
@@ -282,7 +286,7 @@ serve(async (req) => {
       if (!credential || !credential.response) {
         return new Response(
           JSON.stringify({ error: 'Credential invalide' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 400, headers: { ...getCorsHeaders(origin), 'Content-Type': 'application/json' } }
         );
       }
 
@@ -298,7 +302,7 @@ serve(async (req) => {
         console.error('[webauthn-authenticate] Credential not found:', credError);
         return new Response(
           JSON.stringify({ error: 'Passkey non reconnu. Vérifiez que vous utilisez le bon appareil.' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 400, headers: { ...getCorsHeaders(origin), 'Content-Type': 'application/json' } }
         );
       }
 
@@ -317,7 +321,7 @@ serve(async (req) => {
         console.error('[webauthn-authenticate] Challenge error:', challengeError);
         return new Response(
           JSON.stringify({ error: 'Challenge expiré ou invalide. Veuillez réessayer.' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 400, headers: { ...getCorsHeaders(origin), 'Content-Type': 'application/json' } }
         );
       }
 
@@ -328,7 +332,7 @@ serve(async (req) => {
       if (clientDataJSON.challenge !== challengeData.challenge) {
         return new Response(
           JSON.stringify({ error: 'Challenge mismatch' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 400, headers: { ...getCorsHeaders(origin), 'Content-Type': 'application/json' } }
         );
       }
 
@@ -336,14 +340,14 @@ serve(async (req) => {
         console.error(`[webauthn-authenticate] Origin not allowed: ${clientDataJSON.origin}`);
         return new Response(
           JSON.stringify({ error: 'Origine non autorisée' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 400, headers: { ...getCorsHeaders(origin), 'Content-Type': 'application/json' } }
         );
       }
 
       if (clientDataJSON.type !== 'webauthn.get') {
         return new Response(
           JSON.stringify({ error: 'Type de cérémonie incorrecte' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 400, headers: { ...getCorsHeaders(origin), 'Content-Type': 'application/json' } }
         );
       }
 
@@ -352,7 +356,7 @@ serve(async (req) => {
       if (authDataBytes.length < 37) {
         return new Response(
           JSON.stringify({ error: 'authenticatorData trop court' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 400, headers: { ...getCorsHeaders(origin), 'Content-Type': 'application/json' } }
         );
       }
 
@@ -363,7 +367,7 @@ serve(async (req) => {
       if (!actualRpIdHash.every((b, i) => b === expectedRpIdHash[i])) {
         return new Response(
           JSON.stringify({ error: 'rpIdHash invalide' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 400, headers: { ...getCorsHeaders(origin), 'Content-Type': 'application/json' } }
         );
       }
 
@@ -373,7 +377,7 @@ serve(async (req) => {
         console.error(`[webauthn-authenticate] Counter check failed: stored=${storedCredential.counter} received=${assertionSignCount}`);
         return new Response(
           JSON.stringify({ error: 'Compteur de signature invalide — authenticateur possiblement cloné' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 400, headers: { ...getCorsHeaders(origin), 'Content-Type': 'application/json' } }
         );
       }
 
@@ -386,7 +390,7 @@ serve(async (req) => {
           console.error('[webauthn-authenticate] Signature verification failed');
           return new Response(
             JSON.stringify({ error: 'Signature WebAuthn invalide' }),
-            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            { status: 400, headers: { ...getCorsHeaders(origin), 'Content-Type': 'application/json' } }
           );
         }
         console.log('[webauthn-authenticate] Signature cryptographique vérifiée avec succès');
@@ -407,7 +411,7 @@ serve(async (req) => {
       if (!userData?.user) {
         return new Response(
           JSON.stringify({ error: 'Utilisateur non trouvé' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 400, headers: { ...getCorsHeaders(origin), 'Content-Type': 'application/json' } }
         );
       }
 
@@ -421,7 +425,7 @@ serve(async (req) => {
         console.error('[webauthn-authenticate] Link generation error:', linkError);
         return new Response(
           JSON.stringify({ error: 'Erreur de génération du lien de connexion' }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 500, headers: { ...getCorsHeaders(origin), 'Content-Type': 'application/json' } }
         );
       }
 
@@ -444,13 +448,13 @@ serve(async (req) => {
             last_name: profile?.last_name,
           },
         }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { headers: { ...getCorsHeaders(origin), 'Content-Type': 'application/json' } }
       );
     }
 
     return new Response(
       JSON.stringify({ error: 'Action non reconnue' }),
-      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 400, headers: { ...getCorsHeaders(origin), 'Content-Type': 'application/json' } }
     );
 
   } catch (error: unknown) {
@@ -458,7 +462,7 @@ serve(async (req) => {
     const errorMessage = error instanceof Error ? error.message : 'Erreur interne du serveur';
     return new Response(
       JSON.stringify({ error: errorMessage }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 500, headers: { ...getCorsHeaders(origin), 'Content-Type': 'application/json' } }
     );
   }
 });
