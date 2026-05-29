@@ -140,26 +140,38 @@ serve(async (req) => {
     console.log(`[webauthn-register] Action: ${action}, Origin: ${origin}, RP_ID: ${rpId}`);
 
     if (action === 'generate-options') {
-      const { email, userId, authenticatorType } = data;
-
-      console.log(`[webauthn-register] Generate options for userId: ${userId}, email: ${email}`);
-
-      if (!email && !userId) {
+      // LOW-2: require authentication to generate registration options
+      const authHeaderOpts = req.headers.get('Authorization') || req.headers.get('authorization');
+      const jwtOpts = authHeaderOpts?.replace(/^Bearer\s+/i, '');
+      if (!jwtOpts) {
         return new Response(
-          JSON.stringify({ error: 'Email ou userId requis' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          JSON.stringify({ error: 'Authentification requise' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      const anonKeyOpts = Deno.env.get('SUPABASE_ANON_KEY')!;
+      const supabaseOpts = createClient(supabaseUrl, anonKeyOpts, {
+        global: { headers: { Authorization: `Bearer ${jwtOpts}` } },
+      });
+      const { data: { user: jwtOptsUser }, error: jwtOptsError } = await supabaseOpts.auth.getUser();
+      if (jwtOptsError || !jwtOptsUser) {
+        return new Response(
+          JSON.stringify({ error: 'Token invalide ou expiré' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
+      const { authenticatorType } = data;
+      // Always use the authenticated user's identity — ignore body userId/email
+      const userId = jwtOptsUser.id;
+      const email = jwtOptsUser.email;
+
       let existingCredentials: string[] = [];
-      if (userId) {
-        const { data: creds } = await supabase
-          .from('passkey_credentials')
-          .select('credential_id')
-          .eq('user_id', userId);
-        existingCredentials = creds?.map((c: { credential_id: string }) => c.credential_id) || [];
-        console.log(`[webauthn-register] Found ${existingCredentials.length} existing credentials`);
-      }
+      const { data: creds } = await supabase
+        .from('passkey_credentials')
+        .select('credential_id')
+        .eq('user_id', userId);
+      existingCredentials = creds?.map((c: { credential_id: string }) => c.credential_id) || [];
 
       const challenge = generateChallenge();
 
