@@ -33,7 +33,7 @@ jobs:
           # La clé anon est publique (protégée par RLS) — un placeholder non-vide suffit
           # pour les tests UI qui ne font pas d'appels Supabase réels.
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || 'https://qinekdmyycyujsrcsfbe.supabase.co' }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || 'ci_placeholder_anon_key' }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFpbmVrZG15eWN5dWpzcmNzZmJlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgyMTQ5MzMsImV4cCI6MjA3Mzc5MDkzM30.eMjxUkp9OLif7VUBNMao6ONEouYPtB2GIoIqprlhzUM' }}
 
       - name: Start preview server
         run: npx serve dist -p 5173 &
