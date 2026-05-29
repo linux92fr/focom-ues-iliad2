@@ -1,10 +1,14 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
-};
+const CORS_ALLOW_HEADERS = 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version';
+
+function getCorsHeaders(origin: string): Record<string, string> {
+  return {
+    'Access-Control-Allow-Origin': isAllowedOrigin(origin) ? origin : 'null',
+    'Access-Control-Allow-Headers': CORS_ALLOW_HEADERS,
+  };
+}
 
 const RP_NAME = "FOCOM UES ILIAD";
 
@@ -116,18 +120,21 @@ function generateChallenge(): string {
 }
 
 serve(async (req) => {
+  const origin = req.headers.get('origin') || 'https://focomues-iliad.fr';
+  const corsHeaders = getCorsHeaders(origin);
+
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
     const { action, ...data } = await req.json();
 
-    const origin = req.headers.get('origin') || data.origin || 'https://focomues-iliad.fr';
     const rpId = getRpIdFromOrigin(origin);
 
     console.log(`[webauthn-register] Action: ${action}, Origin: ${origin}, RP_ID: ${rpId}`);
@@ -220,7 +227,36 @@ serve(async (req) => {
     if (action === 'verify-registration') {
       console.log('[webauthn-register] Starting verify-registration');
 
+      // MED-3: verify JWT — caller must be authenticated
+      const authHeader = req.headers.get('Authorization') || req.headers.get('authorization');
+      const jwt = authHeader?.replace(/^Bearer\s+/i, '');
+      if (!jwt) {
+        return new Response(
+          JSON.stringify({ error: 'Authentification requise' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+      const supabaseClient = createClient(supabaseUrl, anonKey, {
+        global: { headers: { Authorization: `Bearer ${jwt}` } },
+      });
+      const { data: { user: jwtUser }, error: jwtError } = await supabaseClient.auth.getUser();
+      if (jwtError || !jwtUser) {
+        return new Response(
+          JSON.stringify({ error: 'Token invalide ou expiré' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       const { credential, email, userId, friendlyName } = data;
+
+      // Ensure body userId matches JWT identity
+      if (userId && userId !== jwtUser.id) {
+        return new Response(
+          JSON.stringify({ error: 'Identifiant utilisateur incohérent' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
 
       if (!credential || !credential.response) {
         return new Response(
@@ -281,20 +317,8 @@ serve(async (req) => {
         );
       }
 
-      let finalUserId = userId;
-
-      if (!finalUserId && email) {
-        const { data: userData } = await supabase.auth.admin.listUsers();
-        const user = userData?.users?.find((u: { email?: string }) => u.email === email);
-
-        if (!user) {
-          return new Response(
-            JSON.stringify({ error: "Utilisateur non trouvé. Connectez-vous d'abord avec email/mot de passe." }),
-            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        }
-        finalUserId = user.id;
-      }
+      // Use JWT-authenticated user id as ground truth
+      const finalUserId = userId || jwtUser.id;
 
       // Extraire et valider l'authData depuis l'attestationObject
       const attestationObjectBytes = base64UrlDecode(credential.response.attestationObject);
