@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS public.passkey_credentials (
   counter bigint NOT NULL DEFAULT 0,
   name text,
   aaguid text,
+  transports text[],
   created_at timestamptz NOT NULL DEFAULT now(),
   last_used_at timestamptz
 );
@@ -15,7 +16,8 @@ CREATE TABLE IF NOT EXISTS public.webauthn_challenges (
   challenge text NOT NULL,
   user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
   email text,
-  expires_at timestamptz NOT NULL,
+  type text NOT NULL DEFAULT 'authentication',
+  expires_at timestamptz NOT NULL DEFAULT (now() + interval '5 minutes'),
   created_at timestamptz NOT NULL DEFAULT now()
 );
 

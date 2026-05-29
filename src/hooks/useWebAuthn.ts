@@ -33,7 +33,7 @@ function bufferToBase64url(buffer: ArrayBuffer): string {
 interface UseWebAuthnReturn {
   isLoading: boolean;
   error: string | null;
-  authenticateWithPasskey: (email?: string) => Promise<{ success: boolean; linkData?: any; user?: any }>;
+  authenticateWithPasskey: (email?: string) => Promise<{ success: boolean; linkData?: unknown; user?: { first_name?: string; last_name?: string; email?: string } }>;
   registerPasskey: (friendlyName?: string) => Promise<{ success: boolean }>;
   checkPlatformAuthenticator: () => Promise<boolean>;
 }
@@ -46,21 +46,35 @@ export const useWebAuthn = (): UseWebAuthnReturn => {
     setIsLoading(true);
     setError(null);
     try {
-      const { data: optionsData, error: optionsError } = await supabase.functions.invoke(
+      // Phase 1 : obtenir le challenge et les options
+      const { data: resp, error: optErr } = await supabase.functions.invoke(
         'webauthn-authenticate',
         { body: { action: 'generate-options', email } }
       );
-      if (optionsError) throw new Error(optionsError.message);
+      if (optErr) throw new Error(optErr.message);
+      if (resp?.error) throw new Error(resp.error);
 
-      const { challengeId, ...credentialRequestOptions } = optionsData;
+      const { options } = resp as {
+        options: {
+          challenge: string;
+          allowCredentials?: { id: string; type: string; transports?: string[] }[];
+          timeout?: number;
+          rpId?: string;
+          userVerification?: string;
+        };
+        rpId: string;
+      };
 
-      // Convert base64url strings to ArrayBuffers
+      // Convertir challenge et allowCredentials en ArrayBuffer
       const publicKeyOptions: PublicKeyCredentialRequestOptions = {
-        ...credentialRequestOptions,
-        challenge: base64urlToBuffer(credentialRequestOptions.challenge),
-        allowCredentials: (credentialRequestOptions.allowCredentials || []).map((c: any) => ({
-          ...c,
+        challenge: base64urlToBuffer(options.challenge),
+        timeout: options.timeout ?? 60000,
+        rpId: options.rpId,
+        userVerification: (options.userVerification as UserVerificationRequirement) ?? 'preferred',
+        allowCredentials: (options.allowCredentials ?? []).map(c => ({
           id: base64urlToBuffer(c.id),
+          type: 'public-key' as const,
+          transports: (c.transports ?? []) as AuthenticatorTransport[],
         })),
       };
 
@@ -80,16 +94,18 @@ export const useWebAuthn = (): UseWebAuthnReturn => {
         },
       };
 
-      const { data: verifyData, error: verifyError } = await supabase.functions.invoke(
+      // Phase 2 : vérifier
+      const { data: verifyData, error: verifyErr } = await supabase.functions.invoke(
         'webauthn-authenticate',
-        { body: { action: 'verify', credential: credentialJSON, challengeId } }
+        { body: { action: 'verify-authentication', credential: credentialJSON, email } }
       );
-      if (verifyError) throw new Error(verifyError.message);
+      if (verifyErr) throw new Error(verifyErr.message);
       if (verifyData?.error) throw new Error(verifyData.error);
 
       return { success: true, linkData: verifyData.linkData, user: verifyData.user };
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Erreur passkey';
+      setError(msg);
       throw err;
     } finally {
       setIsLoading(false);
@@ -100,24 +116,32 @@ export const useWebAuthn = (): UseWebAuthnReturn => {
     setIsLoading(true);
     setError(null);
     try {
-      const { data: optionsData, error: optionsError } = await supabase.functions.invoke(
+      const { data: resp, error: optErr } = await supabase.functions.invoke(
         'webauthn-register',
         { body: { action: 'generate-options', friendlyName } }
       );
-      if (optionsError) throw new Error(optionsError.message);
+      if (optErr) throw new Error(optErr.message);
+      if (resp?.error) throw new Error(resp.error);
 
-      const { challengeId, ...registrationOptions } = optionsData;
+      const { options, challengeId } = resp as {
+        options: {
+          challenge: string;
+          user: { id: string };
+          excludeCredentials?: { id: string }[];
+        };
+        challengeId: string;
+      };
 
       const publicKeyOptions: PublicKeyCredentialCreationOptions = {
-        ...registrationOptions,
-        challenge: base64urlToBuffer(registrationOptions.challenge),
+        ...(options as unknown as PublicKeyCredentialCreationOptions),
+        challenge: base64urlToBuffer(options.challenge),
         user: {
-          ...registrationOptions.user,
-          id: base64urlToBuffer(registrationOptions.user.id),
+          ...(options.user as unknown as PublicKeyCredentialUserEntity),
+          id: base64urlToBuffer(options.user.id),
         },
-        excludeCredentials: (registrationOptions.excludeCredentials || []).map((c: any) => ({
-          ...c,
+        excludeCredentials: (options.excludeCredentials ?? []).map(c => ({
           id: base64urlToBuffer(c.id),
+          type: 'public-key' as const,
         })),
       };
 
@@ -135,16 +159,17 @@ export const useWebAuthn = (): UseWebAuthnReturn => {
         },
       };
 
-      const { data: verifyData, error: verifyError } = await supabase.functions.invoke(
+      const { data: verifyData, error: verifyErr } = await supabase.functions.invoke(
         'webauthn-register',
         { body: { action: 'verify', credential: credentialJSON, challengeId, friendlyName } }
       );
-      if (verifyError) throw new Error(verifyError.message);
+      if (verifyErr) throw new Error(verifyErr.message);
       if (verifyData?.error) throw new Error(verifyData.error);
 
       return { success: true };
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Erreur enregistrement passkey';
+      setError(msg);
       throw err;
     } finally {
       setIsLoading(false);
