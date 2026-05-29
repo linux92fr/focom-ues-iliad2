@@ -79,6 +79,7 @@ const AdminSondages = lazy(() => import("./pages/admin/AdminSondages"));
 const AdminNewsletter = lazy(() => import("./pages/admin/AdminNewsletter"));
 const AdminReclamations = lazy(() => import("./pages/admin/AdminReclamations"));
 const AdminAgenda = lazy(() => import("./pages/admin/AdminAgenda"));
+const AuthCallback = lazy(() => import("./pages/AuthCallback"));
 
 const queryClient = new QueryClient();
 
@@ -161,6 +162,7 @@ function App() {
                         <Route path="/admin/reclamations" element={<AdminReclamations />} />
                         <Route path="/admin/agenda" element={<AdminAgenda />} />
 
+                        <Route path="/auth/callback" element={<AuthCallback />} />
                         <Route path="*" element={<NotFound />} />
                       </Routes>
                     </Suspense>

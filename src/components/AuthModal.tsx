@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,7 +12,10 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Mail, Lock, User } from "lucide-react";
+import { Loader2, Mail, Lock, User, Fingerprint, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { supabase } from "@/integrations/supabase/client";
+import { useWebAuthn, isPlatformAuthenticatorAvailable } from "@/hooks/useWebAuthn";
 
 interface AuthModalProps {
   open: boolean;
@@ -23,6 +26,14 @@ const AuthModal = ({ open, onOpenChange }: AuthModalProps) => {
   const { signIn, signUp } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [facebookLoading, setFacebookLoading] = useState(false);
+  const [passkeyAvailable, setPasskeyAvailable] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const { authenticateWithPasskey, isLoading: passkeyLoading } = useWebAuthn();
+
+  useEffect(() => {
+    isPlatformAuthenticatorAvailable().then(setPasskeyAvailable);
+  }, []);
 
   // Login form
   const [loginEmail, setLoginEmail] = useState("");
@@ -36,6 +47,7 @@ const AuthModal = ({ open, onOpenChange }: AuthModalProps) => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setAuthError(null);
 
     const { error } = await signIn(loginEmail, loginPassword);
 
@@ -61,6 +73,7 @@ const AuthModal = ({ open, onOpenChange }: AuthModalProps) => {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setAuthError(null);
 
     const { error } = await signUp(signupEmail, signupPassword, signupName);
 
@@ -84,6 +97,46 @@ const AuthModal = ({ open, onOpenChange }: AuthModalProps) => {
     setLoading(false);
   };
 
+  const handleFacebookLogin = async () => {
+    setFacebookLoading(true);
+    setAuthError(null);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'facebook',
+        options: {
+          redirectTo: window.location.origin + '/auth/callback',
+          scopes: 'email',
+        },
+      });
+      if (error) throw error;
+    } catch (err: any) {
+      setAuthError(err.message || 'Erreur lors de la connexion Facebook');
+      setFacebookLoading(false);
+    }
+  };
+
+  const handlePasskeyLogin = async () => {
+    setAuthError(null);
+    try {
+      const result = await authenticateWithPasskey(loginEmail || undefined);
+      if (result.success && result.linkData) {
+        const properties = result.linkData.properties;
+        const { error } = await supabase.auth.verifyOtp({
+          token_hash: properties.hashed_token,
+          type: 'magiclink',
+        });
+        if (error) throw error;
+        toast({
+          title: `Bienvenue${result.user?.first_name ? ` ${result.user.first_name}` : ''} !`,
+          description: "Vous êtes connecté avec votre passkey.",
+        });
+        onOpenChange(false);
+      }
+    } catch (err: any) {
+      setAuthError(err.message || 'Erreur lors de la connexion avec passkey');
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
@@ -93,6 +146,58 @@ const AuthModal = ({ open, onOpenChange }: AuthModalProps) => {
             Connectez-vous pour accéder à votre espace personnel
           </DialogDescription>
         </DialogHeader>
+
+        {authError && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{authError}</AlertDescription>
+          </Alert>
+        )}
+
+        <div className="space-y-3">
+          {passkeyAvailable && (
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              onClick={handlePasskeyLogin}
+              disabled={passkeyLoading}
+            >
+              {passkeyLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <Fingerprint className="h-4 w-4 mr-2" />
+              )}
+              Se connecter avec une passkey
+            </Button>
+          )}
+
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            onClick={handleFacebookLogin}
+            disabled={facebookLoading}
+          >
+            {facebookLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            ) : (
+              <svg className="h-4 w-4 mr-2" viewBox="0 0 24 24" fill="#1877F2" xmlns="http://www.w3.org/2000/svg">
+                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+              </svg>
+            )}
+            Continuer avec Facebook
+          </Button>
+
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">ou</span>
+            </div>
+          </div>
+        </div>
 
         <Tabs defaultValue="login" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
