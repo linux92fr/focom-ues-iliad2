@@ -47,6 +47,68 @@ function base64UrlDecode(str: string): Uint8Array {
   return bytes;
 }
 
+// ── CBOR minimal decoder (WebAuthn-specific structures) ──────────────────────
+
+function decodeCBOR(data: Uint8Array): unknown {
+  let offset = 0;
+
+  function readUint(n: number): number {
+    let val = 0;
+    for (let i = 0; i < n; i++) val = val * 256 + data[offset++];
+    return val;
+  }
+
+  function decodeItem(): unknown {
+    const initial = data[offset++];
+    const majorType = initial >> 5;
+    const info = initial & 0x1f;
+    let length: number;
+    if (info < 24) length = info;
+    else if (info === 24) length = readUint(1);
+    else if (info === 25) length = readUint(2);
+    else if (info === 26) length = readUint(4);
+    else throw new Error(`Unsupported CBOR additional info: ${info}`);
+
+    switch (majorType) {
+      case 0: return length;
+      case 1: return -1 - length;
+      case 2: { const b = data.slice(offset, offset + length); offset += length; return b; }
+      case 3: { const b = data.slice(offset, offset + length); offset += length; return new TextDecoder().decode(b); }
+      case 4: { const arr: unknown[] = []; for (let i = 0; i < length; i++) arr.push(decodeItem()); return arr; }
+      case 5: { const map = new Map<unknown, unknown>(); for (let i = 0; i < length; i++) { const k = decodeItem(); map.set(k, decodeItem()); } return map; }
+      default: throw new Error(`Unsupported CBOR major type: ${majorType}`);
+    }
+  }
+  return decodeItem();
+}
+
+function readUint16BE(buf: Uint8Array, offset: number): number {
+  return (buf[offset] << 8) | buf[offset + 1];
+}
+
+function readUint32BE(buf: Uint8Array, offset: number): number {
+  return ((buf[offset] << 24) | (buf[offset + 1] << 16) | (buf[offset + 2] << 8) | buf[offset + 3]) >>> 0;
+}
+
+function parseAuthData(authData: Uint8Array): {
+  rpIdHash: Uint8Array;
+  flags: number;
+  signCount: number;
+  credentialPublicKey?: Uint8Array;
+} {
+  const rpIdHash = authData.slice(0, 32);
+  const flags = authData[32];
+  const signCount = readUint32BE(authData, 33);
+  let credentialPublicKey: Uint8Array | undefined;
+  if (flags & 0x40) { // AT flag: attested credential data present
+    let off = 37 + 16; // skip AAGUID
+    const credIdLen = readUint16BE(authData, off); off += 2;
+    off += credIdLen; // skip credentialId
+    credentialPublicKey = authData.slice(off);
+  }
+  return { rpIdHash, flags, signCount, credentialPublicKey };
+}
+
 function generateChallenge(): string {
   const array = new Uint8Array(32);
   crypto.getRandomValues(array);
@@ -234,21 +296,51 @@ serve(async (req) => {
         finalUserId = user.id;
       }
 
+      // Extraire et valider l'authData depuis l'attestationObject
+      const attestationObjectBytes = base64UrlDecode(credential.response.attestationObject);
+      const attestation = decodeCBOR(attestationObjectBytes) as Map<string, unknown>;
+      const authData = attestation.get('authData') as Uint8Array;
+
+      if (!authData || authData.length < 37) {
+        return new Response(
+          JSON.stringify({ error: 'authData invalide ou trop court' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const { rpIdHash, signCount, credentialPublicKey } = parseAuthData(authData);
+
+      // Vérifier rpIdHash = SHA-256(rpId)
+      const expectedRpIdHashBuf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(rpId));
+      const expectedRpIdHash = new Uint8Array(expectedRpIdHashBuf);
+      const rpIdHashMatch = rpIdHash.every((b, i) => b === expectedRpIdHash[i]);
+      if (!rpIdHashMatch) {
+        return new Response(
+          JSON.stringify({ error: 'rpIdHash ne correspond pas au rpId attendu' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      if (!credentialPublicKey) {
+        return new Response(
+          JSON.stringify({ error: 'Clé publique COSE absente dans authData' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       const credentialId = credential.id;
       const deviceType = credential.authenticatorAttachment === 'platform' ? 'singleDevice' : 'multiDevice';
-
       const rawTransports: string[] = credential.response.transports || ['internal'];
-      const safeTransports = rawTransports.filter((t: string) =>
-        ['internal', 'usb', 'nfc'].includes(t)
-      );
+      const safeTransports = rawTransports.filter((t: string) => ['internal', 'usb', 'nfc'].includes(t));
 
       const { error: insertError } = await supabase
         .from('passkey_credentials')
         .insert({
           user_id: finalUserId,
           credential_id: credentialId,
-          public_key: credential.response.attestationObject,
-          counter: 0,
+          public_key: base64UrlEncode(credentialPublicKey.buffer as ArrayBuffer),
+          public_key_format: 'cose',
+          counter: signCount,
           device_type: deviceType,
           transports: safeTransports,
           friendly_name: friendlyName || 'Passkey',

@@ -10,6 +10,7 @@ import { AdminAuthProvider } from "./contexts/AdminAuthContext";
 import { SupabaseAuthProvider } from "./contexts/SupabaseAuthContext";
 import { AuthProvider } from "./hooks/useAuth";
 import PublicLayout from "./components/PublicLayout";
+import { AdminAuthGuard } from "@/components/admin/AdminLayout";
 
 // Public pages
 const Home = lazy(() => import("./pages/Home"));
@@ -140,10 +141,11 @@ function App() {
                           <Route path="/profil" element={<Profile />} />
                           <Route path="/espace-adherent" element={<EspaceAdherent />} />
                           <Route path="/mes-reclamations" element={<MesReclamations />} />
-                          <Route path="/admin/nao2026" element={<AdminNao2026 />} />
-                          <Route path="/admin/participation" element={<AdminParticipation />} />
-                          <Route path="/admin/poster" element={<PosterComposer />} />
                         </Route>
+
+                        <Route path="/admin/nao2026" element={<AdminAuthGuard><AdminNao2026 /></AdminAuthGuard>} />
+                        <Route path="/admin/participation" element={<AdminAuthGuard><AdminParticipation /></AdminAuthGuard>} />
+                        <Route path="/admin/poster" element={<AdminAuthGuard><PosterComposer /></AdminAuthGuard>} />
 
                         <Route path="/admin/login" element={<AdminLogin />} />
                         <Route path="/admin" element={<AdminDashboard />} />

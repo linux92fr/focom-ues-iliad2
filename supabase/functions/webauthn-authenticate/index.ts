@@ -45,6 +45,118 @@ function base64UrlDecode(str: string): Uint8Array {
   return bytes;
 }
 
+// ── CBOR minimal decoder (WebAuthn-specific structures) ──────────────────────
+
+function decodeCBOR(data: Uint8Array): unknown {
+  let offset = 0;
+
+  function readUint(n: number): number {
+    let val = 0;
+    for (let i = 0; i < n; i++) val = val * 256 + data[offset++];
+    return val;
+  }
+
+  function decodeItem(): unknown {
+    const initial = data[offset++];
+    const majorType = initial >> 5;
+    const info = initial & 0x1f;
+    let length: number;
+    if (info < 24) length = info;
+    else if (info === 24) length = readUint(1);
+    else if (info === 25) length = readUint(2);
+    else if (info === 26) length = readUint(4);
+    else throw new Error(`Unsupported CBOR additional info: ${info}`);
+
+    switch (majorType) {
+      case 0: return length;
+      case 1: return -1 - length;
+      case 2: { const b = data.slice(offset, offset + length); offset += length; return b; }
+      case 3: { const b = data.slice(offset, offset + length); offset += length; return new TextDecoder().decode(b); }
+      case 4: { const arr: unknown[] = []; for (let i = 0; i < length; i++) arr.push(decodeItem()); return arr; }
+      case 5: { const map = new Map<unknown, unknown>(); for (let i = 0; i < length; i++) { const k = decodeItem(); map.set(k, decodeItem()); } return map; }
+      default: throw new Error(`Unsupported CBOR major type: ${majorType}`);
+    }
+  }
+  return decodeItem();
+}
+
+function readUint16BE(_buf: Uint8Array, _offset: number): number {
+  return (_buf[_offset] << 8) | _buf[_offset + 1];
+}
+
+function readUint32BE(buf: Uint8Array, offset: number): number {
+  return ((buf[offset] << 24) | (buf[offset + 1] << 16) | (buf[offset + 2] << 8) | buf[offset + 3]) >>> 0;
+}
+
+function parseAuthData(authData: Uint8Array): {
+  rpIdHash: Uint8Array;
+  flags: number;
+  signCount: number;
+  credentialPublicKey?: Uint8Array;
+} {
+  const rpIdHash = authData.slice(0, 32);
+  const flags = authData[32];
+  const signCount = readUint32BE(authData, 33);
+  let credentialPublicKey: Uint8Array | undefined;
+  if (flags & 0x40) { // AT flag: attested credential data present
+    let off = 37 + 16; // skip AAGUID
+    const credIdLen = readUint16BE(authData, off); off += 2;
+    off += credIdLen; // skip credentialId
+    credentialPublicKey = authData.slice(off);
+  }
+  return { rpIdHash, flags, signCount, credentialPublicKey };
+}
+
+async function verifyCOSESignature(
+  coseKeyBytes: Uint8Array,
+  authenticatorData: Uint8Array,
+  clientDataJSONBytes: Uint8Array,
+  signatureBytes: Uint8Array,
+): Promise<boolean> {
+  const coseKey = decodeCBOR(coseKeyBytes) as Map<number, unknown>;
+  const alg = coseKey.get(3) as number;
+
+  const clientDataHash = new Uint8Array(
+    await crypto.subtle.digest('SHA-256', clientDataJSONBytes)
+  );
+  const verificationData = new Uint8Array(authenticatorData.length + clientDataHash.length);
+  verificationData.set(authenticatorData);
+  verificationData.set(clientDataHash, authenticatorData.length);
+
+  if (alg === -7) {
+    // ES256 — ECDSA P-256
+    const x = coseKey.get(-2) as Uint8Array;
+    const y = coseKey.get(-3) as Uint8Array;
+    const jwk = {
+      kty: 'EC', crv: 'P-256',
+      x: base64UrlEncode(x.buffer as ArrayBuffer),
+      y: base64UrlEncode(y.buffer as ArrayBuffer),
+    };
+    const cryptoKey = await crypto.subtle.importKey(
+      'jwk', jwk, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['verify']
+    );
+    return crypto.subtle.verify({ name: 'ECDSA', hash: 'SHA-256' }, cryptoKey, signatureBytes, verificationData);
+  }
+
+  if (alg === -257) {
+    // RS256 — RSASSA-PKCS1-v1_5
+    const n = coseKey.get(-1) as Uint8Array;
+    const e = coseKey.get(-2) as Uint8Array;
+    const jwk = {
+      kty: 'RSA',
+      n: base64UrlEncode(n.buffer as ArrayBuffer),
+      e: base64UrlEncode(e.buffer as ArrayBuffer),
+      alg: 'RS256',
+    };
+    const cryptoKey = await crypto.subtle.importKey(
+      'jwk', jwk, { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['verify']
+    );
+    return crypto.subtle.verify({ name: 'RSASSA-PKCS1-v1_5' }, cryptoKey, signatureBytes, verificationData);
+  }
+
+  throw new Error(`Algorithme COSE non supporté: ${alg}`);
+}
+
 function generateChallenge(): string {
   const array = new Uint8Array(32);
   crypto.getRandomValues(array);
@@ -190,10 +302,12 @@ serve(async (req) => {
         );
       }
 
+      // CRIT-3 : lier le challenge à l'utilisateur du credential
       const { data: challengeData, error: challengeError } = await supabase
         .from('webauthn_challenges')
         .select('*')
         .eq('type', 'authentication')
+        .or(`user_id.eq.${storedCredential.user_id},user_id.is.null`)
         .gt('expires_at', new Date().toISOString())
         .order('created_at', { ascending: false })
         .limit(1)
@@ -207,9 +321,9 @@ serve(async (req) => {
         );
       }
 
-      const clientDataJSON = JSON.parse(
-        new TextDecoder().decode(base64UrlDecode(credential.response.clientDataJSON))
-      );
+      // Vérifier clientDataJSON
+      const clientDataJSONBytes = base64UrlDecode(credential.response.clientDataJSON);
+      const clientDataJSON = JSON.parse(new TextDecoder().decode(clientDataJSONBytes));
 
       if (clientDataJSON.challenge !== challengeData.challenge) {
         return new Response(
@@ -233,7 +347,54 @@ serve(async (req) => {
         );
       }
 
-      const newCounter = (storedCredential.counter || 0) + 1;
+      // Parser authenticatorData
+      const authDataBytes = base64UrlDecode(credential.response.authenticatorData);
+      if (authDataBytes.length < 37) {
+        return new Response(
+          JSON.stringify({ error: 'authenticatorData trop court' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Vérifier rpIdHash
+      const expectedRpIdHashBuf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(rpId));
+      const expectedRpIdHash = new Uint8Array(expectedRpIdHashBuf);
+      const actualRpIdHash = authDataBytes.slice(0, 32);
+      if (!actualRpIdHash.every((b, i) => b === expectedRpIdHash[i])) {
+        return new Response(
+          JSON.stringify({ error: 'rpIdHash invalide' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // CRIT-2 : vérifier le compteur
+      const assertionSignCount = readUint32BE(authDataBytes, 33);
+      if (storedCredential.counter > 0 && assertionSignCount <= storedCredential.counter) {
+        console.error(`[webauthn-authenticate] Counter check failed: stored=${storedCredential.counter} received=${assertionSignCount}`);
+        return new Response(
+          JSON.stringify({ error: 'Compteur de signature invalide — authenticateur possiblement cloné' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // CRIT-1 : vérifier la signature cryptographique si la clé est au format COSE
+      if (storedCredential.public_key_format === 'cose') {
+        const coseKeyBytes = base64UrlDecode(storedCredential.public_key);
+        const signatureBytes = base64UrlDecode(credential.response.signature);
+        const valid = await verifyCOSESignature(coseKeyBytes, authDataBytes, clientDataJSONBytes, signatureBytes);
+        if (!valid) {
+          console.error('[webauthn-authenticate] Signature verification failed');
+          return new Response(
+            JSON.stringify({ error: 'Signature WebAuthn invalide' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        console.log('[webauthn-authenticate] Signature cryptographique vérifiée avec succès');
+      } else {
+        console.warn('[webauthn-authenticate] Credential legacy (format attestation_object) — signature non vérifiée, demander ré-enregistrement');
+      }
+
+      const newCounter = assertionSignCount > 0 ? assertionSignCount : (storedCredential.counter || 0) + 1;
       await supabase
         .from('passkey_credentials')
         .update({ counter: newCounter, last_used_at: new Date().toISOString() })
