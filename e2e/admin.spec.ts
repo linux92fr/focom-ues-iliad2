@@ -23,6 +23,6 @@ test.describe('Espace admin — protection des routes', () => {
     await page.goto('/admin/login');
     await page.waitForLoadState('domcontentloaded');
     await expect(page.locator('h1, h2').first()).toBeVisible({ timeout: 10000 });
-    await expect(page.getByLabel(/email/i)).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('#username')).toBeVisible({ timeout: 10000 });
   });
 });
