@@ -31,6 +31,14 @@ function isAllowedOrigin(origin: string): boolean {
   );
 }
 
+function getClientIp(req: Request): string {
+  return (
+    req.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
+    req.headers.get('x-real-ip') ||
+    'unknown'
+  );
+}
+
 function base64UrlEncode(buffer: ArrayBuffer): string {
   const bytes = new Uint8Array(buffer);
   let binary = '';
@@ -136,6 +144,23 @@ serve(async (req) => {
     const { action, ...data } = await req.json();
 
     const rpId = getRpIdFromOrigin(origin);
+    const clientIp = getClientIp(req);
+
+    // LOW-3: rate limiting — max 10 registrations per IP per 60 minutes
+    const { data: allowed, error: rlError } = await supabase.rpc('check_rate_limit', {
+      p_key: clientIp,
+      p_action: 'webauthn-register',
+      p_max_requests: 10,
+      p_window_minutes: 60,
+    });
+    if (rlError) {
+      console.error('[webauthn-register] Rate limit check error:', rlError);
+    } else if (!allowed) {
+      return new Response(
+        JSON.stringify({ error: 'Trop de tentatives. Veuillez réessayer dans une heure.' }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '3600' } }
+      );
+    }
 
     console.log(`[webauthn-register] Action: ${action}, Origin: ${origin}, RP_ID: ${rpId}`);
 

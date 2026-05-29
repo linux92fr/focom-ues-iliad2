@@ -29,6 +29,14 @@ function isAllowedOrigin(origin: string): boolean {
   );
 }
 
+function getClientIp(req: Request): string {
+  return (
+    req.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
+    req.headers.get('x-real-ip') ||
+    'unknown'
+  );
+}
+
 function base64UrlEncode(buffer: ArrayBuffer): string {
   const bytes = new Uint8Array(buffer);
   let binary = '';
@@ -181,8 +189,25 @@ serve(async (req) => {
 
     const { action, ...data } = await req.json();
     const rpId = getRpIdFromOrigin(origin);
+    const clientIp = getClientIp(req);
 
     console.log(`[webauthn-authenticate] Action: ${action}, Origin: ${origin}, RP_ID: ${rpId}`);
+
+    // LOW-3: rate limiting — max 20 attempts per IP per 15 minutes
+    const { data: allowed, error: rlError } = await supabase.rpc('check_rate_limit', {
+      p_key: clientIp,
+      p_action: 'webauthn-authenticate',
+      p_max_requests: 20,
+      p_window_minutes: 15,
+    });
+    if (rlError) {
+      console.error('[webauthn-authenticate] Rate limit check error:', rlError);
+    } else if (!allowed) {
+      return new Response(
+        JSON.stringify({ error: 'Trop de tentatives. Veuillez réessayer dans quelques minutes.' }),
+        { status: 429, headers: { ...getCorsHeaders(origin), 'Content-Type': 'application/json', 'Retry-After': '900' } }
+      );
+    }
 
     if (action === 'generate-options') {
       const { email } = data;
