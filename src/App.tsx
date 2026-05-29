@@ -79,6 +79,7 @@ const AdminSondages = lazy(() => import("./pages/admin/AdminSondages"));
 const AdminNewsletter = lazy(() => import("./pages/admin/AdminNewsletter"));
 const AdminReclamations = lazy(() => import("./pages/admin/AdminReclamations"));
 const AdminAgenda = lazy(() => import("./pages/admin/AdminAgenda"));
+const EspaceAdherent = lazy(() => import("./pages/EspaceAdherent"));
 const AuthCallback = lazy(() => import("./pages/AuthCallback"));
 
 const queryClient = new QueryClient();
@@ -137,6 +138,7 @@ function App() {
                           <Route path="/sondages" element={<Sondages />} />
                           <Route path="/agenda" element={<Agenda />} />
                           <Route path="/profil" element={<Profile />} />
+                          <Route path="/espace-adherent" element={<EspaceAdherent />} />
                           <Route path="/mes-reclamations" element={<MesReclamations />} />
                           <Route path="/admin/nao2026" element={<AdminNao2026 />} />
                           <Route path="/admin/participation" element={<AdminParticipation />} />
