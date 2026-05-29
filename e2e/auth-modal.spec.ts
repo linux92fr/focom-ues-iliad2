@@ -15,23 +15,21 @@ test.describe('Modal d\'authentification', () => {
 
   test('affiche les champs email et mot de passe dans l\'onglet Connexion', async ({ page }) => {
     const dialog = page.getByRole('dialog');
-    await expect(dialog.getByPlaceholder(/votre@email/i)).toBeVisible();
-    await expect(dialog.getByPlaceholder(/••••••••/)).toBeVisible();
+    await expect(dialog.locator('#login-email')).toBeVisible();
+    await expect(dialog.locator('#login-password')).toBeVisible();
   });
 
   test('onglet Inscription affiche les champs requis', async ({ page }) => {
     const dialog = page.getByRole('dialog');
     await dialog.getByRole('tab', { name: /Inscription/i }).click();
-    await expect(dialog.getByPlaceholder(/Jean Dupont/i)).toBeVisible();
-    await expect(dialog.getByPlaceholder(/votre@email/i)).toBeVisible();
+    await expect(dialog.locator('#signup-name')).toBeVisible();
+    await expect(dialog.locator('#signup-email')).toBeVisible();
   });
 
   test('inscription rejette un mot de passe trop court', async ({ page }) => {
     const dialog = page.getByRole('dialog');
     await dialog.getByRole('tab', { name: /Inscription/i }).click();
-    const pwInput = dialog.getByLabel(/Mot de passe/i);
-    await pwInput.fill('Court1!');
-    // Le champ HTML5 minLength=12 doit bloquer la soumission
+    const pwInput = dialog.locator('#signup-password');
     await expect(pwInput).toHaveAttribute('minlength', '12');
   });
 
