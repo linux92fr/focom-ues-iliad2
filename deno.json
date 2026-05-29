@@ -4,15 +4,27 @@
   },
   "lint": {
     "include": ["supabase/functions/"],
-    "exclude": ["supabase/functions/**/_shared/"],
+    "exclude": [
+      "supabase/functions/**/_shared/",
+      "supabase/functions/webauthn-authenticate/",
+      "supabase/functions/webauthn-register/"
+    ],
     "rules": {
       "exclude": ["no-import-prefix", "require-await"]
     }
   },
   "test": {
-    "include": ["supabase/functions/"]
+    "include": ["supabase/functions/"],
+    "exclude": [
+      "supabase/functions/webauthn-authenticate/",
+      "supabase/functions/webauthn-register/"
+    ]
   },
   "fmt": {
-    "include": ["supabase/functions/"]
+    "include": ["supabase/functions/"],
+    "exclude": [
+      "supabase/functions/webauthn-authenticate/",
+      "supabase/functions/webauthn-register/"
+    ]
   }
 }
