@@ -27,6 +27,7 @@ const SEARCH_LINKS = [
   { label: "Simulateur prime variable", href: "/simulateur-prime-variable" },
   { label: "Sondages", href: "/sondages" },
   { label: "Agenda", href: "/agenda" },
+  { label: "Espace adhérent", href: "/espace-adherent" },
   { label: "Mon profil", href: "/profil" },
   { label: "Notifications", href: "/notifications" },
 ];
@@ -40,7 +41,8 @@ const MOBILE_NAV = [
   { to: "/vos-droits", label: "Vos droits", icon: Shield },
   { to: "/adhesion", label: "Adhérer", icon: UserPlus },
   { to: "/mes-reclamations", label: "Mes demandes", icon: AlertCircle },
-  { to: "/profil", label: "Espace adhérent", icon: UserCircle },
+  { to: "/espace-adherent", label: "Espace adhérent", icon: UserCircle },
+  { to: "/profil", label: "Mon profil", icon: UserCircle },
   { to: "/agenda", label: "Agenda", icon: Calendar },
   { to: "/documents-utiles", label: "Documents", icon: FolderOpen },
   { to: "/contact", label: "Contact", icon: Mail },
@@ -223,8 +225,8 @@ export default function PageHeader() {
                       <p className="text-xs text-slate-400 truncate">{user.email}</p>
                     </div>
                     <div className="py-1">
-                      <button onClick={() => { setUserMenuOpen(false); navigate("/profil"); }} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors text-left"><User className="w-4 h-4 text-slate-400" /> Mon profil</button>
-                      <button onClick={() => { setUserMenuOpen(false); navigate("/profil"); }} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors text-left"><Lock className="w-4 h-4 text-slate-400" /> Changer mon mot de passe</button>
+                      <button onClick={() => { setUserMenuOpen(false); navigate("/espace-adherent"); }} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors text-left"><User className="w-4 h-4 text-slate-400" /> Espace adhérent</button>
+                      <button onClick={() => { setUserMenuOpen(false); navigate("/profil"); }} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors text-left"><Lock className="w-4 h-4 text-slate-400" /> Mon profil</button>
                       <button onClick={() => { setUserMenuOpen(false); navigate("/notifications"); }} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors text-left"><Bell className="w-4 h-4 text-slate-400" /> Notifications</button>
                     </div>
                     <div className="border-t border-slate-100 py-1">
