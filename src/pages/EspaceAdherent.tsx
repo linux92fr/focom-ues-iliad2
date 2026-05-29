@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,9 +13,10 @@ import {
   Loader2, CreditCard, History, CalendarDays,
   Calendar, Clock, MapPin, Video, MessageSquare, AlertCircle,
   CheckCircle2, XCircle, HelpCircle, ChevronRight, ShieldCheck,
-  FileText,
+  FileText, LogIn,
 } from "lucide-react";
 import CarteAdherent from "@/components/CarteAdherent";
+import AuthModal from "@/components/AuthModal";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -97,17 +98,13 @@ const isUpcoming = (rdv: RdvWithPermanence) =>
 // ─── Composant ────────────────────────────────────────────────────────────────
 
 const EspaceAdherent = () => {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user, loading: authLoading } = useAuth();
 
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [adhesions, setAdhesions] = useState<Adhesion[]>([]);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!authLoading && !user) navigate("/");
-  }, [user, authLoading, navigate]);
+  const [authOpen, setAuthOpen] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -175,14 +172,50 @@ const EspaceAdherent = () => {
   const upcomingRdv = mesRdv.filter(isUpcoming);
   const pastRdv = mesRdv.filter((r) => !isUpcoming(r));
 
-  if (authLoading || loading) {
+  if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
-  if (!user) return null;
+
+  if (!user) {
+    return (
+      <>
+        <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4">
+          <Card className="w-full max-w-md text-center shadow-lg">
+            <CardHeader>
+              <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-3">
+                <LogIn className="w-7 h-7 text-primary" />
+              </div>
+              <CardTitle>Connexion requise</CardTitle>
+              <CardDescription>
+                Vous devez être connecté pour accéder à votre espace adhérent.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Button className="w-full" onClick={() => setAuthOpen(true)}>
+                Se connecter / S'inscrire
+              </Button>
+              <Button variant="outline" className="w-full" asChild>
+                <Link to="/">Retour à l'accueil</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+        <AuthModal open={authOpen} onOpenChange={setAuthOpen} />
+      </>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   const displayName = (profile?.first_name || profile?.last_name)
     ? `${profile?.first_name ?? ""} ${profile?.last_name ?? ""}`.trim()
@@ -504,6 +537,7 @@ const EspaceAdherent = () => {
           </div>
         </div>
       </main>
+      <AuthModal open={authOpen} onOpenChange={setAuthOpen} />
     </div>
   );
 };
