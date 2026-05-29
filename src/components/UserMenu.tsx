@@ -53,19 +53,19 @@ const UserMenu = () => {
           </DropdownMenuItem>
         )}
 
-        <DropdownMenuItem onClick={() => navigate("/profil")}>
+        <DropdownMenuItem onClick={() => navigate("/espace-adherent")}>
           <User className="mr-2 h-4 w-4" />
+          <span>Espace adhérent</span>
+        </DropdownMenuItem>
+
+        <DropdownMenuItem onClick={() => navigate("/profil")}>
+          <Lock className="mr-2 h-4 w-4" />
           <span>Mon profil</span>
         </DropdownMenuItem>
 
         <DropdownMenuItem onClick={() => navigate("/notifications")}>
           <Bell className="mr-2 h-4 w-4" />
           <span>Mes notifications</span>
-        </DropdownMenuItem>
-
-        <DropdownMenuItem onClick={() => navigate("/profil")}>
-          <Lock className="mr-2 h-4 w-4" />
-          <span>Changer mon mot de passe</span>
         </DropdownMenuItem>
 
         <DropdownMenuSeparator />

@@ -6,7 +6,7 @@ import ScrollToTop from "./ScrollToTop";
 
 function ProfileHelpShortcuts() {
   const location = useLocation();
-  if (location.pathname !== "/profil") return null;
+  if (location.pathname !== "/espace-adherent") return null;
 
   return (
     <div className="fixed bottom-4 right-4 z-40 hidden w-72 rounded-2xl border border-red-100 bg-white p-4 shadow-xl lg:block">
