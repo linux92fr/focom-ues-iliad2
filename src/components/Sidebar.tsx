@@ -4,6 +4,7 @@ import {
   Newspaper,
   BarChart3,
   UserCircle,
+  User,
   Shield,
   FolderOpen,
   Mail,
@@ -27,8 +28,9 @@ const mainNavItems = [
 
 const actionNavItems = [
   { to: "/adhesion", label: "Adhérer", icon: UserPlus, highlight: true },
+  { to: "/espace-adherent", label: "Espace adhérent", icon: UserCircle },
   { to: "/mes-reclamations", label: "Mes demandes", icon: AlertCircle },
-  { to: "/profil", label: "Espace adhérent", icon: UserCircle },
+  { to: "/profil", label: "Mon profil", icon: User },
 ];
 
 const secondaryNavItems = [
