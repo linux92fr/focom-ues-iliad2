@@ -112,24 +112,35 @@ export const useWebAuthn = (): UseWebAuthnReturn => {
     }
   };
 
-  const registerPasskey = async (friendlyName?: string) => {
+  const registerPasskey = async (friendlyName?: string, authenticatorType?: string) => {
     setIsLoading(true);
     setError(null);
     try {
+      // Récupérer l'utilisateur courant pour transmettre userId + email
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (!currentUser) throw new Error('Non connecté');
+
       const { data: resp, error: optErr } = await supabase.functions.invoke(
         'webauthn-register',
-        { body: { action: 'generate-options', friendlyName } }
+        {
+          body: {
+            action: 'generate-options',
+            email: currentUser.email,
+            userId: currentUser.id,
+            authenticatorType,
+          },
+        }
       );
       if (optErr) throw new Error(optErr.message);
       if (resp?.error) throw new Error(resp.error);
 
-      const { options, challengeId } = resp as {
+      const { options } = resp as {
         options: {
           challenge: string;
           user: { id: string };
           excludeCredentials?: { id: string }[];
         };
-        challengeId: string;
+        rpId: string;
       };
 
       const publicKeyOptions: PublicKeyCredentialCreationOptions = {
@@ -153,15 +164,25 @@ export const useWebAuthn = (): UseWebAuthnReturn => {
         id: credential.id,
         rawId: bufferToBase64url(credential.rawId),
         type: credential.type,
+        authenticatorAttachment: credential.authenticatorAttachment,
         response: {
           attestationObject: bufferToBase64url(response.attestationObject),
           clientDataJSON: bufferToBase64url(response.clientDataJSON),
+          transports: response.getTransports ? response.getTransports() : [],
         },
       };
 
       const { data: verifyData, error: verifyErr } = await supabase.functions.invoke(
         'webauthn-register',
-        { body: { action: 'verify', credential: credentialJSON, challengeId, friendlyName } }
+        {
+          body: {
+            action: 'verify-registration',
+            credential: credentialJSON,
+            email: currentUser.email,
+            userId: currentUser.id,
+            friendlyName,
+          },
+        }
       );
       if (verifyErr) throw new Error(verifyErr.message);
       if (verifyData?.error) throw new Error(verifyData.error);

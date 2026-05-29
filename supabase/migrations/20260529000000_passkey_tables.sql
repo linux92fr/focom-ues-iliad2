@@ -4,8 +4,8 @@ CREATE TABLE IF NOT EXISTS public.passkey_credentials (
   credential_id text NOT NULL UNIQUE,
   public_key text NOT NULL,
   counter bigint NOT NULL DEFAULT 0,
-  name text,
-  aaguid text,
+  friendly_name text,
+  device_type text,
   transports text[],
   created_at timestamptz NOT NULL DEFAULT now(),
   last_used_at timestamptz
