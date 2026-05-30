@@ -10,7 +10,7 @@ jobs:
   e2e:
     name: Playwright E2E
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
 
     steps:
       - uses: actions/checkout@v4
@@ -33,10 +33,10 @@ jobs:
           # La clé anon est publique (protégée par RLS) — un placeholder non-vide suffit
           # pour les tests UI qui ne font pas d'appels Supabase réels.
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || 'https://qinekdmyycyujsrcsfbe.supabase.co' }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || 'ci_placeholder_anon_key' }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFpbmVrZG15eWN5dWpzcmNzZmJlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgyMTQ5MzMsImV4cCI6MjA3Mzc5MDkzM30.eMjxUkp9OLif7VUBNMao6ONEouYPtB2GIoIqprlhzUM' }}
 
       - name: Start preview server
-        run: npx serve dist -p 5173 &
+        run: npx serve dist -p 5173 --single &
 
       - name: Wait for server
         run: npx wait-on http://localhost:5173 --timeout 30000
@@ -51,5 +51,7 @@ jobs:
         if: failure()
         with:
           name: playwright-report
-          path: playwright-report/
+          path: |
+            playwright-report/
+            test-results/results.json
           retention-days: 7
