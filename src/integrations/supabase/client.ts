@@ -38,5 +38,7 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_KEY, {
     storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
+    // Bypass Web Locks API bug in Supabase JS v2 that causes AbortError loop
+    lock: (_name: string, _acquireTimeout: number, fn: () => Promise<unknown>) => fn(),
   },
 });
