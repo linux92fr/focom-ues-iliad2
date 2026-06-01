@@ -30,6 +30,7 @@ const ActualiteDetail = lazy(() => import("./pages/ActualiteDetail"));
 const NouvelArticle = lazy(() => import("./pages/NouvelArticle"));
 const EditArticle = lazy(() => import("./pages/EditArticle"));
 const Publications = lazy(() => import("./pages/Publications"));
+const Tracts = lazy(() => import("./pages/Tracts"));
 const PublicationDetail = lazy(() => import("./pages/PublicationDetail"));
 
 // Adhésion & dons
@@ -68,6 +69,7 @@ const AdminLogin = lazy(() => import("./pages/admin/AdminLogin"));
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
 const AdminActualites = lazy(() => import("./pages/admin/AdminActualites"));
 const AdminDocuments = lazy(() => import("./pages/admin/AdminDocuments"));
+const AdminTracts = lazy(() => import("./pages/admin/AdminTracts"));
 const AdminAdherents = lazy(() => import("./pages/admin/AdminAdherents"));
 const AdminParametres = lazy(() => import("./pages/admin/AdminParametres"));
 const AdminBilan = lazy(() => import("./pages/admin/AdminBilan"));
@@ -119,6 +121,7 @@ function App() {
                           <Route path="/actualites" element={<Actualites />} />
                           <Route path="/actualites/:slug" element={<ActualiteDetail />} />
                           <Route path="/publications" element={<Publications />} />
+                          <Route path="/tracts" element={<Tracts />} />
                           <Route path="/publications/:slug" element={<PublicationDetail />} />
                           <Route path="/adhesion" element={<Adhesion />} />
                           <Route path="/don" element={<Don />} />
@@ -153,6 +156,7 @@ function App() {
                         <Route path="/admin/actualites/nouveau" element={<NouvelArticle />} />
                         <Route path="/admin/actualites/:id/editer" element={<EditArticle />} />
                         <Route path="/admin/documents" element={<AdminDocuments />} />
+                        <Route path="/admin/tracts" element={<AdminTracts />} />
                         <Route path="/admin/adherents" element={<AdminAdherents />} />
                         <Route path="/admin/parametres" element={<AdminParametres />} />
                         <Route path="/admin/bilan" element={<AdminBilan />} />
