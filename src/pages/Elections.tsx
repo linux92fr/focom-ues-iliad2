@@ -215,8 +215,16 @@ const Elections = () => {
     <main className="min-h-screen overflow-x-hidden bg-background p-4 lg:p-8">
       <div className="container mx-auto max-w-5xl space-y-10">
         <section className="space-y-4">
-          <div className="rounded-2xl overflow-hidden shadow-lg border border-border bg-card">
-            <img src="/focomues_VF.png" alt="FO COM UES Iliad — 1er syndicat de l'UES Iliad" className="w-full h-auto object-cover" />
+          <div className="relative overflow-hidden rounded-2xl shadow-lg bg-[#13233A]">
+            <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full border-[48px] border-white/5" />
+            <div className="pointer-events-none absolute -bottom-20 -left-20 h-72 w-72 rounded-full bg-red-600/20 blur-3xl" />
+            <div className="relative px-8 py-10 text-center text-white">
+              <p className="text-xs font-semibold uppercase tracking-widest text-white/50 mb-3">Élections CSE 2026 — UES ILIAD</p>
+              <h1 className="text-3xl sm:text-4xl font-black leading-tight">
+                FO COM — <span className="text-red-400">1er syndicat</span><br className="hidden sm:block" /> de l'UES Iliad
+              </h1>
+              <p className="mt-3 text-white/60 text-sm">Résultats définitifs proclamés le 6 mai 2026</p>
+            </div>
           </div>
           <div className="flex flex-wrap justify-center gap-2">
             <span className="inline-flex items-center gap-1.5 rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-medium text-green-700"><CheckCircle className="h-3 w-3" />1er tour terminé — 21 avr. 2026</span>
