@@ -196,8 +196,8 @@ const Elections = () => {
   });
   const latestT2Snap = t2ParticipationData[t2ParticipationData.length - 1] ?? null;
 
-  const elusTitulairesCad = FO_TITULAIRES_CAD.filter((c) => c.elu === true).map((c) => ({ name: c.nom, voix: c.voix }));
-  const elusSuppleantsCad = FO_SUPPLEANTS_CAD.filter((c) => c.elu === true).map((c) => ({ name: c.nom, voix: c.voix }));
+  const elusTitulairesCad = FO_TITULAIRES_CAD.filter((c) => c.elu === true).map((c) => ({ name: c.nom, voix: c.voix, photo: c.photo }));
+  const elusSuppleantsCad = FO_SUPPLEANTS_CAD.filter((c) => c.elu === true).map((c) => ({ name: c.nom, voix: c.voix, photo: c.photo }));
   const elusTitulairesEmp = buildElectedList(CANDIDATS_T2_TITULAIRES, FO_TITULAIRES_EMP_T2_VOIX);
   const elusSuppleantsEmp = buildElectedList(CANDIDATS_T2_SUPPLEANTS, FO_SUPPLEANTS_EMP_T2_VOIX);
 
