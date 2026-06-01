@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Newspaper, FileText, Users, Settings,
   LogOut, Menu, X, ChevronRight, Bell, Shield, BarChart3,
-  MessageSquare, Home, Eye, Clock, ExternalLink, Layers, ClipboardList, Mail, FolderOpen, CalendarDays
+  MessageSquare, Home, Eye, Clock, ExternalLink, Layers, ClipboardList, Mail, FolderOpen, CalendarDays, Megaphone
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAdminAuth } from "@/contexts/AdminAuthContext";
@@ -14,6 +14,7 @@ const LOGO_IMAGE = "https://files.manuscdn.com/user_upload_by_module/session_fil
 const navItems = [
   { path: "/admin",            label: "Tableau de bord", icon: LayoutDashboard, exact: true },
   { path: "/admin/actualites", label: "Actualités",      icon: Newspaper },
+  { path: "/admin/tracts",     label: "Tracts",          icon: Megaphone },
   { path: "/admin/documents",  label: "Documents",       icon: FileText },
   { path: "/admin/adherents",  label: "Adhérents",       icon: Users },
   { path: "/admin/agenda",     label: "Agenda",          icon: CalendarDays },

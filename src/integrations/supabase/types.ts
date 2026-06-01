@@ -2263,11 +2263,13 @@ export type Database = {
           body: string | null
           created_at: string
           created_by: string | null
+          file_url: string | null
           footer: string | null
           id: string
           image_url: string | null
           is_published: boolean
           layout_id: string
+          published_at: string | null
           subtitle: string | null
           theme_id: string
           title: string
@@ -2277,11 +2279,13 @@ export type Database = {
           body?: string | null
           created_at?: string
           created_by?: string | null
+          file_url?: string | null
           footer?: string | null
           id?: string
           image_url?: string | null
           is_published?: boolean
           layout_id?: string
+          published_at?: string | null
           subtitle?: string | null
           theme_id?: string
           title: string
@@ -2291,11 +2295,13 @@ export type Database = {
           body?: string | null
           created_at?: string
           created_by?: string | null
+          file_url?: string | null
           footer?: string | null
           id?: string
           image_url?: string | null
           is_published?: boolean
           layout_id?: string
+          published_at?: string | null
           subtitle?: string | null
           theme_id?: string
           title?: string
