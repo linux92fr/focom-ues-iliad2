@@ -36,6 +36,7 @@ export interface CandidatVoix {
   nom: string;
   voix: number;
   elu?: boolean;
+  photo?: string;
 }
 
 export interface RetroStep {
@@ -292,35 +293,35 @@ export const FO_SUPPLEANTS_EMP: CandidatVoix[] = [
 // ─── Voix détaillées FO — 1er tour Cadres ────────────────────────────────────
 
 export const FO_TITULAIRES_CAD: CandidatVoix[] = [
-  { nom: 'Cornelia NOUATIN',          voix: 251, elu: true  },
-  { nom: 'Mounir ZERARKA',            voix: 251, elu: true  },
-  { nom: 'Eloise ALLARD',             voix: 251, elu: true  },
-  { nom: 'Serge CHARLES',             voix: 251, elu: false },
-  { nom: 'Rose DENAKPO',              voix: 251, elu: false },
-  { nom: 'Philippe REGNIER COURTINES',voix: 251, elu: false },
-  { nom: 'Jacques PALACIOS',          voix: 251, elu: false },
-  { nom: 'Fouad KHETTAR',             voix: 252, elu: false },
-  { nom: 'Chokri ZIDELMAL',           voix: 251, elu: false },
-  { nom: 'Jean Michel MOUNIER',       voix: 251, elu: false },
-  { nom: 'Abdelfatih BENBERKANE',     voix: 251, elu: false },
-  { nom: 'Kamal MOULZIM',             voix: 251, elu: false },
-  { nom: 'Didier BROU',               voix: 251, elu: false },
+  { nom: 'Cornelia NOUATIN',           voix: 251, elu: true,  photo: '/candidats/cnouatin.png'     },
+  { nom: 'Mounir ZERARKA',             voix: 251, elu: true,  photo: '/candidats/mzerarka.png'     },
+  { nom: 'Eloise ALLARD',              voix: 251, elu: true,  photo: '/candidats/eallard.png'      },
+  { nom: 'Serge CHARLES',              voix: 251, elu: false, photo: '/candidats/scharles.jpg'     },
+  { nom: 'Rose DENAKPO',               voix: 251, elu: false, photo: '/candidats/rdenapko.png'     },
+  { nom: 'Philippe REGNIER COURTINES', voix: 251, elu: false, photo: '/candidats/prenier.png'      },
+  { nom: 'Jacques PALACIOS',           voix: 251, elu: false, photo: '/candidats/jpalacios.jpg'    },
+  { nom: 'Fouad KHETTAR',              voix: 252, elu: false, photo: '/candidats/fkhettar.png'     },
+  { nom: 'Chokri ZIDELMAL',            voix: 251, elu: false, photo: '/candidats/czidelmal.png'    },
+  { nom: 'Jean Michel MOUNIER',        voix: 251, elu: false, photo: '/candidats/jmounier.jpg'     },
+  { nom: 'Abdelfatih BENBERKANE',      voix: 251, elu: false, photo: '/candidats/abenberkane.png'  },
+  { nom: 'Kamal MOULZIM',              voix: 251, elu: false                                       },
+  { nom: 'Didier BROU',                voix: 251, elu: false, photo: '/candidats/dbrou.png'        },
 ];
 
 export const FO_SUPPLEANTS_CAD: CandidatVoix[] = [
-  { nom: 'Elise EL KHOURY',           voix: 237, elu: true  },
-  { nom: 'Haissa DOGHEMANE',          voix: 237, elu: true  },
-  { nom: 'Amandine THON',             voix: 238, elu: true },
-  { nom: 'Soufiane BELGHARBI',        voix: 238, elu: false },
-  { nom: 'Yvette NOGLO',              voix: 238, elu: false },
-  { nom: 'Jim FANELLI',               voix: 238, elu: false },
-  { nom: 'Julien TEILLAUD',           voix: 238, elu: false },
-  { nom: 'Rachid ABBAS',              voix: 238, elu: false },
-  { nom: 'Christian FARES',           voix: 238, elu: false },
-  { nom: 'Lyes BELHOCINE',            voix: 238, elu: false },
-  { nom: 'Nadim BOUADMA',             voix: 238, elu: false },
-  { nom: 'Stephane DENOBILI',         voix: 238, elu: false },
-  { nom: 'Abdellah ABBAOUI',          voix: 238, elu: false },
+  { nom: 'Elise EL KHOURY',            voix: 237, elu: true,  photo: '/candidats/eelkhoury.png'   },
+  { nom: 'Haissa DOGHEMANE',           voix: 237, elu: true,  photo: '/candidats/hdoghemane.png'  },
+  { nom: 'Amandine THON',              voix: 238, elu: true,  photo: '/candidats/athon.png'        },
+  { nom: 'Soufiane BELGHARBI',         voix: 238, elu: false, photo: '/candidats/sbelgharbi.png'  },
+  { nom: 'Yvette NOGLO',               voix: 238, elu: false, photo: '/candidats/yngolo.png'       },
+  { nom: 'Jim FANELLI',                voix: 238, elu: false, photo: '/candidats/jfanelli.png'     },
+  { nom: 'Julien TEILLAUD',            voix: 238, elu: false, photo: '/candidats/jteillaud.png'    },
+  { nom: 'Rachid ABBAS',               voix: 238, elu: false, photo: '/candidats/rabbas.png'       },
+  { nom: 'Christian FARES',            voix: 238, elu: false, photo: '/candidats/cfares.png'       },
+  { nom: 'Lyes BELHOCINE',             voix: 238, elu: false, photo: '/candidats/lbelhocine.png'   },
+  { nom: 'Nadim BOUADMA',              voix: 238, elu: false                                       },
+  { nom: 'Stephane DENOBILI',          voix: 238, elu: false, photo: '/candidats/sdenobli.png'     },
+  { nom: 'Abdellah ABBAOUI',           voix: 238, elu: false, photo: '/candidats/aabbaoui.jpg'     },
 ];
 
 // ─── Rétro-planning ───────────────────────────────────────────────────────────
