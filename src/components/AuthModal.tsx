@@ -293,12 +293,12 @@ const AuthModal = ({ open, onOpenChange }: AuthModalProps) => {
                     value={signupPassword}
                     onChange={(e) => setSignupPassword(e.target.value)}
                     className="pl-10"
-                    minLength={6}
+                    minLength={12}
                     required
                   />
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Minimum 6 caractères
+                  Minimum 12 caractères
                 </p>
               </div>
 

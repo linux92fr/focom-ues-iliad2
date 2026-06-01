@@ -11,7 +11,7 @@ const topLinks = [
   { to: "/", label: "Accueil", icon: Home, end: true },
   { to: "/actualites", label: "Actualités" },
   { to: "/bilan-mandat", label: "Bilan de Mandat" },
-  { to: "/profil", label: "Espace Adhérent" },
+  { to: "/espace-adherent", label: "Espace Adhérent" },
   { to: "/vos-droits", label: "Vos Droits" },
   { to: "/a-propos", label: "La FOCOM" },
   { to: "/contact", label: "Contact" },
@@ -32,6 +32,7 @@ const SEARCH_LINKS = [
   { label: "Simulateur prime variable", href: "/simulateur-prime-variable" },
   { label: "Sondages", href: "/sondages" },
   { label: "Agenda", href: "/agenda" },
+  { label: "Espace adhérent", href: "/espace-adherent" },
   { label: "Mon profil", href: "/profil" },
   { label: "Notifications", href: "/notifications" },
 ];
