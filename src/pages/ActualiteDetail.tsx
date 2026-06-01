@@ -142,7 +142,7 @@ const ActualiteDetail = () => {
           <div className="max-w-4xl mx-auto">
             <Card>
               {article.image_url && (
-                <img src={article.image_url} alt="" className="w-full max-h-[420px] object-cover rounded-t-lg" loading="lazy" />
+                <img src={article.image_url} alt="" className="w-full max-h-[420px] object-contain rounded-t-lg bg-muted" loading="lazy" />
               )}
               <CardContent className="p-8">
                 {article.excerpt && (
