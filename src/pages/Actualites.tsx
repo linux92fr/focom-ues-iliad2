@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,8 +13,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Calendar, Search, ArrowRight, Loader2, Newspaper } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Link } from "react-router-dom";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Article = Tables<"articles">;
@@ -33,8 +31,48 @@ const categoryColors: Record<string, string> = {
   victoire: "#16a34a",
 };
 
+const categoryGradients: Record<string, string> = {
+  actualite: "from-red-700 to-red-900",
+  communique: "from-blue-700 to-blue-900",
+  evenement: "from-violet-700 to-violet-900",
+  victoire: "from-green-700 to-green-900",
+};
+
+const categoryIcons: Record<string, string> = {
+  actualite: "📢",
+  communique: "📄",
+  evenement: "📅",
+  victoire: "🏆",
+};
+
 const stripHtml = (html: string) =>
   html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+
+function useInView(threshold = 0.15) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) { setVisible(true); obs.disconnect(); } }, { threshold });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [threshold]);
+  return { ref, visible };
+}
+
+function AnimatedCard({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
+  const { ref, visible } = useInView();
+  return (
+    <div
+      ref={ref}
+      style={{ transitionDelay: `${delay}ms` }}
+      className={`transition-all duration-500 ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"}`}
+    >
+      {children}
+    </div>
+  );
+}
 
 const Actualites = () => {
   const [articles, setArticles] = useState<Article[]>([]);
@@ -167,39 +205,103 @@ const Actualites = () => {
             <p className="text-muted-foreground">Aucune actualité trouvée</p>
           </div>
         ) : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {filteredArticles.map((item) => (
-              <Card key={item.id} className="group overflow-hidden hover:shadow-lg transition-all duration-300">
-                {item.image_url && (
-                  <img src={item.image_url} alt="" className="w-full h-40 object-cover" loading="lazy" />
-                )}
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-2 mb-3">
-                    {item.category && categoryLabels[item.category] && (
-                      <Badge style={{ backgroundColor: categoryColors[item.category] || "#dc2626", color: "white" }}>
-                        {categoryLabels[item.category]}
-                      </Badge>
-                    )}
-                    <span className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Calendar className="h-3 w-3" />
-                      {formatDate(item.published_at || item.created_at)}
-                    </span>
-                  </div>
-                  <h3 className="font-serif text-xl font-semibold text-foreground mb-3 group-hover:text-primary transition-colors line-clamp-2">
-                    {item.title}
-                  </h3>
-                  <p className="text-muted-foreground text-sm line-clamp-3 mb-4">
-                    {getExcerpt(item)}...
-                  </p>
-                  <Link to={`/actualites/${item.slug}`}>
-                    <Button variant="link" className="p-0 h-auto text-primary font-medium group-hover:gap-3 transition-all">
-                      Lire la suite
-                      <ArrowRight className="h-4 w-4 ml-1" />
-                    </Button>
-                  </Link>
-                </CardContent>
-              </Card>
-            ))}
+          <div className="space-y-6">
+            {/* Article featured */}
+            {filteredArticles[0] && (
+              <AnimatedCard delay={0}>
+                <Link to={`/actualites/${filteredArticles[0].slug}`} className="block group">
+                  <Card className="overflow-hidden border-0 shadow-lg hover:shadow-2xl transition-all duration-500">
+                    <div className="relative h-64 sm:h-80 overflow-hidden">
+                      {filteredArticles[0].image_url ? (
+                        <img
+                          src={filteredArticles[0].image_url}
+                          alt=""
+                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className={`w-full h-full bg-gradient-to-br ${categoryGradients[filteredArticles[0].category || ""] || "from-slate-700 to-slate-900"} flex items-center justify-center`}>
+                          <span className="text-7xl opacity-30">{categoryIcons[filteredArticles[0].category || ""] || "📰"}</span>
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                      <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
+                        <div className="flex items-center gap-2 mb-2">
+                          {filteredArticles[0].category && categoryLabels[filteredArticles[0].category] && (
+                            <Badge style={{ backgroundColor: categoryColors[filteredArticles[0].category] || "#dc2626", color: "white" }}>
+                              {filteredArticles[0].category && categoryIcons[filteredArticles[0].category]} {categoryLabels[filteredArticles[0].category]}
+                            </Badge>
+                          )}
+                          <span className="text-xs text-white/70 flex items-center gap-1">
+                            <Calendar className="h-3 w-3" />
+                            {formatDate(filteredArticles[0].published_at || filteredArticles[0].created_at)}
+                          </span>
+                        </div>
+                        <h2 className="text-xl sm:text-2xl font-extrabold leading-tight mb-2 group-hover:text-red-300 transition-colors">
+                          {filteredArticles[0].title}
+                        </h2>
+                        <p className="text-white/70 text-sm line-clamp-2 hidden sm:block">
+                          {getExcerpt(filteredArticles[0])}
+                        </p>
+                        <span className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-red-300 group-hover:gap-2 transition-all">
+                          Lire la suite <ArrowRight className="h-4 w-4" />
+                        </span>
+                      </div>
+                    </div>
+                  </Card>
+                </Link>
+              </AnimatedCard>
+            )}
+
+            {/* Reste des articles */}
+            {filteredArticles.length > 1 && (
+              <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+                {filteredArticles.slice(1).map((item, i) => (
+                  <AnimatedCard key={item.id} delay={Math.min(i * 80, 400)}>
+                    <Link to={`/actualites/${item.slug}`} className="block group h-full">
+                      <Card className="h-full overflow-hidden border border-border shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+                        <div className="relative h-44 overflow-hidden">
+                          {item.image_url ? (
+                            <img
+                              src={item.image_url}
+                              alt=""
+                              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                              loading="lazy"
+                            />
+                          ) : (
+                            <div className={`w-full h-full bg-gradient-to-br ${categoryGradients[item.category || ""] || "from-slate-700 to-slate-900"} flex items-center justify-center`}>
+                              <span className="text-5xl opacity-25">{categoryIcons[item.category || ""] || "📰"}</span>
+                            </div>
+                          )}
+                          {item.category && categoryLabels[item.category] && (
+                            <div className="absolute top-3 left-3">
+                              <Badge style={{ backgroundColor: categoryColors[item.category] || "#dc2626", color: "white" }} className="shadow">
+                                {categoryLabels[item.category]}
+                              </Badge>
+                            </div>
+                          )}
+                        </div>
+                        <CardContent className="p-5">
+                          <span className="text-xs text-muted-foreground flex items-center gap-1 mb-2">
+                            <Calendar className="h-3 w-3" />
+                            {formatDate(item.published_at || item.created_at)}
+                          </span>
+                          <h3 className="font-bold text-base text-foreground mb-2 group-hover:text-red-600 transition-colors line-clamp-2 leading-snug">
+                            {item.title}
+                          </h3>
+                          <p className="text-muted-foreground text-sm line-clamp-2">
+                            {getExcerpt(item)}
+                          </p>
+                          <span className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-red-600 group-hover:gap-2 transition-all">
+                            Lire la suite <ArrowRight className="h-3.5 w-3.5" />
+                          </span>
+                        </CardContent>
+                      </Card>
+                    </Link>
+                  </AnimatedCard>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </section>
