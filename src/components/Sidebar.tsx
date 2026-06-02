@@ -14,6 +14,7 @@ import {
   UserPlus,
   Users,
   Scale,
+  Mic,
 } from "lucide-react";
 import logoFocom from "@/assets/logo-focom.png";
 
@@ -34,6 +35,7 @@ const actionNavItems = [
 ];
 
 const secondaryNavItems = [
+  { to: "/podcasts", label: "Podcast", icon: Mic },
   { to: "/agenda", label: "Agenda", icon: Calendar },
   { to: "/documents-utiles", label: "Documents", icon: FolderOpen },
   { to: "/contact", label: "Contact", icon: Mail },

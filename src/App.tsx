@@ -85,6 +85,8 @@ const AdminNewsletter = lazy(() => import("./pages/admin/AdminNewsletter"));
 const AdminReclamations = lazy(() => import("./pages/admin/AdminReclamations"));
 const AdminModerationCommentaires = lazy(() => import("./pages/admin/AdminModerationCommentaires"));
 const AdminAgenda = lazy(() => import("./pages/admin/AdminAgenda"));
+const AdminPodcasts = lazy(() => import("./pages/admin/AdminPodcasts"));
+const Podcasts = lazy(() => import("./pages/Podcasts"));
 const EspaceAdherent = lazy(() => import("./pages/EspaceAdherent"));
 const AuthCallback = lazy(() => import("./pages/AuthCallback"));
 
@@ -144,6 +146,7 @@ function App() {
                           <Route path="/permanences" element={<RequireValidated><Permanences /></RequireValidated>} />
                           <Route path="/sondages" element={<RequireValidated><Sondages /></RequireValidated>} />
                           <Route path="/agenda" element={<Agenda />} />
+                          <Route path="/podcasts" element={<Podcasts />} />
                           <Route path="/profil" element={<RequireValidated><Profile /></RequireValidated>} />
                           <Route path="/espace-adherent" element={<RequireValidated><EspaceAdherent /></RequireValidated>} />
                           <Route path="/mes-reclamations" element={<RequireValidated><MesReclamations /></RequireValidated>} />
@@ -173,6 +176,7 @@ function App() {
                         <Route path="/admin/reclamations" element={<AdminReclamations />} />
                         <Route path="/admin/agenda" element={<AdminAgenda />} />
                         <Route path="/admin/moderation" element={<AdminModerationCommentaires />} />
+                        <Route path="/admin/podcasts" element={<AdminPodcasts />} />
 
                         <Route path="/fil" element={<FilActualites />} />
                         <Route path="/auth/callback" element={<AuthCallback />} />
