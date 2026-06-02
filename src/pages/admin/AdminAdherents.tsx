@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Users, Search, Filter, Eye, Edit, X, Save, Loader2, Shield } from "lucide-react";
+import { Users, Search, Filter, Eye, Edit, X, Save, Loader2, Shield, Clock, CheckCircle2, XCircle } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import AdminLayout, { AdminAuthGuard } from "@/components/admin/AdminLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -41,6 +42,9 @@ export default function AdminAdherents() {
   const [selectedStatus, setSelectedStatus] = useState<"Tous" | MemberStatus>("Tous");
   const [modal, setModal] = useState<{ mode: ModalMode; item: ProfileWithRoles } | null>(null);
   const [editForm, setEditForm] = useState<{ phone: string; status: MemberStatus; roles: UserRole[] }>({ phone: "", status: "actif", roles: [] });
+  const [validationModal, setValidationModal] = useState<ProfileWithRoles | null>(null);
+  const [validationStatus, setValidationStatus] = useState<"actif" | "suspendu">("actif");
+  const [validationNote, setValidationNote] = useState("");
 
   const { data: profiles = [], isLoading } = useQuery({
     queryKey: ["admin-adherents"],
@@ -56,6 +60,23 @@ export default function AdminAdherents() {
         rolesByUser.set(row.user_id, existing);
       });
       return ((profilesData || []) as Profile[]).map((profile) => ({ ...profile, roles: rolesByUser.get(profile.id) || [] })) as ProfileWithRoles[];
+    },
+  });
+
+  const pendingProfiles = profiles.filter((p) => p.status === "inactif");
+
+  const validateMutation = useMutation({
+    mutationFn: async ({ profile, status }: { profile: ProfileWithRoles; status: "actif" | "suspendu" }) => {
+      const { error } = await supabase.from("profiles").update({ status }).eq("id", profile.id);
+      if (error) throw error;
+    },
+    onSuccess: (_, { status }) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-adherents"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-pending-profiles"] });
+      toast.success(status === "actif" ? "Compte activé — l'adhérent a maintenant accès complet." : "Compte suspendu.");
+      setValidationModal(null);
+      setValidationNote("");
+      setValidationStatus("actif");
     },
   });
 
@@ -174,6 +195,95 @@ export default function AdminAdherents() {
                 {modal.mode === "view" && <Button onClick={() => openEdit(modal.item)} className="bg-red-600 hover:bg-red-700 text-white gap-2"><Edit className="w-4 h-4" />Modifier</Button>}
                 {modal.mode === "edit" && <Button onClick={handleSave} disabled={updateMutation.isPending} className="bg-red-600 hover:bg-red-700 text-white gap-2">{updateMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}Enregistrer</Button>}
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal validation */}
+        {validationModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setValidationModal(null)}>
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+                <h3 className="font-bold text-slate-900 flex items-center gap-2"><Clock className="w-4 h-4 text-amber-500" />Valider le compte</h3>
+                <button onClick={() => setValidationModal(null)} className="p-1.5 rounded-lg hover:bg-slate-100"><X className="w-4 h-4" /></button>
+              </div>
+              <div className="p-6 space-y-4">
+                <div className="flex items-center gap-3 bg-slate-50 rounded-xl p-3">
+                  <Avatar className="h-10 w-10"><AvatarFallback className="bg-red-100 text-red-600">{initials(validationModal)}</AvatarFallback></Avatar>
+                  <div>
+                    <p className="font-semibold text-slate-900 text-sm">{fullName(validationModal)}</p>
+                    <p className="text-xs text-slate-500">{validationModal.email}</p>
+                    <p className="text-[11px] text-slate-400 mt-0.5">Inscrit le {formatDate(validationModal.created_at)}</p>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold">Décision</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button onClick={() => setValidationStatus("actif")}
+                      className={`flex items-center gap-2 rounded-xl border-2 p-3 text-sm font-medium transition-all ${validationStatus === "actif" ? "border-green-500 bg-green-50 text-green-700" : "border-slate-200 text-slate-600 hover:border-slate-300"}`}>
+                      <CheckCircle2 className="w-4 h-4" /> Activer le compte
+                    </button>
+                    <button onClick={() => setValidationStatus("suspendu")}
+                      className={`flex items-center gap-2 rounded-xl border-2 p-3 text-sm font-medium transition-all ${validationStatus === "suspendu" ? "border-red-400 bg-red-50 text-red-700" : "border-slate-200 text-slate-600 hover:border-slate-300"}`}>
+                      <XCircle className="w-4 h-4" /> Suspendre
+                    </button>
+                  </div>
+                </div>
+                {validationStatus === "actif" && (
+                  <div className="bg-green-50 border border-green-200 rounded-xl p-3 text-xs text-green-700">
+                    L'adhérent aura accès à l'espace membre, aux permanences, aux réclamations et à tous les services réservés.
+                  </div>
+                )}
+                {validationStatus === "suspendu" && (
+                  <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-xs text-red-700">
+                    L'accès reste bloqué. Le compte peut être réactivé ultérieurement depuis cette page.
+                  </div>
+                )}
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-slate-500">Note interne (optionnel)</Label>
+                  <Textarea value={validationNote} onChange={(e) => setValidationNote(e.target.value)} placeholder="Raison, observation..." className="text-sm min-h-[60px] resize-none rounded-xl" />
+                </div>
+              </div>
+              <div className="flex justify-end gap-2 px-6 py-4 border-t border-slate-100">
+                <Button variant="outline" onClick={() => setValidationModal(null)}>Annuler</Button>
+                <Button
+                  onClick={() => validateMutation.mutate({ profile: validationModal, status: validationStatus })}
+                  disabled={validateMutation.isPending}
+                  className={validationStatus === "actif" ? "bg-green-600 hover:bg-green-700 text-white gap-2" : "bg-red-600 hover:bg-red-700 text-white gap-2"}
+                >
+                  {validateMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : validationStatus === "actif" ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+                  {validationStatus === "actif" ? "Activer" : "Suspendre"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Panneau comptes en attente */}
+        {pendingProfiles.length > 0 && (
+          <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 overflow-hidden">
+            <div className="flex items-center gap-2 px-5 py-3 border-b border-amber-200 bg-amber-100/50">
+              <Clock className="w-4 h-4 text-amber-600" />
+              <p className="text-sm font-semibold text-amber-900">
+                {pendingProfiles.length} compte{pendingProfiles.length > 1 ? "s" : ""} en attente de validation
+              </p>
+            </div>
+            <div className="divide-y divide-amber-100">
+              {pendingProfiles.map((p) => (
+                <div key={p.id} className="flex items-center justify-between gap-3 px-5 py-3">
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-8 w-8"><AvatarFallback className="bg-amber-100 text-amber-700 text-xs">{initials(p)}</AvatarFallback></Avatar>
+                    <div>
+                      <p className="text-sm font-medium text-slate-900">{fullName(p) || "—"}</p>
+                      <p className="text-xs text-slate-500">{p.email} · Inscrit {formatDate(p.created_at)}</p>
+                    </div>
+                  </div>
+                  <Button size="sm" onClick={() => { setValidationModal(p); setValidationStatus("actif"); }}
+                    className="bg-amber-600 hover:bg-amber-700 text-white gap-1.5 h-8 text-xs shrink-0">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> Valider
+                  </Button>
+                </div>
+              ))}
             </div>
           </div>
         )}
