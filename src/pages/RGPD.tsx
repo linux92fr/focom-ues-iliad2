@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { ArrowLeft, Shield, FileText, AlertCircle, CheckCircle2, Eye, Database, Lock, UserCheck } from "lucide-react";
 
 const LOGO_IMAGE = "https://files.manuscdn.com/user_upload_by_module/session_file/310519663612648040/LldXxCbhFdcPcHwX.png";
@@ -60,7 +60,7 @@ export default function RGPD() {
               <ul className="list-disc list-inside space-y-1 ml-2">
                 <li><strong>FOCOM UES ILIAD</strong></li>
                 <li>8 rue de la Ville l'Évêque, 75008 Paris</li>
-                <li>Téléphone : 01 87 15 43 11</li>
+                <li>Téléphone : <Link to="/le-syndicat" className="text-red-600 hover:underline">01 87 15 43 11</Link></li>
                 <li>Email : contact@focomues-iliad.fr</li>
               </ul>
             </div>

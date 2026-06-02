@@ -289,7 +289,7 @@ export default function VosDroits() {
               <Link to="/contact"><Mail className="mr-2 h-4 w-4" /> Contact</Link>
             </Button>
             <Button asChild variant="outline" className="border-white/40 bg-white/10 text-white hover:bg-white/20">
-              <a href="tel:0187154311"><Phone className="mr-2 h-4 w-4" /> 01 87 15 43 11</a>
+              <Link to="/le-syndicat"><Phone className="mr-2 h-4 w-4" /> Nos représentants</Link>
             </Button>
           </div>
         </div>

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -96,7 +97,7 @@ const Contact = () => {
             Une question, un dossier individuel ou une difficulté au travail ? Nos représentants sont à votre écoute.
           </p>
           <div className="mt-6 flex flex-wrap gap-4 text-sm text-white/70">
-            <span className="flex items-center gap-1.5"><Phone className="h-3.5 w-3.5" /> 01 87 15 43 11</span>
+            <Link to="/le-syndicat" className="flex items-center gap-1.5 hover:text-white transition-colors"><Phone className="h-3.5 w-3.5" /> 01 87 15 43 11</Link>
             <span className="flex items-center gap-1.5"><Mail className="h-3.5 w-3.5" /> contact@focomues-iliad.fr</span>
             <span className="flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" /> Lun–Ven, 9h–18h</span>
           </div>

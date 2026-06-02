@@ -43,7 +43,7 @@ const MentionsLegales = () => {
                 </div>
                 <div>
                   <h3 className="font-semibold text-foreground mb-2">Contact</h3>
-                  <p>Téléphone : 01 87 15 43 11</p>
+                  <p>Téléphone : <Link to="/le-syndicat" className="text-red-600 hover:underline">01 87 15 43 11</Link></p>
                   <p>Email : contact@focomues-iliad.fr</p>
                 </div>
               </CardContent>
