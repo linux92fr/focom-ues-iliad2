@@ -3,6 +3,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Download, Printer, Share2 } from "lucide-react";
+import logoFocom from "@/assets/logo-focom.png";
 
 const FIL_URL = "https://beta.focomues-iliad.fr/fil";
 
@@ -111,6 +112,12 @@ export default function QrCodeModal({ open, onOpenChange }: QrCodeModalProps) {
               bgColor="#ffffff"
               fgColor="#1e293b"
               level="H"
+              imageSettings={{
+                src: logoFocom,
+                width: 52,
+                height: 52,
+                excavate: true,
+              }}
             />
           </div>
 
