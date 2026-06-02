@@ -33,10 +33,10 @@ const meetings = [
 ];
 
 const directionBudgets = [
-  { entite: `UES ILIAD', budget: '1,6 %`, revisions: `1,2 %', social: '0,4 %` },
-  { entite: `FREE RÉSEAU / ROF', budget: '1,7 %`, revisions: `1,2 %', social: '0,5 %` },
-  { entite: `FREE MOBILE', budget: '1,2 %`, revisions: `1,2 %', social: '—` },
-  { entite: `ILIAD / ASSUNET / FREE SAS', budget: '1,2 %`, revisions: `1,2 %', social: '—` },
+  { entite: "UES ILIAD", budget: "1,6 %", revisions: "1,2 %", social: "0,4 %" },
+  { entite: "FREE RÉSEAU / ROF", budget: "1,7 %", revisions: "1,2 %", social: "0,5 %" },
+  { entite: "FREE MOBILE", budget: "1,2 %", revisions: "1,2 %", social: "—" },
+  { entite: "ILIAD / ASSUNET / FREE SAS", budget: "1,2 %", revisions: "1,2 %", social: "—" },
 ];
 
 const comparisonSections = [
@@ -133,23 +133,23 @@ const refusalReasons = [
 ];
 
 const naoTimeline = [
-  { date: `15 avril', title: 'Réunion 1`, text: 'Ouverture des échanges et présentation des premières orientations.' },
-  { date: `29 avril', title: 'Réunion 2`, text: 'Les organisations syndicales portent leurs demandes salariales et sociales.' },
-  { date: `5 mai', title: 'Réunion 3`, text: 'La Direction maintient une ligne très limitée malgré les revendications.' },
-  { date: `13 mai', title: 'Réunion 4`, text: 'Propositions finales : FO dénonce une absence de véritables négociations.' },
+  { date: "15 avril", title: "Réunion 1", text: "Ouverture des échanges et présentation des premières orientations." },
+  { date: "29 avril", title: "Réunion 2", text: "Les organisations syndicales portent leurs demandes salariales et sociales." },
+  { date: "5 mai", title: "Réunion 3", text: "La Direction maintient une ligne très limitée malgré les revendications." },
+  { date: "13 mai", title: "Réunion 4", text: "Propositions finales : FO dénonce une absence de véritables négociations." },
 ];
 
 const statusCards = [
-  { label: `Réunions', value: '4`, detail: '15/04, 29/04, 05/05, 13/05', icon: CalendarDays },
-  { label: `Budget Direction', value: '1,6 %`, detail: 'dont 1,2 % révisions salariales', icon: TrendingDown },
-  { label: `Demandes OS', value: '2,2 à 2,9 %`, detail: 'enveloppe revendiquée', icon: TrendingUp },
-  { label: `Position FO', value: 'Refus`, detail: 'CFDT, SUD, CFE-CGC ont signé', icon: XCircle },
+  { label: "Réunions", value: "4", detail: "15/04, 29/04, 05/05, 13/05", icon: CalendarDays },
+  { label: "Budget Direction", value: "1,6 %", detail: "dont 1,2 % révisions salariales", icon: TrendingDown },
+  { label: "Demandes OS", value: "2,2 à 2,9 %", detail: "enveloppe revendiquée", icon: TrendingUp },
+  { label: "Position FO", value: "Refus", detail: "CFDT, SUD, CFE-CGC ont signé", icon: XCircle },
 ];
 
 const smicComparison = [
-  { label: `SMIC au 1er janvier 2026', value: '+1,18 %`, detail: `1 801,80 € → 1 823,03 €', color: 'text-orange-600` },
-  { label: `SMIC au 1er juin 2026', value: '+2,41 %`, detail: `1 823,03 € → 1 867,02 €', color: 'text-orange-600` },
-  { label: `Total hausse SMIC sur 6 mois', value: '+3,62 %`, detail: `Vs 1,2 % proposé par la Direction', color: 'text-red-700` },
+  { label: "SMIC au 1er janvier 2026", value: "+1,18 %", detail: "1 801,80 € → 1 823,03 €", color: "text-orange-600" },
+  { label: "SMIC au 1er juin 2026", value: "+2,41 %", detail: "1 823,03 € → 1 867,02 €", color: "text-orange-600" },
+  { label: "Total hausse SMIC sur 6 mois", value: "+3,62 %", detail: "Vs 1,2 % proposé par la Direction", color: "text-red-700" },
 ];
 
 const accordMesures = {
@@ -161,12 +161,12 @@ const accordMesures = {
     'Prime carburant exceptionnelle : 50 € (une seule fois en 2026)',
   ],
   refusees: [
-    `Aucune augmentation collective pour compenser l\'inflation du SMIC — les salariés proches du SMIC perdent du pouvoir d\'achat relatif`,
-    `Pas d\'engagement ferme sur les minima conventionnels — simple « ajustement » sans chiffres, sans calendrier, sans garantie`,
+    "Aucune augmentation collective pour compenser l'inflation du SMIC — les salariés proches du SMIC perdent du pouvoir d'achat relatif",
+    "Pas d'engagement ferme sur les minima conventionnels — simple « ajustement » sans chiffres, sans calendrier, sans garantie",
     'Rétroactivité partielle : les augmentations individuelles sont seulement « possibles », pas obligatoires',
     'Prime carburant de 50 € insuffisante et exceptionnelle face à une hausse durable des prix',
     'Formations et polycompétence sans garanties — revalorisation prévue en janvier 2027 sans engagement écrit',
-    `Aucune augmentation automatique pour l\'ancienneté — seul critère : la performance évaluée par la Direction`,
+    "Aucune augmentation automatique pour l'ancienneté — seul critère : la performance évaluée par la Direction",
   ],
 };
 
@@ -401,7 +401,7 @@ const Nao2026 = () => {
               <h2 className="text-xl font-extrabold text-slate-900">FO COM continue de se mobiliser</h2>
             </div>
             <p className="text-sm leading-relaxed text-slate-700">
-              Cet accord ne marque pas la fin de notre action. Nous restons à l`écoute de vos revendications, prêts à renégocier ou relancer le combat syndical, vigilants face aux tentatives d'individualisation des augmentations. <strong>Continuons à nous organiser. C`est ensemble que nous obtiendrons de vraies avancées.</strong>
+              Cet accord ne marque pas la fin de notre action. Nous restons à l'écoute de vos revendications, prêts à renégocier ou relancer le combat syndical, vigilants face aux tentatives d'individualisation des augmentations. <strong>Continuons à nous organiser. C'est ensemble que nous obtiendrons de vraies avancées.</strong>
             </p>
             <div className="mt-5 flex flex-col gap-3 sm:flex-row">
               <Button asChild className="bg-teal-700 text-white hover:bg-teal-800">
