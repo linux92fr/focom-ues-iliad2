@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Download, Printer, Share2 } from "lucide-react";
 import logoFocom from "@/assets/logo-focom.png";
 
-const FIL_URL = "https://focomues-iliad.fr/fil";
+const FIL_URL = "https://www.focomues-iliad.fr/fil";
 
 interface QrCodeModalProps {
   open: boolean;

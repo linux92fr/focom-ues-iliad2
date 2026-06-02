@@ -10,7 +10,7 @@ import { FileDown, Newspaper, CalendarDays, Wifi, EyeOff, Shield, Heart, Message
 import logoFocom from "@/assets/logo-focom.png";
 import { useAdminAuth } from "@/contexts/AdminAuthContext";
 
-const SITE_URL = "https://focomues-iliad.fr";
+const SITE_URL = "https://www.focomues-iliad.fr";
 
 const THEME_COLORS: Record<string, string> = {
   nao: "bg-red-100 text-red-700",
