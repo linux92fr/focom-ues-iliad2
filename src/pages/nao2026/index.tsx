@@ -267,7 +267,7 @@ const Nao2026 = () => {
       </section>
 
       {/* Budgets par entité */}
-      <section className="grid gap-4 md:grid-cols-4">
+      <section className="grid gap-4 grid-cols-2 md:grid-cols-4">
         {directionBudgets.map((item) => (
           <Card key={item.entite} className="border-slate-200 shadow-sm">
             <CardContent className="p-4">
@@ -324,7 +324,7 @@ const Nao2026 = () => {
             <p className="text-sm text-slate-500">Quatre réunions, aucune avancée majeure.</p>
           </div>
         </div>
-        <div className="grid gap-3 md:grid-cols-4">
+        <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
           {naoTimeline.map((step, index) => (
             <div key={step.date} className="relative rounded-2xl border border-slate-100 bg-slate-50 p-4">
               <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-full bg-teal-600 text-sm font-black text-white">{index + 1}</div>

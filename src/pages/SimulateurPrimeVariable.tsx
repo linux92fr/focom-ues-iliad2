@@ -237,7 +237,7 @@ export default function SimulateurPrimeVariableComplet() {
 
               {/* ECI Inputs */}
               <Section title="ECI / Savoir-Être (Base 20 pts + Bonus)">
-                <div className="grid grid-cols-5 gap-2 mb-4">
+                <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mb-4">
                   {['Terr.', 'Auto.', 'Vol.', 'Entr.', 'Admin.'].map((label, i) => (
                     <div key={label} className="text-center">
                       <div className="text-[9px] uppercase tracking-widest text-zinc-500 mb-1">{label}</div>

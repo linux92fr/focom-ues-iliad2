@@ -107,7 +107,7 @@ const Contact = () => {
       {/* Content */}
       <section>
         <div className="mx-auto max-w-7xl">
-          <div className="grid lg:grid-cols-3 gap-8">
+          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
 
             {/* Contact Info */}
             <div className="lg:col-span-1 space-y-4">

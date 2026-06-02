@@ -220,7 +220,7 @@ export default function BilanMandat() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
               { label: "Réclamations", value: `${TOTALS.reclamations}+`, icon: FileText },
               { label: "Consultations", value: TOTALS.consultations, icon: Users },

@@ -269,7 +269,7 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-2 sm:gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
                 {HERO_REPRESENTATIVES.map((person) => (
                   <button
                     key={person.name}

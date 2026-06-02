@@ -77,7 +77,7 @@ const SimulateurMobilite = () => {
             </div>
           </div>
 
-          <div className="grid lg:grid-cols-4 gap-6">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
 
             {/* Colonne formulaire */}
             <div className="flex flex-col gap-5">

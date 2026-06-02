@@ -248,8 +248,8 @@ const Elections = () => {
             <section className="space-y-6">
               <h2 className="text-lg font-bold text-foreground flex items-center gap-2"><TrendingUp className="h-5 w-5 text-purple-500" />Participation</h2>
               <div className="grid sm:grid-cols-2 gap-4">
-                <div className="rounded-xl border border-border bg-card p-5 space-y-1 shadow-sm"><div className="flex items-center gap-2 text-muted-foreground font-semibold text-sm mb-2"><Users className="h-4 w-4" />1er tour — 14–21 avr. 2026</div><p className="text-3xl font-black text-foreground">37,64 %</p><p className="text-xs text-muted-foreground">Collège employés au 1er tour</p></div>
-                <div className="rounded-xl border-2 border-red-100 bg-red-50/50 p-5 space-y-1 shadow-sm"><div className="flex items-center gap-2 text-red-700 font-semibold text-sm mb-2"><TrendingUp className="h-4 w-4" />2ème tour — 29 avr. – 6 mai 2026</div><p className="text-3xl font-black text-red-700">30,75 %</p><p className="text-xs text-red-800/70"><strong>853 votants</strong> / 2 774 inscrits — Collège Employés</p></div>
+                <div className="rounded-xl border border-border bg-card p-5 space-y-1 shadow-sm"><div className="flex items-center gap-2 text-muted-foreground font-semibold text-sm mb-2"><Users className="h-4 w-4" />1er tour — 14–21 avr. 2026</div><p className="text-2xl sm:text-3xl font-black text-foreground">37,64 %</p><p className="text-xs text-muted-foreground">Collège employés au 1er tour</p></div>
+                <div className="rounded-xl border-2 border-red-100 bg-red-50/50 p-5 space-y-1 shadow-sm"><div className="flex items-center gap-2 text-red-700 font-semibold text-sm mb-2"><TrendingUp className="h-4 w-4" />2ème tour — 29 avr. – 6 mai 2026</div><p className="text-2xl sm:text-3xl font-black text-red-700">30,75 %</p><p className="text-xs text-red-800/70"><strong>853 votants</strong> / 2 774 inscrits — Collège Employés</p></div>
               </div>
 
               <div className="space-y-3">
