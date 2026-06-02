@@ -11,6 +11,7 @@ import { SupabaseAuthProvider } from "./contexts/SupabaseAuthContext";
 import { AuthProvider } from "./hooks/useAuth";
 import PublicLayout from "./components/PublicLayout";
 import { AdminAuthGuard } from "@/components/admin/AdminLayout";
+import RequireValidated from "./components/RequireValidated";
 
 // Public pages
 const Home = lazy(() => import("./pages/Home"));
@@ -137,15 +138,15 @@ function App() {
                           <Route path="/accords/gepp" element={<AccordGEPP />} />
                           <Route path="/newsletter" element={<Newsletter />} />
                           <Route path="/newsletter/unsubscribe" element={<NewsletterUnsubscribe />} />
-                          <Route path="/notifications" element={<Notifications />} />
-                          <Route path="/ai" element={<AI />} />
-                          <Route path="/assistant-juridique" element={<AssistantJuridique />} />
-                          <Route path="/permanences" element={<Permanences />} />
-                          <Route path="/sondages" element={<Sondages />} />
+                          <Route path="/notifications" element={<RequireValidated><Notifications /></RequireValidated>} />
+                          <Route path="/ai" element={<RequireValidated><AI /></RequireValidated>} />
+                          <Route path="/assistant-juridique" element={<RequireValidated><AssistantJuridique /></RequireValidated>} />
+                          <Route path="/permanences" element={<RequireValidated><Permanences /></RequireValidated>} />
+                          <Route path="/sondages" element={<RequireValidated><Sondages /></RequireValidated>} />
                           <Route path="/agenda" element={<Agenda />} />
-                          <Route path="/profil" element={<Profile />} />
-                          <Route path="/espace-adherent" element={<EspaceAdherent />} />
-                          <Route path="/mes-reclamations" element={<MesReclamations />} />
+                          <Route path="/profil" element={<RequireValidated><Profile /></RequireValidated>} />
+                          <Route path="/espace-adherent" element={<RequireValidated><EspaceAdherent /></RequireValidated>} />
+                          <Route path="/mes-reclamations" element={<RequireValidated><MesReclamations /></RequireValidated>} />
                         </Route>
 
                         <Route path="/admin/nao2026" element={<AdminAuthGuard><AdminNao2026 /></AdminAuthGuard>} />

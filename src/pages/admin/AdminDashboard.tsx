@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   Activity,
   CalendarDays,
@@ -243,6 +244,15 @@ export default function AdminDashboard() {
   const [lastRefresh, setLastRefresh] = useState(new Date());
   const [qrOpen, setQrOpen] = useState(false);
 
+  const { data: pendingProfiles = [] } = useQuery({
+    queryKey: ["admin-pending-profiles"],
+    queryFn: async () => {
+      const { data } = await supabase.from("profiles").select("id, first_name, last_name, email, created_at").eq("status", "inactif").order("created_at", { ascending: false });
+      return data ?? [];
+    },
+    refetchInterval: 30000,
+  });
+
   const refreshDashboard = useCallback(async () => {
     setRefreshing(true);
     const [nextStats, nextActivity, nextEvents] = await Promise.all([
@@ -295,6 +305,31 @@ export default function AdminDashboard() {
           </div>
           <QrCodeModal open={qrOpen} onOpenChange={setQrOpen} />
         </div>
+
+        {/* Alerte profils en attente */}
+        {pendingProfiles.length > 0 && (
+          <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <Users className="w-5 h-5 text-amber-600 shrink-0" />
+                <div>
+                  <p className="text-sm font-semibold text-amber-900">
+                    {pendingProfiles.length} compte{pendingProfiles.length > 1 ? "s" : ""} en attente de validation
+                  </p>
+                  <p className="text-xs text-amber-700 mt-0.5">
+                    {pendingProfiles.slice(0, 3).map((p) => `${p.first_name ?? ""} ${p.last_name ?? ""}`.trim() || p.email).join(", ")}
+                    {pendingProfiles.length > 3 && ` et ${pendingProfiles.length - 3} autre(s)`}
+                  </p>
+                </div>
+              </div>
+              <Link to="/admin/adherents">
+                <Button size="sm" className="bg-amber-600 hover:bg-amber-700 text-white h-8 text-xs gap-1.5 shrink-0">
+                  <Users className="w-3.5 h-3.5" /> Valider
+                </Button>
+              </Link>
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
           {statCards.map((stat) => (
