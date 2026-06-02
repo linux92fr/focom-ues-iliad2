@@ -91,7 +91,17 @@ export default function RGPD() {
               <div>
                 <h4 className="font-semibold text-slate-900 mb-1">Compte adhérent</h4>
                 <p>
-                  Données collectées : email, mot de passe chiffré, profil adhérent, carte adhérent, notifications et données nécessaires à l’accès à l’espace personnel.
+                  Données collectées : email, profil adhérent (prénom, nom), passkey (clé publique WebAuthn/FIDO2 stockée côté serveur), carte adhérent, notifications et données nécessaires à l’accès à l’espace personnel.
+                </p>
+                <p className="mt-1">
+                  Aucun mot de passe n’est collecté ni stocké. L’authentification repose sur des passkeys (empreinte digitale, reconnaissance faciale ou code PIN) et sur des liens de connexion à usage unique envoyés par email (magic link). Tout nouveau compte est soumis à validation par un administrateur avant accès à l’espace membre.
+                </p>
+              </div>
+
+              <div>
+                <h4 className="font-semibold text-slate-900 mb-1">Fil d’actualités — réactions et commentaires</h4>
+                <p>
+                  Le fil d’actualités accessible via QR code permet aux visiteurs de réagir (reaction emoji) et de laisser des commentaires. Les réactions sont anonymes et associées à un identifiant de session temporaire stocké localement sur l’appareil. Les commentaires sont soumis à modération avant publication : ils ne sont visibles qu’après validation explicite par un administrateur.
                 </p>
               </div>
 
@@ -157,7 +167,9 @@ export default function RGPD() {
             </h3>
             <ul className="list-disc list-inside space-y-2 text-sm text-slate-600 ml-2">
               <li>Connexions sécurisées en HTTPS.</li>
-              <li>Mots de passe chiffrés.</li>
+              <li>Authentification sans mot de passe par passkey (WebAuthn/FIDO2) — standard recommandé par l'ANSSI, résistant au phishing et aux fuites de données.</li>
+              <li>Lien de connexion à usage unique (magic link) comme alternative sécurisée.</li>
+              <li>Validation manuelle des nouveaux comptes par un administrateur.</li>
               <li>Accès restreint aux données personnelles.</li>
               <li>Gestion des rôles administrateurs.</li>
               <li>Stockage sécurisé des pièces jointes et documents.</li>
@@ -205,7 +217,7 @@ export default function RGPD() {
           <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
           <div>
             <p className="text-sm font-semibold text-amber-800">Dernière mise à jour</p>
-            <p className="text-xs text-amber-700 mt-1">Cette politique de confidentialité a été mise à jour le 21 mai 2026.</p>
+            <p className="text-xs text-amber-700 mt-1">Cette politique de confidentialité a été mise à jour le 2 juin 2026.</p>
           </div>
         </div>
       </main>

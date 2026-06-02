@@ -68,9 +68,9 @@ const MentionsLegales = () => {
                 <CardTitle>Hébergement du site</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2 text-muted-foreground">
-                <p><strong>Site web :</strong> hébergement web et déploiement applicatif.</p>
+                <p><strong>Site web :</strong> Sevalla by Kinsta — infrastructure cloud, hébergement applicatif.</p>
                 <p><strong>Base de données :</strong> Supabase — serveurs situés dans l'Union Européenne.</p>
-                <p><strong>Nom de domaine :</strong> focomues-iliad.fr.</p>
+                <p><strong>Nom de domaine :</strong> www.focomues-iliad.fr.</p>
               </CardContent>
             </Card>
 
@@ -87,6 +87,9 @@ const MentionsLegales = () => {
                 </p>
                 <p>
                   <strong>Données bancaires :</strong> si l'utilisateur opte pour le prélèvement, les coordonnées nécessaires sont intégrées au bulletin PDF officiel transmis au syndicat.
+                </p>
+                <p>
+                  <strong>Authentification :</strong> aucun mot de passe n'est utilisé. L'accès à l'espace membre repose sur des passkeys (WebAuthn/FIDO2) ou des liens de connexion à usage unique (magic link) envoyés par email. Tout nouveau compte est soumis à validation par un administrateur.
                 </p>
                 <p>
                   Pour plus d'informations, consultez notre <Link to="/rgpd" className="text-primary hover:underline">Politique de Protection des Données</Link>.
