@@ -1,4 +1,4 @@
-import { Facebook, Twitter, Linkedin, Youtube, Phone, Mail, MapPin } from "lucide-react";
+import { Facebook, Twitter, Linkedin, Youtube, Mail, MapPin, Clock } from "lucide-react";
 import logoFocom from "@/assets/logo-focom.png";
 
 const Footer = () => {
@@ -84,10 +84,10 @@ const Footer = () => {
         {/* Contact info */}
         <div className="border-t border-accent-foreground/10 mt-10 pt-8">
           <div className="flex flex-wrap gap-6 justify-center text-sm text-accent-foreground/70">
-            <a href="tel:+33123456789" className="flex items-center gap-2 hover:text-primary transition-colors">
-              <Phone className="h-4 w-4" />
-              01 23 45 67 89
-            </a>
+            <span className="flex items-center gap-2 text-accent-foreground/40 cursor-default select-none">
+              <Clock className="h-4 w-4" />
+              Bientôt
+            </span>
             <a href="mailto:contact@focom-actu.fr" className="flex items-center gap-2 hover:text-primary transition-colors">
               <Mail className="h-4 w-4" />
               contact@focomues-iliad.fr

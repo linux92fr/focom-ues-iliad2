@@ -13,7 +13,7 @@ import { toast } from "sonner";
 const defaultSettings = {
   siteName: "FOCOM UES ILIAD",
   siteEmail: "contact@focomues-iliad.fr",
-  sitePhone: "01 87 15 43 11",
+  sitePhone: "",
   maintenanceMode: false,
   newRegistration: true,
   emailNotifications: true,

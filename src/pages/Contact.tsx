@@ -29,7 +29,7 @@ const Contact = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const contactInfo = [
-    { icon: Phone, title: "Téléphone", details: "01 23 45 67 89", subtext: "Du lundi au vendredi, 9h-18h" },
+    { icon: Phone, title: "Téléphone", details: "Bientôt", subtext: "Numéro en cours d'attribution" },
     { icon: Mail, title: "Email", details: "contact@focomues-iliad.fr", subtext: "Réponse sous 48h" },
     { icon: MapPin, title: "Adresse", details: "Paris, France", subtext: "Siège social" },
     { icon: Clock, title: "Permanences", details: "Mardi et Jeudi", subtext: "12h-14h" },
@@ -97,7 +97,7 @@ const Contact = () => {
             Une question, un dossier individuel ou une difficulté au travail ? Nos représentants sont à votre écoute.
           </p>
           <div className="mt-6 flex flex-wrap gap-4 text-sm text-white/70">
-            <Link to="/le-syndicat" className="flex items-center gap-1.5 hover:text-white transition-colors"><Phone className="h-3.5 w-3.5" /> 01 87 15 43 11</Link>
+            <span className="flex items-center gap-1.5 opacity-50 cursor-default"><Phone className="h-3.5 w-3.5" /> Bientôt</span>
             <span className="flex items-center gap-1.5"><Mail className="h-3.5 w-3.5" /> contact@focomues-iliad.fr</span>
             <span className="flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" /> Lun–Ven, 9h–18h</span>
           </div>

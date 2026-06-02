@@ -106,7 +106,7 @@ const faqData = [
       },
       {
         question: "Quel numéro appeler ?",
-        answer: "Vous pouvez appeler le 01 87 15 43 11 ou utiliser les numéros directs des représentants quand ils sont affichés.",
+        answer: "Un numéro de contact sera bientôt disponible. En attendant, utilisez le formulaire de contact ou les coordonnées directes des représentants affichées sur la page du syndicat.",
       },
       {
         question: "Puis-je contacter FO COM sans être adhérent ?",
