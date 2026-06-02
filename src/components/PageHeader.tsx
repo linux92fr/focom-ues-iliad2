@@ -3,12 +3,13 @@ import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
   Search, Bell, Settings, X, ArrowRight, LogOut, User, Lock, Home, Menu,
   LayoutDashboard, Newspaper, BarChart3, UserCircle, Shield, FolderOpen,
-  Mail, Calendar, AlertCircle, UserPlus, Users, Scale,
+  Mail, Calendar, AlertCircle, UserPlus, Users, Scale, Sun, Moon, Monitor,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdminAuth } from "@/contexts/AdminAuthContext";
+import { useTheme } from "@/contexts/ThemeContext";
 import logoFocom from "@/assets/logo-focom.png";
 
 const SEARCH_LINKS = [
@@ -63,6 +64,15 @@ export default function PageHeader() {
   const isHomePage = location.pathname === "/";
   const { user, signOut } = useAuth();
   const { isAuthenticated: isAdmin } = useAdminAuth();
+  const { theme, setTheme, resolvedTheme } = useTheme();
+
+  const THEME_CYCLE: Record<string, "light" | "dark" | "system"> = {
+    light: "dark",
+    dark: "system",
+    system: "light",
+  };
+  const ThemeIcon = theme === "dark" ? Moon : theme === "system" ? Monitor : Sun;
+  const themeLabel = theme === "dark" ? "Mode sombre" : theme === "system" ? "Système" : "Mode clair";
 
   const initials = user
     ? (user.user_metadata?.display_name?.substring(0, 2) || user.email?.substring(0, 2) || "U").toUpperCase()
@@ -180,9 +190,18 @@ export default function PageHeader() {
             <button
               aria-label="Rechercher"
               onClick={() => setSearchOpen(true)}
-              className="w-9 h-9 flex items-center justify-center rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors"
+              className="w-9 h-9 flex items-center justify-center rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-100 dark:hover:bg-slate-700 transition-colors"
             >
               <Search className="w-5 h-5" />
+            </button>
+
+            <button
+              aria-label={themeLabel}
+              title={themeLabel}
+              onClick={() => setTheme(THEME_CYCLE[theme])}
+              className="w-9 h-9 flex items-center justify-center rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-100 dark:hover:bg-slate-700 transition-colors"
+            >
+              <ThemeIcon className="w-5 h-5" />
             </button>
 
             <Link
@@ -258,6 +277,18 @@ export default function PageHeader() {
             </div>
             <button type="button" onClick={() => setMobileMenuOpen(false)} className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-lg bg-muted text-foreground" aria-label="Fermer le menu"><X className="h-5 w-5" /></button>
             <nav className="flex-1 space-y-1 overflow-y-auto p-3">
+              {/* Bouton thème */}
+              <button
+                onClick={() => setTheme(THEME_CYCLE[theme])}
+                className="w-full flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-foreground hover:bg-muted transition-colors"
+              >
+                <ThemeIcon className="h-5 w-5 shrink-0" />
+                <span className="truncate">{themeLabel}</span>
+                <span className="ml-auto text-xs text-muted-foreground bg-muted rounded-full px-2 py-0.5">
+                  {theme === "light" ? "Clair" : theme === "dark" ? "Sombre" : "Système"}
+                </span>
+              </button>
+
               {MOBILE_NAV.filter((item) => item.to !== "/admin" || isAdmin).map((item) => {
                 const Icon = item.icon;
                 return (
