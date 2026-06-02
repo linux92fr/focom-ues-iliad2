@@ -82,6 +82,7 @@ export default function FilActualites() {
         .from("articles")
         .select("id, title, slug, category, published_at, image_url, excerpt")
         .eq("is_published", true)
+        .eq("status", "publie")
         .order("published_at", { ascending: false })
         .limit(20);
       return data ?? [];
