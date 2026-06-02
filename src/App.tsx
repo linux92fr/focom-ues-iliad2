@@ -31,6 +31,7 @@ const NouvelArticle = lazy(() => import("./pages/NouvelArticle"));
 const EditArticle = lazy(() => import("./pages/EditArticle"));
 const Publications = lazy(() => import("./pages/Publications"));
 const Tracts = lazy(() => import("./pages/Tracts"));
+const FilActualites = lazy(() => import("./pages/FilActualites"));
 const PublicationDetail = lazy(() => import("./pages/PublicationDetail"));
 
 // Adhésion & dons
@@ -170,6 +171,7 @@ function App() {
                         <Route path="/admin/reclamations" element={<AdminReclamations />} />
                         <Route path="/admin/agenda" element={<AdminAgenda />} />
 
+                        <Route path="/fil" element={<FilActualites />} />
                         <Route path="/auth/callback" element={<AuthCallback />} />
                         <Route path="*" element={<NotFound />} />
                       </Routes>

@@ -7,6 +7,7 @@ import {
   Mail,
   MessageSquare,
   Newspaper,
+  QrCode,
   RefreshCw,
   Users,
   Vote,
@@ -16,6 +17,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import AdminLayout, { AdminAuthGuard } from "@/components/admin/AdminLayout";
 import { supabase } from "@/integrations/supabase/client";
+import QrCodeModal from "@/components/admin/QrCodeModal";
 
 type TableQuery = ReturnType<typeof supabase.from>;
 
@@ -239,6 +241,7 @@ export default function AdminDashboard() {
   const [upcomingEvents, setUpcomingEvents] = useState<UpcomingEvent[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [lastRefresh, setLastRefresh] = useState(new Date());
+  const [qrOpen, setQrOpen] = useState(false);
 
   const refreshDashboard = useCallback(async () => {
     setRefreshing(true);
@@ -281,10 +284,16 @@ export default function AdminDashboard() {
               Données issues de Supabase : articles, documents, messages, adhérents, newsletter, agenda et sondages.
             </p>
           </div>
-          <Button variant="outline" size="sm" className="gap-2 h-8 text-xs border-slate-200" onClick={refreshDashboard} disabled={refreshing}>
-            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`} />
-            {refreshing ? "Chargement…" : "Actualiser"}
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" className="gap-2 h-8 text-xs border-slate-200" onClick={() => setQrOpen(true)}>
+              <QrCode className="w-3.5 h-3.5" /> QR Code
+            </Button>
+            <Button variant="outline" size="sm" className="gap-2 h-8 text-xs border-slate-200" onClick={refreshDashboard} disabled={refreshing}>
+              <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`} />
+              {refreshing ? "Chargement…" : "Actualiser"}
+            </Button>
+          </div>
+          <QrCodeModal open={qrOpen} onOpenChange={setQrOpen} />
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
