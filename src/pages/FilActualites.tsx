@@ -67,8 +67,8 @@ export default function FilActualites() {
     queryFn: async () => {
       const { data } = await supabase
         .from("tracts")
-        .select("id, title, theme, published_at, file_url, cover_url")
-        .eq("published", true)
+        .select("id, title, theme_id, published_at, file_url, image_url")
+        .eq("is_published", true)
         .order("published_at", { ascending: false })
         .limit(20);
       return data ?? [];
@@ -81,7 +81,7 @@ export default function FilActualites() {
       const { data } = await supabase
         .from("articles")
         .select("id, title, slug, category, published_at, image_url, excerpt")
-        .eq("published", true)
+        .eq("is_published", true)
         .order("published_at", { ascending: false })
         .limit(20);
       return data ?? [];
@@ -95,9 +95,9 @@ export default function FilActualites() {
       id: t.id,
       date: t.published_at ?? "",
       title: t.title,
-      theme: t.theme,
+      theme: (t.theme_id as string) ?? "general",
       file_url: t.file_url ?? null,
-      cover_url: t.cover_url ?? null,
+      cover_url: t.image_url ?? null,
     })),
     ...articles.map((a) => ({
       kind: "article" as const,
