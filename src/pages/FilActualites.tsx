@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { FileDown, Newspaper, CalendarDays, Wifi, EyeOff, Shield, Heart, MessageCircle, Send, Trash2, ChevronDown, ChevronUp } from "lucide-react";
+import { FileDown, Newspaper, CalendarDays, Wifi, EyeOff, Shield, Heart, MessageCircle, Send, Trash2, ChevronDown, ChevronUp, Clock } from "lucide-react";
 import logoFocom from "@/assets/logo-focom.png";
 import { useAdminAuth } from "@/contexts/AdminAuthContext";
 
@@ -73,6 +73,7 @@ function ItemInteractions({ itemType, itemId, isAdmin }: { itemType: "tract" | "
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [authorName, setAuthorName] = useState("");
   const [content, setContent] = useState("");
+  const [submitted, setSubmitted] = useState(false);
 
   const reactKey = ["fil-reactions", itemType, itemId];
   const commKey = ["fil-comments", itemType, itemId];
@@ -116,10 +117,17 @@ function ItemInteractions({ itemType, itemId, isAdmin }: { itemType: "tract" | "
   const addComment = useMutation({
     mutationFn: async () => {
       if (!authorName.trim() || !content.trim()) return;
-      await supabase.from("fil_comments").insert({ item_type: itemType, item_id: itemId, author_name: authorName.trim(), content: content.trim() });
+      await supabase.from("fil_comments").insert({
+        item_type: itemType,
+        item_id: itemId,
+        author_name: authorName.trim(),
+        content: content.trim(),
+        status: "pending",
+      });
     },
     onSuccess: () => {
       setContent("");
+      setSubmitted(true);
       queryClient.invalidateQueries({ queryKey: commKey });
     },
   });
@@ -199,32 +207,40 @@ function ItemInteractions({ itemType, itemId, isAdmin }: { itemType: "tract" | "
           )}
 
           {/* Formulaire */}
-          <div className="space-y-2">
-            <Input
-              placeholder="Votre prénom"
-              value={authorName}
-              onChange={(e) => setAuthorName(e.target.value)}
-              className="h-8 text-sm"
-              maxLength={50}
-            />
-            <div className="flex gap-2">
-              <Textarea
-                placeholder="Votre message…"
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                className="text-sm min-h-[60px] resize-none flex-1"
-                maxLength={500}
-              />
-              <Button
-                size="sm"
-                className="bg-red-600 hover:bg-red-700 text-white h-auto px-3 shrink-0"
-                disabled={!authorName.trim() || !content.trim() || addComment.isPending}
-                onClick={() => addComment.mutate()}
-              >
-                <Send className="w-4 h-4" />
-              </Button>
+          {submitted ? (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 flex items-center gap-2 text-amber-700 text-xs">
+              <Clock className="w-3.5 h-3.5 shrink-0" />
+              <span>Votre commentaire est en attente de modération. Il sera visible une fois approuvé.</span>
             </div>
-          </div>
+          ) : (
+            <div className="space-y-2">
+              <Input
+                placeholder="Votre prénom"
+                value={authorName}
+                onChange={(e) => setAuthorName(e.target.value)}
+                className="h-8 text-sm"
+                maxLength={50}
+              />
+              <div className="flex gap-2">
+                <Textarea
+                  placeholder="Votre message…"
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  className="text-sm min-h-[60px] resize-none flex-1"
+                  maxLength={500}
+                />
+                <Button
+                  size="sm"
+                  className="bg-red-600 hover:bg-red-700 text-white h-auto px-3 shrink-0"
+                  disabled={!authorName.trim() || !content.trim() || addComment.isPending}
+                  onClick={() => addComment.mutate()}
+                >
+                  <Send className="w-4 h-4" />
+                </Button>
+              </div>
+              <p className="text-[10px] text-slate-400">Votre commentaire sera publié après modération.</p>
+            </div>
+          )}
         </div>
       )}
     </div>

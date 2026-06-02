@@ -82,6 +82,7 @@ const AdminPermanences = lazy(() => import("./pages/admin/AdminPermanences"));
 const AdminSondages = lazy(() => import("./pages/admin/AdminSondages"));
 const AdminNewsletter = lazy(() => import("./pages/admin/AdminNewsletter"));
 const AdminReclamations = lazy(() => import("./pages/admin/AdminReclamations"));
+const AdminModerationCommentaires = lazy(() => import("./pages/admin/AdminModerationCommentaires"));
 const AdminAgenda = lazy(() => import("./pages/admin/AdminAgenda"));
 const EspaceAdherent = lazy(() => import("./pages/EspaceAdherent"));
 const AuthCallback = lazy(() => import("./pages/AuthCallback"));
@@ -170,6 +171,7 @@ function App() {
                         <Route path="/admin/newsletter" element={<AdminNewsletter />} />
                         <Route path="/admin/reclamations" element={<AdminReclamations />} />
                         <Route path="/admin/agenda" element={<AdminAgenda />} />
+                        <Route path="/admin/moderation" element={<AdminModerationCommentaires />} />
 
                         <Route path="/fil" element={<FilActualites />} />
                         <Route path="/auth/callback" element={<AuthCallback />} />
