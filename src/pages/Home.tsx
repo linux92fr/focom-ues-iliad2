@@ -241,17 +241,14 @@ export default function Home() {
       <section className="relative mb-6 overflow-hidden rounded-3xl bg-[#13233A] shadow-xl">
         <img src={HERO_IMAGE} alt="FO COM UES ILIAD" className="absolute inset-0 h-full w-full object-cover opacity-22" />
         <div className="absolute inset-0 bg-gradient-to-br from-[#13233A] via-[#13233A]/95 to-red-950/75" />
-        <div className="relative grid gap-6 px-5 py-7 sm:px-8 lg:grid-cols-[1.05fr_0.95fr] lg:px-12 lg:py-10">
+        <div className="relative grid gap-4 px-5 py-5 sm:px-8 lg:grid-cols-[1.05fr_0.95fr] lg:px-10 lg:py-6">
           <div className="flex flex-col justify-center">
-            <div className="mb-4 inline-flex w-fit items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-white/85 backdrop-blur">
-              <Sparkles className="h-3.5 w-3.5 text-red-300" /> Notre force, vos droits
-            </div>
-            <h1 className="max-w-3xl text-2xl font-extrabold leading-tight text-white sm:text-4xl lg:text-5xl">{heroTitle}</h1>
-            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-white/85">{heroSubtitle}</p>
-            <div className="mt-5 flex flex-col gap-2.5 sm:flex-row">
-              <Button onClick={() => navigate("/adhesion")} className="bg-red-600 px-6 py-3 text-white hover:bg-red-700"><UserPlus className="mr-2 h-4 w-4" /> Adhérer maintenant</Button>
-              <Button onClick={() => navigate("/mes-reclamations")} variant="outline" className="border-white/30 bg-white/10 px-6 py-3 text-white backdrop-blur hover:bg-white/20"><MessageSquare className="mr-2 h-4 w-4" /> Faire une demande</Button>
-              <Button onClick={() => navigate("/vos-droits")} variant="outline" className="border-teal-300/40 bg-teal-500/10 px-6 py-3 text-white backdrop-blur hover:bg-teal-500/20"><Shield className="mr-2 h-4 w-4" /> Mes droits</Button>
+            <h1 className="max-w-3xl text-xl font-extrabold leading-tight text-white sm:text-3xl lg:text-4xl">{heroTitle}</h1>
+            <p className="mt-2 max-w-2xl text-xs leading-relaxed text-white/75 hidden sm:block">{heroSubtitle}</p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button onClick={() => navigate("/adhesion")} size="sm" className="bg-red-600 text-white hover:bg-red-700"><UserPlus className="mr-1.5 h-3.5 w-3.5" /> Adhérer</Button>
+              <Button onClick={() => navigate("/mes-reclamations")} size="sm" variant="outline" className="border-white/30 bg-white/10 text-white backdrop-blur hover:bg-white/20"><MessageSquare className="mr-1.5 h-3.5 w-3.5" /> Faire une demande</Button>
+              <Button onClick={() => navigate("/vos-droits")} size="sm" variant="outline" className="border-teal-300/40 bg-teal-500/10 text-white backdrop-blur hover:bg-teal-500/20"><Shield className="mr-1.5 h-3.5 w-3.5" /> Mes droits</Button>
             </div>
           </div>
 
@@ -290,36 +287,16 @@ export default function Home() {
                 ))}
               </div>
 
-              <div className="mt-2.5 rounded-xl border border-white/10 bg-black/15 p-2 backdrop-blur">
-                <div className="flex items-center gap-2.5">
-                  <div className="h-12 w-16 shrink-0 overflow-hidden rounded-lg border border-white/10 bg-white/10">
-                    <img
-                      src={HERO_SUPPORT_ADVISORS.photo}
-                      alt={HERO_SUPPORT_ADVISORS.names}
-                      loading="lazy"
-                      className="h-full w-full object-cover"
-                    />
+              <div className="mt-2 rounded-xl border border-white/10 bg-black/15 p-2 backdrop-blur">
+                <div className="flex items-center gap-2">
+                  <div className="h-9 w-12 shrink-0 overflow-hidden rounded-lg border border-white/10 bg-white/10">
+                    <img src={HERO_SUPPORT_ADVISORS.photo} alt={HERO_SUPPORT_ADVISORS.names} loading="lazy" className="h-full w-full object-cover" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[10px] font-black uppercase tracking-wider text-teal-100">{HERO_SUPPORT_ADVISORS.title}</p>
-                    <p className="mt-1 text-sm font-extrabold leading-tight text-white">{HERO_SUPPORT_ADVISORS.names}</p>
-                    <p className="mt-1 text-[11px] leading-relaxed text-white/65">{HERO_SUPPORT_ADVISORS.description}</p>
+                    <p className="text-[9px] font-black uppercase tracking-wider text-teal-100">{HERO_SUPPORT_ADVISORS.title}</p>
+                    <p className="text-xs font-extrabold leading-tight text-white">{HERO_SUPPORT_ADVISORS.names}</p>
                   </div>
                 </div>
-              </div>
-
-              <div className="mt-2.5 grid grid-cols-3 gap-2">
-                {[
-                  { icon: CheckCircle2, title: "FO 1ère force", text: "CSE 2026" },
-                  { icon: Handshake, title: "NAO 2026", text: "FO mobilisé" },
-                  { icon: MessageSquare, title: "Accompagnement", text: "Vos dossiers" },
-                ].map((item) => (
-                  <div key={item.title} className="rounded-xl border border-white/10 bg-black/15 p-2 text-center backdrop-blur">
-                    <item.icon className="mx-auto mb-2 h-4 w-4 text-red-200" />
-                    <p className="text-[11px] font-extrabold leading-tight">{item.title}</p>
-                    <p className="mt-1 text-[10px] text-white/65">{item.text}</p>
-                  </div>
-                ))}
               </div>
             </div>
           </div>
