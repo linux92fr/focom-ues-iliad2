@@ -52,7 +52,7 @@ function NavItem({ item, onNavigate }: { item: { to: string; label: string; icon
       to={item.to}
       end={item.end}
       onClick={onNavigate}
-      className={`flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors ${
+      className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
         isActive
           ? "bg-secondary text-secondary-foreground"
           : item.highlight
@@ -82,19 +82,19 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         </div>
       </div>
 
-      <nav className="flex-1 space-y-5 overflow-y-auto p-3">
-        <div className="space-y-1">
-          <p className="px-4 pb-1 text-[10px] font-black uppercase tracking-wider text-muted-foreground">Principal</p>
+      <nav className="flex-1 space-y-3 p-3">
+        <div className="space-y-0.5">
+          <p className="px-3 pb-1 text-[10px] font-black uppercase tracking-wider text-muted-foreground">Principal</p>
           {mainNavItems.map((item) => <NavItem key={item.label} item={item} onNavigate={onNavigate} />)}
         </div>
 
-        <div className="space-y-1">
-          <p className="px-4 pb-1 text-[10px] font-black uppercase tracking-wider text-muted-foreground">Agir</p>
+        <div className="space-y-0.5">
+          <p className="px-3 pb-1 text-[10px] font-black uppercase tracking-wider text-muted-foreground">Mon espace</p>
           {actionNavItems.map((item) => <NavItem key={item.label} item={item} onNavigate={onNavigate} />)}
         </div>
 
-        <div className="space-y-1">
-          <p className="px-4 pb-1 text-[10px] font-black uppercase tracking-wider text-muted-foreground">Plus</p>
+        <div className="space-y-0.5">
+          <p className="px-3 pb-1 text-[10px] font-black uppercase tracking-wider text-muted-foreground">Ressources</p>
           {secondaryNavItems.map((item) => <NavItem key={item.label} item={item} onNavigate={onNavigate} />)}
         </div>
       </nav>

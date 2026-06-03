@@ -1,13 +1,10 @@
 import { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Input } from "@/components/ui/input";
 import ChatbotJuridique from "@/components/ChatbotJuridique";
 import CalculateurLicenciement from "@/components/CalculateurLicenciement";
 import { buildCcntContext } from "@/lib/ccntContext";
@@ -15,7 +12,7 @@ import {
   Shield, Gavel, Megaphone, Scale, Clock, AlertTriangle,
   Users, FileText, Search, BookOpen, Building, Heart,
   ChevronRight, ExternalLink, Bell, Bot, Sparkles,
-  Calendar, Activity, Layers, GraduationCap,
+  Calendar, Activity, Layers, GraduationCap, Mail,
 } from "lucide-react";
 
 // ─────────────────────────────────────────────────────────────────
@@ -870,120 +867,131 @@ const VosDroits = () => {
   const tabsGridClass = isContrat ? "grid-cols-2 md:grid-cols-3 lg:grid-cols-6" : "grid-cols-1 sm:grid-cols-3";
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
+    <main className="min-h-screen overflow-x-hidden bg-slate-50 p-3 sm:p-4 lg:p-8">
 
-      <main className="pt-20">
-        {/* Hero */}
-        <section className="py-16 bg-gradient-to-br from-primary/10 via-background to-secondary/10">
-          <div className="container mx-auto px-4">
-            <div className="max-w-4xl mx-auto text-center">
-              <Badge variant="secondary" className="mb-4">
-                <Scale className="w-3 h-3 mr-1" />
-                Code du travail &amp; Jurisprudences
-              </Badge>
-              <h1 className="text-4xl lg:text-5xl font-bold text-foreground mb-6">
-                Vos Droits au Travail
-              </h1>
-              <p className="text-lg text-muted-foreground mb-8">
-                Retrouvez l'ensemble de vos droits en tant que salarié, illustrés par les articles
-                du Code du travail et les décisions de jurisprudence qui font référence.
-              </p>
-              <div className="relative max-w-xl mx-auto">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
-                <Input
-                  placeholder="Rechercher un droit, un article, un thème..."
-                  className="pl-10 h-12 text-base"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
+      {/* Hero */}
+      <section className="relative overflow-hidden rounded-3xl bg-[#13233A] p-6 text-white shadow-xl sm:p-8 lg:p-10">
+        <div className="pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full border-[52px] border-white/5" />
+        <div className="pointer-events-none absolute -bottom-24 -left-24 h-80 w-80 rounded-full bg-red-600/25 blur-3xl" />
+        <div className="relative grid gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
+          <div>
+            <Badge className="mb-4 border border-white/15 bg-white/10 text-white hover:bg-white/10">
+              <Scale className="mr-1 h-3.5 w-3.5" /> Code du travail &amp; CCNT Télécoms (IDCC 2148)
+            </Badge>
+            <h1 className="text-3xl font-extrabold leading-tight sm:text-5xl lg:text-6xl">
+              Vos droits au travail
+            </h1>
+            <p className="mt-4 max-w-3xl text-sm leading-relaxed text-white/80 sm:text-lg">
+              Articles du Code du travail, jurisprudences et dispositions spécifiques à l'accord UES Iliad — toutes vos thématiques en un seul endroit.
+            </p>
+            <div className="mt-5 relative max-w-lg">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/50" />
+              <input
+                type="text"
+                placeholder="Rechercher un droit, un article, un thème…"
+                className="w-full rounded-xl border border-white/20 bg-white/10 py-2.5 pl-10 pr-4 text-sm text-white placeholder:text-white/50 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500 backdrop-blur"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
             </div>
           </div>
-        </section>
+          <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
+            {[
+              { icon: Scale,   title: "CCNT 2148",   text: "Minima, classification, préavis, congés." },
+              { icon: Gavel,   title: "Jurisprudence", text: "Décisions récentes de la Cour de cassation." },
+              { icon: Bot,     title: "Assistant IA", text: "Posez vos questions au chatbot juridique." },
+            ].map((item) => (
+              <div key={item.title} className="rounded-2xl border border-white/10 bg-white/10 p-4 backdrop-blur">
+                <item.icon className="mb-3 h-5 w-5 text-red-200" />
+                <p className="font-bold text-sm">{item.title}</p>
+                <p className="mt-1 text-xs leading-relaxed text-white/70">{item.text}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
-        {/* Navigation rapide */}
-        <section className="py-8 border-b bg-card">
-          <div className="container mx-auto px-4">
-            <div className="flex flex-wrap justify-center gap-3">
-              {thematiques.map((theme) => (
-                <div key={theme.id} className="relative">
-                  <Button
-                    variant={selectedThematique === theme.id ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => handleThemeChange(theme.id)}
-                    className="flex items-center gap-2"
-                  >
-                    <theme.icon className="w-4 h-4" />
-                    {theme.title}
-                  </Button>
-                  {hasNewContent(theme) && (
-                    <span className="absolute -top-2 -right-2 bg-green-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none pointer-events-none">
-                      NEW
-                    </span>
-                  )}
-                </div>
+      {/* Navigation thématiques */}
+      <section className="mt-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <p className="mb-3 text-xs font-black uppercase tracking-wider text-slate-400">Thématiques</p>
+        <div className="flex flex-wrap gap-2">
+          {thematiques.map((theme) => (
+            <div key={theme.id} className="relative">
+              <button
+                onClick={() => handleThemeChange(theme.id)}
+                className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+                  selectedThematique === theme.id
+                    ? "bg-red-600 text-white shadow-sm"
+                    : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                }`}
+              >
+                <theme.icon className="h-3.5 w-3.5 shrink-0" />
+                {theme.title}
+              </button>
+              {hasNewContent(theme) && (
+                <span className="absolute -top-1.5 -right-1.5 bg-green-500 text-white text-[9px] font-bold px-1 py-px rounded-full leading-none pointer-events-none">
+                  NEW
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Contenu principal */}
+      <section className="mt-4">
+        {searchTerm ? (
+          <div className="space-y-4">
+            <p className="text-sm font-semibold text-slate-700">
+              {filteredThematiques.length} thématique{filteredThematiques.length !== 1 ? "s" : ""} pour «&nbsp;{searchTerm}&nbsp;»
+            </p>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredThematiques.map((theme) => (
+                <Card
+                  key={theme.id}
+                  className="cursor-pointer border-slate-200 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
+                  onClick={() => handleThemeChange(theme.id)}
+                >
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-600">
+                        <theme.icon className="h-5 w-5" />
+                      </div>
+                      <CardTitle className="text-base font-extrabold text-slate-900">{theme.title}</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-slate-500">{theme.description}</p>
+                    <div className="flex gap-2 mt-3 flex-wrap">
+                      <Badge variant="secondary" className="text-xs">{theme.articles.length} articles</Badge>
+                      <Badge variant="outline" className="text-xs">{theme.jurisprudences.length} jurisprudences</Badge>
+                      {hasNewContent(theme) && (
+                        <Badge className="bg-green-500 hover:bg-green-600 text-white text-xs">✨ Nouveauté</Badge>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
               ))}
             </div>
           </div>
-        </section>
-
-        {/* Contenu principal */}
-        <section className="py-12">
-          <div className="container mx-auto px-4">
-            {searchTerm ? (
-              <div className="space-y-6">
-                <h2 className="text-2xl font-bold mb-6">
-                  Résultats pour "{searchTerm}" ({filteredThematiques.length} thématiques)
-                </h2>
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {filteredThematiques.map((theme) => (
-                    <Card
-                      key={theme.id}
-                      className="cursor-pointer hover:shadow-lg transition-all"
-                      onClick={() => handleThemeChange(theme.id)}
-                    >
-                      <CardHeader>
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                            <theme.icon className="w-5 h-5 text-primary" />
-                          </div>
-                          <CardTitle className="text-lg">{theme.title}</CardTitle>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-muted-foreground text-sm">{theme.description}</p>
-                        <div className="flex gap-2 mt-4">
-                          <Badge variant="secondary">{theme.articles.length} articles</Badge>
-                          <Badge variant="outline">{theme.jurisprudences.length} jurisprudences</Badge>
-                          {hasNewContent(theme) && (
-                            <Badge className="bg-green-500 hover:bg-green-600 text-white text-xs">
-                              ✨ Nouveauté
-                            </Badge>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+        ) : currentThematique ? (
+          <div className="space-y-4">
+            {/* En-tête thématique */}
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="flex items-center gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-600">
+                  <currentThematique.icon className="h-6 w-6" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-extrabold text-slate-900">{currentThematique.title}</h2>
+                  <p className="text-sm text-slate-500">{currentThematique.description}</p>
                 </div>
               </div>
-            ) : currentThematique ? (
-              <div className="max-w-5xl mx-auto">
-                <div className="mb-8">
-                  <div className="flex items-center gap-4 mb-4">
-                    <div className="w-14 h-14 bg-primary/10 rounded-xl flex items-center justify-center">
-                      <currentThematique.icon className="w-7 h-7 text-primary" />
-                    </div>
-                    <div>
-                      <h2 className="text-3xl font-bold">{currentThematique.title}</h2>
-                      <p className="text-muted-foreground">{currentThematique.description}</p>
-                    </div>
-                  </div>
-                </div>
+            </div>
 
-                <Tabs defaultValue="articles" className="space-y-6">
+            <Tabs defaultValue="articles" className="space-y-4">
                   <TabsList
-                    className={`grid w-full ${tabsGridClass} gap-1 h-auto py-2`}
+                    className={`grid w-full ${tabsGridClass} gap-1 h-auto py-1.5 bg-slate-100`}
                   >
                     <TabsTrigger value="articles" className="flex items-center justify-center gap-2 py-2">
                       <BookOpen className="w-4 h-4" />
@@ -1026,10 +1034,10 @@ const VosDroits = () => {
                     {currentThematique.id === "licenciement" && <CalculateurLicenciement />}
 
                     {currentThematique.id === "licenciement" && (
-                      <Card className="border-primary/20">
+                      <Card className="border-red-200">
                         <CardHeader>
                           <CardTitle className="flex items-center gap-2 text-base">
-                            <Scale className="w-5 h-5 text-primary" />
+                            <Scale className="w-5 h-5 text-red-600" />
                             Barème CCNT 2148 — Indemnité de licenciement
                           </CardTitle>
                           <CardDescription>
@@ -1040,7 +1048,7 @@ const VosDroits = () => {
                           <div className="overflow-x-auto">
                             <table className="w-full text-sm">
                               <thead>
-                                <tr className="bg-muted/60 border-b">
+                                <tr className="bg-slate-100 border-b">
                                   <th className="text-left px-4 py-3 font-semibold">Ancienneté</th>
                                   <th className="text-center px-4 py-3 font-semibold">Moins de 50 ans</th>
                                   <th className="text-center px-4 py-3 font-semibold">50 ans et plus</th>
@@ -1048,9 +1056,9 @@ const VosDroits = () => {
                               </thead>
                               <tbody>
                                 {indemniteLicenciementCCNT.map((row, i) => (
-                                  <tr key={i} className={`border-b last:border-0 ${i % 2 === 0 ? "bg-background" : "bg-muted/10"}`}>
+                                  <tr key={i} className={`border-b last:border-0 ${i % 2 === 0 ? "bg-white" : "bg-slate-50"}`}>
                                     <td className="px-4 py-3 font-medium">{row.anciennete}</td>
-                                    <td className="px-4 py-3 text-center text-primary font-semibold">{row.moinsDe50ans}</td>
+                                    <td className="px-4 py-3 text-center text-red-600 font-semibold">{row.moinsDe50ans}</td>
                                     <td className="px-4 py-3 text-center text-green-700 font-semibold">{row.plusDe50ans}</td>
                                   </tr>
                                 ))}
@@ -1062,10 +1070,10 @@ const VosDroits = () => {
                     )}
 
                     {currentThematique.id === "licenciement" && (
-                      <Card className="border-primary/20">
+                      <Card className="border-red-200">
                         <CardHeader>
                           <CardTitle className="flex items-center gap-2 text-base">
-                            <Scale className="w-5 h-5 text-primary" />
+                            <Scale className="w-5 h-5 text-red-600" />
                             Barème CCNT 2148 — Indemnité de départ en retraite
                           </CardTitle>
                         </CardHeader>
@@ -1073,16 +1081,16 @@ const VosDroits = () => {
                           <div className="overflow-x-auto">
                             <table className="w-full text-sm">
                               <thead>
-                                <tr className="bg-muted/60 border-b">
+                                <tr className="bg-slate-100 border-b">
                                   <th className="text-left px-4 py-3 font-semibold">Ancienneté</th>
                                   <th className="text-right px-4 py-3 font-semibold">Indemnité</th>
                                 </tr>
                               </thead>
                               <tbody>
                                 {indemniteRetraiteCCNT.map((row, i) => (
-                                  <tr key={i} className={`border-b last:border-0 ${i % 2 === 0 ? "bg-background" : "bg-muted/10"}`}>
+                                  <tr key={i} className={`border-b last:border-0 ${i % 2 === 0 ? "bg-white" : "bg-slate-50"}`}>
                                     <td className="px-4 py-3 font-medium">{row.anciennete}</td>
-                                    <td className="px-4 py-3 text-right font-semibold text-primary">{row.indemnite}</td>
+                                    <td className="px-4 py-3 text-right font-semibold text-red-600">{row.indemnite}</td>
                                   </tr>
                                 ))}
                               </tbody>
@@ -1096,7 +1104,7 @@ const VosDroits = () => {
                       <Card className="border-blue-300">
                         <CardHeader>
                           <CardTitle className="flex items-center gap-2 text-base">
-                            <Activity className="w-5 h-5 text-primary" />
+                            <Activity className="w-5 h-5 text-red-600" />
                             Maintien de salaire — CCNT IDCC 2148
                           </CardTitle>
                           <CardDescription>
@@ -1107,7 +1115,7 @@ const VosDroits = () => {
                           <div className="overflow-x-auto">
                             <table className="w-full text-sm">
                               <thead>
-                                <tr className="bg-muted/60 border-b">
+                                <tr className="bg-slate-100 border-b">
                                   <th className="text-left px-4 py-3 font-semibold">Période d'arrêt</th>
                                   <th className="text-left px-4 py-3 font-semibold">Ancienneté requise</th>
                                   <th className="text-right px-4 py-3 font-semibold">Indemnisation totale</th>
@@ -1115,10 +1123,10 @@ const VosDroits = () => {
                               </thead>
                               <tbody>
                                 {maladiePreyoyanceIdcc2148.map((row, i) => (
-                                  <tr key={i} className={`border-b last:border-0 ${i % 2 === 0 ? "bg-background" : "bg-muted/10"}`}>
+                                  <tr key={i} className={`border-b last:border-0 ${i % 2 === 0 ? "bg-white" : "bg-slate-50"}`}>
                                     <td className="px-4 py-3 font-medium">{row.periode}</td>
-                                    <td className="px-4 py-3 text-muted-foreground">{row.anciennete}</td>
-                                    <td className={`px-4 py-3 text-right font-semibold ${i === 0 ? "text-green-700" : "text-primary"}`}>
+                                    <td className="px-4 py-3 text-slate-500">{row.anciennete}</td>
+                                    <td className={`px-4 py-3 text-right font-semibold ${i === 0 ? "text-green-700" : "text-red-600"}`}>
                                       {row.indemnisation}
                                     </td>
                                   </tr>
@@ -1137,7 +1145,7 @@ const VosDroits = () => {
                       <Card>
                         <CardHeader>
                           <CardTitle className="flex items-center gap-2 text-base">
-                            <Calendar className="w-5 h-5 text-primary" />
+                            <Calendar className="w-5 h-5 text-red-600" />
                             Congés pour événements familiaux — CCNT IDCC 2148
                           </CardTitle>
                           <CardDescription>
@@ -1148,20 +1156,20 @@ const VosDroits = () => {
                           <div className="overflow-x-auto">
                             <table className="w-full text-sm">
                               <thead>
-                                <tr className="bg-muted/60 border-b">
+                                <tr className="bg-slate-100 border-b">
                                   <th className="text-left px-4 py-3 font-semibold">Événement</th>
                                   <th className="text-right px-4 py-3 font-semibold">Durée</th>
                                 </tr>
                               </thead>
                               <tbody>
                                 {congesSpeciauxIdcc2148.map((row, i) => (
-                                  <tr key={i} className={`border-b last:border-0 hover:bg-muted/20 ${row.favorable ? "bg-green-50" : i % 2 === 0 ? "bg-background" : "bg-muted/10"}`}>
+                                  <tr key={i} className={`border-b last:border-0 hover:bg-slate-50/80 ${row.favorable ? "bg-green-50" : i % 2 === 0 ? "bg-white" : "bg-slate-50"}`}>
                                     <td className="px-4 py-3">
                                       <p className="font-medium">{row.evenement}</p>
-                                      {row.note && <p className="text-xs text-muted-foreground mt-0.5">{row.note}</p>}
+                                      {row.note && <p className="text-xs text-slate-500 mt-0.5">{row.note}</p>}
                                     </td>
                                     <td className="px-4 py-3 text-right">
-                                      <span className={`font-semibold ${row.favorable ? "text-green-700" : "text-primary"}`}>
+                                      <span className={`font-semibold ${row.favorable ? "text-green-700" : "text-red-600"}`}>
                                         {row.duree}
                                       </span>
                                       {row.favorable && (
@@ -1178,10 +1186,10 @@ const VosDroits = () => {
                     )}
 
                     {currentThematique.id === "contrat-travail" && (
-                      <Card className="border-primary/20">
+                      <Card className="border-red-200">
                         <CardHeader>
                           <CardTitle className="flex items-center gap-2 text-base">
-                            <Layers className="w-5 h-5 text-primary" />
+                            <Layers className="w-5 h-5 text-red-600" />
                             Période d'essai — CCNT IDCC 2148
                           </CardTitle>
                           <CardDescription>
@@ -1192,7 +1200,7 @@ const VosDroits = () => {
                           <div className="overflow-x-auto">
                             <table className="w-full text-sm">
                               <thead>
-                                <tr className="bg-muted/60 border-b">
+                                <tr className="bg-slate-100 border-b">
                                   <th className="text-left px-4 py-3 font-semibold">Groupe d'emploi</th>
                                   <th className="text-center px-4 py-3 font-semibold">Durée initiale (CCNT)</th>
                                   <th className="text-center px-4 py-3 font-semibold">Renouvellement</th>
@@ -1200,10 +1208,10 @@ const VosDroits = () => {
                               </thead>
                               <tbody>
                                 {periodeEssaiIdcc2148.map((row, i) => (
-                                  <tr key={i} className={`border-b last:border-0 ${i % 2 === 0 ? "bg-background" : "bg-muted/10"}`}>
+                                  <tr key={i} className={`border-b last:border-0 ${i % 2 === 0 ? "bg-white" : "bg-slate-50"}`}>
                                     <td className="px-4 py-3 font-medium">Groupes {row.groupe}</td>
-                                    <td className="px-4 py-3 text-center font-semibold text-primary">{row.dureeInitiale}</td>
-                                    <td className="px-4 py-3 text-center text-muted-foreground">{row.renouvellement}</td>
+                                    <td className="px-4 py-3 text-center font-semibold text-red-600">{row.dureeInitiale}</td>
+                                    <td className="px-4 py-3 text-center text-slate-500">{row.renouvellement}</td>
                                   </tr>
                                 ))}
                               </tbody>
@@ -1240,7 +1248,7 @@ const VosDroits = () => {
                                 href={legifranceUrl(article.numero)}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-xs text-muted-foreground hover:text-primary flex items-center gap-1"
+                                className="text-xs text-slate-500 hover:text-red-600 flex items-center gap-1"
                               >
                                 Légifrance <ExternalLink className="w-3 h-3" />
                               </a>
@@ -1248,11 +1256,11 @@ const VosDroits = () => {
                             <CardTitle className="text-lg">{article.titre}</CardTitle>
                           </CardHeader>
                           <CardContent className="space-y-4">
-                            <p className="text-foreground leading-relaxed">{article.contenu}</p>
+                            <p className="text-slate-900 leading-relaxed">{article.contenu}</p>
                             {article.exemple && (
-                              <div className="bg-muted/50 rounded-lg p-4 border-l-4 border-primary">
-                                <p className="text-sm font-medium text-foreground mb-1">Exemple concret :</p>
-                                <p className="text-sm text-muted-foreground">{article.exemple}</p>
+                              <div className="bg-slate-100 rounded-lg p-4 border-l-4 border-red-500">
+                                <p className="text-sm font-medium text-slate-900 mb-1">Exemple concret :</p>
+                                <p className="text-sm text-slate-500">{article.exemple}</p>
                               </div>
                             )}
                           </CardContent>
@@ -1273,7 +1281,7 @@ const VosDroits = () => {
                           <AccordionTrigger className="hover:no-underline">
                             <div className="flex flex-col items-start text-left">
                               <span className="font-semibold">{juris.reference}</span>
-                              <span className="text-sm text-muted-foreground">
+                              <span className="text-sm text-slate-500">
                                 {juris.juridiction} - {juris.date}
                               </span>
                             </div>
@@ -1281,11 +1289,11 @@ const VosDroits = () => {
                           <AccordionContent className="space-y-4 pt-2">
                             <div>
                               <h4 className="font-medium text-sm mb-2">Résumé de la décision :</h4>
-                              <p className="text-muted-foreground">{juris.resume}</p>
+                              <p className="text-slate-500">{juris.resume}</p>
                             </div>
-                            <div className="bg-primary/5 rounded-lg p-4">
-                              <h4 className="font-medium text-sm text-primary mb-2">Portée de la décision :</h4>
-                              <p className="text-sm text-foreground">{juris.portee}</p>
+                            <div className="bg-red-50/50 rounded-lg p-4">
+                              <h4 className="font-medium text-sm text-red-600 mb-2">Portée de la décision :</h4>
+                              <p className="text-sm text-slate-900">{juris.portee}</p>
                             </div>
                           </AccordionContent>
                         </AccordionItem>
@@ -1298,7 +1306,7 @@ const VosDroits = () => {
                     <Card>
                       <CardHeader>
                         <CardTitle className="flex items-center gap-2">
-                          <Shield className="w-5 h-5 text-primary" />
+                          <Shield className="w-5 h-5 text-red-600" />
                           Conseils pratiques
                         </CardTitle>
                         <CardDescription>
@@ -1309,17 +1317,17 @@ const VosDroits = () => {
                         <ul className="space-y-3">
                           {currentThematique.conseils.map((conseil, index) => (
                             <li key={index} className="flex items-start gap-3">
-                              <ChevronRight className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                              <span className="text-foreground">{conseil}</span>
+                              <ChevronRight className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+                              <span className="text-slate-900">{conseil}</span>
                             </li>
                           ))}
                         </ul>
-                        <div className="mt-8 p-4 bg-muted rounded-lg">
-                          <p className="text-sm text-muted-foreground">
-                            <strong className="text-foreground">Besoin d'aide ?</strong> Nos
+                        <div className="mt-8 p-4 bg-slate-100 rounded-lg">
+                          <p className="text-sm text-slate-500">
+                            <strong className="text-slate-900">Besoin d'aide ?</strong> Nos
                             représentants syndicaux sont à votre disposition pour vous accompagner.
                           </p>
-                          <Button asChild className="mt-4">
+                          <Button asChild className="mt-4 bg-red-600 hover:bg-red-700 text-white">
                             <Link to="/contact">Contacter un représentant</Link>
                           </Button>
                         </div>
@@ -1333,7 +1341,7 @@ const VosDroits = () => {
                       <Card>
                         <CardHeader>
                           <CardTitle className="flex items-center gap-2">
-                            <Scale className="w-5 h-5 text-primary" />
+                            <Scale className="w-5 h-5 text-red-600" />
                             Minima Conventionnels — IDCC 2148
                           </CardTitle>
                           <CardDescription>
@@ -1344,20 +1352,20 @@ const VosDroits = () => {
                           <div className="overflow-x-auto rounded-b-lg">
                             <table className="w-full text-sm">
                               <thead>
-                                <tr className="bg-muted/60 border-b">
-                                  <th className="text-left px-4 py-3 font-semibold text-foreground">Groupe</th>
-                                  <th className="text-left px-4 py-3 font-semibold text-foreground">Seuil</th>
-                                  <th className="text-right px-4 py-3 font-semibold text-muted-foreground">2025</th>
-                                  <th className="text-right px-4 py-3 font-semibold text-foreground">2026 ✦</th>
+                                <tr className="bg-slate-100 border-b">
+                                  <th className="text-left px-4 py-3 font-semibold text-slate-900">Groupe</th>
+                                  <th className="text-left px-4 py-3 font-semibold text-slate-900">Seuil</th>
+                                  <th className="text-right px-4 py-3 font-semibold text-slate-500">2025</th>
+                                  <th className="text-right px-4 py-3 font-semibold text-slate-900">2026 ✦</th>
                                 </tr>
                               </thead>
                               <tbody>
                                 {minimaIdcc2148.map((row, i) => (
-                                  <tr key={i} className={`border-b last:border-0 hover:bg-muted/20 ${i % 2 === 0 ? "bg-background" : "bg-muted/10"}`}>
+                                  <tr key={i} className={`border-b last:border-0 hover:bg-slate-50/80 ${i % 2 === 0 ? "bg-white" : "bg-slate-50"}`}>
                                     <td className="px-4 py-3 font-medium">Groupe {row.groupe}</td>
-                                    <td className="px-4 py-3 text-muted-foreground">{row.seuil}</td>
-                                    <td className="px-4 py-3 text-right text-muted-foreground line-through">{fmt(row.salaire2025)}</td>
-                                    <td className="px-4 py-3 text-right font-semibold text-primary">{fmt(row.salaire2026)}</td>
+                                    <td className="px-4 py-3 text-slate-500">{row.seuil}</td>
+                                    <td className="px-4 py-3 text-right text-slate-500 line-through">{fmt(row.salaire2025)}</td>
+                                    <td className="px-4 py-3 text-right font-semibold text-red-600">{fmt(row.salaire2026)}</td>
                                   </tr>
                                 ))}
                               </tbody>
@@ -1374,8 +1382,8 @@ const VosDroits = () => {
                   {/* ── Classification des emplois ── */}
                   {isContrat && (
                     <TabsContent value="classification" className="space-y-4">
-                      <div className="rounded-xl border border-primary/20 bg-primary/5 px-5 py-4 mb-2">
-                        <p className="text-sm text-foreground leading-relaxed">
+                      <div className="rounded-xl border border-red-200 bg-red-50/50 px-5 py-4 mb-2">
+                        <p className="text-sm text-slate-900 leading-relaxed">
                           <span className="font-semibold">7 groupes de classification</span> (A à G) définissent votre positionnement dans la CCNT Télécoms (IDCC 2148).
                           Ils déterminent votre <strong>salaire minimum garanti</strong>, la <strong>durée de votre période d'essai</strong> et de votre <strong>préavis</strong>.
                           La classification croît avec la complexité, l'autonomie et l'impact de vos décisions.
@@ -1390,32 +1398,32 @@ const VosDroits = () => {
                           >
                             <AccordionTrigger className="hover:no-underline">
                               <div className="flex items-center gap-3">
-                                <span className="w-9 h-9 rounded-full bg-primary/10 text-primary font-bold text-sm flex items-center justify-center flex-shrink-0">
+                                <span className="w-9 h-9 rounded-full bg-red-50 text-red-600 font-bold text-sm flex items-center justify-center flex-shrink-0">
                                   {grp.groupe}
                                 </span>
                                 <div className="text-left">
-                                  <p className="font-semibold text-foreground">Groupe {grp.groupe}</p>
-                                  <p className="text-xs text-muted-foreground">{grp.diplome}</p>
+                                  <p className="font-semibold text-slate-900">Groupe {grp.groupe}</p>
+                                  <p className="text-xs text-slate-500">{grp.diplome}</p>
                                 </div>
                               </div>
                             </AccordionTrigger>
                             <AccordionContent className="pt-3">
                               <div className="grid sm:grid-cols-2 gap-3 text-sm">
-                                <div className="p-3 rounded-lg bg-muted/40">
-                                  <p className="font-medium text-foreground mb-1">🔧 Complexité</p>
-                                  <p className="text-muted-foreground">{grp.complexite}</p>
+                                <div className="p-3 rounded-lg bg-slate-100/60">
+                                  <p className="font-medium text-slate-900 mb-1">🔧 Complexité</p>
+                                  <p className="text-slate-500">{grp.complexite}</p>
                                 </div>
-                                <div className="p-3 rounded-lg bg-muted/40">
-                                  <p className="font-medium text-foreground mb-1">🔓 Autonomie</p>
-                                  <p className="text-muted-foreground">{grp.autonomie}</p>
+                                <div className="p-3 rounded-lg bg-slate-100/60">
+                                  <p className="font-medium text-slate-900 mb-1">🔓 Autonomie</p>
+                                  <p className="text-slate-500">{grp.autonomie}</p>
                                 </div>
-                                <div className="p-3 rounded-lg bg-muted/40">
-                                  <p className="font-medium text-foreground mb-1">📊 Impact des décisions</p>
-                                  <p className="text-muted-foreground">{grp.impact}</p>
+                                <div className="p-3 rounded-lg bg-slate-100/60">
+                                  <p className="font-medium text-slate-900 mb-1">📊 Impact des décisions</p>
+                                  <p className="text-slate-500">{grp.impact}</p>
                                 </div>
-                                <div className="p-3 rounded-lg bg-primary/5 border border-primary/20">
-                                  <p className="font-medium text-foreground mb-1">🎓 Connaissances requises</p>
-                                  <p className="text-muted-foreground">{grp.connaissances}</p>
+                                <div className="p-3 rounded-lg bg-red-50/50 border border-red-200">
+                                  <p className="font-medium text-slate-900 mb-1">🎓 Connaissances requises</p>
+                                  <p className="text-slate-500">{grp.connaissances}</p>
                                 </div>
                               </div>
                             </AccordionContent>
@@ -1429,10 +1437,10 @@ const VosDroits = () => {
                   {isContrat && (
                     <TabsContent value="astreintes" className="space-y-8">
 
-                      <div className="rounded-xl border border-primary/20 bg-primary/5 px-5 py-4">
-                        <p className="text-sm text-foreground leading-relaxed">
+                      <div className="rounded-xl border border-red-200 bg-red-50/50 px-5 py-4">
+                        <p className="text-sm text-slate-900 leading-relaxed">
                           <span className="font-semibold">Comment lire ce tableau :</span> La colonne{" "}
-                          <span className="font-semibold text-primary">Accord UES Iliad</span> affiche ce que
+                          <span className="font-semibold text-red-600">Accord UES Iliad</span> affiche ce que
                           l'entreprise applique en pratique (Avenant 2 du 9 novembre 2023, en vigueur depuis
                           le 1er septembre 2023). Lorsque l'accord est{" "}
                           <span className="font-semibold text-green-700">plus favorable ✅</span> que la
@@ -1454,15 +1462,15 @@ const VosDroits = () => {
                           <div className="overflow-x-auto">
                             <table className="w-full text-sm">
                               <thead>
-                                <tr className="bg-muted/60 border-b">
-                                  <th className="text-left px-4 py-3 font-semibold text-foreground">Situation</th>
-                                  <th className="text-center px-4 py-3 font-semibold text-foreground">
+                                <tr className="bg-slate-100 border-b">
+                                  <th className="text-left px-4 py-3 font-semibold text-slate-900">Situation</th>
+                                  <th className="text-center px-4 py-3 font-semibold text-slate-900">
                                     <span className="inline-block bg-slate-100 text-slate-700 rounded px-2 py-0.5 text-xs font-bold tracking-wide">CCNT seule</span>
                                   </th>
-                                  <th className="text-center px-4 py-3 font-semibold text-foreground">
-                                    <span className="inline-block bg-primary/10 text-primary rounded px-2 py-0.5 text-xs font-bold tracking-wide">Accord UES Iliad</span>
+                                  <th className="text-center px-4 py-3 font-semibold text-slate-900">
+                                    <span className="inline-block bg-red-50 text-red-600 rounded px-2 py-0.5 text-xs font-bold tracking-wide">Accord UES Iliad</span>
                                   </th>
-                                  <th className="text-center px-4 py-3 font-semibold text-foreground">Écart</th>
+                                  <th className="text-center px-4 py-3 font-semibold text-slate-900">Écart</th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -1472,16 +1480,16 @@ const VosDroits = () => {
                                     className={`border-b last:border-0 transition-colors ${
                                       row.delta === "better"
                                         ? "bg-green-50 hover:bg-green-100/60"
-                                        : i % 2 === 0 ? "bg-background hover:bg-muted/20" : "bg-muted/10 hover:bg-muted/20"
+                                        : i % 2 === 0 ? "bg-white hover:bg-slate-50/80" : "bg-slate-50 hover:bg-slate-50/80"
                                     }`}
                                   >
                                     <td className="px-4 py-3">
-                                      <p className="font-medium text-foreground">{row.label}</p>
-                                      {row.note && <p className="text-xs text-muted-foreground mt-0.5 leading-snug">{row.note}</p>}
+                                      <p className="font-medium text-slate-900">{row.label}</p>
+                                      {row.note && <p className="text-xs text-slate-500 mt-0.5 leading-snug">{row.note}</p>}
                                     </td>
                                     <td className="px-4 py-3 text-center"><span className="font-mono text-slate-700">{row.ccnt}</span></td>
                                     <td className="px-4 py-3 text-center">
-                                      <span className={`font-mono font-semibold ${row.delta === "better" ? "text-green-700" : "text-foreground"}`}>
+                                      <span className={`font-mono font-semibold ${row.delta === "better" ? "text-green-700" : "text-slate-900"}`}>
                                         {row.accord}
                                       </span>
                                     </td>
@@ -1489,7 +1497,7 @@ const VosDroits = () => {
                                       {row.delta === "better" ? (
                                         <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-700 bg-green-100 rounded-full px-2 py-0.5 whitespace-nowrap">✅ Mieux</span>
                                       ) : (
-                                        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-muted rounded-full px-2 py-0.5">= Identique</span>
+                                        <span className="inline-flex items-center gap-1 text-xs text-slate-500 bg-slate-100 rounded-full px-2 py-0.5">= Identique</span>
                                       )}
                                     </td>
                                   </tr>
@@ -1512,26 +1520,26 @@ const VosDroits = () => {
                           <div className="overflow-x-auto">
                             <table className="w-full text-sm">
                               <thead>
-                                <tr className="bg-muted/60 border-b">
-                                  <th className="text-left px-4 py-3 font-semibold text-foreground">Société</th>
-                                  <th className="text-left px-4 py-3 font-semibold text-foreground">Période</th>
-                                  <th className="text-center px-4 py-3 font-semibold text-foreground">Forfait disponibilité</th>
-                                  <th className="text-center px-4 py-3 font-semibold text-foreground">Majoration intervention</th>
+                                <tr className="bg-slate-100 border-b">
+                                  <th className="text-left px-4 py-3 font-semibold text-slate-900">Société</th>
+                                  <th className="text-left px-4 py-3 font-semibold text-slate-900">Période</th>
+                                  <th className="text-center px-4 py-3 font-semibold text-slate-900">Forfait disponibilité</th>
+                                  <th className="text-center px-4 py-3 font-semibold text-slate-900">Majoration intervention</th>
                                 </tr>
                               </thead>
                               <tbody>
                                 {astreintesIliad.map((row, i) => (
-                                  <tr key={i} className={`border-b last:border-0 hover:bg-muted/20 transition-colors ${i % 2 === 0 ? "bg-background" : "bg-muted/10"}`}>
+                                  <tr key={i} className={`border-b last:border-0 hover:bg-slate-50/80 transition-colors ${i % 2 === 0 ? "bg-white" : "bg-slate-50"}`}>
                                     <td className="px-4 py-3">
                                       <span className={`inline-block text-xs font-bold px-2 py-0.5 rounded-full ${row.societe === "Free Mobile" ? "bg-blue-100 text-blue-700" : "bg-orange-100 text-orange-700"}`}>
                                         {row.societe}
                                       </span>
                                     </td>
-                                    <td className="px-4 py-3 font-medium text-foreground">{row.periode}</td>
-                                    <td className="px-4 py-3 text-center font-mono font-semibold text-primary">{row.forfait}</td>
-                                    <td className="px-4 py-3 text-center text-sm text-foreground">
+                                    <td className="px-4 py-3 font-medium text-slate-900">{row.periode}</td>
+                                    <td className="px-4 py-3 text-center font-mono font-semibold text-red-600">{row.forfait}</td>
+                                    <td className="px-4 py-3 text-center text-sm text-slate-900">
                                       {row.majorationIntervention}
-                                      {row.note && <p className="text-xs text-muted-foreground mt-0.5 font-normal">{row.note}</p>}
+                                      {row.note && <p className="text-xs text-slate-500 mt-0.5 font-normal">{row.note}</p>}
                                     </td>
                                   </tr>
                                 ))}
@@ -1589,7 +1597,7 @@ const VosDroits = () => {
                               Si l'employeur retire définitivement un salarié du planning d'astreinte (hors sanction disciplinaire), celui-ci perçoit pendant <strong>3 mois</strong> une indemnité compensatrice égale à <strong>75 % de la moyenne mensuelle</strong> des compensations d'astreinte et d'intervention reçues sur les <strong>12 derniers mois</strong>. Cette prime cesse automatiquement en cas de retour en astreinte.
                             </p>
                           </div>
-                          <p className="text-xs text-muted-foreground mt-3">
+                          <p className="text-xs text-slate-500 mt-3">
                             Source : Avenant 2 du 9 novembre 2023, art. 2.2.5 — UES Iliad (en vigueur depuis le 1er sept. 2023).
                           </p>
                         </CardContent>
@@ -1598,7 +1606,7 @@ const VosDroits = () => {
                       <Card>
                         <CardHeader>
                           <CardTitle className="flex items-center gap-2">
-                            <FileText className="w-5 h-5 text-primary" />
+                            <FileText className="w-5 h-5 text-red-600" />
                             🚪 Durée du préavis — IDCC 2148
                           </CardTitle>
                           <CardDescription>
@@ -1609,18 +1617,18 @@ const VosDroits = () => {
                           <div className="overflow-x-auto">
                             <table className="w-full text-sm">
                               <thead>
-                                <tr className="bg-muted/60 border-b">
-                                  <th className="text-left px-4 py-3 font-semibold text-foreground">Groupe d'emploi</th>
-                                  <th className="text-left px-4 py-3 font-semibold text-foreground">Condition</th>
-                                  <th className="text-right px-4 py-3 font-semibold text-foreground">Durée</th>
+                                <tr className="bg-slate-100 border-b">
+                                  <th className="text-left px-4 py-3 font-semibold text-slate-900">Groupe d'emploi</th>
+                                  <th className="text-left px-4 py-3 font-semibold text-slate-900">Condition</th>
+                                  <th className="text-right px-4 py-3 font-semibold text-slate-900">Durée</th>
                                 </tr>
                               </thead>
                               <tbody>
                                 {preavisIdcc2148.map((row, i) => (
-                                  <tr key={i} className={`border-b last:border-0 hover:bg-muted/20 transition-colors ${i % 2 === 0 ? "bg-background" : "bg-muted/10"}`}>
+                                  <tr key={i} className={`border-b last:border-0 hover:bg-slate-50/80 transition-colors ${i % 2 === 0 ? "bg-white" : "bg-slate-50"}`}>
                                     <td className="px-4 py-3 font-medium">Groupes {row.groupe}</td>
-                                    <td className="px-4 py-3 text-muted-foreground">{row.condition}</td>
-                                    <td className="px-4 py-3 text-right font-semibold text-primary">{row.duree}</td>
+                                    <td className="px-4 py-3 text-slate-500">{row.condition}</td>
+                                    <td className="px-4 py-3 text-right font-semibold text-red-600">{row.duree}</td>
                                   </tr>
                                 ))}
                               </tbody>
@@ -1629,7 +1637,7 @@ const VosDroits = () => {
                           <div className="px-5 py-3 bg-blue-50 border-t border-blue-200 text-xs text-blue-800">
                             💡 <strong>En cas de licenciement :</strong> vous disposez de <strong>2 heures par jour payées</strong> pour chercher un nouvel emploi pendant votre préavis (Accord Iliad art. 1.2.1).
                           </div>
-                          <div className="px-5 py-3 bg-muted/30 border-t text-xs text-muted-foreground">
+                          <div className="px-5 py-3 bg-slate-50 border-t text-xs text-slate-500">
                             Source : CCNT (IDCC 2148) — 2026. En cas de litige, consultez votre représentant syndical ou un avocat spécialisé en droit du travail.
                           </div>
                         </CardContent>
@@ -1639,76 +1647,67 @@ const VosDroits = () => {
                   )}
                 </Tabs>
 
-                {/* Questions suggérées */}
-                <div className="mt-8 p-5 bg-muted/40 border rounded-xl">
-                  <p className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-                    <Bot className="w-4 h-4 text-primary" />
-                    Questions fréquentes sur ce thème — posez-les à l'assistant :
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {currentThematique.questionsSuggestions.map((q, i) => (
-                      <button
-                        key={i}
-                        onClick={() => handleSuggestionClick(q)}
-                        className="text-sm px-3 py-1.5 rounded-full border border-primary/30 bg-background hover:bg-primary/5 hover:border-primary text-foreground transition-colors text-left"
-                      >
-                        {q}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            ) : null}
-          </div>
-        </section>
-
-        {/* Chatbot */}
-        <section id="assistant-juridique" className="py-12 bg-muted/30 border-t">
-          <div className="container mx-auto px-4">
-            <div className="max-w-3xl mx-auto">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                  <Bot className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <h2 className="text-2xl font-bold text-foreground">Assistant Juridique</h2>
-                  <p className="text-sm text-muted-foreground">
-                    Posez vos questions sur le droit du travail — réponses basées sur le Code du travail français
-                  </p>
-                </div>
-              </div>
-              <ChatbotJuridique
-                initialQuestion={chatQuestion}
-                ccntContext={buildCcntContext(currentThematique?.id)}
-              />
-              <p className="text-xs text-muted-foreground mt-3 text-center">
-                ⚠️ Cet assistant fournit des informations générales. Pour votre situation personnelle, consultez un représentant syndical ou un avocat spécialisé en droit du travail.
+            {/* Questions suggérées */}
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              <p className="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
+                <Bot className="w-4 h-4 text-red-600" />
+                Questions fréquentes — posez-les à l'assistant :
               </p>
+              <div className="flex flex-wrap gap-2">
+                {currentThematique.questionsSuggestions.map((q, i) => (
+                  <button
+                    key={i}
+                    onClick={() => handleSuggestionClick(q)}
+                    className="text-xs px-3 py-1.5 rounded-full border border-slate-200 bg-slate-50 hover:bg-red-50 hover:border-red-300 text-slate-700 transition-colors text-left"
+                  >
+                    {q}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
-        </section>
+        ) : null}
+      </section>
 
-        {/* CTA */}
-        <section className="py-16 bg-primary/5">
-          <div className="container mx-auto px-4 text-center">
-            <h2 className="text-2xl font-bold mb-4">Une question sur vos droits ?</h2>
-            <p className="text-muted-foreground mb-6 max-w-2xl mx-auto">
-              Nos représentants syndicaux sont formés pour vous accompagner et défendre vos droits.
+      {/* Chatbot */}
+      <section id="assistant-juridique" className="mt-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+        <div className="mb-5 flex items-start gap-3">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-red-600 text-white">
+            <Bot className="h-5 w-5" />
+          </div>
+          <div>
+            <h2 className="text-xl font-extrabold text-slate-900">Assistant juridique FO COM</h2>
+            <p className="mt-1 text-sm leading-relaxed text-slate-500">
+              Réponses basées sur le Code du travail et la CCNT Télécoms. Cet assistant fournit des informations générales — consultez un représentant syndical pour votre situation personnelle.
             </p>
-            <div className="flex flex-wrap justify-center gap-4">
-              <Button asChild size="lg">
-                <Link to="/contact">Nous contacter</Link>
-              </Button>
-              <Button variant="outline" size="lg" asChild>
-                <Link to="/adhesion">Adhérer au syndicat</Link>
-              </Button>
-            </div>
           </div>
-        </section>
-      </main>
+        </div>
+        <ChatbotJuridique
+          initialQuestion={chatQuestion}
+          ccntContext={buildCcntContext(currentThematique?.id)}
+        />
+      </section>
 
-      <Footer />
-    </div>
+      {/* CTA */}
+      <section className="mt-4 rounded-3xl bg-gradient-to-br from-red-600 to-red-700 p-6 text-white shadow-lg sm:p-8">
+        <div className="grid gap-5 lg:grid-cols-[1fr_auto] lg:items-center">
+          <div>
+            <h2 className="text-xl font-extrabold">Une question sur vos droits ?</h2>
+            <p className="mt-2 max-w-3xl text-sm leading-relaxed text-red-50">
+              Nos représentants syndicaux sont formés pour vous accompagner et défendre vos droits au sein de l'UES Iliad.
+            </p>
+          </div>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <Button asChild className="bg-white text-red-700 hover:bg-red-50">
+              <Link to="/contact"><Mail className="mr-2 h-4 w-4" /> Nous contacter</Link>
+            </Button>
+            <Button asChild variant="outline" className="border-white/40 bg-white/10 text-white hover:bg-white/20">
+              <Link to="/adhesion">Adhérer à FO COM</Link>
+            </Button>
+          </div>
+        </div>
+      </section>
+    </main>
   );
 };
 
