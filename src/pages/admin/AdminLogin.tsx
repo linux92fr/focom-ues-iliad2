@@ -63,7 +63,8 @@ export default function AdminLogin() {
         setError("Accès refusé : votre compte n'a pas les droits d'administration.");
         return;
       }
-      navigate("/admin", { replace: true });
+      // AdminAuthContext écoute SIGNED_IN et met isAuthenticated à true,
+      // ce qui déclenche le useEffect de navigation vers /admin
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Erreur passkey");
     }

@@ -54,15 +54,14 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
       setReady(true);
     });
 
-    // Écoute les changements — uniquement TOKEN_REFRESHED pour éviter les boucles
+    // Écoute les changements de session (password login, passkey, token refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (event === "SIGNED_OUT" || !session?.user) {
           setUser(null);
           return;
         }
-        // TOKEN_REFRESHED = session restaurée depuis localStorage
-        if (event === "TOKEN_REFRESHED") {
+        if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
           const role = await fetchUserRole(session.user.id);
           if (role && ADMIN_ROLES.includes(role)) {
             setUser(buildAdminUser(session.user, role));
@@ -70,8 +69,6 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
             setUser(null);
           }
         }
-        // SIGNED_IN est géré directement par la fonction login()
-        // pour éviter les double-appels et les boucles
       }
     );
 

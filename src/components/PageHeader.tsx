@@ -163,7 +163,7 @@ export default function PageHeader() {
   return (
     <>
       <header className="shrink-0 z-40 w-full max-w-full overflow-x-hidden bg-card border-b border-border shadow-sm">
-        <div className="h-14 w-full max-w-full px-2 sm:px-4 flex items-center justify-between gap-1 overflow-hidden">
+        <div className="h-14 w-full max-w-full px-2 sm:px-4 flex items-center justify-between gap-1 overflow-x-hidden">
           <div className="flex min-w-0 items-center gap-1 sm:gap-2">
             <button
               type="button"
