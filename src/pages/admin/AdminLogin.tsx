@@ -1,6 +1,6 @@
 import { useState, useEffect, FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { Shield, Eye, EyeOff, Lock, User, Fingerprint, KeyRound, Loader2, AlertCircle, ChevronDown } from "lucide-react";
+import { Shield, Eye, EyeOff, Lock, User, Fingerprint, KeyRound, Loader2, AlertCircle, ChevronDown, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,6 +25,7 @@ export default function AdminLogin() {
   const { login, isAuthenticated } = useAdminAuth();
   const { authenticateWithPasskey, isLoading: passkeyLoading } = useWebAuthn();
 
+  const isChrome = /Chrome/.test(navigator.userAgent) && !/Edg|OPR/.test(navigator.userAgent);
   const [passkeyAvailable, setPasskeyAvailable] = useState(false);
   const [showFallback, setShowFallback] = useState(false);
   const [username, setUsername] = useState("");
@@ -117,6 +118,17 @@ export default function AdminLogin() {
               <div className="flex items-start gap-2 bg-red-50 border border-red-200 text-red-700 text-xs px-3 py-2.5 rounded-xl">
                 <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                 <span>{error}</span>
+              </div>
+            )}
+
+            {/* ── Avertissement bloqueur (navigateurs hors Chrome) ─────── */}
+            {passkeyAvailable && !isChrome && (
+              <div className="flex items-start gap-2 bg-blue-50 border border-blue-200 text-blue-700 text-xs px-3 py-2.5 rounded-xl">
+                <Info className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>
+                  Si la connexion passkey échoue, désactivez votre bloqueur de publicités
+                  (uBlock, AdBlock…) pour cette page, puis réessayez.
+                </span>
               </div>
             )}
 
