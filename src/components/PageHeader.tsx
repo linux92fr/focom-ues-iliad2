@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
   Search, Bell, Settings, X, ArrowRight, LogOut, User, Lock, Home, Menu,
@@ -56,8 +57,10 @@ export default function PageHeader() {
   const [query, setQuery] = useState("");
   const [unreadCount, setUnreadCount] = useState(0);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [menuPos, setMenuPos] = useState({ top: 0, right: 0 });
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const avatarButtonRef = useRef<HTMLButtonElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const location = useLocation();
@@ -123,7 +126,12 @@ export default function PageHeader() {
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) setUserMenuOpen(false);
+      if (
+        avatarButtonRef.current && !avatarButtonRef.current.contains(e.target as Node) &&
+        userMenuRef.current && !userMenuRef.current.contains(e.target as Node)
+      ) {
+        setUserMenuOpen(false);
+      }
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
@@ -228,17 +236,28 @@ export default function PageHeader() {
             )}
 
             {user ? (
-              <div ref={userMenuRef} className="relative">
+              <>
                 <button
-                  onClick={() => setUserMenuOpen((v) => !v)}
+                  ref={avatarButtonRef}
+                  onClick={() => {
+                    if (!userMenuOpen && avatarButtonRef.current) {
+                      const r = avatarButtonRef.current.getBoundingClientRect();
+                      setMenuPos({ top: r.bottom + 8, right: window.innerWidth - r.right });
+                    }
+                    setUserMenuOpen((v) => !v);
+                  }}
                   className="w-10 h-10 rounded-full bg-primary text-primary-foreground font-bold text-sm flex items-center justify-center hover:opacity-90 transition-opacity ring-2 ring-primary/20 focus:outline-none overflow-hidden"
                   aria-label="Mon compte"
                 >
                   {avatarUrl ? <img loading="lazy" src={avatarUrl} alt="avatar" className="w-full h-full object-cover" /> : initials}
                 </button>
 
-                {userMenuOpen && (
-                  <div className="absolute right-0 top-12 w-56 max-w-[calc(100vw-1rem)] bg-white rounded-xl shadow-2xl border border-slate-200 z-50 overflow-hidden">
+                {userMenuOpen && createPortal(
+                  <div
+                    ref={userMenuRef}
+                    style={{ position: "fixed", top: menuPos.top, right: menuPos.right, zIndex: 9999 }}
+                    className="w-56 bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden"
+                  >
                     <div className="px-4 py-3 border-b border-slate-100">
                       <p className="text-xs font-semibold text-slate-900">Mon compte</p>
                       <p className="text-xs text-slate-400 truncate">{user.email}</p>
@@ -251,9 +270,10 @@ export default function PageHeader() {
                     <div className="border-t border-slate-100 py-1">
                       <button onClick={handleSignOut} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors text-left"><LogOut className="w-4 h-4" /> Se déconnecter</button>
                     </div>
-                  </div>
+                  </div>,
+                  document.body
                 )}
-              </div>
+              </>
             ) : (
               <Button asChild size="sm" className="hidden min-[380px]:inline-flex bg-red-600 hover:bg-red-700 text-white rounded-full px-3 sm:px-4 py-2 text-sm font-semibold shadow-sm">
                 <Link to="/adhesion">Nous rejoindre</Link>
