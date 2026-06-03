@@ -379,6 +379,17 @@ export default function Home() {
               ].map((item) => <Link key={item.title} to={item.href} className="flex items-center gap-3 rounded-xl border border-slate-100 p-3 text-sm font-semibold text-slate-700 transition-colors hover:border-red-100 hover:bg-red-50 hover:text-red-700"><item.icon className="h-4 w-4 shrink-0" />{item.title}</Link>)}
             </div>
           </section>
+
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+            <h2 className="mb-4 text-base font-extrabold text-slate-900">Nos combats, vos droits</h2>
+            <div className="grid gap-4 sm:grid-cols-3">
+              {[
+                { icon: Shield, title: "Défendre", items: ["Respect des accords", "Santé & sécurité", "RPS"] },
+                { icon: Handshake, title: "Négocier", items: ["Salaires & primes", "Astreintes", "Temps de travail"] },
+                { icon: Heart, title: "Agir ensemble", items: ["Réclamations", "Expertises", "Mobilisations"] },
+              ].map((block) => <div key={block.title}><div className="mb-2 flex items-center gap-2"><div className="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-50 text-teal-600"><block.icon className="h-4 w-4" /></div><p className="font-bold text-slate-900">{block.title}</p></div><ul className="ml-10 space-y-1 text-xs text-slate-600">{block.items.map((item) => <li key={item}>• {item}</li>)}</ul></div>)}
+            </div>
+          </section>
         </div>
 
         <div className="space-y-6">
@@ -400,17 +411,6 @@ export default function Home() {
               <ProgressBar label="Pouvoir d’achat" value={85} />
               <ProgressBar label="Conditions de travail" value={90} />
               <ProgressBar label="Dialogue social" value={80} />
-            </div>
-          </section>
-
-          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-            <h2 className="mb-4 text-base font-extrabold text-slate-900">Nos combats, vos droits</h2>
-            <div className="space-y-4">
-              {[
-                { icon: Shield, title: "Défendre", items: ["Respect des accords", "Santé & sécurité", "RPS"] },
-                { icon: Handshake, title: "Négocier", items: ["Salaires & primes", "Astreintes", "Temps de travail"] },
-                { icon: Heart, title: "Agir ensemble", items: ["Réclamations", "Expertises", "Mobilisations"] },
-              ].map((block) => <div key={block.title}><div className="mb-2 flex items-center gap-2"><div className="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-50 text-teal-600"><block.icon className="h-4 w-4" /></div><p className="font-bold text-slate-900">{block.title}</p></div><ul className="ml-10 space-y-1 text-xs text-slate-600">{block.items.map((item) => <li key={item}>• {item}</li>)}</ul></div>)}
             </div>
           </section>
 
