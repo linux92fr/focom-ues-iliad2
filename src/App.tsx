@@ -1,4 +1,19 @@
 import { lazy, Suspense } from "react";
+
+// Recharge automatiquement la page si un chunk Vite est introuvable après déploiement
+function lazyWithReload<T extends React.ComponentType<unknown>>(
+  factory: () => Promise<{ default: T }>
+) {
+  return lazy(() =>
+    factory().catch(() => {
+      if (!sessionStorage.getItem("chunk-reload")) {
+        sessionStorage.setItem("chunk-reload", "1");
+        window.location.reload();
+      }
+      return new Promise<{ default: T }>(() => {});
+    })
+  );
+}
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
@@ -14,81 +29,81 @@ import { AdminAuthGuard } from "@/components/admin/AdminLayout";
 import RequireValidated from "./components/RequireValidated";
 
 // Public pages
-const Home = lazy(() => import("./pages/Home"));
-const NotFound = lazy(() => import("./pages/NotFound"));
-const BilanMandat = lazy(() => import("./pages/BilanMandat"));
-const LeSyndicat = lazy(() => import("./pages/LeSyndicat"));
-const VosDroits = lazy(() => import("./pages/VosDroits"));
-const DocumentsUtiles = lazy(() => import("./pages/DocumentsUtiles"));
-const FAQ = lazy(() => import("./pages/FAQ"));
-const Contact = lazy(() => import("./pages/Contact"));
-const MentionsLegales = lazy(() => import("./pages/MentionsLegales"));
-const RGPD = lazy(() => import("./pages/RGPD"));
+const Home = lazyWithReload(() => import("./pages/Home"));
+const NotFound = lazyWithReload(() => import("./pages/NotFound"));
+const BilanMandat = lazyWithReload(() => import("./pages/BilanMandat"));
+const LeSyndicat = lazyWithReload(() => import("./pages/LeSyndicat"));
+const VosDroits = lazyWithReload(() => import("./pages/VosDroits"));
+const DocumentsUtiles = lazyWithReload(() => import("./pages/DocumentsUtiles"));
+const FAQ = lazyWithReload(() => import("./pages/FAQ"));
+const Contact = lazyWithReload(() => import("./pages/Contact"));
+const MentionsLegales = lazyWithReload(() => import("./pages/MentionsLegales"));
+const RGPD = lazyWithReload(() => import("./pages/RGPD"));
 
 // Actualités
-const Actualites = lazy(() => import("./pages/Actualites"));
-const ActualiteDetail = lazy(() => import("./pages/ActualiteDetail"));
-const NouvelArticle = lazy(() => import("./pages/NouvelArticle"));
-const EditArticle = lazy(() => import("./pages/EditArticle"));
-const Publications = lazy(() => import("./pages/Publications"));
-const Tracts = lazy(() => import("./pages/Tracts"));
-const FilActualites = lazy(() => import("./pages/FilActualites"));
-const PublicationDetail = lazy(() => import("./pages/PublicationDetail"));
+const Actualites = lazyWithReload(() => import("./pages/Actualites"));
+const ActualiteDetail = lazyWithReload(() => import("./pages/ActualiteDetail"));
+const NouvelArticle = lazyWithReload(() => import("./pages/NouvelArticle"));
+const EditArticle = lazyWithReload(() => import("./pages/EditArticle"));
+const Publications = lazyWithReload(() => import("./pages/Publications"));
+const Tracts = lazyWithReload(() => import("./pages/Tracts"));
+const FilActualites = lazyWithReload(() => import("./pages/FilActualites"));
+const PublicationDetail = lazyWithReload(() => import("./pages/PublicationDetail"));
 
 // Adhésion & dons
-const Adhesion = lazy(() => import("./pages/Adhesion"));
-const Don = lazy(() => import("./pages/Don"));
-const DonMerci = lazy(() => import("./pages/DonMerci"));
+const Adhesion = lazyWithReload(() => import("./pages/Adhesion"));
+const Don = lazyWithReload(() => import("./pages/Don"));
+const DonMerci = lazyWithReload(() => import("./pages/DonMerci"));
 
 // Simulateurs
-const SimulateurMobilite = lazy(() => import("./pages/SimulateurMobilite"));
-const SimulateurPrimeVariable = lazy(() => import("./pages/SimulateurPrimeVariable"));
+const SimulateurMobilite = lazyWithReload(() => import("./pages/SimulateurMobilite"));
+const SimulateurPrimeVariable = lazyWithReload(() => import("./pages/SimulateurPrimeVariable"));
 
 // Élections & accords
-const Elections = lazy(() => import("./pages/Elections"));
-const ElectionsPremierTour = lazy(() => import("./pages/ElectionsPremierTour"));
-const Nao2026 = lazy(() => import("./pages/nao2026/index"));
-const FormulaireNao2026 = lazy(() => import("./pages/nao2026/formulaire/index"));
-const AccordGEPP = lazy(() => import("./pages/AccordGEPP"));
+const Elections = lazyWithReload(() => import("./pages/Elections"));
+const ElectionsPremierTour = lazyWithReload(() => import("./pages/ElectionsPremierTour"));
+const Nao2026 = lazyWithReload(() => import("./pages/nao2026/index"));
+const FormulaireNao2026 = lazyWithReload(() => import("./pages/nao2026/formulaire/index"));
+const AccordGEPP = lazyWithReload(() => import("./pages/AccordGEPP"));
 
 // Espace membre
-const Newsletter = lazy(() => import("./pages/Newsletter"));
-const NewsletterUnsubscribe = lazy(() => import("./pages/NewsletterUnsubscribe"));
-const Notifications = lazy(() => import("./pages/Notifications"));
-const AI = lazy(() => import("./pages/AI"));
-const AssistantJuridique = lazy(() => import("./pages/AssistantJuridique"));
-const Permanences = lazy(() => import("./pages/Permanences"));
-const Sondages = lazy(() => import("./pages/Sondages"));
-const Agenda = lazy(() => import("./pages/Agenda"));
-const Profile = lazy(() => import("./pages/Profile"));
-const MesReclamations = lazy(() => import("./pages/MesReclamations"));
+const Newsletter = lazyWithReload(() => import("./pages/Newsletter"));
+const NewsletterUnsubscribe = lazyWithReload(() => import("./pages/NewsletterUnsubscribe"));
+const Notifications = lazyWithReload(() => import("./pages/Notifications"));
+const AI = lazyWithReload(() => import("./pages/AI"));
+const AssistantJuridique = lazyWithReload(() => import("./pages/AssistantJuridique"));
+const Permanences = lazyWithReload(() => import("./pages/Permanences"));
+const Sondages = lazyWithReload(() => import("./pages/Sondages"));
+const Agenda = lazyWithReload(() => import("./pages/Agenda"));
+const Profile = lazyWithReload(() => import("./pages/Profile"));
+const MesReclamations = lazyWithReload(() => import("./pages/MesReclamations"));
 
 // Admin — section spécifique
-const AdminNao2026 = lazy(() => import("./pages/AdminNao2026"));
-const AdminParticipation = lazy(() => import("./pages/AdminParticipation"));
-const PosterComposer = lazy(() => import("./components/PosterComposer"));
-const AdminLogin = lazy(() => import("./pages/admin/AdminLogin"));
-const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
-const AdminActualites = lazy(() => import("./pages/admin/AdminActualites"));
-const AdminDocuments = lazy(() => import("./pages/admin/AdminDocuments"));
-const AdminTracts = lazy(() => import("./pages/admin/AdminTracts"));
-const AdminAdherents = lazy(() => import("./pages/admin/AdminAdherents"));
-const AdminParametres = lazy(() => import("./pages/admin/AdminParametres"));
-const AdminBilan = lazy(() => import("./pages/admin/AdminBilan"));
-const AdminDroits = lazy(() => import("./pages/admin/AdminDroits"));
-const AdminFAQ = lazy(() => import("./pages/admin/AdminFAQ"));
-const AdminMessages = lazy(() => import("./pages/admin/AdminMessages"));
-const AdminHomeEdit = lazy(() => import("./pages/admin/AdminHomeEdit"));
-const AdminPermanences = lazy(() => import("./pages/admin/AdminPermanences"));
-const AdminSondages = lazy(() => import("./pages/admin/AdminSondages"));
-const AdminNewsletter = lazy(() => import("./pages/admin/AdminNewsletter"));
-const AdminReclamations = lazy(() => import("./pages/admin/AdminReclamations"));
-const AdminModerationCommentaires = lazy(() => import("./pages/admin/AdminModerationCommentaires"));
-const AdminAgenda = lazy(() => import("./pages/admin/AdminAgenda"));
-const AdminPodcasts = lazy(() => import("./pages/admin/AdminPodcasts"));
-const Podcasts = lazy(() => import("./pages/Podcasts"));
-const EspaceAdherent = lazy(() => import("./pages/EspaceAdherent"));
-const AuthCallback = lazy(() => import("./pages/AuthCallback"));
+const AdminNao2026 = lazyWithReload(() => import("./pages/AdminNao2026"));
+const AdminParticipation = lazyWithReload(() => import("./pages/AdminParticipation"));
+const PosterComposer = lazyWithReload(() => import("./components/PosterComposer"));
+const AdminLogin = lazyWithReload(() => import("./pages/admin/AdminLogin"));
+const AdminDashboard = lazyWithReload(() => import("./pages/admin/AdminDashboard"));
+const AdminActualites = lazyWithReload(() => import("./pages/admin/AdminActualites"));
+const AdminDocuments = lazyWithReload(() => import("./pages/admin/AdminDocuments"));
+const AdminTracts = lazyWithReload(() => import("./pages/admin/AdminTracts"));
+const AdminAdherents = lazyWithReload(() => import("./pages/admin/AdminAdherents"));
+const AdminParametres = lazyWithReload(() => import("./pages/admin/AdminParametres"));
+const AdminBilan = lazyWithReload(() => import("./pages/admin/AdminBilan"));
+const AdminDroits = lazyWithReload(() => import("./pages/admin/AdminDroits"));
+const AdminFAQ = lazyWithReload(() => import("./pages/admin/AdminFAQ"));
+const AdminMessages = lazyWithReload(() => import("./pages/admin/AdminMessages"));
+const AdminHomeEdit = lazyWithReload(() => import("./pages/admin/AdminHomeEdit"));
+const AdminPermanences = lazyWithReload(() => import("./pages/admin/AdminPermanences"));
+const AdminSondages = lazyWithReload(() => import("./pages/admin/AdminSondages"));
+const AdminNewsletter = lazyWithReload(() => import("./pages/admin/AdminNewsletter"));
+const AdminReclamations = lazyWithReload(() => import("./pages/admin/AdminReclamations"));
+const AdminModerationCommentaires = lazyWithReload(() => import("./pages/admin/AdminModerationCommentaires"));
+const AdminAgenda = lazyWithReload(() => import("./pages/admin/AdminAgenda"));
+const AdminPodcasts = lazyWithReload(() => import("./pages/admin/AdminPodcasts"));
+const Podcasts = lazyWithReload(() => import("./pages/Podcasts"));
+const EspaceAdherent = lazyWithReload(() => import("./pages/EspaceAdherent"));
+const AuthCallback = lazyWithReload(() => import("./pages/AuthCallback"));
 
 const queryClient = new QueryClient();
 
