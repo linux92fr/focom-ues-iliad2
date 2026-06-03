@@ -241,35 +241,35 @@ export default function Home() {
       <section className="relative mb-6 overflow-hidden rounded-3xl bg-[#13233A] shadow-xl">
         <img src={HERO_IMAGE} alt="FO COM UES ILIAD" className="absolute inset-0 h-full w-full object-cover opacity-22" />
         <div className="absolute inset-0 bg-gradient-to-br from-[#13233A] via-[#13233A]/95 to-red-950/75" />
-        <div className="relative grid gap-8 px-5 py-10 sm:px-8 lg:grid-cols-[1.05fr_0.95fr] lg:px-12 lg:py-14">
+        <div className="relative grid gap-6 px-5 py-7 sm:px-8 lg:grid-cols-[1.05fr_0.95fr] lg:px-12 lg:py-10">
           <div className="flex flex-col justify-center">
             <div className="mb-4 inline-flex w-fit items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-white/85 backdrop-blur">
               <Sparkles className="h-3.5 w-3.5 text-red-300" /> Notre force, vos droits
             </div>
-            <h1 className="max-w-3xl text-3xl font-extrabold leading-tight text-white sm:text-5xl lg:text-6xl">{heroTitle}</h1>
-            <p className="mt-4 max-w-2xl text-sm leading-relaxed text-white/85 sm:text-lg">{heroSubtitle}</p>
-            <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+            <h1 className="max-w-3xl text-2xl font-extrabold leading-tight text-white sm:text-4xl lg:text-5xl">{heroTitle}</h1>
+            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-white/85">{heroSubtitle}</p>
+            <div className="mt-5 flex flex-col gap-2.5 sm:flex-row">
               <Button onClick={() => navigate("/adhesion")} className="bg-red-600 px-6 py-3 text-white hover:bg-red-700"><UserPlus className="mr-2 h-4 w-4" /> Adhérer maintenant</Button>
               <Button onClick={() => navigate("/mes-reclamations")} variant="outline" className="border-white/30 bg-white/10 px-6 py-3 text-white backdrop-blur hover:bg-white/20"><MessageSquare className="mr-2 h-4 w-4" /> Faire une demande</Button>
               <Button onClick={() => navigate("/vos-droits")} variant="outline" className="border-teal-300/40 bg-teal-500/10 px-6 py-3 text-white backdrop-blur hover:bg-teal-500/20"><Shield className="mr-2 h-4 w-4" /> Mes droits</Button>
             </div>
           </div>
 
-          <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-white/10 p-4 text-white shadow-2xl backdrop-blur-md">
+          <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/10 p-3 text-white shadow-2xl backdrop-blur-md">
             <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-red-500/25 blur-2xl" />
             <div className="absolute -bottom-12 -left-12 h-36 w-36 rounded-full bg-teal-400/20 blur-2xl" />
             <div className="relative">
-              <div className="mb-4 flex items-center justify-between gap-3">
+              <div className="mb-3 flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-xs font-black uppercase tracking-wider text-red-100">FO COM UES ILIAD</p>
-                  <h2 className="mt-1 text-xl font-extrabold">Une équipe de terrain à vos côtés</h2>
+                  <p className="text-[10px] font-black uppercase tracking-wider text-red-100">FO COM UES ILIAD</p>
+                  <h2 className="mt-0.5 text-base font-extrabold">Une équipe de terrain à vos côtés</h2>
                 </div>
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/15">
-                  <Users className="h-6 w-6" />
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/15">
+                  <Users className="h-4 w-4" />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
+              <div className="grid grid-cols-3 gap-2">
                 {HERO_REPRESENTATIVES.map((person) => (
                   <button
                     key={person.name}
@@ -290,9 +290,9 @@ export default function Home() {
                 ))}
               </div>
 
-              <div className="mt-3 rounded-2xl border border-white/10 bg-black/15 p-2.5 backdrop-blur">
-                <div className="flex items-center gap-3">
-                  <div className="h-16 w-24 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-white/10 sm:h-20 sm:w-32">
+              <div className="mt-2.5 rounded-xl border border-white/10 bg-black/15 p-2 backdrop-blur">
+                <div className="flex items-center gap-2.5">
+                  <div className="h-12 w-16 shrink-0 overflow-hidden rounded-lg border border-white/10 bg-white/10">
                     <img
                       src={HERO_SUPPORT_ADVISORS.photo}
                       alt={HERO_SUPPORT_ADVISORS.names}
@@ -308,13 +308,13 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="mt-4 grid grid-cols-3 gap-2">
+              <div className="mt-2.5 grid grid-cols-3 gap-2">
                 {[
                   { icon: CheckCircle2, title: "FO 1ère force", text: "CSE 2026" },
                   { icon: Handshake, title: "NAO 2026", text: "FO mobilisé" },
                   { icon: MessageSquare, title: "Accompagnement", text: "Vos dossiers" },
                 ].map((item) => (
-                  <div key={item.title} className="rounded-2xl border border-white/10 bg-black/15 p-3 text-center backdrop-blur">
+                  <div key={item.title} className="rounded-xl border border-white/10 bg-black/15 p-2 text-center backdrop-blur">
                     <item.icon className="mx-auto mb-2 h-4 w-4 text-red-200" />
                     <p className="text-[11px] font-extrabold leading-tight">{item.title}</p>
                     <p className="mt-1 text-[10px] text-white/65">{item.text}</p>
