@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import {
   Award,
   Bell,
+  Briefcase,
   Calendar,
   CheckCircle2,
   ChevronRight,
@@ -217,7 +218,7 @@ export default function Home() {
   const focusCards = [
     { icon: Handshake, title: "NAO 2026", desc: "Propositions finales Direction, position FO et refus de signature.", href: "/nao2026", label: "Négociations" },
     { icon: Trophy, title: "Résultats CSE 2026", desc: "Retrouvez les résultats définitifs et vos élus FO COM.", href: "/elections", label: "CSE 2026" },
-    { icon: Users, title: "Le syndicat", desc: "Représentants, histoire, présence terrain et contacts FO COM.", href: "/le-syndicat", label: "FO COM" },
+    { icon: Briefcase, title: "Accord GEPP", desc: "Gestion des emplois et parcours professionnels — simulateur et synthèse.", href: "/accords/gepp", label: "Accord" },
   ];
 
   const fallbackArticles = [
