@@ -22,7 +22,15 @@ test.describe('Espace admin — protection des routes', () => {
   test('page /admin/login affiche le formulaire de connexion admin', async ({ page }) => {
     await page.goto('/admin/login');
     await page.waitForLoadState('domcontentloaded');
-    await expect(page.locator('h1, h2').first()).toBeVisible({ timeout: 10000 });
-    await expect(page.locator('#username')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('heading', { name: /FOCOM UES ILIAD/i })).toBeVisible({ timeout: 10000 });
+
+    // La connexion par identifiants est un accès de secours : si une passkey
+    // est disponible, le formulaire est masqué derrière un bouton à déplier.
+    const userInput = page.getByPlaceholder(/Nom d'utilisateur ou email/i);
+    if (!(await userInput.isVisible())) {
+      await page.getByRole('button', { name: /Accès de secours|Connexion par identifiants/i }).click();
+    }
+    await expect(userInput).toBeVisible({ timeout: 10000 });
+    await expect(page.getByPlaceholder(/Mot de passe/i)).toBeVisible({ timeout: 10000 });
   });
 });
