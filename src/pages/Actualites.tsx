@@ -108,7 +108,7 @@ const Actualites = () => {
       (item.title || "").toLowerCase().includes(q) ||
       (item.excerpt || "").toLowerCase().includes(q) ||
       stripHtml(item.content || "").toLowerCase().includes(q);
-    const matchesCategory = selectedCategory === "all" || item.category === selectedCategory;
+    const matchesCategory = selectedCategory === "all";
     return matchesSearch && matchesCategory;
   });
 
@@ -212,24 +212,24 @@ const Actualites = () => {
                 <Link to={`/actualites/${filteredArticles[0].slug}`} className="block group">
                   <Card className="overflow-hidden border-0 shadow-lg hover:shadow-2xl transition-all duration-500">
                     <div className="relative h-64 sm:h-80 overflow-hidden">
-                      {filteredArticles[0].image_url ? (
+                      {filteredArticles[0].cover_image ? (
                         <img
-                          src={filteredArticles[0].image_url}
+                          src={filteredArticles[0].cover_image}
                           alt=""
                           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                           loading="lazy"
                         />
                       ) : (
-                        <div className={`w-full h-full bg-gradient-to-br ${categoryGradients[filteredArticles[0].category || ""] || "from-slate-700 to-slate-900"} flex items-center justify-center`}>
-                          <span className="text-7xl opacity-30">{categoryIcons[filteredArticles[0].category || ""] || "📰"}</span>
+                        <div className={`w-full h-full bg-gradient-to-br ${categoryGradients[filteredArticles[0].category_id || ""] || "from-slate-700 to-slate-900"} flex items-center justify-center`}>
+                          <span className="text-7xl opacity-30">{categoryIcons[filteredArticles[0].category_id || ""] || "📰"}</span>
                         </div>
                       )}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
                       <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
                         <div className="flex items-center gap-2 mb-2">
-                          {filteredArticles[0].category && categoryLabels[filteredArticles[0].category] && (
-                            <Badge style={{ backgroundColor: categoryColors[filteredArticles[0].category] || "#dc2626", color: "white" }}>
-                              {filteredArticles[0].category && categoryIcons[filteredArticles[0].category]} {categoryLabels[filteredArticles[0].category]}
+                          {filteredArticles[0].category_id && categoryLabels[filteredArticles[0].category_id] && (
+                            <Badge style={{ backgroundColor: categoryColors[filteredArticles[0].category_id] || "#dc2626", color: "white" }}>
+                              {filteredArticles[0].category_id && categoryIcons[filteredArticles[0].category_id]} {categoryLabels[filteredArticles[0].category_id]}
                             </Badge>
                           )}
                           <span className="text-xs text-white/70 flex items-center gap-1">
@@ -261,22 +261,22 @@ const Actualites = () => {
                     <Link to={`/actualites/${item.slug}`} className="block group h-full">
                       <Card className="h-full overflow-hidden border border-border shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
                         <div className="relative h-44 overflow-hidden">
-                          {item.image_url ? (
+                          {item.cover_image ? (
                             <img
-                              src={item.image_url}
+                              src={item.cover_image}
                               alt=""
                               className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                               loading="lazy"
                             />
                           ) : (
-                            <div className={`w-full h-full bg-gradient-to-br ${categoryGradients[item.category || ""] || "from-slate-700 to-slate-900"} flex items-center justify-center`}>
-                              <span className="text-5xl opacity-25">{categoryIcons[item.category || ""] || "📰"}</span>
+                            <div className={`w-full h-full bg-gradient-to-br ${categoryGradients[item.category_id || ""] || "from-slate-700 to-slate-900"} flex items-center justify-center`}>
+                              <span className="text-5xl opacity-25">{categoryIcons[item.category_id || ""] || "📰"}</span>
                             </div>
                           )}
-                          {item.category && categoryLabels[item.category] && (
+                          {item.category_id && categoryLabels[item.category_id] && (
                             <div className="absolute top-3 left-3">
-                              <Badge style={{ backgroundColor: categoryColors[item.category] || "#dc2626", color: "white" }} className="shadow">
-                                {categoryLabels[item.category]}
+                              <Badge style={{ backgroundColor: categoryColors[item.category_id] || "#dc2626", color: "white" }} className="shadow">
+                                {categoryLabels[item.category_id]}
                               </Badge>
                             </div>
                           )}
