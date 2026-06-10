@@ -55,7 +55,7 @@ function AnimatedItem({ children, delay = 0 }: { children: React.ReactNode; dela
 
 type FeedItem =
   | { kind: "tract"; id: string; date: string; title: string; theme: string; file_url: string | null; cover_url: string | null }
-  | { kind: "article"; id: string; date: string; title: string; slug: string; category: string | null; image_url: string | null };
+  | { kind: "article"; id: string; date: string; title: string; slug: string; category: string | null; image_url: string | null; };
 
 function relativeDate(iso: string) {
   const diff = Date.now() - new Date(iso).getTime();
@@ -267,8 +267,8 @@ export default function FilActualites() {
     queryKey: ["fil-articles"],
     queryFn: async () => {
       const { data } = await supabase
-        .from("articles").select("id, title, slug, category, published_at, image_url")
-        .eq("is_published", true).eq("status", "publie")
+        .from("articles").select("id, title, slug, category_id, published_at, cover_image")
+        .eq("published", true)
         .order("published_at", { ascending: false }).limit(20);
       return data ?? [];
     },
@@ -280,7 +280,7 @@ export default function FilActualites() {
     if (item.kind === "tract") {
       await supabase.from("tracts").update({ is_published: false }).eq("id", item.id);
     } else {
-      await supabase.from("articles").update({ is_published: false, status: "brouillon" }).eq("id", item.id);
+      await supabase.from("articles").update({ published: false, published_at: null }).eq("id", item.id);
     }
     await queryClient.invalidateQueries({ queryKey: item.kind === "tract" ? ["fil-tracts"] : ["fil-articles"] });
     setUnpublishing(null);
@@ -294,7 +294,7 @@ export default function FilActualites() {
     })),
     ...articles.map((a) => ({
       kind: "article" as const, id: a.id, date: a.published_at ?? "",
-      title: a.title, slug: a.slug, category: a.category ?? null, image_url: a.image_url ?? null,
+      title: a.title, slug: a.slug, category: a.category_id ?? null, image_url: a.cover_image ?? null,
     })),
   ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
