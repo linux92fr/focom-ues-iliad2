@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import DOMPurify from "dompurify";
+import { marked } from "marked";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -148,7 +149,11 @@ const ActualiteDetail = () => {
             )}
             <div
               className="prose prose-lg max-w-none"
-              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(article.content || "") }}
+              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(
+                article.content?.trim().startsWith('<')
+                  ? article.content
+                  : marked(article.content || "") as string
+              ) }}
             />
 
             <div className="mt-8 pt-8 border-t flex items-center justify-between">
