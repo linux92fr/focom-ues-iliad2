@@ -180,53 +180,56 @@ export type Database = {
       }
       articles: {
         Row: {
-          author_id: string
-          category_id: string | null
+          author_id: string | null
+          category: string | null
           content: string
-          cover_image: string | null
           created_at: string
           excerpt: string | null
           id: string
-          published: boolean
+          image_url: string | null
+          is_published: boolean
           published_at: string | null
           slug: string
+          status: Database["public"]["Enums"]["article_status"]
           title: string
           updated_at: string
         }
         Insert: {
-          author_id: string
-          category_id?: string | null
+          author_id?: string | null
+          category?: string | null
           content: string
-          cover_image?: string | null
           created_at?: string
           excerpt?: string | null
           id?: string
-          published?: boolean
+          image_url?: string | null
+          is_published?: boolean
           published_at?: string | null
           slug: string
+          status?: Database["public"]["Enums"]["article_status"]
           title: string
           updated_at?: string
         }
         Update: {
-          author_id?: string
-          category_id?: string | null
+          author_id?: string | null
+          category?: string | null
           content?: string
-          cover_image?: string | null
           created_at?: string
           excerpt?: string | null
           id?: string
-          published?: boolean
+          image_url?: string | null
+          is_published?: boolean
           published_at?: string | null
           slug?: string
+          status?: Database["public"]["Enums"]["article_status"]
           title?: string
           updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "articles_category_id_fkey"
-            columns: ["category_id"]
+            foreignKeyName: "articles_author_id_fkey"
+            columns: ["author_id"]
             isOneToOne: false
-            referencedRelation: "categories"
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]

@@ -41,7 +41,7 @@ const ActualiteDetail = () => {
           .from("articles")
           .select("*")
           .eq("slug", slug)
-          .eq("published", true)
+          .eq("is_published", true)
           .single();
 
         if (error) throw error;
@@ -106,8 +106,8 @@ const ActualiteDetail = () => {
     );
   }
 
-  const categoryLabel = article.category_id ? categoryLabels[article.category_id] || article.category_id : null;
-  const categoryColor = article.category_id ? categoryColors[article.category_id] || "#dc2626" : "#dc2626";
+  const categoryLabel = article.category ? categoryLabels[article.category] || article.category : null;
+  const categoryColor = article.category ? categoryColors[article.category] || "#dc2626" : "#dc2626";
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-slate-50 p-3 sm:p-4 lg:p-8 space-y-6">
@@ -137,8 +137,8 @@ const ActualiteDetail = () => {
 
       <div className="max-w-4xl mx-auto w-full">
         <Card className="rounded-2xl shadow-sm border border-border">
-          {article.cover_image && (
-            <img src={article.cover_image} alt="" className="w-full max-h-[240px] sm:max-h-[420px] object-contain rounded-t-2xl bg-muted" loading="lazy" />
+          {article.image_url && (
+            <img src={article.image_url} alt="" className="w-full max-h-[240px] sm:max-h-[420px] object-contain rounded-t-2xl bg-muted" loading="lazy" />
           )}
           <CardContent className="p-6 sm:p-8">
             {article.excerpt && (
