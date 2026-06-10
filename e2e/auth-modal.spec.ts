@@ -1,5 +1,10 @@
 import { test, expect } from '@playwright/test';
 
+// La modal d'authentification utilise une connexion sans mot de passe
+// (passkey + lien magique par email). Elle n'a plus d'onglets
+// Connexion/Inscription, de champs mot de passe ni de connexion via
+// réseaux sociaux. Les tests ci-dessous reflètent cette UI.
+
 test.describe('Modal d\'authentification', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/espace-adherent');
@@ -8,34 +13,31 @@ test.describe('Modal d\'authentification', () => {
     await expect(page.getByRole('dialog')).toBeVisible({ timeout: 10000 });
   });
 
-  test('affiche les onglets Connexion et Inscription', async ({ page }) => {
+  test('affiche le titre Espace Adhérent', async ({ page }) => {
     const dialog = page.getByRole('dialog');
-    await expect(dialog.getByRole('tab', { name: /Connexion/i })).toBeVisible({ timeout: 10000 });
-    await expect(dialog.getByRole('tab', { name: /Inscription/i })).toBeVisible({ timeout: 10000 });
+    await expect(dialog.getByText('Espace Adhérent')).toBeVisible({ timeout: 10000 });
   });
 
-  test('affiche les champs email et mot de passe dans l\'onglet Connexion', async ({ page }) => {
+  test('met en avant l\'authentification sans mot de passe', async ({ page }) => {
     const dialog = page.getByRole('dialog');
-    await expect(dialog.locator('#login-email')).toBeVisible({ timeout: 10000 });
-    await expect(dialog.locator('#login-password')).toBeVisible({ timeout: 10000 });
+    await expect(dialog.getByText(/sans mot de passe/i).first()).toBeVisible({ timeout: 10000 });
   });
 
-  test('onglet Inscription affiche les champs requis', async ({ page }) => {
+  test('affiche le champ email et le bouton de lien de connexion', async ({ page }) => {
     const dialog = page.getByRole('dialog');
-    await dialog.getByRole('tab', { name: /Inscription/i }).click();
-    await expect(dialog.locator('#signup-name')).toBeVisible({ timeout: 10000 });
-    await expect(dialog.locator('#signup-email')).toBeVisible({ timeout: 10000 });
+    await expect(dialog.locator('#auth-email')).toBeVisible({ timeout: 10000 });
+    await expect(dialog.getByRole('button', { name: /Recevoir un lien de connexion/i })).toBeVisible({ timeout: 10000 });
   });
 
-  test('inscription rejette un mot de passe trop court', async ({ page }) => {
+  test('affiche le champ prénom et nom (première inscription)', async ({ page }) => {
     const dialog = page.getByRole('dialog');
-    await dialog.getByRole('tab', { name: /Inscription/i }).click();
-    const pwInput = dialog.locator('#signup-password');
-    await expect(pwInput).toHaveAttribute('minlength', '12', { timeout: 10000 });
+    await expect(dialog.locator('#auth-name')).toBeVisible({ timeout: 10000 });
   });
 
-  test('bouton "Continuer avec Facebook" visible', async ({ page }) => {
+  test('le champ email est de type email et requis', async ({ page }) => {
     const dialog = page.getByRole('dialog');
-    await expect(dialog.getByRole('button', { name: /Facebook/i })).toBeVisible({ timeout: 10000 });
+    const email = dialog.locator('#auth-email');
+    await expect(email).toHaveAttribute('type', 'email', { timeout: 10000 });
+    await expect(email).toHaveAttribute('required', '', { timeout: 10000 });
   });
 });

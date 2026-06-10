@@ -19,6 +19,13 @@ const statusLabel: Record<string, string> = {
   suspendu: "Suspendu",
 };
 
+// Échappe les données utilisateur avant interpolation dans le HTML imprimé
+// (window.open + document.write) pour éviter toute injection HTML/XSS.
+const escapeHtml = (value: string | null | undefined): string =>
+  String(value ?? "").replace(/[&<>"']/g, (c) => (
+    { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] as string
+  ));
+
 const statusColor: Record<string, string> = {
   actif: "bg-green-500",
   inactif: "bg-slate-400",
@@ -71,13 +78,13 @@ export default function CarteAdherent({
         <body>
           <div class="card">
             <div class="logo">FO COM · UES ILIAD</div>
-            <div class="avatar">${avatarUrl ? `<img src="${avatarUrl}" />` : initials}</div>
-            <div class="name">${firstName} ${lastName}</div>
-            <div class="email">${email}</div>
-            <div class="badge"><div class="dot" style="background:${status === "actif" ? "#4ade80" : "#94a3b8"}"></div>${statusLabel[status] || status}</div>
+            <div class="avatar">${avatarUrl ? `<img src="${escapeHtml(avatarUrl)}" />` : escapeHtml(initials)}</div>
+            <div class="name">${escapeHtml(firstName)} ${escapeHtml(lastName)}</div>
+            <div class="email">${escapeHtml(email)}</div>
+            <div class="badge"><div class="dot" style="background:${status === "actif" ? "#4ade80" : "#94a3b8"}"></div>${escapeHtml(statusLabel[status] || status)}</div>
             <div class="info">
-              ${formattedSince ? `<div class="info-row">Membre depuis ${formattedSince}</div>` : ""}
-              ${accessKey ? `<div class="info-row">Clé : ${accessKey}</div>` : ""}
+              ${formattedSince ? `<div class="info-row">Membre depuis ${escapeHtml(formattedSince)}</div>` : ""}
+              ${accessKey ? `<div class="info-row">Clé : ${escapeHtml(accessKey)}</div>` : ""}
             </div>
             <div class="footer">SYNDICAT FO COMMUNICATIONS · UES ILIAD · ${new Date().getFullYear()}</div>
           </div>
