@@ -86,7 +86,7 @@ const Actualites = () => {
         const { data, error } = await supabase
           .from("articles")
           .select("*")
-          .eq("is_published", true)
+          .eq("published", true)
           .order("published_at", { ascending: false, nullsFirst: false });
 
         if (error) throw error;
