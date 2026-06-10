@@ -10,6 +10,25 @@ const json = (data: unknown, status = 200) =>
     headers: { ...CORS, "Content-Type": "application/json" },
   });
 
+function markdownToHtml(text: string): string {
+  return text
+    .replace(/^### (.+)$/gm, "<h3 style=\"font-size:18px;font-weight:800;margin:20px 0 8px;color:#111827;\">$1</h3>")
+    .replace(/^## (.+)$/gm, "<h2 style=\"font-size:22px;font-weight:900;margin:24px 0 10px;color:#111827;\">$1</h2>")
+    .replace(/^# (.+)$/gm, "<h1 style=\"font-size:26px;font-weight:900;margin:24px 0 10px;color:#111827;\">$1</h1>")
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*(.+?)\*/g, "<em>$1</em>")
+    .replace(/^---+$/gm, "<hr style=\"border:none;border-top:1px solid #e5e7eb;margin:20px 0;\"/>")
+    .replace(/\[(.+?)\]\((.+?)\)/g, "<a href=\"$2\" style=\"color:#c62828;font-weight:700;\">$1</a>")
+    .split(/\n{2,}/)
+    .map((block) => {
+      const trimmed = block.trim();
+      if (!trimmed) return "";
+      if (trimmed.startsWith("<h") || trimmed.startsWith("<hr")) return trimmed;
+      return `<p style="margin:0 0 16px;">${trimmed.replace(/\n/g, "<br/>")}</p>`;
+    })
+    .join("\n");
+}
+
 function wrapHtml(bodyHtml: string, unsubUrl: string, siteUrl: string): string {
   const displayUrl = siteUrl.replace("https://", "").replace("http://", "");
 
@@ -186,12 +205,16 @@ Deno.serve(async (req) => {
       ? `token=${sub.unsubscribe_token}`
       : `email=${encodeURIComponent(sub.email)}`;
 
+    const bodyContent = newsletter.body_html?.trim().startsWith("<")
+      ? newsletter.body_html
+      : markdownToHtml(newsletter.body_html ?? "");
+
     return {
       from: fromEmail,
       to: [sub.email],
       subject: newsletter.subject,
       html: wrapHtml(
-        newsletter.body_html,
+        bodyContent,
         `${siteUrl}/newsletter/unsubscribe?${unsubParam}`,
         siteUrl,
       ),
