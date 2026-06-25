@@ -1,12 +1,12 @@
 import React, { useState } from "react";
 import { createClient } from "@supabase/supabase-js";
+import { pipeline } from "@xenova/transformers";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Upload, Search, AlertCircle, CheckCircle2, FileText } from "lucide-react";
 
-// Initialize Supabase client
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
   import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -21,9 +21,10 @@ interface SearchResult {
 }
 
 interface UploadStatus {
-  status: "idle" | "uploading" | "processing" | "success" | "error";
+  status: "idle" | "uploading" | "extracting" | "embedding" | "storing" | "success" | "error";
   message: string;
   filename?: string;
+  progress?: number;
 }
 
 export function PVSearchPage() {
@@ -33,11 +34,24 @@ export function PVSearchPage() {
   const [isSearching, setIsSearching] = useState(false);
   const [documents, setDocuments] = useState<{ filename: string; chunks: number }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [extractor, setExtractor] = useState<any>(null);
 
-  // Load indexed documents on mount
+  // Load model on mount
   React.useEffect(() => {
+    loadModel();
     loadDocuments();
   }, []);
+
+  const loadModel = async () => {
+    try {
+      console.log("Loading embedding model...");
+      const model = await pipeline("feature-extraction", "Xenova/all-MiniLM-L6-v2");
+      setExtractor(model);
+      console.log("Model loaded!");
+    } catch (error) {
+      console.error("Failed to load model:", error);
+    }
+  };
 
   const loadDocuments = async () => {
     try {
@@ -48,7 +62,6 @@ export function PVSearchPage() {
 
       if (error) throw error;
 
-      // Group by filename and count chunks
       const grouped = data.reduce((acc, doc) => {
         const existing = acc.find((d) => d.filename === doc.filename);
         if (existing) {
@@ -67,6 +80,37 @@ export function PVSearchPage() {
     }
   };
 
+  const extractTextFromPdf = async (pdfBase64: string): Promise<string> => {
+    try {
+      const binaryString = atob(pdfBase64);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+
+      const decoder = new TextDecoder("utf-8");
+      let text = decoder.decode(bytes);
+      text = text.replace(/[^\x20-\x7E\n\r]/g, " ").replace(/\s+/g, " ").trim();
+      return text.substring(0, 50000);
+    } catch {
+      throw new Error("Failed to extract PDF");
+    }
+  };
+
+  const chunkText = (text: string): string[] => {
+    const chunks = [];
+    const CHUNK_SIZE = 1000;
+
+    for (let i = 0; i < text.length && chunks.length < 50; i += CHUNK_SIZE) {
+      const chunk = text.substring(i, i + CHUNK_SIZE).trim();
+      if (chunk.length > 50) {
+        chunks.push(chunk);
+      }
+    }
+
+    return chunks;
+  };
+
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file || !file.name.endsWith(".pdf")) {
@@ -77,55 +121,87 @@ export function PVSearchPage() {
       return;
     }
 
+    if (!extractor) {
+      setUploadStatus({
+        status: "error",
+        message: "Modèle d'embedding en cours de chargement... Réessayez dans quelques secondes",
+      });
+      return;
+    }
+
     setUploadStatus({ status: "uploading", message: "Lecture du fichier...", filename: file.name });
 
     try {
-      // Read file as base64
+      // Read file
       const buffer = await file.arrayBuffer();
       const bytes = new Uint8Array(buffer);
-      // Process in chunks to avoid stack overflow
-let binaryString = "";
-const chunkSize = 8192;
-for (let i = 0; i < bytes.length; i += chunkSize) {
-  binaryString += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + chunkSize)) as any);
-}
-const base64 = btoa(binaryString);
+      let binaryString = "";
+      const chunkSize = 8192;
+      for (let i = 0; i < bytes.length; i += chunkSize) {
+        binaryString += String.fromCharCode.apply(
+          null,
+          Array.from(bytes.subarray(i, i + chunkSize)) as any
+        );
+      }
+      const base64 = btoa(binaryString);
 
-      setUploadStatus({ status: "processing", message: "Traitement du PDF et création des embeddings..." });
+      // Extract text
+      setUploadStatus({ status: "extracting", message: "Extraction du texte du PDF..." });
+      const text = await extractTextFromPdf(base64);
 
-      // Call Edge Function
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/embed-pv`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            pdfBase64: base64,
-            filename: file.name,
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Erreur lors du traitement");
+      if (text.length < 100) {
+        throw new Error("PDF est vide ou illisible");
       }
 
-      const result = await response.json();
+      // Chunk
+      setUploadStatus({ status: "embedding", message: "Création des embeddings (peut prendre 30-60s)..." });
+      const chunks = chunkText(text);
+
+      if (chunks.length === 0) {
+        throw new Error("Impossible d'extraire le texte");
+      }
+
+      // Get embeddings (client-side with transformers.js)
+      console.log(`Computing embeddings for ${chunks.length} chunks...`);
+      const embeddings = await Promise.all(
+        chunks.map(async (chunk) => {
+          const result = await extractor(chunk, { pooling: "mean", normalize: true });
+          return Array.from(result.data);
+        })
+      );
+
+      console.log(`Got ${embeddings.length} embeddings`);
+
+      // Prepare documents
+      const documents = chunks.map((chunk, i) => ({
+        filename: file.name,
+        original_filename: file.name,
+        chunk_index: i,
+        content: chunk,
+        embedding: embeddings[i],
+        metadata: {
+          chunk_count: chunks.length,
+          extracted_at: new Date().toISOString(),
+        },
+      }));
+
+      // Store in Supabase
+      setUploadStatus({ status: "storing", message: "Sauvegarde dans la base de données..." });
+      const BATCH_SIZE = 25;
+      for (let i = 0; i < documents.length; i += BATCH_SIZE) {
+        const batch = documents.slice(i, i + BATCH_SIZE);
+        const { error } = await supabase.from("pv_documents").insert(batch);
+        if (error) throw error;
+        console.log(`Inserted batch ${Math.floor(i / BATCH_SIZE) + 1}`);
+      }
 
       setUploadStatus({
         status: "success",
-        message: `✅ ${result.chunks_processed} sections indexées de "${file.name}"`,
+        message: `✅ ${chunks.length} sections indexées de "${file.name}"`,
         filename: file.name,
       });
 
-      // Reload documents
       await loadDocuments();
-
-      // Reset file input
       event.target.value = "";
     } catch (error) {
       setUploadStatus({
@@ -136,21 +212,39 @@ const base64 = btoa(binaryString);
   };
 
   const handleSearch = async () => {
-    if (!searchQuery.trim()) return;
+    if (!searchQuery.trim() || !extractor) return;
 
     setIsSearching(true);
     try {
-      // Call RPC function to search with pgvector
-      const { data, error } = await supabase.rpc("search_pv_documents", {
-        query_text: searchQuery,
+      // Get query embedding
+      const queryEmbedding = await extractor(searchQuery, {
+        pooling: "mean",
+        normalize: true,
+      });
+      const queryVector = Array.from(queryEmbedding.data);
+
+      // Search in Supabase using vector similarity
+      const { data, error } = await supabase.rpc("search_pv_documents_vector", {
+        query_embedding: queryVector,
         match_threshold: 0.4,
         match_count: 10,
       });
 
       if (error) {
-        // Fallback: if RPC doesn't exist yet, do client-side search
-        console.warn("RPC error, falling back to client search:", error);
-        await clientSideSearch();
+        // Fallback to keyword search
+        console.warn("Vector search failed, falling back to keyword search:", error);
+        const { data: keywordData } = await supabase
+          .from("pv_documents")
+          .select("id, filename, content, chunk_index")
+          .ilike("content", `%${searchQuery}%`)
+          .limit(10);
+
+        setSearchResults(
+          keywordData?.map((row) => ({
+            ...row,
+            similarity: 0.5,
+          })) || []
+        );
         return;
       }
 
@@ -171,28 +265,6 @@ const base64 = btoa(binaryString);
     }
   };
 
-  // Fallback client-side search (basic keyword matching)
-  const clientSideSearch = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("pv_documents")
-        .select("id, filename, content, chunk_index")
-        .ilike("content", `%${searchQuery}%`)
-        .limit(10);
-
-      if (error) throw error;
-
-      setSearchResults(
-        data?.map((row) => ({
-          ...row,
-          similarity: 0.5, // Placeholder
-        })) || []
-      );
-    } catch (error) {
-      console.error("Fallback search error:", error);
-    }
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 py-12 px-4">
       <div className="max-w-4xl mx-auto space-y-8">
@@ -203,6 +275,16 @@ const base64 = btoa(binaryString);
             Indexation sémantique des procès-verbaux pour retrouver facilement les occurrences
           </p>
         </div>
+
+        {/* Model loading status */}
+        {!extractor && (
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Chargement du modèle d'IA (première fois = ~100MB)... Cela peut prendre une minute.
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Upload Card */}
         <Card>
@@ -222,15 +304,24 @@ const base64 = btoa(binaryString);
                   type="file"
                   accept=".pdf"
                   onChange={handleFileUpload}
-                  disabled={uploadStatus.status === "uploading" || uploadStatus.status === "processing"}
+                  disabled={
+                    uploadStatus.status === "uploading" ||
+                    uploadStatus.status === "extracting" ||
+                    uploadStatus.status === "embedding" ||
+                    uploadStatus.status === "storing" ||
+                    !extractor
+                  }
                   className="cursor-pointer"
                 />
-                {uploadStatus.status === "uploading" || uploadStatus.status === "processing" ? (
+                {(uploadStatus.status === "uploading" ||
+                  uploadStatus.status === "extracting" ||
+                  uploadStatus.status === "embedding" ||
+                  uploadStatus.status === "storing") && (
                   <div className="flex items-center gap-2 text-blue-600">
                     <Loader2 className="w-4 h-4 animate-spin" />
                     <span className="text-sm">Traitement...</span>
                   </div>
-                ) : null}
+                )}
               </div>
 
               {uploadStatus.message && (
@@ -285,8 +376,9 @@ const base64 = btoa(binaryString);
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                disabled={!extractor}
               />
-              <Button onClick={handleSearch} disabled={isSearching || !searchQuery.trim()}>
+              <Button onClick={handleSearch} disabled={isSearching || !searchQuery.trim() || !extractor}>
                 {isSearching ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin mr-2" />
@@ -325,7 +417,7 @@ const base64 = btoa(binaryString);
           </Card>
         )}
 
-        {searchQuery && searchResults.length === 0 && !isSearching && (
+        {searchQuery && searchResults.length === 0 && !isSearching && extractor && (
           <Alert>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
