@@ -1,9 +1,10 @@
 import React, { useState, useCallback } from "react";
 import * as pdfjsLib from "pdfjs-dist";
+import PdfjsWorker from "pdfjs-dist/build/pdf.worker.min.mjs?worker";
 import { createWorker } from "tesseract.js";
 import { supabase } from "@/integrations/supabase/client";
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.js";
+pdfjsLib.GlobalWorkerOptions.workerPort = new PdfjsWorker();
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
