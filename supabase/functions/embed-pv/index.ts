@@ -12,6 +12,37 @@ const supabase = createClient(
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
 );
 
+// Extraction basique de texte depuis les bytes PDF (flux non compressés)
+function extractTextFromPdfBytes(bytes: Uint8Array): string {
+  const decoder = new TextDecoder("latin1");
+  const content = decoder.decode(bytes);
+  const parts: string[] = [];
+
+  // Blocs BT...ET contiennent les opérateurs texte
+  const btEt = /BT([\s\S]*?)ET/g;
+  let m;
+  while ((m = btEt.exec(content)) !== null) {
+    const block = m[1];
+    // Opérateurs Tj et '
+    const tj = /\(((?:[^\\()]|\\.)*)\)\s*(?:Tj|')/g;
+    let t;
+    while ((t = tj.exec(block)) !== null) {
+      parts.push(t[1].replace(/\\n/g, " ").replace(/\\\(/g, "(").replace(/\\\)/g, ")"));
+    }
+    // Opérateur TJ (tableau)
+    const tjArr = /\[([\s\S]*?)\]\s*TJ/g;
+    let a;
+    while ((a = tjArr.exec(block)) !== null) {
+      const str = /\(((?:[^\\()]|\\.)*)\)/g;
+      let s;
+      while ((s = str.exec(a[1])) !== null) {
+        parts.push(s[1]);
+      }
+    }
+  }
+  return parts.join(" ").replace(/\s+/g, " ").trim();
+}
+
 function chunkText(text: string): string[] {
   const chunks: string[] = [];
   const CHUNK_SIZE = 1000;
@@ -63,7 +94,7 @@ Deno.serve(async (req) => {
     // POST /embed-pv — indexation
     // Accepte { text, filename } — le texte est extrait côté client via pdfjs-dist
     const body = await req.json();
-    const { text, filename } = body;
+    const { filename } = body;
 
     if (!filename) {
       return new Response(JSON.stringify({ error: "Paramètre 'filename' requis" }), {
@@ -72,7 +103,31 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (!text || typeof text !== "string" || text.trim().length === 0) {
+    let text: string = body.text ?? "";
+
+    // Ancien format : storagePath → télécharger et extraire le texte
+    if ((!text || text.trim().length === 0) && body.storagePath) {
+      const { data, error: dlError } = await supabase.storage
+        .from("pv-documents")
+        .download(body.storagePath);
+      if (dlError || !data) throw new Error(`Impossible de télécharger : ${dlError?.message}`);
+
+      const bytes = new Uint8Array(await data.arrayBuffer());
+      text = extractTextFromPdfBytes(bytes);
+
+      if (text.trim().length < 100) {
+        return new Response(
+          JSON.stringify({
+            error:
+              "PDF vide ou scanné — impossible d'extraire le texte côté serveur. " +
+              "Utilisez la nouvelle interface de dépôt qui gère l'OCR automatiquement.",
+          }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
+    if (!text || text.trim().length === 0) {
       return new Response(
         JSON.stringify({ error: "Paramètre 'text' manquant ou vide" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
