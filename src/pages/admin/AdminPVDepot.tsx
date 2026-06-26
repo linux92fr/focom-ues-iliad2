@@ -3,7 +3,7 @@ import * as pdfjsLib from "pdfjs-dist";
 import { createWorker } from "tesseract.js";
 import { supabase } from "@/integrations/supabase/client";
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
+pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.js";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
