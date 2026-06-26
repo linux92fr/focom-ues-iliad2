@@ -19,9 +19,6 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  optimizeDeps: {
-    exclude: ["@xenova/transformers"],
-  },
   build: {
     // Remove console.* and debugger statements in production
     minify: "esbuild",
