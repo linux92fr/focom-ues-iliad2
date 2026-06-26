@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,7 +17,7 @@ interface SearchResult {
 }
 
 interface UploadStatus {
-  status: "idle" | "extracting" | "indexing" | "success" | "error";
+  status: "idle" | "uploading" | "indexing" | "success" | "error";
   message: string;
 }
 
@@ -67,26 +66,6 @@ export function PVSearchPage() {
     }
   };
 
-  const extractTextFromPdf = async (file: File): Promise<string> => {
-    const { getDocument, GlobalWorkerOptions } = await import("pdfjs-dist");
-    GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
-
-    const arrayBuffer = await file.arrayBuffer();
-    const pdf = await getDocument({ data: arrayBuffer }).promise;
-
-    let fullText = "";
-    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-      const page = await pdf.getPage(pageNum);
-      const content = await page.getTextContent();
-      const pageText = content.items
-        .map((item: any) => ("str" in item ? item.str : ""))
-        .join(" ");
-      fullText += pageText + "\n";
-    }
-
-    return fullText.trim();
-  };
-
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file || !file.name.endsWith(".pdf")) {
@@ -94,24 +73,26 @@ export function PVSearchPage() {
       return;
     }
 
-    setUploadStatus({ status: "extracting", message: "Extraction du texte du PDF..." });
+    setUploadStatus({ status: "uploading", message: "Envoi du fichier..." });
 
     try {
-      const text = await extractTextFromPdf(file);
-
-      if (text.length < 100) {
-        throw new Error(
-          "PDF vide ou illisible — le PDF doit contenir du texte sélectionnable (pas une image scannée)"
-        );
+      // Convert file to base64
+      const buffer = await file.arrayBuffer();
+      const bytes = new Uint8Array(buffer);
+      let binary = "";
+      const chunkSize = 8192;
+      for (let i = 0; i < bytes.length; i += chunkSize) {
+        binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
       }
+      const pdfBase64 = btoa(binary);
 
-      setUploadStatus({ status: "indexing", message: `Indexation en cours (${Math.ceil(text.length / 900)} sections)...` });
+      setUploadStatus({ status: "indexing", message: "Extraction du texte et indexation en cours..." });
 
       const authHeader = await getAuthHeader();
       const resp = await fetch(EDGE_FUNCTION_URL, {
         method: "POST",
         headers: { ...authHeader, "Content-Type": "application/json" },
-        body: JSON.stringify({ text, filename: file.name }),
+        body: JSON.stringify({ pdfBase64, filename: file.name }),
       });
 
       const result = await resp.json();
@@ -150,7 +131,7 @@ export function PVSearchPage() {
       setSearchResults(result.results ?? []);
     } catch (error) {
       console.error("Search error:", error);
-      // Fallback to keyword search
+      // Fallback recherche par mots-clés
       const { data: keywordData } = await supabase
         .from("pv_documents")
         .select("id, filename, content, chunk_index")
@@ -171,7 +152,7 @@ export function PVSearchPage() {
     }
   };
 
-  const isProcessing = uploadStatus.status === "extracting" || uploadStatus.status === "indexing";
+  const isProcessing = uploadStatus.status === "uploading" || uploadStatus.status === "indexing";
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 py-12 px-4">
