@@ -37,6 +37,15 @@ async function getAuthHeader(): Promise<Record<string, string>> {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
+// Supabase Storage n'accepte pas les espaces ni les caractères spéciaux
+function sanitizeStorageKey(name: string): string {
+  return name
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "") // supprime les accents
+    .replace(/[^a-zA-Z0-9._-]/g, "_") // remplace tout caractère invalide par _
+    .replace(/_+/g, "_"); // évite les __ consécutifs
+}
+
 export default function AdminPVDepot() {
   const [files, setFiles] = useState<StoredFile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -90,40 +99,42 @@ export default function AdminPVDepot() {
   };
 
   const uploadAndIndex = async (file: File) => {
-    const filename = file.name;
-    setStatus(filename, { filename, status: "uploading", message: "Envoi vers le stockage..." });
+    const displayName = file.name;
+    const storageKey = sanitizeStorageKey(file.name);
+    setStatus(displayName, { filename: displayName, status: "uploading", message: "Envoi vers le stockage..." });
 
     try {
-      // 1. Upload vers Supabase Storage
+      // 1. Upload vers Supabase Storage (clé normalisée)
       const { error: uploadError } = await supabase.storage
         .from("pv-documents")
-        .upload(filename, file, { upsert: true });
+        .upload(storageKey, file, { upsert: true });
 
       if (uploadError) throw uploadError;
 
       // 2. Indexation via Edge Function
-      setStatus(filename, { filename, status: "indexing", message: "Indexation en cours..." });
+      setStatus(displayName, { filename: displayName, status: "indexing", message: "Indexation en cours..." });
 
       const authHeader = await getAuthHeader();
       const resp = await fetch(EDGE_FUNCTION_URL, {
         method: "POST",
         headers: { ...authHeader, "Content-Type": "application/json" },
-        body: JSON.stringify({ storagePath: filename, filename }),
+        // storagePath = clé storage normalisée, filename = nom d'affichage original
+        body: JSON.stringify({ storagePath: storageKey, filename: storageKey }),
       });
 
       const result = await resp.json();
       if (!resp.ok) throw new Error(result.error ?? "Erreur serveur");
 
-      setStatus(filename, {
-        filename,
+      setStatus(displayName, {
+        filename: displayName,
         status: "done",
         message: `${result.chunks_indexed} sections indexées`,
       });
 
       await loadFiles();
     } catch (err) {
-      setStatus(filename, {
-        filename,
+      setStatus(displayName, {
+        filename: displayName,
         status: "error",
         message: err instanceof Error ? err.message : "Erreur inconnue",
       });
@@ -151,6 +162,7 @@ export default function AdminPVDepot() {
   };
 
   const reindex = async (filename: string) => {
+    // filename est déjà la clé normalisée (nom dans le storage)
     setStatus(filename, { filename, status: "indexing", message: "Re-indexation..." });
     try {
       const authHeader = await getAuthHeader();
