@@ -1,177 +1,113 @@
-import Deno from "https://deno.land/x/deno@v1.40.2/mod.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "jsr:@supabase/supabase-js@2";
 
-const HF_TOKEN = Deno.env.get("HF_TOKEN");
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
-const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
 
-const supabase = createClient(SUPABASE_URL!, SUPABASE_ANON_KEY!);
+const supabase = createClient(
+  Deno.env.get("SUPABASE_URL")!,
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+);
 
-const HF_EMBED_URL = "https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/all-MiniLM-L6-v2";
-
-interface PdfRequest {
-  pdfBase64: string;
-  filename: string;
-}
-
-// ULTRA SIMPLE extraction
-function extractPdfText(pdfBase64: string): string {
-  try {
-    const binaryString = atob(pdfBase64);
-    const bytes = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
-    }
-    
-    const decoder = new TextDecoder("utf-8");
-    let text = decoder.decode(bytes);
-    
-    // Remove binary garbage
-    text = text.replace(/[^\x20-\x7E\n\r]/g, " ").replace(/\s+/g, " ").trim();
-    
-    // Limit to avoid huge texts
-    return text.substring(0, 50000);
-  } catch {
-    throw new Error("Failed to extract PDF");
-  }
-}
-
-// ULTRA SIMPLE chunking - no overlap complexity
 function chunkText(text: string): string[] {
-  const chunks = [];
+  const chunks: string[] = [];
   const CHUNK_SIZE = 1000;
-  
-  // Simple linear chunking, no overlap
-  for (let i = 0; i < text.length && chunks.length < 50; i += CHUNK_SIZE) {
+  const OVERLAP = 100;
+
+  for (let i = 0; i < text.length && chunks.length < 100; i += CHUNK_SIZE - OVERLAP) {
     const chunk = text.substring(i, i + CHUNK_SIZE).trim();
-    if (chunk.length > 50) {
-      chunks.push(chunk);
-    }
+    if (chunk.length > 50) chunks.push(chunk);
   }
-  
+
   return chunks;
 }
 
-// Simple batched embeddings
-async function getEmbeddings(texts: string[]): Promise<number[][]> {
-  const BATCH_SIZE = 5;
-  const results: number[][] = [];
-
-  for (let i = 0; i < texts.length; i += BATCH_SIZE) {
-    const batch = texts.slice(i, i + BATCH_SIZE);
-    const resp = await fetch(HF_EMBED_URL, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${HF_TOKEN}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ inputs: batch }),
-    });
-
-    if (!resp.ok) {
-      throw new Error(`HF error: ${resp.status}`);
-    }
-
-    const embeddings = await resp.json();
-    results.push(...embeddings);
-    
-    // Delay between batches
-    if (i + BATCH_SIZE < texts.length) {
-      await new Promise(r => setTimeout(r, 100));
-    }
-  }
-
-  return results;
+async function getEmbedding(text: string): Promise<number[]> {
+  const session = new Supabase.ai.Session("gte-small");
+  const result = await session.run(text, { mean_pool: true, normalize: true });
+  return Array.from(result as number[]);
 }
 
-// Main
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response("ok", {
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "POST",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization",
-      },
-    });
+    return new Response("ok", { headers: corsHeaders });
   }
 
+  const url = new URL(req.url);
+
   try {
-    const { pdfBase64, filename }: PdfRequest = await req.json();
+    // POST /embed-pv/search — embed query + vector search
+    if (url.pathname.endsWith("/search")) {
+      const { query, match_threshold = 0.4, match_count = 10 } = await req.json();
+      if (!query) {
+        return new Response(JSON.stringify({ error: "Missing query" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
 
-    if (!pdfBase64 || !filename) {
-      return new Response(JSON.stringify({ error: "Missing pdfBase64 or filename" }), {
-        status: 400,
-        headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+      const embedding = await getEmbedding(query);
+
+      const { data, error } = await supabase.rpc("search_pv_documents_vector", {
+        query_embedding: embedding,
+        match_threshold,
+        match_count,
+      });
+
+      if (error) throw error;
+
+      return new Response(JSON.stringify({ results: data ?? [] }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    console.log(`Processing: ${filename}`);
+    // POST /embed-pv — index text chunks from a PDF
+    const { text, filename } = await req.json();
 
-    // Extract
-    const text = extractPdfText(pdfBase64);
-    console.log(`Extracted ${text.length} chars`);
+    if (!text || !filename) {
+      return new Response(JSON.stringify({ error: "Missing text or filename" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
-    // Chunk
     const chunks = chunkText(text);
-    console.log(`Created ${chunks.length} chunks`);
-
     if (chunks.length === 0) {
-      return new Response(JSON.stringify({ error: "No text extracted" }), {
+      return new Response(JSON.stringify({ error: "No text to index" }), {
         status: 400,
-        headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Embed
-    console.log(`Embedding ${chunks.length} chunks...`);
-    const embeddings = await getEmbeddings(chunks);
-    console.log(`Got ${embeddings.length} embeddings`);
+    const docs = await Promise.all(
+      chunks.map(async (chunk, i) => ({
+        filename,
+        original_filename: filename,
+        chunk_index: i,
+        content: chunk,
+        embedding: await getEmbedding(chunk),
+        metadata: { chunk_count: chunks.length, extracted_at: new Date().toISOString() },
+      }))
+    );
 
-    // Prepare documents
-    const docs = chunks.map((chunk, i) => ({
-      filename,
-      original_filename: filename,
-      chunk_index: i,
-      content: chunk,
-      embedding: embeddings[i],
-      metadata: {
-        chunk_count: chunks.length,
-        extracted_at: new Date().toISOString(),
-      },
-    }));
-
-    // Insert in batches
     const BATCH_SIZE = 25;
     for (let i = 0; i < docs.length; i += BATCH_SIZE) {
-      const batch = docs.slice(i, i + BATCH_SIZE);
-      const { error } = await supabase.from("pv_documents").insert(batch);
+      const { error } = await supabase.from("pv_documents").insert(docs.slice(i, i + BATCH_SIZE));
       if (error) throw error;
-      console.log(`Inserted batch ${Math.floor(i / BATCH_SIZE) + 1}`);
     }
 
     return new Response(
-      JSON.stringify({
-        success: true,
-        filename,
-        chunks_processed: chunks.length,
-        embeddings_created: embeddings.length,
-      }),
-      {
-        headers: {
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*",
-        },
-      }
+      JSON.stringify({ success: true, filename, chunks_indexed: chunks.length }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
-  } catch (error) {
-    console.error("Error:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+  } catch (err) {
+    console.error(err);
+    return new Response(JSON.stringify({ error: err instanceof Error ? err.message : "Unknown error" }), {
       status: 500,
-      headers: {
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*",
-      },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
