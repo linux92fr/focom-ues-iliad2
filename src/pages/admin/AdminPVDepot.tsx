@@ -105,7 +105,7 @@ export default function AdminPVDepot() {
 
   // Extraction texte natif (PDF avec couche texte)
   const extractNativeText = async (arrayBuffer: ArrayBuffer): Promise<string> => {
-    const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
+    const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer.slice(0)) }).promise;
     const pages: string[] = [];
     for (let i = 1; i <= pdf.numPages; i++) {
       const page = await pdf.getPage(i);
