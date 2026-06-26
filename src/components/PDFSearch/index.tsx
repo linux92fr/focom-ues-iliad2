@@ -1,6 +1,6 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, AlertCircle, FileText, ExternalLink, Mic } from "lucide-react";
+import { Loader2, AlertCircle, FileText, Mic, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import logoFocom from "@/assets/logo-focom.png";
 
@@ -45,7 +45,26 @@ export function PVSearchPage() {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [searched, setSearched] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setIsAuthenticated(!!data.session);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsAuthenticated(!!session);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const downloadFile = async (filename: string) => {
+    const { data, error } = await supabase.storage
+      .from("pv-documents")
+      .createSignedUrl(filename, 60);
+    if (error || !data) return;
+    window.open(data.signedUrl, "_blank");
+  };
 
   const handleSearch = async (q?: string) => {
     const term = (q ?? query).trim();
@@ -93,14 +112,6 @@ export function PVSearchPage() {
     const q = query.trim();
     if (!q) return;
     await handleSearch(q);
-  };
-
-  const downloadFile = async (filename: string) => {
-    const { data, error } = await supabase.storage
-      .from("pv-documents")
-      .createSignedUrl(filename, 60);
-    if (error || !data) return;
-    window.open(data.signedUrl, "_blank");
   };
 
   const grouped = results.reduce((acc: Record<string, SearchResult[]>, r) => {
@@ -269,23 +280,26 @@ export function PVSearchPage() {
             <div className="space-y-8">
               {Object.entries(grouped).map(([filename, fileResults]) => (
                 <div key={filename}>
-                  <button
-                    onClick={() => downloadFile(filename)}
-                    className="group flex items-center gap-2 mb-2 text-left"
-                  >
+                  <div className="flex items-center gap-2 mb-2">
                     <FileText className="w-4 h-4 text-slate-400" />
-                    <span className="text-xs text-slate-500 group-hover:underline">{filename}</span>
-                    <ExternalLink className="w-3 h-3 text-slate-400 opacity-0 group-hover:opacity-100" />
-                  </button>
+                    <span className="text-xs text-slate-500">{filename}</span>
+                    {isAuthenticated && (
+                      <button
+                        onClick={() => downloadFile(filename)}
+                        className="ml-1 flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 hover:underline"
+                        title="Télécharger le document"
+                      >
+                        <Download className="w-3 h-3" />
+                        Télécharger
+                      </button>
+                    )}
+                  </div>
 
                   <div className="space-y-4 ml-6">
                     {fileResults.slice(0, 3).map((result, i) => (
                       <div key={i}>
-                        <h3
-                          className="text-lg text-blue-800 font-medium mb-1 hover:underline cursor-pointer"
-                          onClick={() => downloadFile(filename)}
-                        >
-                          {filename.replace(/\.pdf$/i, "")} — section {result.chunk_index + 1}
+                        <h3 className="text-base text-slate-800 font-medium mb-1">
+                          {filename.replace(/\.pdf$/i, "").replace(/[_/]/g, " ")} — section {result.chunk_index + 1}
                         </h3>
                         <p className="text-sm text-slate-600 leading-relaxed line-clamp-4">
                           {highlight(result.content, submitted)}
