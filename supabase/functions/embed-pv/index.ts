@@ -12,28 +12,23 @@ const supabase = createClient(
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
 );
 
-// Extraction basique de texte depuis les bytes PDF (flux non compressés)
 function extractTextFromPdfBytes(bytes: Uint8Array): string {
   const decoder = new TextDecoder("latin1");
   const content = decoder.decode(bytes);
   const parts: string[] = [];
-
-  // Blocs BT...ET contiennent les opérateurs texte
   const btEt = /BT([\s\S]*?)ET/g;
   let m;
   while ((m = btEt.exec(content)) !== null) {
     const block = m[1];
-    // Opérateurs Tj et '
-    const tj = /\(((?:[^\\()]|\\.)*)\)\s*(?:Tj|')/g;
+    const tj = /\(((?:[^\\()]|\\.)*?)\)\s*(?:Tj|')/g;
     let t;
     while ((t = tj.exec(block)) !== null) {
       parts.push(t[1].replace(/\\n/g, " ").replace(/\\\(/g, "(").replace(/\\\)/g, ")"));
     }
-    // Opérateur TJ (tableau)
-    const tjArr = /\[([\s\S]*?)\]\s*TJ/g;
+    const tjArr = /\[[\s\S]*?\]\s*TJ/g;
     let a;
     while ((a = tjArr.exec(block)) !== null) {
-      const str = /\(((?:[^\\()]|\\.)*)\)/g;
+      const str = /\(((?:[^\\()]|\\.)*?)\)/g;
       let s;
       while ((s = str.exec(a[1])) !== null) {
         parts.push(s[1]);
@@ -47,17 +42,11 @@ function chunkText(text: string): string[] {
   const chunks: string[] = [];
   const CHUNK_SIZE = 1000;
   const OVERLAP = 100;
-  for (let i = 0; i < text.length && chunks.length < 100; i += CHUNK_SIZE - OVERLAP) {
+  for (let i = 0; i < text.length && chunks.length < 200; i += CHUNK_SIZE - OVERLAP) {
     const chunk = text.substring(i, i + CHUNK_SIZE).trim();
     if (chunk.length > 50) chunks.push(chunk);
   }
   return chunks;
-}
-
-async function getEmbedding(text: string): Promise<number[]> {
-  const session = new Supabase.ai.Session("gte-small");
-  const result = await session.run(text, { mean_pool: true, normalize: true });
-  return Array.from(result as number[]);
 }
 
 Deno.serve(async (req) => {
@@ -68,31 +57,38 @@ Deno.serve(async (req) => {
   const url = new URL(req.url);
 
   try {
-    // POST /embed-pv/search — recherche sémantique
+    // GET/POST /embed-pv/search — recherche plein-texte PostgreSQL
     if (url.pathname.endsWith("/search")) {
-      const { query, match_threshold = 0.3, match_count = 10 } = await req.json();
-      if (!query) {
+      const { query, match_count = 10 } = await req.json();
+      if (!query?.trim()) {
         return new Response(JSON.stringify({ error: "Paramètre 'query' manquant" }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      const embedding = await getEmbedding(query);
-      const { data, error } = await supabase.rpc("search_pv_documents_vector", {
-        query_embedding: embedding,
-        match_threshold,
-        match_count,
-      });
+      const { data, error } = await supabase
+        .from("pv_documents")
+        .select("filename, original_filename, content, chunk_index, metadata")
+        .textSearch("content", query, { type: "plain", config: "french" })
+        .limit(match_count);
+
       if (error) throw error;
 
-      return new Response(JSON.stringify({ results: data ?? [] }), {
+      const results = (data ?? []).map((row) => ({
+        filename: row.filename,
+        original_filename: row.original_filename,
+        content: row.content,
+        chunk_index: row.chunk_index,
+        similarity: 1,
+      }));
+
+      return new Response(JSON.stringify({ results }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // POST /embed-pv — indexation
-    // Accepte { text, filename } — le texte est extrait côté client via pdfjs-dist
+    // POST /embed-pv — indexation (stockage des chunks sans embedding)
     const body = await req.json();
     const { filename } = body;
 
@@ -105,16 +101,13 @@ Deno.serve(async (req) => {
 
     let text: string = body.text ?? "";
 
-    // Ancien format : storagePath → télécharger et extraire le texte
     if ((!text || text.trim().length === 0) && body.storagePath) {
       const { data, error: dlError } = await supabase.storage
         .from("pv-documents")
         .download(body.storagePath);
       if (dlError || !data) throw new Error(`Impossible de télécharger : ${dlError?.message}`);
-
       const bytes = new Uint8Array(await data.arrayBuffer());
       text = extractTextFromPdfBytes(bytes);
-
       if (text.trim().length < 100) {
         return new Response(
           JSON.stringify({
@@ -134,30 +127,20 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Supprimer les anciennes sections si re-indexation
     await supabase.from("pv_documents").delete().eq("filename", filename);
 
     const chunks = chunkText(text);
-    const EMBED_BATCH = 5;
-    const DB_BATCH = 25;
-
-    for (let i = 0; i < chunks.length; i += EMBED_BATCH) {
-      const batch = chunks.slice(i, i + EMBED_BATCH);
-      const docs = [];
-      for (let j = 0; j < batch.length; j++) {
-        docs.push({
-          filename,
-          original_filename: filename,
-          chunk_index: i + j,
-          content: batch[j],
-          embedding: await getEmbedding(batch[j]),
-          metadata: { chunk_count: chunks.length, extracted_at: new Date().toISOString() },
-        });
-      }
-      for (let k = 0; k < docs.length; k += DB_BATCH) {
-        const { error } = await supabase.from("pv_documents").insert(docs.slice(k, k + DB_BATCH));
-        if (error) throw error;
-      }
+    const BATCH = 50;
+    for (let i = 0; i < chunks.length; i += BATCH) {
+      const docs = chunks.slice(i, i + BATCH).map((chunk, j) => ({
+        filename,
+        original_filename: filename,
+        chunk_index: i + j,
+        content: chunk,
+        metadata: { chunk_count: chunks.length, extracted_at: new Date().toISOString() },
+      }));
+      const { error } = await supabase.from("pv_documents").insert(docs);
+      if (error) throw error;
     }
 
     return new Response(
