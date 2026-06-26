@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import * as pdfjsLib from "npm:pdfjs-dist@4.9.155/legacy/build/pdf.mjs";
+// pdf-parse utilise pdfjs-dist v1 sans worker — compatible Deno Edge Functions
+import pdfParse from "npm:pdf-parse/lib/pdf-parse.js";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -13,21 +14,9 @@ const supabase = createClient(
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
 );
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = "";
-
 async function extractTextFromBytes(bytes: Uint8Array): Promise<string> {
-  const pdf = await pdfjsLib
-    .getDocument({ data: bytes, useWorkerFetch: false, isEvalSupported: false, useSystemFonts: true })
-    .promise;
-
-  let fullText = "";
-  for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-    const page = await pdf.getPage(pageNum);
-    const content = await page.getTextContent();
-    fullText +=
-      content.items.map((item: any) => ("str" in item ? item.str : "")).join(" ") + "\n";
-  }
-  return fullText.trim();
+  const result = await pdfParse(bytes);
+  return result.text?.trim() ?? "";
 }
 
 function chunkText(text: string): string[] {
