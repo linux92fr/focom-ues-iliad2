@@ -138,21 +138,26 @@ Deno.serve(async (req) => {
     await supabase.from("pv_documents").delete().eq("filename", filename);
 
     const chunks = chunkText(text);
-    const docs = await Promise.all(
-      chunks.map(async (chunk, i) => ({
-        filename,
-        original_filename: filename,
-        chunk_index: i,
-        content: chunk,
-        embedding: await getEmbedding(chunk),
-        metadata: { chunk_count: chunks.length, extracted_at: new Date().toISOString() },
-      }))
-    );
+    const EMBED_BATCH = 5;
+    const DB_BATCH = 25;
 
-    const BATCH_SIZE = 25;
-    for (let i = 0; i < docs.length; i += BATCH_SIZE) {
-      const { error } = await supabase.from("pv_documents").insert(docs.slice(i, i + BATCH_SIZE));
-      if (error) throw error;
+    for (let i = 0; i < chunks.length; i += EMBED_BATCH) {
+      const batch = chunks.slice(i, i + EMBED_BATCH);
+      const docs = [];
+      for (let j = 0; j < batch.length; j++) {
+        docs.push({
+          filename,
+          original_filename: filename,
+          chunk_index: i + j,
+          content: batch[j],
+          embedding: await getEmbedding(batch[j]),
+          metadata: { chunk_count: chunks.length, extracted_at: new Date().toISOString() },
+        });
+      }
+      for (let k = 0; k < docs.length; k += DB_BATCH) {
+        const { error } = await supabase.from("pv_documents").insert(docs.slice(k, k + DB_BATCH));
+        if (error) throw error;
+      }
     }
 
     return new Response(
