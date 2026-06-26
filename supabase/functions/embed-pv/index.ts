@@ -1,6 +1,5 @@
-import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "jsr:@supabase/supabase-js@2";
-import * as pdfjsLib from "npm:pdfjs-dist@4.9.155/legacy/build/pdf.mjs";
+import "@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "@supabase/supabase-js";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -13,21 +12,35 @@ const supabase = createClient(
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
 );
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = "";
+// Extraction basique de texte depuis les bytes PDF (flux non compressés)
+function extractTextFromPdfBytes(bytes: Uint8Array): string {
+  const decoder = new TextDecoder("latin1");
+  const content = decoder.decode(bytes);
+  const parts: string[] = [];
 
-async function extractTextFromBytes(bytes: Uint8Array): Promise<string> {
-  const pdf = await pdfjsLib
-    .getDocument({ data: bytes, useWorkerFetch: false, isEvalSupported: false, useSystemFonts: true })
-    .promise;
-
-  let fullText = "";
-  for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-    const page = await pdf.getPage(pageNum);
-    const content = await page.getTextContent();
-    fullText +=
-      content.items.map((item: any) => ("str" in item ? item.str : "")).join(" ") + "\n";
+  // Blocs BT...ET contiennent les opérateurs texte
+  const btEt = /BT([\s\S]*?)ET/g;
+  let m;
+  while ((m = btEt.exec(content)) !== null) {
+    const block = m[1];
+    // Opérateurs Tj et '
+    const tj = /\(((?:[^\\()]|\\.)*)\)\s*(?:Tj|')/g;
+    let t;
+    while ((t = tj.exec(block)) !== null) {
+      parts.push(t[1].replace(/\\n/g, " ").replace(/\\\(/g, "(").replace(/\\\)/g, ")"));
+    }
+    // Opérateur TJ (tableau)
+    const tjArr = /\[([\s\S]*?)\]\s*TJ/g;
+    let a;
+    while ((a = tjArr.exec(block)) !== null) {
+      const str = /\(((?:[^\\()]|\\.)*)\)/g;
+      let s;
+      while ((s = str.exec(a[1])) !== null) {
+        parts.push(s[1]);
+      }
+    }
   }
-  return fullText.trim();
+  return parts.join(" ").replace(/\s+/g, " ").trim();
 }
 
 function chunkText(text: string): string[] {
@@ -78,8 +91,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    // POST /embed-pv — indexation d'un PDF
-    // Accepte soit { storagePath, filename } soit { pdfBase64, filename }
+    // POST /embed-pv — indexation
+    // Accepte { text, filename } — le texte est extrait côté client via pdfjs-dist
     const body = await req.json();
     const { filename } = body;
 
@@ -90,35 +103,33 @@ Deno.serve(async (req) => {
       });
     }
 
-    let bytes: Uint8Array;
+    let text: string = body.text ?? "";
 
-    if (body.storagePath) {
-      // Téléchargement depuis Supabase Storage
-      const { data, error } = await supabase.storage
+    // Ancien format : storagePath → télécharger et extraire le texte
+    if ((!text || text.trim().length === 0) && body.storagePath) {
+      const { data, error: dlError } = await supabase.storage
         .from("pv-documents")
         .download(body.storagePath);
-      if (error || !data) throw new Error(`Impossible de télécharger le fichier : ${error?.message}`);
-      bytes = new Uint8Array(await data.arrayBuffer());
-    } else if (body.pdfBase64) {
-      // Fallback base64
-      const binaryString = atob(body.pdfBase64);
-      bytes = new Uint8Array(binaryString.length);
-      for (let i = 0; i < binaryString.length; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
+      if (dlError || !data) throw new Error(`Impossible de télécharger : ${dlError?.message}`);
+
+      const bytes = new Uint8Array(await data.arrayBuffer());
+      text = extractTextFromPdfBytes(bytes);
+
+      if (text.trim().length < 100) {
+        return new Response(
+          JSON.stringify({
+            error:
+              "PDF vide ou scanné — impossible d'extraire le texte côté serveur. " +
+              "Utilisez la nouvelle interface de dépôt qui gère l'OCR automatiquement.",
+          }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
-    } else {
-      return new Response(JSON.stringify({ error: "Fournir 'storagePath' ou 'pdfBase64'" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
     }
 
-    const text = await extractTextFromBytes(bytes);
-    if (text.length < 100) {
+    if (!text || text.trim().length === 0) {
       return new Response(
-        JSON.stringify({
-          error: "PDF vide ou illisible — le PDF doit contenir du texte sélectionnable (pas une image scannée)",
-        }),
+        JSON.stringify({ error: "Paramètre 'text' manquant ou vide" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }

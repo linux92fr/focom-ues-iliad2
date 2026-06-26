@@ -1,5 +1,10 @@
 import React, { useState, useCallback } from "react";
+import * as pdfjsLib from "pdfjs-dist";
+import pdfjsWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+import { createWorker } from "tesseract.js";
 import { supabase } from "@/integrations/supabase/client";
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorkerUrl;
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -35,6 +40,15 @@ async function getAuthHeader(): Promise<Record<string, string>> {
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
   return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+// Supabase Storage n'accepte pas les espaces ni les caractères spéciaux
+function sanitizeStorageKey(name: string): string {
+  return name
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "") // supprime les accents
+    .replace(/[^a-zA-Z0-9._-]/g, "_") // remplace tout caractère invalide par _
+    .replace(/_+/g, "_"); // évite les __ consécutifs
 }
 
 export default function AdminPVDepot() {
@@ -89,41 +103,115 @@ export default function AdminPVDepot() {
     setFileStatuses((prev) => ({ ...prev, [filename]: status }));
   };
 
+  // Extraction texte natif (PDF avec couche texte)
+  const extractNativeText = async (arrayBuffer: ArrayBuffer): Promise<string> => {
+    const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
+    const pages: string[] = [];
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      pages.push(content.items.map((item: any) => item.str).join(" "));
+    }
+    return pages.join("\n").trim();
+  };
+
+  // Rendu d'une page PDF en canvas et OCR
+  const ocrPage = async (
+    worker: Awaited<ReturnType<typeof createWorker>>,
+    page: pdfjsLib.PDFPageProxy
+  ): Promise<string> => {
+    const viewport = page.getViewport({ scale: 2 });
+    const canvas = document.createElement("canvas");
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    const ctx = canvas.getContext("2d")!;
+    await page.render({ canvasContext: ctx as any, viewport }).promise;
+    const { data } = await worker.recognize(canvas);
+    return data.text;
+  };
+
+  const extractText = async (
+    arrayBuffer: ArrayBuffer,
+    onProgress: (msg: string) => void
+  ): Promise<{ text: string; usedOcr: boolean }> => {
+    onProgress("Extraction du texte...");
+    const native = await extractNativeText(arrayBuffer);
+    console.log(`[PDF] texte natif extrait : ${native.length} caractères`);
+    if (native.length >= 100) return { text: native, usedOcr: false };
+
+    // PDF scanné → OCR automatique
+    onProgress("PDF scanné — chargement de l'OCR...");
+    const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer.slice(0)) }).promise;
+
+    let worker: Awaited<ReturnType<typeof createWorker>> | null = null;
+    try {
+      worker = await createWorker("fra", 1, {
+        logger: (m: any) => {
+          if (m.status === "recognizing text" && m.progress) {
+            onProgress(`OCR en cours... ${Math.round(m.progress * 100)}%`);
+          }
+        },
+      });
+
+      const texts: string[] = [];
+      for (let i = 1; i <= pdf.numPages; i++) {
+        onProgress(`OCR page ${i}/${pdf.numPages}...`);
+        const page = await pdf.getPage(i);
+        texts.push(await ocrPage(worker, page));
+      }
+
+      const text = texts.join("\n").trim();
+      console.log(`[OCR] texte extrait : ${text.length} caractères`);
+      if (text.length < 50) throw new Error(`OCR échoué — seulement ${text.length} caractères reconnus`);
+      return { text, usedOcr: true };
+    } finally {
+      await worker?.terminate();
+    }
+  };
+
   const uploadAndIndex = async (file: File) => {
-    const filename = file.name;
-    setStatus(filename, { filename, status: "uploading", message: "Envoi vers le stockage..." });
+    const displayName = file.name;
+    const storageKey = sanitizeStorageKey(file.name);
+    setStatus(displayName, { filename: displayName, status: "uploading", message: "Envoi vers le stockage..." });
 
     try {
       // 1. Upload vers Supabase Storage
       const { error: uploadError } = await supabase.storage
         .from("pv-documents")
-        .upload(filename, file, { upsert: true });
-
+        .upload(storageKey, file, { upsert: true });
       if (uploadError) throw uploadError;
 
-      // 2. Indexation via Edge Function
-      setStatus(filename, { filename, status: "indexing", message: "Indexation en cours..." });
+      // 2. Extraction du texte (natif ou OCR)
+      setStatus(displayName, { filename: displayName, status: "indexing", message: "Extraction du texte..." });
+      const arrayBuffer = await file.arrayBuffer();
+      const { text, usedOcr } = await extractText(arrayBuffer, (msg) =>
+        setStatus(displayName, { filename: displayName, status: "indexing", message: msg })
+      );
 
+      // 3. Indexation via Edge Function
+      console.log(`[SEND] filename=${storageKey} text.length=${text?.length} usedOcr=${usedOcr} text_preview="${text?.slice(0, 80)}"`);
+      setStatus(displayName, { filename: displayName, status: "indexing", message: "Indexation en cours..." });
       const authHeader = await getAuthHeader();
       const resp = await fetch(EDGE_FUNCTION_URL, {
         method: "POST",
         headers: { ...authHeader, "Content-Type": "application/json" },
-        body: JSON.stringify({ storagePath: filename, filename }),
+        body: JSON.stringify({ text, filename: storageKey }),
       });
 
       const result = await resp.json();
+      console.log(`[RESP] status=${resp.status}`, result);
       if (!resp.ok) throw new Error(result.error ?? "Erreur serveur");
 
-      setStatus(filename, {
-        filename,
+      setStatus(displayName, {
+        filename: displayName,
         status: "done",
-        message: `${result.chunks_indexed} sections indexées`,
+        message: `${result.chunks_indexed} sections indexées${usedOcr ? " (via OCR)" : ""}`,
       });
 
       await loadFiles();
     } catch (err) {
-      setStatus(filename, {
-        filename,
+      setStatus(displayName, {
+        filename: displayName,
         status: "error",
         message: err instanceof Error ? err.message : "Erreur inconnue",
       });
@@ -151,17 +239,30 @@ export default function AdminPVDepot() {
   };
 
   const reindex = async (filename: string) => {
-    setStatus(filename, { filename, status: "indexing", message: "Re-indexation..." });
+    setStatus(filename, { filename, status: "indexing", message: "Téléchargement..." });
     try {
+      const { data, error } = await supabase.storage.from("pv-documents").download(filename);
+      if (error || !data) throw new Error("Impossible de télécharger le fichier");
+
+      const arrayBuffer = await data.arrayBuffer();
+      const { text, usedOcr } = await extractText(arrayBuffer, (msg) =>
+        setStatus(filename, { filename, status: "indexing", message: msg })
+      );
+
+      setStatus(filename, { filename, status: "indexing", message: "Indexation..." });
       const authHeader = await getAuthHeader();
       const resp = await fetch(EDGE_FUNCTION_URL, {
         method: "POST",
         headers: { ...authHeader, "Content-Type": "application/json" },
-        body: JSON.stringify({ storagePath: filename, filename }),
+        body: JSON.stringify({ text, filename }),
       });
       const result = await resp.json();
       if (!resp.ok) throw new Error(result.error ?? "Erreur serveur");
-      setStatus(filename, { filename, status: "done", message: `${result.chunks_indexed} sections indexées` });
+      setStatus(filename, {
+        filename,
+        status: "done",
+        message: `${result.chunks_indexed} sections indexées${usedOcr ? " (via OCR)" : ""}`,
+      });
       await loadFiles();
     } catch (err) {
       setStatus(filename, {

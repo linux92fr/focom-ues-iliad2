@@ -1,4 +1,4 @@
-import { PDFDocument, StandardFonts, rgb } from "https://esm.sh/pdf-lib@1.17.1";
+import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 
 const DEFAULT_PDF_PATH = "/bulletin-adhesion.pdf";
 
@@ -101,7 +101,7 @@ function checkFirstAvailableBox(form: ReturnType<PDFDocument["getForm"]>, names:
   return false;
 }
 
-async function tryFillPdfForm(pdfDoc: PDFDocument, payload: Record<string, unknown>) {
+function tryFillPdfForm(pdfDoc: PDFDocument, payload: Record<string, unknown>) {
   const form = pdfDoc.getForm();
   const fields = form.getFields();
   if (fields.length === 0) return { filled: false, fields: [] as string[] };
