@@ -189,6 +189,7 @@ export default function AdminPVDepot() {
       );
 
       // 3. Indexation via Edge Function
+      console.log(`[SEND] filename=${storageKey} text.length=${text?.length} usedOcr=${usedOcr} text_preview="${text?.slice(0, 80)}"`);
       setStatus(displayName, { filename: displayName, status: "indexing", message: "Indexation en cours..." });
       const authHeader = await getAuthHeader();
       const resp = await fetch(EDGE_FUNCTION_URL, {
@@ -198,6 +199,7 @@ export default function AdminPVDepot() {
       });
 
       const result = await resp.json();
+      console.log(`[RESP] status=${resp.status}`, result);
       if (!resp.ok) throw new Error(result.error ?? "Erreur serveur");
 
       setStatus(displayName, {
