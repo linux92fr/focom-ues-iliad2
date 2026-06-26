@@ -72,11 +72,9 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (!text || text.length < 100) {
+    if (!text || typeof text !== "string" || text.trim().length === 0) {
       return new Response(
-        JSON.stringify({
-          error: "Paramètre 'text' manquant ou trop court — le PDF doit contenir du texte sélectionnable",
-        }),
+        JSON.stringify({ error: "Paramètre 'text' manquant ou vide" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }

@@ -115,33 +115,19 @@ export default function AdminPVDepot() {
     return pages.join("\n").trim();
   };
 
-  // OCR sur PDF scanné : rendu de chaque page en canvas puis reconnaissance
-  const extractTextWithOcr = async (
-    arrayBuffer: ArrayBuffer,
-    onProgress: (msg: string) => void
+  // Rendu d'une page PDF en canvas et OCR
+  const ocrPage = async (
+    worker: Awaited<ReturnType<typeof createWorker>>,
+    page: pdfjsLib.PDFPageProxy
   ): Promise<string> => {
-    const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
-    const worker = await createWorker("fra+eng");
-    const texts: string[] = [];
-
-    try {
-      for (let i = 1; i <= pdf.numPages; i++) {
-        onProgress(`OCR page ${i}/${pdf.numPages}...`);
-        const page = await pdf.getPage(i);
-        const viewport = page.getViewport({ scale: 2 }); // scale 2 pour meilleure qualité
-        const canvas = document.createElement("canvas");
-        canvas.width = viewport.width;
-        canvas.height = viewport.height;
-        const ctx = canvas.getContext("2d")!;
-        await page.render({ canvasContext: ctx, viewport }).promise;
-        const { data } = await worker.recognize(canvas);
-        texts.push(data.text);
-      }
-    } finally {
-      await worker.terminate();
-    }
-
-    return texts.join("\n").trim();
+    const viewport = page.getViewport({ scale: 2 });
+    const canvas = document.createElement("canvas");
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    const ctx = canvas.getContext("2d")!;
+    await page.render({ canvasContext: ctx as any, viewport }).promise;
+    const { data } = await worker.recognize(canvas);
+    return data.text;
   };
 
   const extractText = async (
@@ -150,13 +136,37 @@ export default function AdminPVDepot() {
   ): Promise<{ text: string; usedOcr: boolean }> => {
     onProgress("Extraction du texte...");
     const native = await extractNativeText(arrayBuffer);
+    console.log(`[PDF] texte natif extrait : ${native.length} caractères`);
     if (native.length >= 100) return { text: native, usedOcr: false };
 
     // PDF scanné → OCR automatique
-    onProgress("PDF scanné détecté — démarrage de l'OCR (peut prendre 1-2 min)...");
-    const text = await extractTextWithOcr(arrayBuffer, onProgress);
-    if (text.length < 100) throw new Error("OCR échoué — aucun texte reconnu dans ce PDF");
-    return { text, usedOcr: true };
+    onProgress("PDF scanné — chargement de l'OCR...");
+    const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer.slice(0)) }).promise;
+
+    let worker: Awaited<ReturnType<typeof createWorker>> | null = null;
+    try {
+      worker = await createWorker("fra", 1, {
+        logger: (m: any) => {
+          if (m.status === "recognizing text" && m.progress) {
+            onProgress(`OCR en cours... ${Math.round(m.progress * 100)}%`);
+          }
+        },
+      });
+
+      const texts: string[] = [];
+      for (let i = 1; i <= pdf.numPages; i++) {
+        onProgress(`OCR page ${i}/${pdf.numPages}...`);
+        const page = await pdf.getPage(i);
+        texts.push(await ocrPage(worker, page));
+      }
+
+      const text = texts.join("\n").trim();
+      console.log(`[OCR] texte extrait : ${text.length} caractères`);
+      if (text.length < 50) throw new Error(`OCR échoué — seulement ${text.length} caractères reconnus`);
+      return { text, usedOcr: true };
+    } finally {
+      await worker?.terminate();
+    }
   };
 
   const uploadAndIndex = async (file: File) => {
