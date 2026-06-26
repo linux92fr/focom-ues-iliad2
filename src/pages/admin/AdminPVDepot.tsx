@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from "react";
 import * as pdfjsLib from "pdfjs-dist";
 import pdfjsWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+import { createWorker } from "tesseract.js";
 import { supabase } from "@/integrations/supabase/client";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorkerUrl;
@@ -102,8 +103,8 @@ export default function AdminPVDepot() {
     setFileStatuses((prev) => ({ ...prev, [filename]: status }));
   };
 
-  const extractTextFromPdf = async (file: File): Promise<string> => {
-    const arrayBuffer = await file.arrayBuffer();
+  // Extraction texte natif (PDF avec couche texte)
+  const extractNativeText = async (arrayBuffer: ArrayBuffer): Promise<string> => {
     const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
     const pages: string[] = [];
     for (let i = 1; i <= pdf.numPages; i++) {
@@ -114,29 +115,70 @@ export default function AdminPVDepot() {
     return pages.join("\n").trim();
   };
 
+  // OCR sur PDF scanné : rendu de chaque page en canvas puis reconnaissance
+  const extractTextWithOcr = async (
+    arrayBuffer: ArrayBuffer,
+    onProgress: (msg: string) => void
+  ): Promise<string> => {
+    const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
+    const worker = await createWorker("fra+eng");
+    const texts: string[] = [];
+
+    try {
+      for (let i = 1; i <= pdf.numPages; i++) {
+        onProgress(`OCR page ${i}/${pdf.numPages}...`);
+        const page = await pdf.getPage(i);
+        const viewport = page.getViewport({ scale: 2 }); // scale 2 pour meilleure qualité
+        const canvas = document.createElement("canvas");
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        const ctx = canvas.getContext("2d")!;
+        await page.render({ canvasContext: ctx, viewport }).promise;
+        const { data } = await worker.recognize(canvas);
+        texts.push(data.text);
+      }
+    } finally {
+      await worker.terminate();
+    }
+
+    return texts.join("\n").trim();
+  };
+
+  const extractText = async (
+    arrayBuffer: ArrayBuffer,
+    onProgress: (msg: string) => void
+  ): Promise<{ text: string; usedOcr: boolean }> => {
+    onProgress("Extraction du texte...");
+    const native = await extractNativeText(arrayBuffer);
+    if (native.length >= 100) return { text: native, usedOcr: false };
+
+    // PDF scanné → OCR automatique
+    onProgress("PDF scanné détecté — démarrage de l'OCR (peut prendre 1-2 min)...");
+    const text = await extractTextWithOcr(arrayBuffer, onProgress);
+    if (text.length < 100) throw new Error("OCR échoué — aucun texte reconnu dans ce PDF");
+    return { text, usedOcr: true };
+  };
+
   const uploadAndIndex = async (file: File) => {
     const displayName = file.name;
     const storageKey = sanitizeStorageKey(file.name);
     setStatus(displayName, { filename: displayName, status: "uploading", message: "Envoi vers le stockage..." });
 
     try {
-      // 1. Upload vers Supabase Storage (clé normalisée)
+      // 1. Upload vers Supabase Storage
       const { error: uploadError } = await supabase.storage
         .from("pv-documents")
         .upload(storageKey, file, { upsert: true });
-
       if (uploadError) throw uploadError;
 
-      // 2. Extraction du texte côté client
+      // 2. Extraction du texte (natif ou OCR)
       setStatus(displayName, { filename: displayName, status: "indexing", message: "Extraction du texte..." });
-      const text = await extractTextFromPdf(file);
-      if (text.length < 100) {
-        throw new Error(
-          `PDF illisible — seulement ${text.length} caractères extraits. Ce PDF est probablement scanné (image sans couche texte). Un PDF avec texte sélectionnable est requis.`
-        );
-      }
+      const arrayBuffer = await file.arrayBuffer();
+      const { text, usedOcr } = await extractText(arrayBuffer, (msg) =>
+        setStatus(displayName, { filename: displayName, status: "indexing", message: msg })
+      );
 
-      // 3. Indexation via Edge Function (texte pré-extrait)
+      // 3. Indexation via Edge Function
       setStatus(displayName, { filename: displayName, status: "indexing", message: "Indexation en cours..." });
       const authHeader = await getAuthHeader();
       const resp = await fetch(EDGE_FUNCTION_URL, {
@@ -151,7 +193,7 @@ export default function AdminPVDepot() {
       setStatus(displayName, {
         filename: displayName,
         status: "done",
-        message: `${result.chunks_indexed} sections indexées`,
+        message: `${result.chunks_indexed} sections indexées${usedOcr ? " (via OCR)" : ""}`,
       });
 
       await loadFiles();
@@ -187,20 +229,13 @@ export default function AdminPVDepot() {
   const reindex = async (filename: string) => {
     setStatus(filename, { filename, status: "indexing", message: "Téléchargement..." });
     try {
-      // Télécharger depuis Storage pour ré-extraire le texte côté client
       const { data, error } = await supabase.storage.from("pv-documents").download(filename);
       if (error || !data) throw new Error("Impossible de télécharger le fichier");
 
       const arrayBuffer = await data.arrayBuffer();
-      const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
-      const pages: string[] = [];
-      for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i);
-        const content = await page.getTextContent();
-        pages.push(content.items.map((item: any) => item.str).join(" "));
-      }
-      const text = pages.join("\n").trim();
-      if (text.length < 100) throw new Error("PDF vide ou illisible");
+      const { text, usedOcr } = await extractText(arrayBuffer, (msg) =>
+        setStatus(filename, { filename, status: "indexing", message: msg })
+      );
 
       setStatus(filename, { filename, status: "indexing", message: "Indexation..." });
       const authHeader = await getAuthHeader();
@@ -211,7 +246,11 @@ export default function AdminPVDepot() {
       });
       const result = await resp.json();
       if (!resp.ok) throw new Error(result.error ?? "Erreur serveur");
-      setStatus(filename, { filename, status: "done", message: `${result.chunks_indexed} sections indexées` });
+      setStatus(filename, {
+        filename,
+        status: "done",
+        message: `${result.chunks_indexed} sections indexées${usedOcr ? " (via OCR)" : ""}`,
+      });
       await loadFiles();
     } catch (err) {
       setStatus(filename, {
