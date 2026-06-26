@@ -249,6 +249,7 @@ export default function AdminPVDepot() {
         setStatus(filename, { filename, status: "indexing", message: msg })
       );
 
+      console.log(`[REINDEX] filename=${filename} text.length=${text?.length} usedOcr=${usedOcr} preview="${text?.slice(0, 80)}"`);
       setStatus(filename, { filename, status: "indexing", message: "Indexation..." });
       const authHeader = await getAuthHeader();
       const resp = await fetch(EDGE_FUNCTION_URL, {
@@ -257,7 +258,9 @@ export default function AdminPVDepot() {
         body: JSON.stringify({ text, filename }),
       });
       const result = await resp.json();
+      console.log(`[REINDEX RESP] status=${resp.status}`, result);
       if (!resp.ok) throw new Error(result.error ?? "Erreur serveur");
+      if (!result.chunks_indexed) throw new Error("Aucune section indexée — texte trop court ou non reconnu");
       setStatus(filename, {
         filename,
         status: "done",
@@ -364,9 +367,26 @@ export default function AdminPVDepot() {
             <FileText className="w-4 h-4" />
             Fichiers déposés ({files.length})
           </CardTitle>
-          <Button variant="ghost" size="sm" onClick={loadFiles} disabled={loading}>
-            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
-          </Button>
+          <div className="flex items-center gap-2">
+            {files.some((f) => !f.indexed) && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={async () => {
+                  for (const f of files.filter((f) => !f.indexed)) {
+                    await reindex(f.name);
+                  }
+                }}
+                className="text-xs"
+              >
+                <RefreshCw className="w-3 h-3 mr-1" />
+                Tout ré-indexer
+              </Button>
+            )}
+            <Button variant="ghost" size="sm" onClick={loadFiles} disabled={loading}>
+              <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {loading ? (
