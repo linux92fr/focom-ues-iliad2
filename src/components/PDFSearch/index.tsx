@@ -1,9 +1,8 @@
-import React, { useState } from "react";
-import { Button } from "@/components/ui/button";
+import React, { useState, useRef } from "react";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Upload, Search, AlertCircle, FileText } from "lucide-react";
+import { Loader2, Search, AlertCircle, FileText, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 const EDGE_FUNCTION_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/embed-pv`;
@@ -16,150 +15,68 @@ interface SearchResult {
   chunk_index: number;
 }
 
-interface UploadStatus {
-  status: "idle" | "extracting" | "indexing" | "success" | "error";
-  message: string;
-}
-
 async function getAuthHeader(): Promise<Record<string, string>> {
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
+function highlight(text: string, query: string): React.ReactNode {
+  const words = query
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+  if (words.length === 0) return text;
+  const regex = new RegExp(`(${words.join("|")})`, "gi");
+  const parts = text.split(regex);
+  return parts.map((part, i) =>
+    regex.test(part) ? (
+      <mark key={i} className="bg-yellow-200 text-inherit rounded-sm px-0.5">
+        {part}
+      </mark>
+    ) : (
+      part
+    )
+  );
+}
+
 export function PVSearchPage() {
-  const [uploadStatus, setUploadStatus] = useState<UploadStatus>({ status: "idle", message: "" });
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [query, setQuery] = useState("");
+  const [submitted, setSubmitted] = useState("");
+  const [results, setResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [documents, setDocuments] = useState<{ filename: string; chunks: number }[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  React.useEffect(() => {
-    loadDocuments();
-  }, []);
-
-  const loadDocuments = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("pv_documents")
-        .select("filename")
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-
-      const grouped = (data ?? []).reduce((acc: { filename: string; chunks: number }[], doc) => {
-        const existing = acc.find((d) => d.filename === doc.filename);
-        if (existing) {
-          existing.chunks += 1;
-        } else {
-          acc.push({ filename: doc.filename ?? "", chunks: 1 });
-        }
-        return acc;
-      }, []);
-
-      setDocuments(grouped);
-    } catch (error) {
-      console.error("Error loading documents:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const extractTextFromPdf = async (file: File): Promise<string> => {
-    const { getDocument, GlobalWorkerOptions } = await import("pdfjs-dist");
-    GlobalWorkerOptions.workerSrc = new URL(
-      "pdfjs-dist/build/pdf.worker.min.mjs",
-      import.meta.url
-    ).toString();
-
-    const arrayBuffer = await file.arrayBuffer();
-    const pdf = await getDocument({ data: arrayBuffer }).promise;
-
-    let fullText = "";
-    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-      const page = await pdf.getPage(pageNum);
-      const content = await page.getTextContent();
-      const pageText = content.items
-        .map((item: any) => ("str" in item ? item.str : ""))
-        .join(" ");
-      fullText += pageText + "\n";
-    }
-
-    return fullText.trim();
-  };
-
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file || !file.name.endsWith(".pdf")) {
-      setUploadStatus({ status: "error", message: "Veuillez sélectionner un fichier PDF" });
-      return;
-    }
-
-    setUploadStatus({ status: "extracting", message: "Extraction du texte du PDF..." });
-
-    try {
-      const text = await extractTextFromPdf(file);
-
-      if (text.length < 100) {
-        throw new Error(
-          "PDF vide ou illisible — le PDF doit contenir du texte sélectionnable (pas une image scannée)"
-        );
-      }
-
-      setUploadStatus({ status: "indexing", message: `Indexation en cours (${Math.ceil(text.length / 900)} sections)...` });
-
-      const authHeader = await getAuthHeader();
-      const resp = await fetch(EDGE_FUNCTION_URL, {
-        method: "POST",
-        headers: { ...authHeader, "Content-Type": "application/json" },
-        body: JSON.stringify({ text, filename: file.name }),
-      });
-
-      const result = await resp.json();
-      if (!resp.ok) throw new Error(result.error ?? "Erreur serveur");
-
-      setUploadStatus({
-        status: "success",
-        message: `${result.chunks_indexed} sections indexées de "${file.name}"`,
-      });
-
-      await loadDocuments();
-      event.target.value = "";
-    } catch (error) {
-      setUploadStatus({
-        status: "error",
-        message: `Erreur : ${error instanceof Error ? error.message : "Erreur inconnue"}`,
-      });
-    }
-  };
+  const [searched, setSearched] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const handleSearch = async () => {
-    if (!searchQuery.trim()) return;
+    const q = query.trim();
+    if (!q) return;
 
     setIsSearching(true);
+    setSearched(false);
+
     try {
       const authHeader = await getAuthHeader();
       const resp = await fetch(`${EDGE_FUNCTION_URL}/search`, {
         method: "POST",
         headers: { ...authHeader, "Content-Type": "application/json" },
-        body: JSON.stringify({ query: searchQuery, match_threshold: 0.4, match_count: 10 }),
+        body: JSON.stringify({ query: q, match_threshold: 0.3, match_count: 15 }),
       });
 
-      const result = await resp.json();
-      if (!resp.ok) throw new Error(result.error ?? "Erreur serveur");
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data.error ?? "Erreur serveur");
 
-      setSearchResults(result.results ?? []);
-    } catch (error) {
-      console.error("Search error:", error);
-      // Fallback to keyword search
+      setResults(data.results ?? []);
+      setSubmitted(q);
+    } catch {
+      // Fallback recherche textuelle
       const { data: keywordData } = await supabase
         .from("pv_documents")
         .select("id, filename, content, chunk_index")
-        .ilike("content", `%${searchQuery}%`)
-        .limit(10);
+        .ilike("content", `%${q}%`)
+        .limit(15);
 
-      setSearchResults(
+      setResults(
         (keywordData ?? []).map((row) => ({
           id: row.id as number,
           filename: row.filename ?? "",
@@ -168,153 +85,159 @@ export function PVSearchPage() {
           similarity: 0.5,
         }))
       );
+      setSubmitted(q);
     } finally {
       setIsSearching(false);
+      setSearched(true);
     }
   };
 
-  const isProcessing = uploadStatus.status === "extracting" || uploadStatus.status === "indexing";
+  const downloadFile = async (filename: string) => {
+    const { data, error } = await supabase.storage
+      .from("pv-documents")
+      .createSignedUrl(filename, 60);
+    if (error || !data) return;
+    window.open(data.signedUrl, "_blank");
+  };
+
+  // Grouper les résultats par fichier
+  const grouped = results.reduce((acc: Record<string, SearchResult[]>, r) => {
+    (acc[r.filename] ??= []).push(r);
+    return acc;
+  }, {});
+
+  const hasResults = results.length > 0;
+  const showResults = searched && submitted;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 py-12 px-4">
-      <div className="max-w-4xl mx-auto space-y-8">
-        <div>
-          <h1 className="text-4xl font-bold text-slate-900 mb-2">Recherche PV du CSE</h1>
-          <p className="text-lg text-slate-600">
-            Indexation sémantique des procès-verbaux pour retrouver facilement les occurrences
-          </p>
-        </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Upload className="w-5 h-5" />
-              Importer un PV
-            </CardTitle>
-            <CardDescription>
-              Téléchargez un PDF de PV pour l'indexer (le PDF doit contenir du texte sélectionnable)
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col gap-4">
-              <div className="flex items-center gap-2">
-                <Input
-                  type="file"
-                  accept=".pdf"
-                  onChange={handleFileUpload}
-                  disabled={isProcessing}
-                  className="cursor-pointer"
-                />
-                {isProcessing && (
-                  <div className="flex items-center gap-2 text-blue-600 shrink-0">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span className="text-sm">Traitement...</span>
-                  </div>
-                )}
+    <div className="min-h-screen bg-white flex flex-col">
+      {/* Header compact une fois la recherche effectuée */}
+      <div
+        className={`transition-all duration-300 ${
+          showResults
+            ? "pt-6 pb-4 border-b border-slate-200 shadow-sm"
+            : "flex-1 flex flex-col items-center justify-center pb-24"
+        }`}
+      >
+        <div className={`${showResults ? "px-6 flex items-center gap-4" : "text-center mb-8"}`}>
+          {!showResults && (
+            <>
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <FileText className="w-8 h-8 text-blue-600" />
               </div>
+              <h1 className="text-4xl font-semibold text-slate-800 mb-1">Recherche PV CSE</h1>
+              <p className="text-slate-500 mb-8">
+                Retrouvez instantanément n'importe quelle information dans les procès-verbaux
+              </p>
+            </>
+          )}
 
-              {uploadStatus.message && (
-                <Alert variant={uploadStatus.status === "error" ? "destructive" : "default"}>
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{uploadStatus.message}</AlertDescription>
-                </Alert>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+          {showResults && (
+            <a
+              href="/recherche-pv"
+              className="flex items-center gap-1.5 text-blue-600 font-semibold text-lg shrink-0"
+            >
+              <FileText className="w-5 h-5" />
+              PV CSE
+            </a>
+          )}
 
-        {!loading && documents.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="w-5 h-5" />
-                Documents indexés ({documents.length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-2">
-                {documents.map((doc) => (
-                  <li
-                    key={doc.filename}
-                    className="flex justify-between items-center p-2 bg-slate-50 rounded"
-                  >
-                    <span className="font-medium text-slate-700">{doc.filename}</span>
-                    <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                      {doc.chunks} sections
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
-        )}
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Search className="w-5 h-5" />
-              Rechercher dans les PV
-            </CardTitle>
-            <CardDescription>
-              Entrez des mots-clés ou des concepts pour chercher dans tous les PV indexés
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex gap-2">
-              <Input
-                placeholder="Ex: vote, salaire, délégués, formations..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+          <div className={`${showResults ? "flex-1 max-w-2xl" : "flex justify-center"}`}>
+            <div
+              className={`flex items-center gap-2 border border-slate-300 rounded-full px-4 py-2 shadow-sm hover:shadow-md transition-shadow bg-white ${
+                showResults ? "w-full" : "w-[584px] max-w-full"
+              }`}
+            >
+              <Search className="w-4 h-4 text-slate-400 shrink-0" />
+              <input
+                ref={inputRef}
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                placeholder="Rechercher dans les PV..."
+                className="flex-1 outline-none text-slate-800 placeholder-slate-400 bg-transparent"
+                autoFocus
               />
-              <Button onClick={handleSearch} disabled={isSearching || !searchQuery.trim()}>
+              {isSearching && <Loader2 className="w-4 h-4 animate-spin text-slate-400 shrink-0" />}
+            </div>
+          </div>
+
+          {!showResults && (
+            <div className="flex gap-3 justify-center mt-6">
+              <Button
+                onClick={handleSearch}
+                disabled={isSearching || !query.trim()}
+                className="bg-slate-100 text-slate-700 hover:bg-slate-200 border-0 shadow-none"
+                variant="outline"
+              >
                 {isSearching ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                    Recherche...
-                  </>
+                  <><Loader2 className="w-4 h-4 animate-spin mr-2" />Recherche...</>
                 ) : (
-                  "Chercher"
+                  "Rechercher"
                 )}
               </Button>
             </div>
-          </CardContent>
-        </Card>
-
-        {searchResults.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>
-                {searchResults.length} résultat{searchResults.length > 1 ? "s" : ""} pour «{" "}
-                {searchQuery} »
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {searchResults.map((result) => (
-                <div key={result.id} className="border-l-4 border-blue-500 pl-4 py-2">
-                  <div className="flex justify-between items-start mb-2">
-                    <span className="font-semibold text-slate-900">{result.filename}</span>
-                    <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
-                      {(result.similarity * 100).toFixed(0)}% de pertinence
-                    </span>
-                  </div>
-                  <p className="text-slate-600 text-sm line-clamp-3">{result.content}</p>
-                  <p className="text-xs text-slate-500 mt-2">Section {result.chunk_index + 1}</p>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        )}
-
-        {searchQuery && searchResults.length === 0 && !isSearching && (
-          <Alert>
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              Aucun résultat pour « {searchQuery} ». Essayez avec d'autres termes.
-            </AlertDescription>
-          </Alert>
-        )}
+          )}
+        </div>
       </div>
+
+      {/* Résultats */}
+      {showResults && (
+        <div className="flex-1 px-6 py-6 max-w-3xl">
+          {hasResults ? (
+            <>
+              <p className="text-sm text-slate-500 mb-6">
+                {results.length} résultat{results.length > 1 ? "s" : ""} pour{" "}
+                <span className="font-medium text-slate-700">« {submitted} »</span>
+              </p>
+
+              <div className="space-y-8">
+                {Object.entries(grouped).map(([filename, fileResults]) => (
+                  <div key={filename}>
+                    {/* En-tête fichier */}
+                    <button
+                      onClick={() => downloadFile(filename)}
+                      className="group flex items-center gap-2 mb-2 text-left"
+                    >
+                      <FileText className="w-4 h-4 text-slate-400" />
+                      <span className="text-xs text-slate-500 group-hover:underline">
+                        {filename}
+                      </span>
+                      <ExternalLink className="w-3 h-3 text-slate-400 opacity-0 group-hover:opacity-100" />
+                    </button>
+
+                    {/* Extraits */}
+                    <div className="space-y-4 ml-6">
+                      {fileResults.slice(0, 3).map((result) => (
+                        <div key={result.id}>
+                          <h3 className="text-lg text-blue-800 font-medium mb-1 hover:underline cursor-pointer" onClick={() => downloadFile(filename)}>
+                            {filename.replace(".pdf", "")} — section {result.chunk_index + 1}
+                          </h3>
+                          <p className="text-sm text-slate-600 leading-relaxed line-clamp-4">
+                            {highlight(result.content, submitted)}
+                          </p>
+                          <p className="text-xs text-slate-400 mt-1">
+                            Pertinence : {(result.similarity * 100).toFixed(0)}%
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <Alert className="max-w-lg">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Aucun résultat pour <strong>« {submitted} »</strong>. Essayez d'autres termes ou
+                vérifiez que des PV ont bien été indexés.
+              </AlertDescription>
+            </Alert>
+          )}
+        </div>
+      )}
     </div>
   );
 }
