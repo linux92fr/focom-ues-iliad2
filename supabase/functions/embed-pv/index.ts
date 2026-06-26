@@ -13,28 +13,20 @@ const supabase = createClient(
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
 );
 
-// Disable worker — extraction runs in the main thread (Edge Function context)
 pdfjsLib.GlobalWorkerOptions.workerSrc = "";
 
-async function extractTextFromPdf(pdfBase64: string): Promise<string> {
-  const binaryString = atob(pdfBase64);
-  const bytes = new Uint8Array(binaryString.length);
-  for (let i = 0; i < binaryString.length; i++) {
-    bytes[i] = binaryString.charCodeAt(i);
-  }
+async function extractTextFromBytes(bytes: Uint8Array): Promise<string> {
+  const pdf = await pdfjsLib
+    .getDocument({ data: bytes, useWorkerFetch: false, isEvalSupported: false, useSystemFonts: true })
+    .promise;
 
-  const pdf = await pdfjsLib.getDocument({ data: bytes, useWorkerFetch: false, isEvalSupported: false, useSystemFonts: true }).promise;
   let fullText = "";
-
   for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
     const page = await pdf.getPage(pageNum);
     const content = await page.getTextContent();
-    const pageText = content.items
-      .map((item: any) => ("str" in item ? item.str : ""))
-      .join(" ");
-    fullText += pageText + "\n";
+    fullText +=
+      content.items.map((item: any) => ("str" in item ? item.str : "")).join(" ") + "\n";
   }
-
   return fullText.trim();
 }
 
@@ -42,12 +34,10 @@ function chunkText(text: string): string[] {
   const chunks: string[] = [];
   const CHUNK_SIZE = 1000;
   const OVERLAP = 100;
-
   for (let i = 0; i < text.length && chunks.length < 100; i += CHUNK_SIZE - OVERLAP) {
     const chunk = text.substring(i, i + CHUNK_SIZE).trim();
     if (chunk.length > 50) chunks.push(chunk);
   }
-
   return chunks;
 }
 
@@ -65,9 +55,9 @@ Deno.serve(async (req) => {
   const url = new URL(req.url);
 
   try {
-    // POST /embed-pv/search — embedding de la requête + recherche vectorielle
+    // POST /embed-pv/search — recherche sémantique
     if (url.pathname.endsWith("/search")) {
-      const { query, match_threshold = 0.4, match_count = 10 } = await req.json();
+      const { query, match_threshold = 0.3, match_count = 10 } = await req.json();
       if (!query) {
         return new Response(JSON.stringify({ error: "Paramètre 'query' manquant" }), {
           status: 400,
@@ -76,13 +66,11 @@ Deno.serve(async (req) => {
       }
 
       const embedding = await getEmbedding(query);
-
       const { data, error } = await supabase.rpc("search_pv_documents_vector", {
         query_embedding: embedding,
         match_threshold,
         match_count,
       });
-
       if (error) throw error;
 
       return new Response(JSON.stringify({ results: data ?? [] }), {
@@ -90,33 +78,55 @@ Deno.serve(async (req) => {
       });
     }
 
-    // POST /embed-pv — indexation d'un PDF (base64)
-    const { pdfBase64, filename } = await req.json();
+    // POST /embed-pv — indexation d'un PDF
+    // Accepte soit { storagePath, filename } soit { pdfBase64, filename }
+    const body = await req.json();
+    const { filename } = body;
 
-    if (!pdfBase64 || !filename) {
-      return new Response(JSON.stringify({ error: "Paramètres 'pdfBase64' et 'filename' requis" }), {
+    if (!filename) {
+      return new Response(JSON.stringify({ error: "Paramètre 'filename' requis" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const text = await extractTextFromPdf(pdfBase64);
+    let bytes: Uint8Array;
 
+    if (body.storagePath) {
+      // Téléchargement depuis Supabase Storage
+      const { data, error } = await supabase.storage
+        .from("pv-documents")
+        .download(body.storagePath);
+      if (error || !data) throw new Error(`Impossible de télécharger le fichier : ${error?.message}`);
+      bytes = new Uint8Array(await data.arrayBuffer());
+    } else if (body.pdfBase64) {
+      // Fallback base64
+      const binaryString = atob(body.pdfBase64);
+      bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+    } else {
+      return new Response(JSON.stringify({ error: "Fournir 'storagePath' ou 'pdfBase64'" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const text = await extractTextFromBytes(bytes);
     if (text.length < 100) {
       return new Response(
-        JSON.stringify({ error: "PDF vide ou illisible — le PDF doit contenir du texte sélectionnable (pas une image scannée)" }),
+        JSON.stringify({
+          error: "PDF vide ou illisible — le PDF doit contenir du texte sélectionnable (pas une image scannée)",
+        }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const chunks = chunkText(text);
-    if (chunks.length === 0) {
-      return new Response(JSON.stringify({ error: "Impossible d'extraire le texte du PDF" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    // Supprimer les anciennes sections si re-indexation
+    await supabase.from("pv_documents").delete().eq("filename", filename);
 
+    const chunks = chunkText(text);
     const docs = await Promise.all(
       chunks.map(async (chunk, i) => ({
         filename,

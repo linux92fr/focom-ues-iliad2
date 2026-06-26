@@ -74,6 +74,7 @@ import AdminReclamations from "./pages/admin/AdminReclamations";
 import AdminAgenda from "./pages/admin/AdminAgenda";
 import MesReclamations from "./pages/MesReclamations";
 import { PVSearchPage } from "@/components/PDFSearch";
+import AdminPVDepot from "./pages/admin/AdminPVDepot";
 
 const queryClient = new QueryClient();
 
@@ -146,6 +147,7 @@ function App() {
                     <Route path="/admin/newsletter" element={<AdminNewsletter />} />
                     <Route path="/admin/reclamations" element={<AdminReclamations />} />
                     <Route path="/admin/agenda" element={<AdminAgenda />} />
+                    <Route path="/admin/pv" element={<AdminPVDepot />} />
                     <Route path="/recherche-pv" element={<PVSearchPage />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
