@@ -180,6 +180,48 @@ export function PVSearchPage() {
           </div>
         </div>
 
+        {/* Guide pratique */}
+        <div className="w-full max-w-[584px] px-4 mt-10">
+          <details className="group">
+            <summary className="cursor-pointer text-sm text-slate-500 hover:text-slate-700 flex items-center gap-1 select-none list-none">
+              <svg viewBox="0 0 24 24" className="w-4 h-4 transition-transform group-open:rotate-90" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+              Comment utiliser le moteur de recherche ?
+            </summary>
+            <div className="mt-3 text-sm text-slate-600 space-y-3 pl-1">
+              <div>
+                <p className="font-medium text-slate-700 mb-1">Recherche par mots-clés</p>
+                <p>Tapez un ou plusieurs mots présents dans les PV. Le moteur cherche tous les documents contenant ces termes.</p>
+                <p className="mt-1 text-slate-500 italic">Exemple : <span className="bg-slate-100 px-1 rounded">télétravail accord</span></p>
+              </div>
+              <div>
+                <p className="font-medium text-slate-700 mb-1">Astuces</p>
+                <ul className="space-y-1 text-slate-500">
+                  <li>• Utilisez des mots précis plutôt que des phrases complètes</li>
+                  <li>• Les accents sont pris en compte (<span className="italic">réunion</span> ≠ <span className="italic">reunion</span>)</li>
+                  <li>• Plusieurs mots = tous les mots doivent être présents</li>
+                  <li>• Cliquez sur un résultat pour télécharger le PDF correspondant</li>
+                </ul>
+              </div>
+              <div>
+                <p className="font-medium text-slate-700 mb-1">Exemples de recherches</p>
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {["NAO salaires", "CSSCT sécurité", "télétravail", "élections CSE", "accord intéressement"].map((ex) => (
+                    <button
+                      key={ex}
+                      onClick={() => { setQuery(ex); inputRef.current?.focus(); }}
+                      className="text-xs px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded text-slate-600 transition-colors"
+                    >
+                      {ex}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </details>
+        </div>
+
         {/* Bas de page */}
         <p className="absolute bottom-8 text-sm text-slate-500">
           Le moteur de recherche de{" "}
