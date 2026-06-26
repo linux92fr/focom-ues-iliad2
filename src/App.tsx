@@ -148,6 +148,7 @@ function App() {
                     <Route path="/admin/reclamations" element={<AdminReclamations />} />
                     <Route path="/admin/agenda" element={<AdminAgenda />} />
                     <Route path="/admin/pv" element={<AdminPVDepot />} />
+                    <Route path="/recherche" element={<PVSearchPage />} />
                     <Route path="/recherche-pv" element={<PVSearchPage />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
