@@ -220,7 +220,9 @@ export default function AdminPVDepot() {
   };
 
   const uploadAndIndex = async (file: File) => {
-    const storagePath = `${selectedType}/${selectedYear}/${sanitizeStorageKey(file.name)}`;
+    const storagePath = selectedType === "CSE"
+      ? `${selectedType}/${selectedYear}/${sanitizeStorageKey(file.name)}`
+      : `${selectedType}/${sanitizeStorageKey(file.name)}`;
     const displayName = file.name;
     setStatus(storagePath, { path: storagePath, status: "uploading", message: "Envoi vers le stockage..." });
 
@@ -371,15 +373,21 @@ export default function AdminPVDepot() {
         >
           {TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
         </select>
-        <ChevronRight className="w-4 h-4 text-slate-400" />
-        <select
-          value={selectedYear}
-          onChange={(e) => setSelectedYear(e.target.value)}
-          className="text-sm border border-slate-300 rounded px-2 py-1 bg-white focus:outline-none focus:ring-2 focus:ring-blue-300"
-        >
-          {YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
-        </select>
-        <span className="text-xs text-slate-400 ml-1">→ {selectedType}/{selectedYear}/</span>
+        {selectedType === "CSE" && (
+          <>
+            <ChevronRight className="w-4 h-4 text-slate-400" />
+            <select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(e.target.value)}
+              className="text-sm border border-slate-300 rounded px-2 py-1 bg-white focus:outline-none focus:ring-2 focus:ring-blue-300"
+            >
+              {YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
+            </select>
+          </>
+        )}
+        <span className="text-xs text-slate-400 ml-1">
+          → {selectedType === "CSE" ? `CSE/${selectedYear}/` : `${selectedType}/`}
+        </span>
       </div>
 
       {/* Zone de dépôt */}
@@ -398,7 +406,7 @@ export default function AdminPVDepot() {
           Glissez-déposez vos PDF ici
         </p>
         <p className="text-xs text-slate-500 mb-3">
-          Seront déposés dans <span className="font-mono bg-white border border-slate-200 rounded px-1">{selectedType}/{selectedYear}/</span>
+          Seront déposés dans <span className="font-mono bg-white border border-slate-200 rounded px-1">{selectedType === "CSE" ? `CSE/${selectedYear}/` : `${selectedType}/`}</span>
         </p>
         <label>
           <Button variant="outline" className="cursor-pointer" asChild>
