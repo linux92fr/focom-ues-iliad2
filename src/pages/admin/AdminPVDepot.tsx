@@ -1,5 +1,11 @@
 import React, { useState, useCallback } from "react";
+import * as pdfjsLib from "pdfjs-dist";
 import { supabase } from "@/integrations/supabase/client";
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+  "pdfjs-dist/build/pdf.worker.min.mjs",
+  import.meta.url
+).href;
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -98,6 +104,18 @@ export default function AdminPVDepot() {
     setFileStatuses((prev) => ({ ...prev, [filename]: status }));
   };
 
+  const extractTextFromPdf = async (file: File): Promise<string> => {
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
+    const pages: string[] = [];
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      pages.push(content.items.map((item: any) => item.str).join(" "));
+    }
+    return pages.join("\n").trim();
+  };
+
   const uploadAndIndex = async (file: File) => {
     const displayName = file.name;
     const storageKey = sanitizeStorageKey(file.name);
@@ -111,15 +129,20 @@ export default function AdminPVDepot() {
 
       if (uploadError) throw uploadError;
 
-      // 2. Indexation via Edge Function
-      setStatus(displayName, { filename: displayName, status: "indexing", message: "Indexation en cours..." });
+      // 2. Extraction du texte côté client
+      setStatus(displayName, { filename: displayName, status: "indexing", message: "Extraction du texte..." });
+      const text = await extractTextFromPdf(file);
+      if (text.length < 100) {
+        throw new Error("PDF vide ou illisible — le PDF doit contenir du texte sélectionnable (pas une image scannée)");
+      }
 
+      // 3. Indexation via Edge Function (texte pré-extrait)
+      setStatus(displayName, { filename: displayName, status: "indexing", message: "Indexation en cours..." });
       const authHeader = await getAuthHeader();
       const resp = await fetch(EDGE_FUNCTION_URL, {
         method: "POST",
         headers: { ...authHeader, "Content-Type": "application/json" },
-        // storagePath = clé storage normalisée, filename = nom d'affichage original
-        body: JSON.stringify({ storagePath: storageKey, filename: storageKey }),
+        body: JSON.stringify({ text, filename: storageKey }),
       });
 
       const result = await resp.json();
@@ -162,14 +185,29 @@ export default function AdminPVDepot() {
   };
 
   const reindex = async (filename: string) => {
-    // filename est déjà la clé normalisée (nom dans le storage)
-    setStatus(filename, { filename, status: "indexing", message: "Re-indexation..." });
+    setStatus(filename, { filename, status: "indexing", message: "Téléchargement..." });
     try {
+      // Télécharger depuis Storage pour ré-extraire le texte côté client
+      const { data, error } = await supabase.storage.from("pv-documents").download(filename);
+      if (error || !data) throw new Error("Impossible de télécharger le fichier");
+
+      const arrayBuffer = await data.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
+      const pages: string[] = [];
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        pages.push(content.items.map((item: any) => item.str).join(" "));
+      }
+      const text = pages.join("\n").trim();
+      if (text.length < 100) throw new Error("PDF vide ou illisible");
+
+      setStatus(filename, { filename, status: "indexing", message: "Indexation..." });
       const authHeader = await getAuthHeader();
       const resp = await fetch(EDGE_FUNCTION_URL, {
         method: "POST",
         headers: { ...authHeader, "Content-Type": "application/json" },
-        body: JSON.stringify({ storagePath: filename, filename }),
+        body: JSON.stringify({ text, filename }),
       });
       const result = await resp.json();
       if (!resp.ok) throw new Error(result.error ?? "Erreur serveur");

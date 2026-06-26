@@ -1,6 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { extractText } from "npm:unpdf";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -12,11 +11,6 @@ const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
 );
-
-async function extractTextFromBytes(bytes: Uint8Array): Promise<string> {
-  const { text } = await extractText(bytes, { mergePages: true });
-  return (Array.isArray(text) ? text.join("\n") : text ?? "").trim();
-}
 
 function chunkText(text: string): string[] {
   const chunks: string[] = [];
@@ -66,10 +60,10 @@ Deno.serve(async (req) => {
       });
     }
 
-    // POST /embed-pv — indexation d'un PDF
-    // Accepte soit { storagePath, filename } soit { pdfBase64, filename }
+    // POST /embed-pv — indexation
+    // Accepte { text, filename } — le texte est extrait côté client via pdfjs-dist
     const body = await req.json();
-    const { filename } = body;
+    const { text, filename } = body;
 
     if (!filename) {
       return new Response(JSON.stringify({ error: "Paramètre 'filename' requis" }), {
@@ -78,34 +72,10 @@ Deno.serve(async (req) => {
       });
     }
 
-    let bytes: Uint8Array;
-
-    if (body.storagePath) {
-      // Téléchargement depuis Supabase Storage
-      const { data, error } = await supabase.storage
-        .from("pv-documents")
-        .download(body.storagePath);
-      if (error || !data) throw new Error(`Impossible de télécharger le fichier : ${error?.message}`);
-      bytes = new Uint8Array(await data.arrayBuffer());
-    } else if (body.pdfBase64) {
-      // Fallback base64
-      const binaryString = atob(body.pdfBase64);
-      bytes = new Uint8Array(binaryString.length);
-      for (let i = 0; i < binaryString.length; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
-      }
-    } else {
-      return new Response(JSON.stringify({ error: "Fournir 'storagePath' ou 'pdfBase64'" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const text = await extractTextFromBytes(bytes);
-    if (text.length < 100) {
+    if (!text || text.length < 100) {
       return new Response(
         JSON.stringify({
-          error: "PDF vide ou illisible — le PDF doit contenir du texte sélectionnable (pas une image scannée)",
+          error: "Paramètre 'text' manquant ou trop court — le PDF doit contenir du texte sélectionnable",
         }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
