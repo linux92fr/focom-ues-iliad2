@@ -1,11 +1,9 @@
 import React, { useState, useCallback } from "react";
 import * as pdfjsLib from "pdfjs-dist";
+import pdfjsWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import { supabase } from "@/integrations/supabase/client";
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-  "pdfjs-dist/build/pdf.worker.min.mjs",
-  import.meta.url
-).href;
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorkerUrl;
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -133,7 +131,9 @@ export default function AdminPVDepot() {
       setStatus(displayName, { filename: displayName, status: "indexing", message: "Extraction du texte..." });
       const text = await extractTextFromPdf(file);
       if (text.length < 100) {
-        throw new Error("PDF vide ou illisible — le PDF doit contenir du texte sélectionnable (pas une image scannée)");
+        throw new Error(
+          `PDF illisible — seulement ${text.length} caractères extraits. Ce PDF est probablement scanné (image sans couche texte). Un PDF avec texte sélectionnable est requis.`
+        );
       }
 
       // 3. Indexation via Edge Function (texte pré-extrait)
