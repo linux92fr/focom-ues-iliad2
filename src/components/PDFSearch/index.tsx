@@ -365,7 +365,7 @@ export function PVSearchPage() {
                         <h3 className="text-base text-slate-800 font-medium mb-1">
                           {filename.replace(/\.pdf$/i, "").replace(/[_/]/g, " ")} — section {result.chunk_index + 1}
                         </h3>
-                        <p className="text-sm text-slate-600 leading-relaxed line-clamp-4">
+                        <p className="text-sm text-slate-600 leading-relaxed">
                           {highlight(result.content, submitted)}
                         </p>
                       </div>
