@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import logoFocom from "@/assets/logo-focom.png";
 
 const EDGE_FUNCTION_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/embed-pv`;
+const CTN_PROXY_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ctn-proxy`;
 
 interface SearchResult {
   filename: string;
@@ -75,14 +76,12 @@ function parseCtnHit(h: any, query?: string): CtnResult | null {
 async function searchCtn(query: string): Promise<CtnResult[]> {
   try {
     const res = await fetch(
-      `${CTN_BASE}/api/search?q=${encodeURIComponent(query)}&size=6`
+      `${CTN_PROXY_URL}?q=${encodeURIComponent(query)}&size=6`
     );
     if (!res.ok) return [];
     const json = await res.json();
     const rawHits = json.hits?.hits ?? json.hits ?? [];
-    console.debug("[CTN raw]", rawHits.slice(0, 2));
     const results = rawHits.map((h: any) => parseCtnHit(h, query)).filter(Boolean) as CtnResult[];
-    console.debug("[CTN parsed]", results.length, "results");
     return results;
   } catch (e) {
     console.error("[CTN search error]", e);
@@ -93,14 +92,12 @@ async function searchCtn(query: string): Promise<CtnResult[]> {
 async function searchCcnt(query: string): Promise<CtnResult[]> {
   try {
     const res = await fetch(
-      `${CTN_BASE}/api/search?q=${encodeURIComponent(query)}&idcc=2148&size=6`
+      `${CTN_PROXY_URL}?q=${encodeURIComponent(query)}&idcc=2148&size=6`
     );
     if (!res.ok) return [];
     const json = await res.json();
     const rawHits = json.hits?.hits ?? json.hits ?? [];
-    console.debug("[CCNT raw]", rawHits.slice(0, 2));
     const results = rawHits.map((h: any) => parseCtnHit(h, query)).filter(Boolean) as CtnResult[];
-    console.debug("[CCNT parsed]", results.length, "results");
     return results;
   } catch (e) {
     console.error("[CCNT search error]", e);

@@ -96,9 +96,11 @@ interface CtnResult {
   source: string;
 }
 
+const CTN_PROXY_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ctn-proxy`;
+
 async function fetchCtnArticles(query: string): Promise<CtnResult[]> {
   const res = await fetch(
-    `https://code.travail.numerique.gouv.fr/api/search?q=${encodeURIComponent(query)}&size=4`
+    `${CTN_PROXY_URL}?q=${encodeURIComponent(query)}&size=4`
   );
   if (!res.ok) return [];
   const json = await res.json();
