@@ -6,27 +6,27 @@ CREATE POLICY "reclamations_user_read" ON storage.objects
   FOR SELECT USING (
     bucket_id = 'reclamations' AND (
       (storage.foldername(name))[1] = auth.uid()::text
-      OR has_any_role(auth.uid(), ARRAY['admin','secretaire','representant']::user_role[])
+      OR has_any_role(auth.uid(), ARRAY['admin','secretaire','representant']::text[])
     )
   );
 
 DROP POLICY IF EXISTS "rec_admin_all" ON reclamations;
 CREATE POLICY "rec_admin_all" ON reclamations FOR ALL USING (
-  has_any_role(auth.uid(), ARRAY['admin','secretaire','representant']::user_role[])
+  has_any_role(auth.uid(), ARRAY['admin','secretaire','representant']::text[])
 ) WITH CHECK (
-  has_any_role(auth.uid(), ARRAY['admin','secretaire','representant']::user_role[])
+  has_any_role(auth.uid(), ARRAY['admin','secretaire','representant']::text[])
 );
 
 DROP POLICY IF EXISTS "msg_admin_all" ON reclamation_messages;
 CREATE POLICY "msg_admin_all" ON reclamation_messages FOR ALL USING (
-  has_any_role(auth.uid(), ARRAY['admin','secretaire','representant']::user_role[])
+  has_any_role(auth.uid(), ARRAY['admin','secretaire','representant']::text[])
 ) WITH CHECK (
-  has_any_role(auth.uid(), ARRAY['admin','secretaire','representant']::user_role[])
+  has_any_role(auth.uid(), ARRAY['admin','secretaire','representant']::text[])
 );
 
 DROP POLICY IF EXISTS "att_admin_all" ON reclamation_attachments;
 CREATE POLICY "att_admin_all" ON reclamation_attachments FOR ALL USING (
-  has_any_role(auth.uid(), ARRAY['admin','secretaire','representant']::user_role[])
+  has_any_role(auth.uid(), ARRAY['admin','secretaire','representant']::text[])
 ) WITH CHECK (
-  has_any_role(auth.uid(), ARRAY['admin','secretaire','representant']::user_role[])
+  has_any_role(auth.uid(), ARRAY['admin','secretaire','representant']::text[])
 );

@@ -93,10 +93,10 @@ WITH CHECK (auth.uid() = user_id);
 DROP POLICY IF EXISTS rec_admin_all ON public.reclamations;
 CREATE POLICY rec_admin_all ON public.reclamations
 FOR ALL USING (
-  has_any_role(auth.uid(), ARRAY['admin','secretaire','representant']::user_role[])
+  has_any_role(auth.uid(), ARRAY['admin','secretaire','representant']::text[])
 )
 WITH CHECK (
-  has_any_role(auth.uid(), ARRAY['admin','secretaire','representant']::user_role[])
+  has_any_role(auth.uid(), ARRAY['admin','secretaire','representant']::text[])
 );
 
 DROP POLICY IF EXISTS msg_user_select ON public.reclamation_messages;
@@ -122,10 +122,10 @@ FOR INSERT WITH CHECK (
 DROP POLICY IF EXISTS msg_admin_all ON public.reclamation_messages;
 CREATE POLICY msg_admin_all ON public.reclamation_messages
 FOR ALL USING (
-  has_any_role(auth.uid(), ARRAY['admin','secretaire','representant']::user_role[])
+  has_any_role(auth.uid(), ARRAY['admin','secretaire','representant']::text[])
 )
 WITH CHECK (
-  has_any_role(auth.uid(), ARRAY['admin','secretaire','representant']::user_role[])
+  has_any_role(auth.uid(), ARRAY['admin','secretaire','representant']::text[])
 );
 
 DROP POLICY IF EXISTS att_user_select ON public.reclamation_attachments;
@@ -149,10 +149,10 @@ FOR INSERT WITH CHECK (
 DROP POLICY IF EXISTS att_admin_all ON public.reclamation_attachments;
 CREATE POLICY att_admin_all ON public.reclamation_attachments
 FOR ALL USING (
-  has_any_role(auth.uid(), ARRAY['admin','secretaire','representant']::user_role[])
+  has_any_role(auth.uid(), ARRAY['admin','secretaire','representant']::text[])
 )
 WITH CHECK (
-  has_any_role(auth.uid(), ARRAY['admin','secretaire','representant']::user_role[])
+  has_any_role(auth.uid(), ARRAY['admin','secretaire','representant']::text[])
 );
 
 DROP POLICY IF EXISTS reclamations_user_upload ON storage.objects;
@@ -169,7 +169,7 @@ FOR SELECT USING (
   bucket_id = 'reclamations'
   AND (
     (storage.foldername(name))[1] = auth.uid()::text
-    OR has_any_role(auth.uid(), ARRAY['admin','secretaire','representant']::user_role[])
+    OR has_any_role(auth.uid(), ARRAY['admin','secretaire','representant']::text[])
   )
 );
 
