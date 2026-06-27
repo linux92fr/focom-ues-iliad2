@@ -47,6 +47,26 @@ async function searchCtn(query: string): Promise<CtnResult[]> {
   }
 }
 
+async function searchCcnt(query: string): Promise<CtnResult[]> {
+  try {
+    const res = await fetch(
+      `https://code.travail.numerique.gouv.fr/api/search?q=${encodeURIComponent(query)}&idcc=2148&size=5`
+    );
+    if (!res.ok) return [];
+    const json = await res.json();
+    return (json.hits?.hits ?? [])
+      .map((h: any) => ({
+        title: h._source?.title ?? "",
+        description: (h._source?.description ?? h._source?.text ?? "").slice(0, 200),
+        url: `https://code.travail.numerique.gouv.fr${h._source?.slug ?? ""}`,
+        source: h._source?.source ?? h._index ?? "",
+      }))
+      .filter((r: CtnResult) => r.title && r.url);
+  } catch {
+    return [];
+  }
+}
+
 function highlight(text: string, query: string): React.ReactNode {
   const words = query
     .split(/\s+/)
@@ -71,6 +91,7 @@ export function PVSearchPage() {
   const [submitted, setSubmitted] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [ctnResults, setCtnResults] = useState<CtnResult[]>([]);
+  const [ccntResults, setCcntResults] = useState<CtnResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [searched, setSearched] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -101,9 +122,10 @@ export function PVSearchPage() {
     setIsSearching(true);
     setSearched(false);
     setCtnResults([]);
+    setCcntResults([]);
 
-    // Lancement parallèle : PV internes + Code du Travail Numérique
-    const [pvResults, ctn] = await Promise.all([
+    // Lancement parallèle : PV internes + CTN + CCNT Télécoms
+    const [pvResults, ctn, ccnt] = await Promise.all([
       (async (): Promise<SearchResult[]> => {
         try {
           const authHeader = await getAuthHeader();
@@ -131,10 +153,12 @@ export function PVSearchPage() {
         }
       })(),
       searchCtn(term),
+      searchCcnt(term),
     ]);
 
     setResults(pvResults);
     setCtnResults(ctn);
+    setCcntResults(ccnt);
     setSubmitted(term);
     setIsSearching(false);
     setSearched(true);
@@ -153,6 +177,7 @@ export function PVSearchPage() {
 
   const hasPvResults = results.length > 0;
   const hasCtnResults = ctnResults.length > 0;
+  const hasCcntResults = ccntResults.length > 0;
   const showResults = searched && submitted;
 
   if (!showResults) {
@@ -356,6 +381,53 @@ export function PVSearchPage() {
                 Aucun PV trouvé pour <strong>« {submitted} »</strong>. Essayez d'autres termes ou vérifiez que des PV ont bien été indexés.
               </AlertDescription>
             </Alert>
+          )}
+        </section>
+
+        {/* Section CCNT Télécoms IDCC 2148 */}
+        <section>
+          <div className="flex items-center gap-2 mb-4">
+            <BookOpen className="w-4 h-4 text-orange-500" />
+            <h2 className="text-sm font-semibold text-slate-600 uppercase tracking-wide">
+              Convention collective Télécoms
+            </h2>
+            <span className="text-[10px] bg-orange-50 text-orange-600 border border-orange-200 rounded-full px-2 py-0.5">
+              IDCC 2148
+            </span>
+          </div>
+
+          {hasCcntResults ? (
+            <div className="space-y-5">
+              {ccntResults.map((r, i) => (
+                <div key={i}>
+                  <a href={r.url} target="_blank" rel="noopener noreferrer" className="group">
+                    <p className="text-xs text-green-700 mb-0.5 truncate">{r.url}</p>
+                    <h3 className="text-base text-blue-800 font-medium group-hover:underline flex items-center gap-1">
+                      {r.title}
+                      <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 shrink-0" />
+                    </h3>
+                  </a>
+                  {r.description && (
+                    <p className="text-sm text-slate-600 leading-relaxed mt-1 line-clamp-3">
+                      {highlight(r.description, submitted)}
+                    </p>
+                  )}
+                </div>
+              ))}
+              <a
+                href={`https://code.travail.numerique.gouv.fr/convention-collective/2148-telecommunication?q=${encodeURIComponent(submitted)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs text-orange-600 hover:underline"
+              >
+                Voir la CCNT Télécoms complète
+                <ExternalLink className="w-3 h-3" />
+              </a>
+            </div>
+          ) : (
+            <p className="text-sm text-slate-400 italic">
+              Aucun article CCNT Télécoms trouvé pour « {submitted} ».
+            </p>
           )}
         </section>
 
