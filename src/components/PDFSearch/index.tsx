@@ -1,11 +1,10 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, AlertCircle, FileText, Mic, Download, ExternalLink, BookOpen } from "lucide-react";
+import { Loader2, AlertCircle, FileText, Mic, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import logoFocom from "@/assets/logo-focom.png";
 
 const EDGE_FUNCTION_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/embed-pv`;
-const CTN_PROXY_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ctn-proxy`;
 
 interface SearchResult {
   filename: string;
@@ -15,96 +14,11 @@ interface SearchResult {
   chunk_index: number;
 }
 
-interface CtnResult {
-  title: string;
-  description: string;
-  url: string;
-  source: string;
-}
-
 async function getAuthHeader(): Promise<Record<string, string>> {
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
-
-const CTN_BASE = "https://code.travail.numerique.gouv.fr";
-
-function parseCtnHit(h: any, query?: string): CtnResult | null {
-  const src = h._source ?? {};
-  const title = src.title ?? src.anchor ?? src.name ?? "";
-  if (!title) return null;
-
-  // Try every known slug/url field
-  let rawSlug: string =
-    src.slug ??
-    src.url ??
-    src.path ??
-    src.href ??
-    "";
-
-  // Source-specific fallbacks when slug is missing
-  if (!rawSlug) {
-    const source: string = src.source ?? h._index ?? "";
-    if (source === "conventions_collectives") {
-      rawSlug = `/convention-collective/2148-telecommunication`;
-    } else if (source === "code_du_travail" && src.id) {
-      rawSlug = `/code-du-travail/${src.id}`;
-    } else if (source === "code_du_travail" && src.anchor) {
-      rawSlug = `/code-du-travail/${encodeURIComponent(src.anchor)}`;
-    } else if (src.id) {
-      rawSlug = `/recherche?q=${encodeURIComponent(title)}`;
-    }
-  }
-
-  // Last resort: search URL
-  if (!rawSlug) {
-    rawSlug = `/recherche?q=${encodeURIComponent(query ?? title)}`;
-  }
-
-  const url = rawSlug.startsWith("http") ? rawSlug : `${CTN_BASE}${rawSlug}`;
-
-  const description = (src.description ?? src.text ?? src.html ?? "")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 250);
-
-  return { title, description, url, source: src.source ?? h._index ?? "" };
-}
-
-async function searchCtn(query: string): Promise<CtnResult[]> {
-  try {
-    const res = await fetch(
-      `${CTN_PROXY_URL}?q=${encodeURIComponent(query)}&size=6`
-    );
-    if (!res.ok) return [];
-    const json = await res.json();
-    const rawHits = json.hits?.hits ?? json.hits ?? [];
-    const results = rawHits.map((h: any) => parseCtnHit(h, query)).filter(Boolean) as CtnResult[];
-    return results;
-  } catch (e) {
-    console.error("[CTN search error]", e);
-    return [];
-  }
-}
-
-async function searchCcnt(query: string): Promise<CtnResult[]> {
-  try {
-    const res = await fetch(
-      `${CTN_PROXY_URL}?q=${encodeURIComponent(query)}&idcc=2148&size=6`
-    );
-    if (!res.ok) return [];
-    const json = await res.json();
-    const rawHits = json.hits?.hits ?? json.hits ?? [];
-    const results = rawHits.map((h: any) => parseCtnHit(h, query)).filter(Boolean) as CtnResult[];
-    return results;
-  } catch (e) {
-    console.error("[CCNT search error]", e);
-    return [];
-  }
-}
-
 
 function highlight(text: string, query: string): React.ReactNode {
   const words = query
@@ -129,8 +43,6 @@ export function PVSearchPage() {
   const [query, setQuery] = useState("");
   const [submitted, setSubmitted] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
-  const [ctnResults, setCtnResults] = useState<CtnResult[]>([]);
-  const [ccntResults, setCcntResults] = useState<CtnResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [searched, setSearched] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -160,44 +72,32 @@ export function PVSearchPage() {
 
     setIsSearching(true);
     setSearched(false);
-    setCtnResults([]);
-    setCcntResults([]);
 
-    // Lancement parallèle : PV internes + CTN + CCNT Télécoms
-    const [pvResults, ctn, ccnt] = await Promise.all([
-      (async (): Promise<SearchResult[]> => {
-        try {
-          const authHeader = await getAuthHeader();
-          const resp = await fetch(`${EDGE_FUNCTION_URL}/search`, {
-            method: "POST",
-            headers: { ...authHeader, "Content-Type": "application/json" },
-            body: JSON.stringify({ query: term, match_count: 15 }),
-          });
-          const data = await resp.json();
-          if (!resp.ok) throw new Error(data.error ?? "Erreur serveur");
-          return data.results ?? [];
-        } catch {
-          const { data: keywordData } = await supabase
-            .from("pv_documents")
-            .select("filename, original_filename, content, chunk_index")
-            .ilike("content", `%${term}%`)
-            .limit(15);
-          return (keywordData ?? []).map((row) => ({
-            filename: row.filename ?? "",
-            original_filename: row.original_filename ?? row.filename ?? "",
-            content: row.content ?? "",
-            chunk_index: row.chunk_index ?? 0,
-            similarity: 0.5,
-          }));
-        }
-      })(),
-      searchCtn(term),
-      searchCcnt(term),
-    ]);
+    try {
+      const authHeader = await getAuthHeader();
+      const resp = await fetch(`${EDGE_FUNCTION_URL}/search`, {
+        method: "POST",
+        headers: { ...authHeader, "Content-Type": "application/json" },
+        body: JSON.stringify({ query: term, match_count: 15 }),
+      });
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data.error ?? "Erreur serveur");
+      setResults(data.results ?? []);
+    } catch {
+      const { data: keywordData } = await supabase
+        .from("pv_documents")
+        .select("filename, original_filename, content, chunk_index")
+        .ilike("content", `%${term}%`)
+        .limit(15);
+      setResults((keywordData ?? []).map((row) => ({
+        filename: row.filename ?? "",
+        original_filename: row.original_filename ?? row.filename ?? "",
+        content: row.content ?? "",
+        chunk_index: row.chunk_index ?? 0,
+        similarity: 0.5,
+      })));
+    }
 
-    setResults(pvResults);
-    setCtnResults(ctn);
-    setCcntResults(ccnt);
     setSubmitted(term);
     setIsSearching(false);
     setSearched(true);
@@ -215,8 +115,6 @@ export function PVSearchPage() {
   }, {});
 
   const hasPvResults = results.length > 0;
-  const hasCtnResults = ctnResults.length > 0;
-  const hasCcntResults = ccntResults.length > 0;
   const showResults = searched && submitted;
 
   if (!showResults) {
@@ -249,7 +147,7 @@ export function PVSearchPage() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-              placeholder="Rechercher avec FO COM..."
+              placeholder="Rechercher dans les PV FO COM..."
               className="flex-1 outline-none text-slate-800 placeholder-slate-400 bg-transparent text-base"
               autoFocus
             />
@@ -309,7 +207,6 @@ export function PVSearchPage() {
                   <li>• Utilisez des mots précis plutôt que des phrases complètes</li>
                   <li>• Les accents sont pris en compte (<span className="italic">réunion</span> ≠ <span className="italic">reunion</span>)</li>
                   <li>• Plusieurs mots = tous les mots doivent être présents</li>
-                  <li>• Les résultats incluent aussi le Code du Travail Numérique</li>
                 </ul>
               </div>
               <div>
@@ -357,7 +254,7 @@ export function PVSearchPage() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-              placeholder="Rechercher avec FO COM..."
+              placeholder="Rechercher dans les PV FO COM..."
               className="flex-1 outline-none text-slate-800 placeholder-slate-400 bg-transparent"
             />
             {isSearching && <Loader2 className="w-4 h-4 animate-spin text-slate-400 shrink-0" />}
@@ -366,9 +263,7 @@ export function PVSearchPage() {
       </div>
 
       {/* Résultats */}
-      <div className="flex-1 px-6 py-6 max-w-3xl ml-16 space-y-10">
-
-        {/* Section PV internes */}
+      <div className="flex-1 px-6 py-6 max-w-3xl ml-16 space-y-8">
         <section>
           <div className="flex items-center gap-2 mb-4">
             <FileText className="w-4 h-4 text-slate-400" />
@@ -420,105 +315,6 @@ export function PVSearchPage() {
                 Aucun PV trouvé pour <strong>« {submitted} »</strong>. Essayez d'autres termes ou vérifiez que des PV ont bien été indexés.
               </AlertDescription>
             </Alert>
-          )}
-        </section>
-
-        {/* Section CCNT Télécoms IDCC 2148 */}
-        <section>
-          <div className="flex items-center gap-2 mb-4">
-            <BookOpen className="w-4 h-4 text-orange-500" />
-            <h2 className="text-sm font-semibold text-slate-600 uppercase tracking-wide">
-              Convention collective Télécoms
-            </h2>
-            <span className="text-[10px] bg-orange-50 text-orange-600 border border-orange-200 rounded-full px-2 py-0.5">
-              IDCC 2148
-            </span>
-          </div>
-
-          {hasCcntResults ? (
-            <div className="space-y-5">
-              {ccntResults.map((r, i) => (
-                <div key={i}>
-                  <a href={r.url} target="_blank" rel="noopener noreferrer" className="group">
-                    <p className="text-xs text-green-700 mb-0.5 truncate">{r.url}</p>
-                    <h3 className="text-base text-blue-800 font-medium group-hover:underline flex items-center gap-1">
-                      {r.title}
-                      <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 shrink-0" />
-                    </h3>
-                  </a>
-                  {r.description && (
-                    <p className="text-sm text-slate-600 leading-relaxed mt-1 line-clamp-3">
-                      {highlight(r.description, submitted)}
-                    </p>
-                  )}
-                </div>
-              ))}
-              <a
-                href={`https://code.travail.numerique.gouv.fr/convention-collective/2148-telecommunication?q=${encodeURIComponent(submitted)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-xs text-orange-600 hover:underline"
-              >
-                Voir la CCNT Télécoms complète
-                <ExternalLink className="w-3 h-3" />
-              </a>
-            </div>
-          ) : (
-            <p className="text-sm text-slate-400 italic">
-              Aucun article CCNT Télécoms trouvé pour « {submitted} ».
-            </p>
-          )}
-        </section>
-
-        {/* Section Code du Travail Numérique */}
-        <section>
-          <div className="flex items-center gap-2 mb-4">
-            <BookOpen className="w-4 h-4 text-blue-500" />
-            <h2 className="text-sm font-semibold text-slate-600 uppercase tracking-wide">
-              Code du Travail Numérique
-            </h2>
-            <span className="text-[10px] bg-blue-50 text-blue-600 border border-blue-200 rounded-full px-2 py-0.5">
-              officiel
-            </span>
-          </div>
-
-          {hasCtnResults ? (
-            <div className="space-y-5">
-              {ctnResults.map((r, i) => (
-                <div key={i}>
-                  <a
-                    href={r.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="group"
-                  >
-                    <p className="text-xs text-green-700 mb-0.5 truncate">{r.url}</p>
-                    <h3 className="text-base text-blue-800 font-medium group-hover:underline flex items-center gap-1">
-                      {r.title}
-                      <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 shrink-0" />
-                    </h3>
-                  </a>
-                  {r.description && (
-                    <p className="text-sm text-slate-600 leading-relaxed mt-1 line-clamp-3">
-                      {highlight(r.description, submitted)}
-                    </p>
-                  )}
-                </div>
-              ))}
-              <a
-                href={`https://code.travail.numerique.gouv.fr/recherche?q=${encodeURIComponent(submitted)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline"
-              >
-                Voir tous les résultats sur code.travail.numerique.gouv.fr
-                <ExternalLink className="w-3 h-3" />
-              </a>
-            </div>
-          ) : (
-            <p className="text-sm text-slate-400 italic">
-              Aucun résultat du Code du Travail Numérique pour « {submitted} ».
-            </p>
           )}
         </section>
       </div>
