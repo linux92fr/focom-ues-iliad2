@@ -15,6 +15,7 @@ import {
   Scale,
 } from "lucide-react";
 import logoFocom from "@/assets/logo-focom.png";
+import { adminPath } from "@/lib/adminPath";
 
 const mainNavItems = [
   { to: "/", label: "Accueil", icon: LayoutDashboard, end: true },
@@ -35,7 +36,7 @@ const secondaryNavItems = [
   { to: "/agenda", label: "Agenda", icon: Calendar },
   { to: "/documents-utiles", label: "Documents", icon: FolderOpen },
   { to: "/contact", label: "Contact", icon: Mail },
-  { to: "/admin", label: "Admin", icon: Settings },
+  { to: adminPath(), label: "Admin", icon: Settings },
 ];
 
 function NavItem({ item, onNavigate }: { item: { to: string; label: string; icon: React.ElementType; end?: boolean; highlight?: boolean }; onNavigate?: () => void }) {

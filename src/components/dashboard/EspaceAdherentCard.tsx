@@ -2,6 +2,7 @@ import { Calendar, FileText, Lock, Mail, MessageCircle, Settings, ShieldCheck, U
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { useSiteContent } from "@/lib/siteContent";
+import { adminPath } from "@/lib/adminPath";
 
 const iconMap = {
   file: FileText,
@@ -56,7 +57,7 @@ const EspaceAdherentCard = () => {
           </Link>
         </Button>
         <Button asChild variant="outline" className="h-12 font-bold gap-2 border-secondary text-secondary hover:bg-secondary/10">
-          <Link to="/admin">
+          <Link to={adminPath()}>
             <Settings className="h-4 w-4" />
             Administration
           </Link>

@@ -9,6 +9,7 @@ import { SupabaseAuthProvider } from "./contexts/SupabaseAuthContext";
 import { AuthProvider } from "./hooks/useAuth";
 import PublicLayout from "./components/PublicLayout";
 import PosterComposer from "./components/PosterComposer";
+import { ADMIN_BASE } from "./lib/adminPath";
 
 import Home from "./pages/Home";
 import NotFound from "./pages/NotFound";
@@ -124,30 +125,30 @@ function App() {
                       <Route path="/agenda" element={<Agenda />} />
                       <Route path="/profil" element={<Profile />} />
                       <Route path="/mes-reclamations" element={<MesReclamations />} />
-                      <Route path="/admin/nao2026" element={<AdminNao2026 />} />
-                      <Route path="/admin/participation" element={<AdminParticipation />} />
-                      <Route path="/admin/poster" element={<PosterComposer />} />
+                      <Route path={`/${ADMIN_BASE}/nao2026`} element={<AdminNao2026 />} />
+                      <Route path={`/${ADMIN_BASE}/participation`} element={<AdminParticipation />} />
+                      <Route path={`/${ADMIN_BASE}/poster`} element={<PosterComposer />} />
                     </Route>
 
-                    <Route path="/admin/login" element={<AdminLogin />} />
-                    <Route path="/admin" element={<AdminDashboard />} />
-                    <Route path="/admin/actualites" element={<AdminActualites />} />
-                    <Route path="/admin/actualites/nouveau" element={<NouvelArticle />} />
-                    <Route path="/admin/actualites/:id/editer" element={<EditArticle />} />
-                    <Route path="/admin/documents" element={<AdminDocuments />} />
-                    <Route path="/admin/adherents" element={<AdminAdherents />} />
-                    <Route path="/admin/parametres" element={<AdminParametres />} />
-                    <Route path="/admin/bilan" element={<AdminBilan />} />
-                    <Route path="/admin/droits" element={<AdminDroits />} />
-                    <Route path="/admin/faq" element={<AdminFAQ />} />
-                    <Route path="/admin/messages" element={<AdminMessages />} />
-                    <Route path="/admin/home-edit" element={<AdminHomeEdit />} />
-                    <Route path="/admin/permanences" element={<AdminPermanences />} />
-                    <Route path="/admin/sondages" element={<AdminSondages />} />
-                    <Route path="/admin/newsletter" element={<AdminNewsletter />} />
-                    <Route path="/admin/reclamations" element={<AdminReclamations />} />
-                    <Route path="/admin/agenda" element={<AdminAgenda />} />
-                    <Route path="/admin/pv" element={<AdminPVDepot />} />
+                    <Route path={`/${ADMIN_BASE}/login`} element={<AdminLogin />} />
+                    <Route path={`/${ADMIN_BASE}`} element={<AdminDashboard />} />
+                    <Route path={`/${ADMIN_BASE}/actualites`} element={<AdminActualites />} />
+                    <Route path={`/${ADMIN_BASE}/actualites/nouveau`} element={<NouvelArticle />} />
+                    <Route path={`/${ADMIN_BASE}/actualites/:id/editer`} element={<EditArticle />} />
+                    <Route path={`/${ADMIN_BASE}/documents`} element={<AdminDocuments />} />
+                    <Route path={`/${ADMIN_BASE}/adherents`} element={<AdminAdherents />} />
+                    <Route path={`/${ADMIN_BASE}/parametres`} element={<AdminParametres />} />
+                    <Route path={`/${ADMIN_BASE}/bilan`} element={<AdminBilan />} />
+                    <Route path={`/${ADMIN_BASE}/droits`} element={<AdminDroits />} />
+                    <Route path={`/${ADMIN_BASE}/faq`} element={<AdminFAQ />} />
+                    <Route path={`/${ADMIN_BASE}/messages`} element={<AdminMessages />} />
+                    <Route path={`/${ADMIN_BASE}/home-edit`} element={<AdminHomeEdit />} />
+                    <Route path={`/${ADMIN_BASE}/permanences`} element={<AdminPermanences />} />
+                    <Route path={`/${ADMIN_BASE}/sondages`} element={<AdminSondages />} />
+                    <Route path={`/${ADMIN_BASE}/newsletter`} element={<AdminNewsletter />} />
+                    <Route path={`/${ADMIN_BASE}/reclamations`} element={<AdminReclamations />} />
+                    <Route path={`/${ADMIN_BASE}/agenda`} element={<AdminAgenda />} />
+                    <Route path={`/${ADMIN_BASE}/pv`} element={<AdminPVDepot />} />
                     <Route path="/recherche" element={<PVSearchPage />} />
                     <Route path="/recherche-pv" element={<PVSearchPage />} />
                     <Route path="*" element={<NotFound />} />

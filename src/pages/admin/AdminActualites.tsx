@@ -6,6 +6,7 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { toast } from "sonner";
 import { Newspaper, Plus, Search, Filter, Trash2, Edit2, Eye, EyeOff } from "lucide-react";
+import { adminPath } from "@/lib/adminPath";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -95,7 +96,7 @@ export default function AdminActualites() {
               </p>
             </div>
           </div>
-          <Link to="/admin/actualites/nouveau">
+          <Link to={adminPath("/actualites/nouveau")}>
             <Button className="bg-red-600 hover:bg-red-700 text-white">
               <Plus className="w-4 h-4 mr-2" />
               Nouvel article

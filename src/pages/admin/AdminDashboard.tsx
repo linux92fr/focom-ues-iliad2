@@ -16,6 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import AdminLayout, { AdminAuthGuard } from "@/components/admin/AdminLayout";
 import { supabase } from "@/integrations/supabase/client";
+import { adminPath } from "@/lib/adminPath";
 
 type TableQuery = ReturnType<typeof supabase.from>;
 
@@ -157,7 +158,7 @@ async function fetchRecentActivity(): Promise<ActivityItem[]> {
       title: item.title,
       description: item.is_published ? "Article publié" : "Article en préparation",
       created_at: item.published_at || item.created_at,
-      href: item.is_published ? `/actualites/${item.slug}` : "/admin/actualites",
+      href: item.is_published ? `/actualites/${item.slug}` : adminPath("/actualites"),
     })));
   }
 
@@ -168,7 +169,7 @@ async function fetchRecentActivity(): Promise<ActivityItem[]> {
       title: item.subject || "Nouveau message",
       description: `${item.name || "Contact"} · ${item.status}`,
       created_at: item.created_at,
-      href: "/admin/messages",
+      href: adminPath("/messages"),
     })));
   }
 
@@ -179,7 +180,7 @@ async function fetchRecentActivity(): Promise<ActivityItem[]> {
       title: item.title,
       description: "Document ajouté ou mis à jour",
       created_at: item.created_at,
-      href: "/admin/documents",
+      href: adminPath("/documents"),
     })));
   }
 
@@ -201,7 +202,7 @@ async function fetchRecentActivity(): Promise<ActivityItem[]> {
       title: item.title,
       description: item.is_active ? "Sondage actif" : "Sondage archivé",
       created_at: item.created_at,
-      href: "/admin/sondages",
+      href: adminPath("/sondages"),
     })));
   }
 
@@ -259,14 +260,14 @@ export default function AdminDashboard() {
   }, [refreshDashboard]);
 
   const statCards = useMemo(() => [
-    { title: "Profils actifs", value: stats.activeMembers, detail: `${stats.activeAdhesions} adhésion(s) validée(s)`, icon: Users, color: "text-teal-600 bg-teal-50", href: "/admin/adherents" },
-    { title: "Articles publiés", value: stats.publishedArticles, detail: `${stats.draftArticles} brouillon(s) / en préparation`, icon: Newspaper, color: "text-red-600 bg-red-50", href: "/admin/actualites" },
-    { title: "Documents", value: stats.documents, detail: "Documents disponibles", icon: FileText, color: "text-teal-600 bg-teal-50", href: "/admin/documents" },
-    { title: "Messages non lus", value: stats.unreadMessages, detail: stats.unreadMessages === 0 ? "Aucun message à traiter" : "À traiter rapidement", icon: MessageSquare, color: "text-red-600 bg-red-50", href: "/admin/messages" },
-    { title: "Réclamations ouvertes", value: stats.openReclamations, detail: "Nouveau / en cours", icon: ClipboardList, color: "text-amber-600 bg-amber-50", href: "/admin/reclamations" },
-    { title: "Abonnés newsletter", value: stats.newsletterSubscribers, detail: "Abonnés actifs", icon: Mail, color: "text-blue-600 bg-blue-50", href: "/admin/newsletter" },
+    { title: "Profils actifs", value: stats.activeMembers, detail: `${stats.activeAdhesions} adhésion(s) validée(s)`, icon: Users, color: "text-teal-600 bg-teal-50", href: adminPath("/adherents") },
+    { title: "Articles publiés", value: stats.publishedArticles, detail: `${stats.draftArticles} brouillon(s) / en préparation`, icon: Newspaper, color: "text-red-600 bg-red-50", href: adminPath("/actualites") },
+    { title: "Documents", value: stats.documents, detail: "Documents disponibles", icon: FileText, color: "text-teal-600 bg-teal-50", href: adminPath("/documents") },
+    { title: "Messages non lus", value: stats.unreadMessages, detail: stats.unreadMessages === 0 ? "Aucun message à traiter" : "À traiter rapidement", icon: MessageSquare, color: "text-red-600 bg-red-50", href: adminPath("/messages") },
+    { title: "Réclamations ouvertes", value: stats.openReclamations, detail: "Nouveau / en cours", icon: ClipboardList, color: "text-amber-600 bg-amber-50", href: adminPath("/reclamations") },
+    { title: "Abonnés newsletter", value: stats.newsletterSubscribers, detail: "Abonnés actifs", icon: Mail, color: "text-blue-600 bg-blue-50", href: adminPath("/newsletter") },
     { title: "Événements à venir", value: stats.upcomingEvents, detail: "Agenda syndical", icon: CalendarDays, color: "text-purple-600 bg-purple-50", href: "/agenda" },
-    { title: "Sondages actifs", value: stats.activeSurveys, detail: "Consultations en cours", icon: Vote, color: "text-indigo-600 bg-indigo-50", href: "/admin/sondages" },
+    { title: "Sondages actifs", value: stats.activeSurveys, detail: "Consultations en cours", icon: Vote, color: "text-indigo-600 bg-indigo-50", href: adminPath("/sondages") },
   ], [stats]);
 
   return (
@@ -367,11 +368,11 @@ export default function AdminDashboard() {
               </CardHeader>
               <CardContent className="space-y-2">
                 {[
-                  { label: "Nouvel article", href: "/admin/actualites/nouveau", color: "bg-red-600 hover:bg-red-700" },
-                  { label: "Ajouter un document", href: "/admin/documents", color: "bg-teal-600 hover:bg-teal-700" },
-                  { label: "Réclamations", href: "/admin/reclamations", color: "bg-amber-600 hover:bg-amber-700" },
-                  { label: "Newsletter", href: "/admin/newsletter", color: "bg-blue-600 hover:bg-blue-700" },
-                  { label: "Paramètres", href: "/admin/parametres", color: "bg-slate-700 hover:bg-slate-800" },
+                  { label: "Nouvel article", href: adminPath("/actualites/nouveau"), color: "bg-red-600 hover:bg-red-700" },
+                  { label: "Ajouter un document", href: adminPath("/documents"), color: "bg-teal-600 hover:bg-teal-700" },
+                  { label: "Réclamations", href: adminPath("/reclamations"), color: "bg-amber-600 hover:bg-amber-700" },
+                  { label: "Newsletter", href: adminPath("/newsletter"), color: "bg-blue-600 hover:bg-blue-700" },
+                  { label: "Paramètres", href: adminPath("/parametres"), color: "bg-slate-700 hover:bg-slate-800" },
                 ].map((action) => (
                   <Link key={action.label} to={action.href} className={`block w-full text-center text-sm font-semibold text-white py-2.5 rounded-lg transition-colors ${action.color}`}>
                     {action.label}

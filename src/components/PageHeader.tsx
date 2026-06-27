@@ -8,6 +8,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { adminPath } from "@/lib/adminPath";
 import logoFocom from "@/assets/logo-focom.png";
 
 const SEARCH_LINKS = [
@@ -43,7 +44,7 @@ const MOBILE_NAV = [
   { to: "/agenda", label: "Agenda", icon: Calendar },
   { to: "/documents-utiles", label: "Documents", icon: FolderOpen },
   { to: "/contact", label: "Contact", icon: Mail },
-  { to: "/admin", label: "Admin", icon: Settings },
+  { to: adminPath(), label: "Admin", icon: Settings },
 ];
 
 export default function PageHeader() {
@@ -195,7 +196,7 @@ export default function PageHeader() {
             </Link>
 
             <Link
-              to="/admin/login"
+              to={adminPath("/login")}
               aria-label="Administration"
               className="hidden sm:flex w-9 h-9 items-center justify-center rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors"
             >
