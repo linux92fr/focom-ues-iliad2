@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Bot, Scale, BookOpen, Clock, Umbrella, Briefcase, Heart, ChevronRight, Sparkles } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Bot, Scale, BookOpen, Clock, Umbrella, Briefcase, Heart, ChevronRight, Sparkles, ExternalLink, Loader2 } from "lucide-react";
 import ChatbotJuridique from "@/components/ChatbotJuridique";
 import { buildCcntContext } from "@/lib/ccntContext";
 
@@ -80,9 +80,52 @@ const themes: Theme[] = [
   },
 ];
 
+const CTN_QUERIES: Record<string, string> = {
+  licenciement: "licenciement motif personnel procédure",
+  "temps-travail": "durée travail heures supplémentaires RTT",
+  "conges-absences": "congés payés absences autorisées",
+  "maladie-prevoyance": "arrêt maladie maintien salaire accident travail",
+  harcelement: "harcèlement moral sexuel au travail",
+  greve: "droit de grève représentants du personnel",
+};
+
+interface CtnResult {
+  title: string;
+  description: string;
+  url: string;
+  source: string;
+}
+
+async function fetchCtnArticles(query: string): Promise<CtnResult[]> {
+  const res = await fetch(
+    `https://code.travail.numerique.gouv.fr/api/search?q=${encodeURIComponent(query)}&size=4`
+  );
+  if (!res.ok) return [];
+  const json = await res.json();
+  return (json.hits?.hits ?? []).map((h: any) => ({
+    title: h._source?.title ?? "",
+    description: h._source?.description ?? h._source?.text?.slice(0, 120) ?? "",
+    url: `https://code.travail.numerique.gouv.fr${h._source?.slug ?? ""}`,
+    source: h._source?.source ?? h._index ?? "",
+  })).filter((r: CtnResult) => r.title && r.url);
+}
+
 export default function AssistantJuridique() {
   const [selectedTheme, setSelectedTheme] = useState<Theme | null>(null);
   const [initialQuestion, setInitialQuestion] = useState<string | undefined>();
+  const [ctnResults, setCtnResults] = useState<CtnResult[]>([]);
+  const [ctnLoading, setCtnLoading] = useState(false);
+
+  useEffect(() => {
+    if (!selectedTheme) return;
+    const q = CTN_QUERIES[selectedTheme.id];
+    if (!q) return;
+    setCtnLoading(true);
+    setCtnResults([]);
+    fetchCtnArticles(q)
+      .then(setCtnResults)
+      .finally(() => setCtnLoading(false));
+  }, [selectedTheme]);
 
   const handleThemeSelect = (theme: Theme) => {
     setSelectedTheme(theme);
@@ -176,6 +219,58 @@ export default function AssistantJuridique() {
               pour des fiches thématiques détaillées.
             </p>
           </div>
+
+          {/* Sources Code du Travail Numérique */}
+          {selectedTheme && (
+            <div className="pt-2 border-t border-border space-y-2">
+              <div className="flex items-center gap-2">
+                <img
+                  src="https://code.travail.numerique.gouv.fr/static/assets/img/favicons/favicon-32x32.png"
+                  alt=""
+                  className="w-4 h-4"
+                  onError={(e) => (e.currentTarget.style.display = "none")}
+                />
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                  Code du Travail Numérique
+                </p>
+              </div>
+
+              {ctnLoading ? (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  Chargement des articles…
+                </div>
+              ) : ctnResults.length > 0 ? (
+                <ul className="space-y-1.5">
+                  {ctnResults.map((r, i) => (
+                    <li key={i}>
+                      <a
+                        href={r.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="group flex items-start gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors"
+                      >
+                        <ExternalLink className="w-3 h-3 mt-0.5 flex-shrink-0 opacity-50 group-hover:opacity-100" />
+                        <span className="group-hover:underline leading-tight">{r.title}</span>
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-xs text-muted-foreground italic">Aucun article trouvé.</p>
+              )}
+
+              <a
+                href={`https://code.travail.numerique.gouv.fr/recherche?q=${encodeURIComponent(CTN_QUERIES[selectedTheme.id] ?? selectedTheme.label)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+              >
+                Voir plus sur code.travail.numerique.gouv.fr
+                <ExternalLink className="w-3 h-3" />
+              </a>
+            </div>
+          )}
         </div>
 
         {/* Panneau droit : chatbot */}

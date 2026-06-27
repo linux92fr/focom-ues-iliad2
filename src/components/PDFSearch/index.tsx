@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, AlertCircle, FileText, Mic, Download } from "lucide-react";
+import { Loader2, AlertCircle, FileText, Mic, Download, ExternalLink, BookOpen } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import logoFocom from "@/assets/logo-focom.png";
 
@@ -14,10 +14,37 @@ interface SearchResult {
   chunk_index: number;
 }
 
+interface CtnResult {
+  title: string;
+  description: string;
+  url: string;
+  source: string;
+}
+
 async function getAuthHeader(): Promise<Record<string, string>> {
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
   return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+async function searchCtn(query: string): Promise<CtnResult[]> {
+  try {
+    const res = await fetch(
+      `https://code.travail.numerique.gouv.fr/api/search?q=${encodeURIComponent(query)}&size=5`
+    );
+    if (!res.ok) return [];
+    const json = await res.json();
+    return (json.hits?.hits ?? [])
+      .map((h: any) => ({
+        title: h._source?.title ?? "",
+        description: (h._source?.description ?? h._source?.text ?? "").slice(0, 200),
+        url: `https://code.travail.numerique.gouv.fr${h._source?.slug ?? ""}`,
+        source: h._source?.source ?? h._index ?? "",
+      }))
+      .filter((r: CtnResult) => r.title && r.url);
+  } catch {
+    return [];
+  }
 }
 
 function highlight(text: string, query: string): React.ReactNode {
@@ -43,6 +70,7 @@ export function PVSearchPage() {
   const [query, setQuery] = useState("");
   const [submitted, setSubmitted] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
+  const [ctnResults, setCtnResults] = useState<CtnResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [searched, setSearched] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -72,40 +100,44 @@ export function PVSearchPage() {
 
     setIsSearching(true);
     setSearched(false);
+    setCtnResults([]);
 
-    try {
-      const authHeader = await getAuthHeader();
-      const resp = await fetch(`${EDGE_FUNCTION_URL}/search`, {
-        method: "POST",
-        headers: { ...authHeader, "Content-Type": "application/json" },
-        body: JSON.stringify({ query: term, match_count: 15 }),
-      });
+    // Lancement parallèle : PV internes + Code du Travail Numérique
+    const [pvResults, ctn] = await Promise.all([
+      (async (): Promise<SearchResult[]> => {
+        try {
+          const authHeader = await getAuthHeader();
+          const resp = await fetch(`${EDGE_FUNCTION_URL}/search`, {
+            method: "POST",
+            headers: { ...authHeader, "Content-Type": "application/json" },
+            body: JSON.stringify({ query: term, match_count: 15 }),
+          });
+          const data = await resp.json();
+          if (!resp.ok) throw new Error(data.error ?? "Erreur serveur");
+          return data.results ?? [];
+        } catch {
+          const { data: keywordData } = await supabase
+            .from("pv_documents")
+            .select("filename, original_filename, content, chunk_index")
+            .ilike("content", `%${term}%`)
+            .limit(15);
+          return (keywordData ?? []).map((row) => ({
+            filename: row.filename ?? "",
+            original_filename: row.original_filename ?? row.filename ?? "",
+            content: row.content ?? "",
+            chunk_index: row.chunk_index ?? 0,
+            similarity: 0.5,
+          }));
+        }
+      })(),
+      searchCtn(term),
+    ]);
 
-      const data = await resp.json();
-      if (!resp.ok) throw new Error(data.error ?? "Erreur serveur");
-      setResults(data.results ?? []);
-      setSubmitted(term);
-    } catch {
-      const { data: keywordData } = await supabase
-        .from("pv_documents")
-        .select("filename, original_filename, content, chunk_index")
-        .ilike("content", `%${term}%`)
-        .limit(15);
-
-      setResults(
-        (keywordData ?? []).map((row) => ({
-          filename: row.filename ?? "",
-          original_filename: row.original_filename ?? row.filename ?? "",
-          content: row.content ?? "",
-          chunk_index: row.chunk_index ?? 0,
-          similarity: 0.5,
-        }))
-      );
-      setSubmitted(term);
-    } finally {
-      setIsSearching(false);
-      setSearched(true);
-    }
+    setResults(pvResults);
+    setCtnResults(ctn);
+    setSubmitted(term);
+    setIsSearching(false);
+    setSearched(true);
   };
 
   const handleLucky = async () => {
@@ -119,7 +151,8 @@ export function PVSearchPage() {
     return acc;
   }, {});
 
-  const hasResults = results.length > 0;
+  const hasPvResults = results.length > 0;
+  const hasCtnResults = ctnResults.length > 0;
   const showResults = searched && submitted;
 
   if (!showResults) {
@@ -212,7 +245,7 @@ export function PVSearchPage() {
                   <li>• Utilisez des mots précis plutôt que des phrases complètes</li>
                   <li>• Les accents sont pris en compte (<span className="italic">réunion</span> ≠ <span className="italic">reunion</span>)</li>
                   <li>• Plusieurs mots = tous les mots doivent être présents</li>
-                  <li>• Cliquez sur un résultat pour télécharger le PDF correspondant</li>
+                  <li>• Les résultats incluent aussi le Code du Travail Numérique</li>
                 </ul>
               </div>
               <div>
@@ -269,15 +302,22 @@ export function PVSearchPage() {
       </div>
 
       {/* Résultats */}
-      <div className="flex-1 px-6 py-6 max-w-3xl ml-16">
-        {hasResults ? (
-          <>
-            <p className="text-sm text-slate-500 mb-6">
-              {results.length} résultat{results.length > 1 ? "s" : ""} pour{" "}
-              <span className="font-medium text-slate-700">« {submitted} »</span>
-            </p>
+      <div className="flex-1 px-6 py-6 max-w-3xl ml-16 space-y-10">
 
+        {/* Section PV internes */}
+        <section>
+          <div className="flex items-center gap-2 mb-4">
+            <FileText className="w-4 h-4 text-slate-400" />
+            <h2 className="text-sm font-semibold text-slate-600 uppercase tracking-wide">
+              PV CSE / CSSCT — UES Iliad
+            </h2>
+          </div>
+
+          {hasPvResults ? (
             <div className="space-y-8">
+              <p className="text-xs text-slate-400 -mt-2">
+                {results.length} résultat{results.length > 1 ? "s" : ""} pour « {submitted} »
+              </p>
               {Object.entries(grouped).map(([filename, fileResults]) => (
                 <div key={filename}>
                   <div className="flex items-center gap-2 mb-2">
@@ -294,7 +334,6 @@ export function PVSearchPage() {
                       </button>
                     )}
                   </div>
-
                   <div className="space-y-4 ml-6">
                     {fileResults.slice(0, 3).map((result, i) => (
                       <div key={i}>
@@ -310,16 +349,67 @@ export function PVSearchPage() {
                 </div>
               ))}
             </div>
-          </>
-        ) : (
-          <Alert className="max-w-lg">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              Aucun résultat pour <strong>« {submitted} »</strong>. Essayez d'autres termes ou
-              vérifiez que des PV ont bien été indexés.
-            </AlertDescription>
-          </Alert>
-        )}
+          ) : (
+            <Alert className="max-w-lg">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Aucun PV trouvé pour <strong>« {submitted} »</strong>. Essayez d'autres termes ou vérifiez que des PV ont bien été indexés.
+              </AlertDescription>
+            </Alert>
+          )}
+        </section>
+
+        {/* Section Code du Travail Numérique */}
+        <section>
+          <div className="flex items-center gap-2 mb-4">
+            <BookOpen className="w-4 h-4 text-blue-500" />
+            <h2 className="text-sm font-semibold text-slate-600 uppercase tracking-wide">
+              Code du Travail Numérique
+            </h2>
+            <span className="text-[10px] bg-blue-50 text-blue-600 border border-blue-200 rounded-full px-2 py-0.5">
+              officiel
+            </span>
+          </div>
+
+          {hasCtnResults ? (
+            <div className="space-y-5">
+              {ctnResults.map((r, i) => (
+                <div key={i}>
+                  <a
+                    href={r.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group"
+                  >
+                    <p className="text-xs text-green-700 mb-0.5 truncate">{r.url}</p>
+                    <h3 className="text-base text-blue-800 font-medium group-hover:underline flex items-center gap-1">
+                      {r.title}
+                      <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 shrink-0" />
+                    </h3>
+                  </a>
+                  {r.description && (
+                    <p className="text-sm text-slate-600 leading-relaxed mt-1 line-clamp-3">
+                      {highlight(r.description, submitted)}
+                    </p>
+                  )}
+                </div>
+              ))}
+              <a
+                href={`https://code.travail.numerique.gouv.fr/recherche?q=${encodeURIComponent(submitted)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline"
+              >
+                Voir tous les résultats sur code.travail.numerique.gouv.fr
+                <ExternalLink className="w-3 h-3" />
+              </a>
+            </div>
+          ) : (
+            <p className="text-sm text-slate-400 italic">
+              Aucun résultat du Code du Travail Numérique pour « {submitted} ».
+            </p>
+          )}
+        </section>
       </div>
     </div>
   );
