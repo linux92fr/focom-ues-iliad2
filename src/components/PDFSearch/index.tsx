@@ -29,25 +29,39 @@ async function getAuthHeader(): Promise<Record<string, string>> {
 
 const CTN_BASE = "https://code.travail.numerique.gouv.fr";
 
-function parseCtnHit(h: any): CtnResult | null {
+function parseCtnHit(h: any, query?: string): CtnResult | null {
   const src = h._source ?? {};
-  const title = src.title ?? src.anchor ?? "";
+  const title = src.title ?? src.anchor ?? src.name ?? "";
   if (!title) return null;
 
-  // Plusieurs chemins possibles selon le type de document
-  const slug =
+  // Try every known slug/url field
+  let rawSlug: string =
     src.slug ??
     src.url ??
-    (src.source === "code_du_travail" && src.anchor
-      ? `/code-du-travail/${src.id ?? ""}`
-      : null) ??
-    (src.source === "conventions_collectives"
-      ? `/convention-collective/2148-telecommunication`
-      : null) ??
+    src.path ??
+    src.href ??
     "";
 
-  const url = slug.startsWith("http") ? slug : `${CTN_BASE}${slug}`;
-  if (!url || url === CTN_BASE) return null;
+  // Source-specific fallbacks when slug is missing
+  if (!rawSlug) {
+    const source: string = src.source ?? h._index ?? "";
+    if (source === "conventions_collectives") {
+      rawSlug = `/convention-collective/2148-telecommunication`;
+    } else if (source === "code_du_travail" && src.id) {
+      rawSlug = `/code-du-travail/${src.id}`;
+    } else if (source === "code_du_travail" && src.anchor) {
+      rawSlug = `/code-du-travail/${encodeURIComponent(src.anchor)}`;
+    } else if (src.id) {
+      rawSlug = `/recherche?q=${encodeURIComponent(title)}`;
+    }
+  }
+
+  // Last resort: search URL
+  if (!rawSlug) {
+    rawSlug = `/recherche?q=${encodeURIComponent(query ?? title)}`;
+  }
+
+  const url = rawSlug.startsWith("http") ? rawSlug : `${CTN_BASE}${rawSlug}`;
 
   const description = (src.description ?? src.text ?? src.html ?? "")
     .replace(/<[^>]+>/g, " ")
@@ -65,9 +79,11 @@ async function searchCtn(query: string): Promise<CtnResult[]> {
     );
     if (!res.ok) return [];
     const json = await res.json();
-    // Support deux formats : { hits: { hits: [] } } ou { hits: [] }
-    const hits = json.hits?.hits ?? json.hits ?? [];
-    return hits.map(parseCtnHit).filter(Boolean) as CtnResult[];
+    const rawHits = json.hits?.hits ?? json.hits ?? [];
+    console.debug("[CTN raw]", rawHits.slice(0, 2));
+    const results = rawHits.map((h: any) => parseCtnHit(h, query)).filter(Boolean) as CtnResult[];
+    console.debug("[CTN parsed]", results.length, "results");
+    return results;
   } catch (e) {
     console.error("[CTN search error]", e);
     return [];
@@ -81,8 +97,11 @@ async function searchCcnt(query: string): Promise<CtnResult[]> {
     );
     if (!res.ok) return [];
     const json = await res.json();
-    const hits = json.hits?.hits ?? json.hits ?? [];
-    return hits.map(parseCtnHit).filter(Boolean) as CtnResult[];
+    const rawHits = json.hits?.hits ?? json.hits ?? [];
+    console.debug("[CCNT raw]", rawHits.slice(0, 2));
+    const results = rawHits.map((h: any) => parseCtnHit(h, query)).filter(Boolean) as CtnResult[];
+    console.debug("[CCNT parsed]", results.length, "results");
+    return results;
   } catch (e) {
     console.error("[CCNT search error]", e);
     return [];
