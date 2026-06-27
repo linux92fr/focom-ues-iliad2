@@ -176,7 +176,7 @@ export default function AdminAdherents() {
                 <h3 className="font-bold text-slate-900">Créer un utilisateur</h3>
                 <button onClick={() => setCreateModal(false)} className="p-1.5 rounded-lg hover:bg-slate-100"><X className="w-4 h-4 text-slate-500" /></button>
               </div>
-              <div className="p-6 space-y-4">
+              <form className="p-6 space-y-4" onSubmit={(e) => { e.preventDefault(); handleCreateUser(); }}>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5"><Label>Prénom</Label><Input value={createForm.firstName} onChange={(e) => setCreateForm((f) => ({ ...f, firstName: e.target.value }))} placeholder="Marie" /></div>
                   <div className="space-y-1.5"><Label>Nom</Label><Input value={createForm.lastName} onChange={(e) => setCreateForm((f) => ({ ...f, lastName: e.target.value }))} placeholder="Dupont" /></div>
@@ -189,14 +189,14 @@ export default function AdminAdherents() {
                     <SelectContent>{roleOptions.map((r) => <SelectItem key={r} value={r}>{roleLabel[r] || r}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
-              </div>
-              <div className="flex justify-end gap-2 px-6 py-4 border-t border-slate-100">
-                <Button variant="outline" onClick={() => setCreateModal(false)}>Annuler</Button>
-                <Button onClick={handleCreateUser} disabled={creating} className="bg-red-600 hover:bg-red-700 text-white gap-2">
-                  {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
-                  Créer l'utilisateur
-                </Button>
-              </div>
+                <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                  <Button type="button" variant="outline" onClick={() => setCreateModal(false)}>Annuler</Button>
+                  <Button type="submit" disabled={creating} className="bg-red-600 hover:bg-red-700 text-white gap-2">
+                    {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
+                    Créer l'utilisateur
+                  </Button>
+                </div>
+              </form>
             </div>
           </div>
         )}
