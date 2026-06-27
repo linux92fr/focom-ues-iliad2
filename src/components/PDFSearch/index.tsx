@@ -44,14 +44,25 @@ function extractSnippet(text: string, query: string, maxLen = 320): string {
   return (start > 0 ? "…" : "") + snippet + (end < clean.length ? "…" : "");
 }
 
-// Masque les noms propres (mots capitalisés hors début de phrase) pour les visiteurs non connectés
+// Masque les noms propres pour les visiteurs non connectés.
+// Couvre : mots tout-MAJUSCULES (≥2 lettres), titres de civilité + nom, séquences Title Case hors début de phrase.
 function maskProperNouns(text: string): string {
-  // Remplace les séquences de mots capitalisés (ex: "Jean Dupont", "Marie") par "***"
-  // Ignore le premier mot après un point/début de texte (début de phrase normal)
-  return text.replace(
-    /((?:^|[.!?]\s+)[A-ZÀÂÄÉÈÊËÎÏÔÙÛÜÇ][^\s]*)|(\b[A-ZÀÂÄÉÈÊËÎÏÔÙÛÜÇ][a-zàâäéèêëîïôùûüç]{1,}(?:\s+[A-ZÀÂÄÉÈÊËÎÏÔÙÛÜÇ][a-zàâäéèêëîïôùûüç]{1,})*\b)/g,
-    (match, sentenceStart) => sentenceStart ?? "***"
+  const ACCENTED = "ÀÂÄÉÈÊËÎÏÔÙÛÜÇàâäéèêëîïôùûüç";
+  const UC = `A-ZÀÂÄÉÈÊËÎÏÔÙÛÜÇ`;
+  const LC = `a-zàâäéèêëîïôùûüç`;
+  // 1) Mots entièrement en majuscules (≥2 lettres) — ex: SIDIBÉ, LAITHIER
+  const allCaps = new RegExp(`\\b[${UC}][${UC}${ACCENTED}]{1,}\\b`, "g");
+  // 2) Titre de civilité suivi d'un nom (M., Mme, Mme., Dr, Me) — ex: Mme LAITHIER, M. Dupont
+  const civility = /\b(M\.|Mme\.?|Dr\.?|Me\.?|Pr\.?)\s+[^\s,;.!?]+/g;
+  // 3) Séquences Title Case en milieu de phrase (pas après . ! ? ou en début)
+  const titleCase = new RegExp(
+    `(?<![.!?]\\s)(?<!^)\\b[${UC}][${LC}]{1,}(?:\\s+[${UC}][${LC}]{1,})*\\b`,
+    "g"
   );
+  return text
+    .replace(civility, "***")
+    .replace(allCaps, "***")
+    .replace(titleCase, "***");
 }
 
 function highlight(text: string, query: string): React.ReactNode {
