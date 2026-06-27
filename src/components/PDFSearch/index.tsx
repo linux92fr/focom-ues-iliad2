@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, AlertCircle, FileText, Mic, Download } from "lucide-react";
+import { Loader2, AlertCircle, FileText, Mic, Download, Lock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import AuthModal from "@/components/AuthModal";
 import logoFocom from "@/assets/logo-focom.png";
 
 const EDGE_FUNCTION_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/embed-pv`;
@@ -43,6 +44,16 @@ function extractSnippet(text: string, query: string, maxLen = 320): string {
   return (start > 0 ? "…" : "") + snippet + (end < clean.length ? "…" : "");
 }
 
+// Masque les noms propres (mots capitalisés hors début de phrase) pour les visiteurs non connectés
+function maskProperNouns(text: string): string {
+  // Remplace les séquences de mots capitalisés (ex: "Jean Dupont", "Marie") par "***"
+  // Ignore le premier mot après un point/début de texte (début de phrase normal)
+  return text.replace(
+    /((?:^|[.!?]\s+)[A-ZÀÂÄÉÈÊËÎÏÔÙÛÜÇ][^\s]*)|(\b[A-ZÀÂÄÉÈÊËÎÏÔÙÛÜÇ][a-zàâäéèêëîïôùûüç]{1,}(?:\s+[A-ZÀÂÄÉÈÊËÎÏÔÙÛÜÇ][a-zàâäéèêëîïôùûüç]{1,})*\b)/g,
+    (match, sentenceStart) => sentenceStart ?? "***"
+  );
+}
+
 function highlight(text: string, query: string): React.ReactNode {
   const words = query
     .split(/\s+/)
@@ -69,6 +80,7 @@ export function PVSearchPage() {
   const [isSearching, setIsSearching] = useState(false);
   const [searched, setSearched] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -261,6 +273,7 @@ export function PVSearchPage() {
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
+      <AuthModal open={authModalOpen} onOpenChange={setAuthModalOpen} />
       {/* Header compact post-recherche */}
       <div className="pt-4 pb-3 border-b border-slate-200 shadow-sm px-6 flex items-center gap-4">
         <a href="/recherche" className="flex items-center shrink-0">
@@ -297,9 +310,20 @@ export function PVSearchPage() {
 
           {hasPvResults ? (
             <div className="space-y-6">
-              <p className="text-xs text-slate-400 -mt-2">
-                {results.length} résultat{results.length > 1 ? "s" : ""} pour « {submitted} »
-              </p>
+              <div className="flex items-center justify-between -mt-2">
+                <p className="text-xs text-slate-400">
+                  {results.length} résultat{results.length > 1 ? "s" : ""} pour « {submitted} »
+                </p>
+                {!isAuthenticated && (
+                  <button
+                    onClick={() => setAuthModalOpen(true)}
+                    className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-800 hover:underline"
+                  >
+                    <Lock className="w-3 h-3" />
+                    Connectez-vous pour voir les noms et télécharger les PDF
+                  </button>
+                )}
+              </div>
               {Object.entries(grouped).map(([filename, fileResults]) => {
                 const docLabel = filename.replace(/\.pdf$/i, "").replace(/[_/-]/g, " ");
                 return (
@@ -312,13 +336,21 @@ export function PVSearchPage() {
                           {docLabel}
                         </span>
                       </div>
-                      {isAuthenticated && (
+                      {isAuthenticated ? (
                         <button
                           onClick={() => downloadFile(filename)}
                           className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 hover:underline shrink-0"
                         >
                           <Download className="w-3 h-3" />
-                          Télécharger
+                          Télécharger le PDF
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => setAuthModalOpen(true)}
+                          className="flex items-center gap-1 text-xs text-slate-400 hover:text-blue-600 transition-colors shrink-0"
+                        >
+                          <Lock className="w-3 h-3" />
+                          Connexion pour télécharger
                         </button>
                       )}
                     </div>
@@ -326,10 +358,11 @@ export function PVSearchPage() {
                     <div className="divide-y divide-slate-100">
                       {fileResults.slice(0, 3).map((result, i) => {
                         const snippet = extractSnippet(result.content, submitted);
+                        const displayText = isAuthenticated ? snippet : maskProperNouns(snippet);
                         return (
                           <div key={i} className="px-4 py-3">
                             <p className="text-sm text-slate-700 leading-relaxed">
-                              {highlight(snippet, submitted)}
+                              {highlight(displayText, submitted)}
                             </p>
                           </div>
                         );
