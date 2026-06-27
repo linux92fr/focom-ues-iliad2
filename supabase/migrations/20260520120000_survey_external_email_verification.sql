@@ -77,7 +77,7 @@ CREATE POLICY "survey_external_participants_admin_select"
     EXISTS (
       SELECT 1 FROM public.user_roles
       WHERE user_id = auth.uid()
-      AND role IN ('admin', 'secretaire')
+      AND role::text IN ('admin', 'secretaire')
     )
   );
 
