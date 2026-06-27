@@ -1,10 +1,12 @@
+CREATE EXTENSION IF NOT EXISTS vector WITH SCHEMA extensions;
+
 CREATE TABLE IF NOT EXISTS public.pv_documents (
   id            bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   filename      text NOT NULL,
   original_filename text,
   chunk_index   integer NOT NULL,
   content       text NOT NULL,
-  embedding     vector(1536),
+  embedding     extensions.vector(1536),
   metadata      jsonb DEFAULT '{}'::jsonb,
   created_at    timestamptz DEFAULT now(),
   updated_at    timestamptz DEFAULT now()
