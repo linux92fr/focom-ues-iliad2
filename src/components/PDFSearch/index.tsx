@@ -20,6 +20,29 @@ async function getAuthHeader(): Promise<Record<string, string>> {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
+function cleanText(text: string): string {
+  return text
+    .replace(/(\w+)\s*-\s*\n?\s*(\w)/g, "$1$2") // réunit les mots coupés par césure PDF
+    .replace(/\s*-\s{2,}/g, " ")                  // nettoie les tirets isolés
+    .replace(/\s{2,}/g, " ")                       // espaces multiples
+    .trim();
+}
+
+function extractSnippet(text: string, query: string, maxLen = 320): string {
+  const clean = cleanText(text);
+  const words = query.split(/\s+/).filter(Boolean);
+  if (!words.length) return clean.slice(0, maxLen);
+  const regex = new RegExp(words.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|"), "gi");
+  const match = regex.exec(clean);
+  if (!match) return clean.slice(0, maxLen);
+  const center = match.index;
+  const half = Math.floor(maxLen / 2);
+  const start = Math.max(0, center - half);
+  const end = Math.min(clean.length, start + maxLen);
+  const snippet = clean.slice(start, end);
+  return (start > 0 ? "…" : "") + snippet + (end < clean.length ? "…" : "");
+}
+
 function highlight(text: string, query: string): React.ReactNode {
   const words = query
     .split(/\s+/)
@@ -30,7 +53,7 @@ function highlight(text: string, query: string): React.ReactNode {
   const parts = text.split(regex);
   return parts.map((part, i) =>
     regex.test(part) ? (
-      <mark key={i} className="bg-yellow-200 text-inherit rounded-sm px-0.5">
+      <mark key={i} className="bg-yellow-200 text-inherit rounded-sm px-0.5 font-medium">
         {part}
       </mark>
     ) : (
@@ -273,40 +296,48 @@ export function PVSearchPage() {
           </div>
 
           {hasPvResults ? (
-            <div className="space-y-8">
+            <div className="space-y-6">
               <p className="text-xs text-slate-400 -mt-2">
                 {results.length} résultat{results.length > 1 ? "s" : ""} pour « {submitted} »
               </p>
-              {Object.entries(grouped).map(([filename, fileResults]) => (
-                <div key={filename}>
-                  <div className="flex items-center gap-2 mb-2">
-                    <FileText className="w-4 h-4 text-slate-400" />
-                    <span className="text-xs text-slate-500">{filename}</span>
-                    {isAuthenticated && (
-                      <button
-                        onClick={() => downloadFile(filename)}
-                        className="ml-1 flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 hover:underline"
-                        title="Télécharger le document"
-                      >
-                        <Download className="w-3 h-3" />
-                        Télécharger
-                      </button>
-                    )}
-                  </div>
-                  <div className="space-y-4 ml-6">
-                    {fileResults.slice(0, 3).map((result, i) => (
-                      <div key={i}>
-                        <h3 className="text-base text-slate-800 font-medium mb-1">
-                          {filename.replace(/\.pdf$/i, "").replace(/[_/]/g, " ")} — section {result.chunk_index + 1}
-                        </h3>
-                        <p className="text-sm text-slate-600 leading-relaxed">
-                          {highlight(result.content, submitted)}
-                        </p>
+              {Object.entries(grouped).map(([filename, fileResults]) => {
+                const docLabel = filename.replace(/\.pdf$/i, "").replace(/[_/-]/g, " ");
+                return (
+                  <div key={filename} className="border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                    {/* En-tête document */}
+                    <div className="flex items-center justify-between gap-2 px-4 py-2.5 bg-slate-50 border-b border-slate-200">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <FileText className="w-4 h-4 text-slate-400 shrink-0" />
+                        <span className="text-xs font-medium text-slate-600 truncate" title={filename}>
+                          {docLabel}
+                        </span>
                       </div>
-                    ))}
+                      {isAuthenticated && (
+                        <button
+                          onClick={() => downloadFile(filename)}
+                          className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 hover:underline shrink-0"
+                        >
+                          <Download className="w-3 h-3" />
+                          Télécharger
+                        </button>
+                      )}
+                    </div>
+                    {/* Extraits */}
+                    <div className="divide-y divide-slate-100">
+                      {fileResults.slice(0, 3).map((result, i) => {
+                        const snippet = extractSnippet(result.content, submitted);
+                        return (
+                          <div key={i} className="px-4 py-3">
+                            <p className="text-sm text-slate-700 leading-relaxed">
+                              {highlight(snippet, submitted)}
+                            </p>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <Alert className="max-w-lg">
