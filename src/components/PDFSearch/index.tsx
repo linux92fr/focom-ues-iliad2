@@ -27,22 +27,49 @@ async function getAuthHeader(): Promise<Record<string, string>> {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
+const CTN_BASE = "https://code.travail.numerique.gouv.fr";
+
+function parseCtnHit(h: any): CtnResult | null {
+  const src = h._source ?? {};
+  const title = src.title ?? src.anchor ?? "";
+  if (!title) return null;
+
+  // Plusieurs chemins possibles selon le type de document
+  const slug =
+    src.slug ??
+    src.url ??
+    (src.source === "code_du_travail" && src.anchor
+      ? `/code-du-travail/${src.id ?? ""}`
+      : null) ??
+    (src.source === "conventions_collectives"
+      ? `/convention-collective/2148-telecommunication`
+      : null) ??
+    "";
+
+  const url = slug.startsWith("http") ? slug : `${CTN_BASE}${slug}`;
+  if (!url || url === CTN_BASE) return null;
+
+  const description = (src.description ?? src.text ?? src.html ?? "")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 250);
+
+  return { title, description, url, source: src.source ?? h._index ?? "" };
+}
+
 async function searchCtn(query: string): Promise<CtnResult[]> {
   try {
     const res = await fetch(
-      `https://code.travail.numerique.gouv.fr/api/search?q=${encodeURIComponent(query)}&size=5`
+      `${CTN_BASE}/api/search?q=${encodeURIComponent(query)}&size=6`
     );
     if (!res.ok) return [];
     const json = await res.json();
-    return (json.hits?.hits ?? [])
-      .map((h: any) => ({
-        title: h._source?.title ?? "",
-        description: (h._source?.description ?? h._source?.text ?? "").slice(0, 200),
-        url: `https://code.travail.numerique.gouv.fr${h._source?.slug ?? ""}`,
-        source: h._source?.source ?? h._index ?? "",
-      }))
-      .filter((r: CtnResult) => r.title && r.url);
-  } catch {
+    // Support deux formats : { hits: { hits: [] } } ou { hits: [] }
+    const hits = json.hits?.hits ?? json.hits ?? [];
+    return hits.map(parseCtnHit).filter(Boolean) as CtnResult[];
+  } catch (e) {
+    console.error("[CTN search error]", e);
     return [];
   }
 }
@@ -50,22 +77,18 @@ async function searchCtn(query: string): Promise<CtnResult[]> {
 async function searchCcnt(query: string): Promise<CtnResult[]> {
   try {
     const res = await fetch(
-      `https://code.travail.numerique.gouv.fr/api/search?q=${encodeURIComponent(query)}&idcc=2148&size=5`
+      `${CTN_BASE}/api/search?q=${encodeURIComponent(query)}&idcc=2148&size=6`
     );
     if (!res.ok) return [];
     const json = await res.json();
-    return (json.hits?.hits ?? [])
-      .map((h: any) => ({
-        title: h._source?.title ?? "",
-        description: (h._source?.description ?? h._source?.text ?? "").slice(0, 200),
-        url: `https://code.travail.numerique.gouv.fr${h._source?.slug ?? ""}`,
-        source: h._source?.source ?? h._index ?? "",
-      }))
-      .filter((r: CtnResult) => r.title && r.url);
-  } catch {
+    const hits = json.hits?.hits ?? json.hits ?? [];
+    return hits.map(parseCtnHit).filter(Boolean) as CtnResult[];
+  } catch (e) {
+    console.error("[CCNT search error]", e);
     return [];
   }
 }
+
 
 function highlight(text: string, query: string): React.ReactNode {
   const words = query
