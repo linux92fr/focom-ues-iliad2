@@ -14,6 +14,7 @@ import {
 import { Link } from "react-router-dom";
 import AdminLayout, { AdminAuthGuard } from "@/components/admin/AdminLayout";
 import { supabase } from "@/integrations/supabase/client";
+import { adminPath } from "@/lib/adminPath";
 
 /* ─── Static data ─────────────────────────────────────────────── */
 const visitDataBase = [
@@ -183,9 +184,9 @@ export default function AdminDashboard() {
     : allActivity.filter((a) => a.category === actFilter);
 
   const statCards = [
-    { title: "Adhérents actifs", value: "1 247", change: "+5,2%", positive: true, icon: Users, color: "text-teal-600 bg-teal-50", href: "/admin/adherents" },
-    { title: "Articles publiés", value: "38", change: "+3 ce mois", positive: true, icon: Newspaper, color: "text-red-600 bg-red-50", href: "/admin/actualites" },
-    { title: "Documents", value: "124", change: "+7 ce mois", positive: true, icon: FileText, color: "text-teal-600 bg-teal-50", href: "/admin/documents" },
+    { title: "Adhérents actifs", value: "1 247", change: "+5,2%", positive: true, icon: Users, color: "text-teal-600 bg-teal-50", href: adminPath("/adherents") },
+    { title: "Articles publiés", value: "38", change: "+3 ce mois", positive: true, icon: Newspaper, color: "text-red-600 bg-red-50", href: adminPath("/actualites") },
+    { title: "Documents", value: "124", change: "+7 ce mois", positive: true, icon: FileText, color: "text-teal-600 bg-teal-50", href: adminPath("/documents") },
     {
       title: "Messages reçus",
       value: String(unreadMessages),
@@ -193,7 +194,7 @@ export default function AdminDashboard() {
       positive: unreadMessages === 0,
       icon: MessageSquare,
       color: "text-red-600 bg-red-50",
-      href: "/admin/messages",
+      href: adminPath("/messages"),
     },
   ];
 
@@ -267,7 +268,7 @@ export default function AdminDashboard() {
 
               <div className="px-4 py-3 border-t border-slate-200">
                 <Link
-                  to="/admin/messages"
+                  to=adminPath("/messages")
                   onClick={() => setNotifOpen(false)}
                   className="flex items-center justify-center gap-2 text-xs text-slate-600 hover:text-slate-900 font-medium py-1.5 hover:bg-slate-100 rounded-lg transition-colors"
                 >
@@ -431,10 +432,10 @@ export default function AdminDashboard() {
             </CardHeader>
             <CardContent className="space-y-2">
               {[
-                { label: "Nouvel article", href: "/admin/actualites", color: "bg-red-600 hover:bg-red-700" },
-                { label: "Ajouter un document", href: "/admin/documents", color: "bg-teal-600 hover:bg-teal-700" },
-                { label: "Voir les adhérents", href: "/admin/adherents", color: "bg-slate-700 hover:bg-slate-800" },
-                { label: "Paramètres du site", href: "/admin/parametres", color: "bg-slate-600 hover:bg-slate-700" },
+                { label: "Nouvel article", href: adminPath("/actualites"), color: "bg-red-600 hover:bg-red-700" },
+                { label: "Ajouter un document", href: adminPath("/documents"), color: "bg-teal-600 hover:bg-teal-700" },
+                { label: "Voir les adhérents", href: adminPath("/adherents"), color: "bg-slate-700 hover:bg-slate-800" },
+                { label: "Paramètres du site", href: adminPath("/parametres"), color: "bg-slate-600 hover:bg-slate-700" },
               ].map((action) => (
                 <Link
                   key={action.label}

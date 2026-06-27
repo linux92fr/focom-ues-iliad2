@@ -3,6 +3,7 @@ import { Link, NavLink, useNavigate } from "react-router-dom";
 import { Home, Search, Users, Menu, X, Settings, Bell, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import { adminPath } from "@/lib/adminPath";
 import AuthModal from "@/components/AuthModal";
 import UserMenu from "@/components/UserMenu";
 import { supabase } from "@/integrations/supabase/client";
@@ -174,7 +175,7 @@ const TopBar = () => {
               variant="outline"
               className="hidden sm:inline-flex rounded-full h-11 px-5 font-bold gap-2 border-secondary text-secondary hover:bg-secondary/10"
             >
-              <Link to="/admin">
+              <Link to={adminPath()}>
                 <Settings className="h-4 w-4" />
                 Admin
               </Link>

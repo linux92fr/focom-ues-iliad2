@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { adminPath } from "@/lib/adminPath";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
 import {
@@ -47,7 +48,7 @@ const UserMenu = () => {
         <DropdownMenuSeparator />
 
         {isContentEditor && (
-          <DropdownMenuItem onClick={() => navigate("/admin")}>
+          <DropdownMenuItem onClick={() => navigate(adminPath())}>
             <Shield className="mr-2 h-4 w-4" />
             <span>Tableau de bord admin</span>
           </DropdownMenuItem>

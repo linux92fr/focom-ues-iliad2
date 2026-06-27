@@ -4,6 +4,7 @@ import { Shield, Eye, EyeOff, Lock, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAdminAuth } from "@/contexts/AdminAuthContext";
+import { adminPath } from "@/lib/adminPath";
 
 const LOGO_IMAGE = "https://files.manuscdn.com/user_upload_by_module/session_file/310519663612648040/LldXxCbhFdcPcHwX.png";
 
@@ -19,7 +20,7 @@ export default function AdminLogin() {
   // If already authenticated, redirect to admin dashboard
   useEffect(() => {
     if (isAuthenticated) {
-      navigate("/admin", { replace: true });
+      navigate(adminPath(), { replace: true });
     }
   }, [isAuthenticated, navigate]);
 
@@ -31,7 +32,7 @@ export default function AdminLogin() {
     try {
       const success = await login(username, password);
       if (success) {
-        navigate("/admin", { replace: true });
+        navigate(adminPath(), { replace: true });
       } else {
         setError("Identifiants incorrects. Veuillez réessayer.");
       }
