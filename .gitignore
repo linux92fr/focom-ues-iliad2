@@ -2,3 +2,4 @@ Nothing needs to be added to the .gitignore file since only source code files (.
 =======
 node_modules
 dist
+o2switch-bridge/config.php

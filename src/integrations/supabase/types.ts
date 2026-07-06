@@ -463,6 +463,7 @@ export type Database = {
           file_type: string | null
           id: string
           is_archived: boolean
+          storage_provider: string
           title: string
           updated_at: string
           uploaded_by: string | null
@@ -479,6 +480,7 @@ export type Database = {
           file_type?: string | null
           id?: string
           is_archived?: boolean
+          storage_provider?: string
           title: string
           updated_at?: string
           uploaded_by?: string | null
@@ -495,6 +497,7 @@ export type Database = {
           file_type?: string | null
           id?: string
           is_archived?: boolean
+          storage_provider?: string
           title?: string
           updated_at?: string
           uploaded_by?: string | null
