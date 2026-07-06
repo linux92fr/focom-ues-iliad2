@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { FileText, Search, Filter, FolderOpen, Download, Plus, Eye, Trash2, Edit, X, Save, Upload, Loader2 } from "lucide-react";
+import { FileText, Search, Filter, FolderOpen, Download, Plus, Eye, Trash2, Edit, X, Save, Upload, Loader2, Archive, ArchiveRestore } from "lucide-react";
 import AdminLayout, { AdminAuthGuard } from "@/components/admin/AdminLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,7 @@ type Doc = {
   file_type: string | null;
   category_id: string | null;
   created_at: string;
+  is_archived: boolean;
   document_categories?: { name: string } | null;
 };
 
@@ -42,6 +43,7 @@ export default function AdminDocuments() {
   const [saving, setSaving] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Toutes");
+  const [showArchived, setShowArchived] = useState(false);
   const [modal, setModal] = useState<{ mode: ModalMode; item?: Doc } | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm());
 
@@ -67,7 +69,8 @@ export default function AdminDocuments() {
   const filtered = documents.filter((doc) => {
     const category = doc.document_categories?.name || "Sans catégorie";
     const q = searchQuery.toLowerCase();
-    return (selectedCategory === "Toutes" || category === selectedCategory)
+    return doc.is_archived === showArchived
+      && (selectedCategory === "Toutes" || category === selectedCategory)
       && (q === "" || doc.title.toLowerCase().includes(q) || doc.file_name.toLowerCase().includes(q) || (doc.description || "").toLowerCase().includes(q));
   });
 
@@ -135,6 +138,17 @@ export default function AdminDocuments() {
     toast.success("Document supprimé");
   };
 
+  const handleToggleArchive = async (doc: Doc) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    const payload = doc.is_archived
+      ? { is_archived: false, archived_at: null, archived_by: null }
+      : { is_archived: true, archived_at: new Date().toISOString(), archived_by: user?.id || null };
+    const { error } = await supabase.from("documents").update(payload as never).eq("id", doc.id);
+    if (error) return toast.error("Impossible de mettre à jour l'archivage");
+    setDocuments((prev) => prev.map((d) => (d.id === doc.id ? { ...d, ...payload } : d)));
+    toast.success(doc.is_archived ? "Document désarchivé" : "Document archivé");
+  };
+
   const handleDownload = (doc: Doc) => {
     const { data } = supabase.storage.from(BUCKET).getPublicUrl(doc.file_path);
     if (!data.publicUrl) return toast.error("Lien indisponible");
@@ -187,13 +201,19 @@ export default function AdminDocuments() {
         )}
 
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-          <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-teal-100 flex items-center justify-center"><FolderOpen className="w-5 h-5 text-teal-600" /></div><div><h2 className="text-lg font-bold text-slate-900">Gestion des Documents</h2><p className="text-sm text-slate-500">{documents.length} documents disponibles</p></div></div>
-          <Button onClick={openAdd} className="bg-red-600 hover:bg-red-700 text-white"><Plus className="w-4 h-4 mr-2" />Ajouter un document</Button>
+          <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-teal-100 flex items-center justify-center"><FolderOpen className="w-5 h-5 text-teal-600" /></div><div><h2 className="text-lg font-bold text-slate-900">Gestion des Documents</h2><p className="text-sm text-slate-500">{filtered.length} document{filtered.length > 1 ? "s" : ""} {showArchived ? "archivés" : "actifs"}</p></div></div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setShowArchived((v) => !v)} className="gap-2">
+              {showArchived ? <ArchiveRestore className="w-4 h-4" /> : <Archive className="w-4 h-4" />}
+              {showArchived ? "Voir les actifs" : "Voir les archives"}
+            </Button>
+            <Button onClick={openAdd} className="bg-red-600 hover:bg-red-700 text-white"><Plus className="w-4 h-4 mr-2" />Ajouter un document</Button>
+          </div>
         </div>
 
         <Card className="border-slate-200 shadow-sm mb-6"><CardContent className="p-4"><div className="flex flex-col sm:flex-row gap-3"><div className="flex-1 relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" /><Input placeholder="Rechercher un document..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10" /></div><Button variant="outline" size="sm" onClick={() => { setSearchQuery(""); setSelectedCategory("Toutes"); }} className="gap-2"><Filter className="w-4 h-4" />Réinitialiser</Button></div><div className="flex flex-wrap gap-2 mt-3">{categoryNames.map((cat) => <button key={cat} onClick={() => setSelectedCategory(cat)} className={`px-3 py-1.5 rounded-full text-xs font-medium ${selectedCategory === cat ? "bg-teal-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>{cat}</button>)}</div></CardContent></Card>
 
-        <Card className="border-slate-200 shadow-sm"><CardContent className="p-0">{loading ? <div className="flex items-center justify-center py-16 gap-3 text-slate-400"><Loader2 className="w-5 h-5 animate-spin" />Chargement…</div> : <div className="overflow-x-auto"><table className="w-full"><thead className="bg-slate-50 border-b border-slate-200"><tr>{["Document", "Catégorie", "Taille", "Date", "Actions"].map((h, i) => <th key={h} className={`p-4 text-sm font-semibold text-slate-600 ${i === 4 ? "text-right" : "text-left"}`}>{h}</th>)}</tr></thead><tbody>{filtered.map((doc) => <tr key={doc.id} className="border-b border-slate-100 hover:bg-slate-50"><td className="p-4"><div className="flex items-center gap-3">{getIcon(doc.file_type)}<div><p className="font-medium text-slate-900 text-sm">{doc.title}</p><p className="text-xs text-slate-400">{doc.file_name}</p></div></div></td><td className="p-4"><Badge variant="secondary" className="text-[10px]">{doc.document_categories?.name || "Sans catégorie"}</Badge></td><td className="p-4 text-sm text-slate-500">{formatSize(doc.file_size)}</td><td className="p-4 text-sm text-slate-500">{formatDate(doc.created_at)}</td><td className="p-4"><div className="flex items-center justify-end gap-1"><Button variant="ghost" size="sm" onClick={() => openView(doc)}><Eye className="w-4 h-4 text-slate-400 hover:text-teal-600" /></Button><Button variant="ghost" size="sm" onClick={() => handleDownload(doc)}><Download className="w-4 h-4 text-slate-400 hover:text-teal-600" /></Button><Button variant="ghost" size="sm" onClick={() => openEdit(doc)}><Edit className="w-4 h-4 text-slate-400 hover:text-blue-600" /></Button><Button variant="ghost" size="sm" onClick={() => handleDelete(doc)}><Trash2 className="w-4 h-4 text-slate-400 hover:text-red-600" /></Button></div></td></tr>)}</tbody></table></div>}{!loading && filtered.length === 0 && <div className="text-center py-12"><FolderOpen className="w-12 h-12 text-slate-300 mx-auto mb-3" /><p className="text-slate-500">Aucun document trouvé</p></div>}</CardContent></Card>
+        <Card className="border-slate-200 shadow-sm"><CardContent className="p-0">{loading ? <div className="flex items-center justify-center py-16 gap-3 text-slate-400"><Loader2 className="w-5 h-5 animate-spin" />Chargement…</div> : <div className="overflow-x-auto"><table className="w-full"><thead className="bg-slate-50 border-b border-slate-200"><tr>{["Document", "Catégorie", "Taille", "Date", "Actions"].map((h, i) => <th key={h} className={`p-4 text-sm font-semibold text-slate-600 ${i === 4 ? "text-right" : "text-left"}`}>{h}</th>)}</tr></thead><tbody>{filtered.map((doc) => <tr key={doc.id} className="border-b border-slate-100 hover:bg-slate-50"><td className="p-4"><div className="flex items-center gap-3">{getIcon(doc.file_type)}<div><p className="font-medium text-slate-900 text-sm">{doc.title}</p><p className="text-xs text-slate-400">{doc.file_name}</p></div></div></td><td className="p-4"><Badge variant="secondary" className="text-[10px]">{doc.document_categories?.name || "Sans catégorie"}</Badge></td><td className="p-4 text-sm text-slate-500">{formatSize(doc.file_size)}</td><td className="p-4 text-sm text-slate-500">{formatDate(doc.created_at)}</td><td className="p-4"><div className="flex items-center justify-end gap-1"><Button variant="ghost" size="sm" onClick={() => openView(doc)}><Eye className="w-4 h-4 text-slate-400 hover:text-teal-600" /></Button><Button variant="ghost" size="sm" onClick={() => handleDownload(doc)}><Download className="w-4 h-4 text-slate-400 hover:text-teal-600" /></Button><Button variant="ghost" size="sm" onClick={() => openEdit(doc)}><Edit className="w-4 h-4 text-slate-400 hover:text-blue-600" /></Button><Button variant="ghost" size="sm" onClick={() => handleToggleArchive(doc)}>{doc.is_archived ? <ArchiveRestore className="w-4 h-4 text-slate-400 hover:text-teal-600" /> : <Archive className="w-4 h-4 text-slate-400 hover:text-amber-600" />}</Button><Button variant="ghost" size="sm" onClick={() => handleDelete(doc)}><Trash2 className="w-4 h-4 text-slate-400 hover:text-red-600" /></Button></div></td></tr>)}</tbody></table></div>}{!loading && filtered.length === 0 && <div className="text-center py-12"><FolderOpen className="w-12 h-12 text-slate-300 mx-auto mb-3" /><p className="text-slate-500">Aucun document trouvé</p></div>}</CardContent></Card>
       </AdminLayout>
     </AdminAuthGuard>
   );
