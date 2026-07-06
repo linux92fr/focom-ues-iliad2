@@ -23,6 +23,7 @@ type Doc = {
   category_id: string | null;
   created_at: string;
   is_archived: boolean;
+  storage_provider: string;
   document_categories?: { name: string } | null;
 };
 
@@ -34,7 +35,6 @@ const NO_CATEGORY = "none";
 const emptyForm = (): FormState => ({ title: "", description: "", category_id: NO_CATEGORY, file: null });
 const formatSize = (bytes?: number | null) => !bytes ? "—" : bytes < 1024 * 1024 ? `${Math.round(bytes / 1024)} Ko` : `${(bytes / 1024 / 1024).toFixed(1)} Mo`;
 const formatDate = (iso: string) => new Date(iso).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" });
-const cleanName = (name: string) => name.replace(/[^a-zA-Z0-9._-]/g, "-");
 
 export default function AdminDocuments() {
   const [documents, setDocuments] = useState<Doc[]>([]);
@@ -83,10 +83,19 @@ export default function AdminDocuments() {
   const setField = (key: keyof FormState, value: string | File | null) => setForm((old) => ({ ...old, [key]: value }));
 
   const uploadFile = async (file: File) => {
-    const path = `${Date.now()}-${cleanName(file.name)}`;
-    const { error } = await supabase.storage.from(BUCKET).upload(path, file, { contentType: file.type || undefined });
-    if (error) throw error;
-    return path;
+    const formData = new FormData();
+    formData.append("file", file);
+    const { data, error } = await supabase.functions.invoke("documents-o2switch?action=upload", { body: formData });
+    if (error || !data?.path) throw new Error(error?.message || "Échec de l'upload vers o2switch");
+    return { file_path: data.path as string, storage_provider: "o2switch", file_size: (data.size as number) ?? file.size };
+  };
+
+  const removeFile = async (doc: Pick<Doc, "id" | "storage_provider">, path: string) => {
+    if (doc.storage_provider === "o2switch") {
+      await supabase.functions.invoke("documents-o2switch?action=delete", { body: { documentId: doc.id, path } });
+    } else {
+      await supabase.storage.from(BUCKET).remove([path]);
+    }
   };
 
   const handleSave = async () => {
@@ -97,8 +106,8 @@ export default function AdminDocuments() {
       const { data: { user } } = await supabase.auth.getUser();
       let fileData = {};
       if (form.file) {
-        const filePath = await uploadFile(form.file);
-        fileData = { file_name: form.file.name, file_path: filePath, file_size: form.file.size, file_type: form.file.type || null };
+        const uploaded = await uploadFile(form.file);
+        fileData = { file_name: form.file.name, file_path: uploaded.file_path, file_size: uploaded.file_size, file_type: form.file.type || null, storage_provider: uploaded.storage_provider };
       }
       const payload = {
         title: form.title.trim(),
@@ -114,9 +123,10 @@ export default function AdminDocuments() {
       }
       if (modal?.mode === "edit" && modal.item) {
         const oldPath = modal.item.file_path;
+        const oldProvider = modal.item.storage_provider;
         const { error } = await supabase.from("documents").update(payload as never).eq("id", modal.item.id);
         if (error) throw error;
-        if (form.file && oldPath) await supabase.storage.from(BUCKET).remove([oldPath]);
+        if (form.file && oldPath) await removeFile({ id: modal.item.id, storage_provider: oldProvider }, oldPath);
         toast.success("Document mis à jour");
       }
       setModal(null);
@@ -131,9 +141,9 @@ export default function AdminDocuments() {
 
   const handleDelete = async (doc: Doc) => {
     if (!window.confirm(`Supprimer "${doc.title}" définitivement ?`)) return;
+    if (doc.file_path) await removeFile(doc, doc.file_path);
     const { error } = await supabase.from("documents").delete().eq("id", doc.id);
     if (error) return toast.error("Impossible de supprimer le document");
-    if (doc.file_path) await supabase.storage.from(BUCKET).remove([doc.file_path]);
     setDocuments((prev) => prev.filter((d) => d.id !== doc.id));
     toast.success("Document supprimé");
   };
@@ -149,10 +159,25 @@ export default function AdminDocuments() {
     toast.success(doc.is_archived ? "Document désarchivé" : "Document archivé");
   };
 
-  const handleDownload = (doc: Doc) => {
-    const { data } = supabase.storage.from(BUCKET).getPublicUrl(doc.file_path);
-    if (!data.publicUrl) return toast.error("Lien indisponible");
-    window.open(data.publicUrl, "_blank", "noopener,noreferrer");
+  const handleDownload = async (doc: Doc) => {
+    if (doc.storage_provider !== "o2switch") {
+      const { data } = supabase.storage.from(BUCKET).getPublicUrl(doc.file_path);
+      if (!data.publicUrl) return toast.error("Lien indisponible");
+      window.open(data.publicUrl, "_blank", "noopener,noreferrer");
+      return;
+    }
+    const { data, error } = await supabase.functions.invoke("documents-o2switch?action=download", {
+      body: { documentId: doc.id },
+      responseType: "blob",
+    });
+    if (error || !data) return toast.error("Téléchargement impossible");
+    const blob = data instanceof Blob ? data : new Blob([data]);
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = doc.file_name;
+    link.click();
+    URL.revokeObjectURL(url);
   };
 
   const getIcon = (type?: string | null) => {

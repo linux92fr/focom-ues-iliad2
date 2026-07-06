@@ -33,6 +33,7 @@ type DocumentRow = {
   file_size: number | null;
   file_type: string | null;
   created_at: string;
+  storage_provider: string;
   document_categories?: { name: string } | null;
 };
 
@@ -121,9 +122,24 @@ export default function DocumentsUtiles() {
     );
   });
 
-  const downloadDocument = (doc: DocumentRow) => {
-    const { data } = supabase.storage.from(BUCKET).getPublicUrl(doc.file_path);
-    if (data.publicUrl) window.open(data.publicUrl, "_blank", "noopener,noreferrer");
+  const downloadDocument = async (doc: DocumentRow) => {
+    if (doc.storage_provider !== "o2switch") {
+      const { data } = supabase.storage.from(BUCKET).getPublicUrl(doc.file_path);
+      if (data.publicUrl) window.open(data.publicUrl, "_blank", "noopener,noreferrer");
+      return;
+    }
+    const { data, error } = await supabase.functions.invoke("documents-o2switch?action=download", {
+      body: { documentId: doc.id },
+      responseType: "blob",
+    });
+    if (error || !data) return;
+    const blob = data instanceof Blob ? data : new Blob([data]);
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = doc.file_name;
+    link.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
