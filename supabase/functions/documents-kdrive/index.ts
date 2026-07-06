@@ -8,14 +8,20 @@ const corsHeaders = {
 
 const ELEVATED_ROLES = ["admin", "representant", "gestionnaire_documents"];
 
-const BRIDGE_URL = Deno.env.get("O2SWITCH_BRIDGE_URL")!;
-const BRIDGE_SECRET = Deno.env.get("O2SWITCH_BRIDGE_SECRET")!;
+const KDRIVE_API_BASE = "https://api.infomaniak.com";
+const KDRIVE_API_TOKEN = Deno.env.get("KDRIVE_API_TOKEN")!;
+const KDRIVE_DRIVE_ID = Deno.env.get("KDRIVE_DRIVE_ID")!;
+const KDRIVE_DIRECTORY_PATH = Deno.env.get("KDRIVE_DIRECTORY_PATH") ?? "/FOCOM-Documents";
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
+}
+
+function kdriveHeaders(extra?: Record<string, string>) {
+  return { Authorization: `Bearer ${KDRIVE_API_TOKEN}`, ...extra };
 }
 
 function serviceClient() {
@@ -79,16 +85,22 @@ Deno.serve(async (req) => {
       const file = form.get("file");
       if (!(file instanceof File)) return json({ error: "Fichier requis" }, 400);
 
-      const bridgeForm = new FormData();
-      bridgeForm.set("file", file, file.name);
+      const uploadUrl = `${KDRIVE_API_BASE}/3/drive/${KDRIVE_DRIVE_ID}/upload`
+        + `?file_name=${encodeURIComponent(file.name)}`
+        + `&directory_path=${encodeURIComponent(KDRIVE_DIRECTORY_PATH)}`
+        + `&conflict=rename`;
 
-      const bridgeRes = await fetch(`${BRIDGE_URL}/upload.php`, {
+      const kdriveRes = await fetch(uploadUrl, {
         method: "POST",
-        headers: { "X-Bridge-Secret": BRIDGE_SECRET },
-        body: bridgeForm,
+        headers: kdriveHeaders({ "Content-Type": "application/octet-stream" }),
+        body: file,
       });
-      if (!bridgeRes.ok) return json({ error: "Échec de l'upload vers o2switch" }, 502);
-      return json(await bridgeRes.json());
+      const kdriveBody = await kdriveRes.json();
+      if (!kdriveRes.ok || kdriveBody.result !== "success") {
+        console.error("kDrive upload error", kdriveBody);
+        return json({ error: "Échec de l'upload vers kDrive" }, 502);
+      }
+      return json({ path: String(kdriveBody.data.id), size: file.size });
     }
 
     if (action === "download") {
@@ -96,25 +108,22 @@ Deno.serve(async (req) => {
       if (!documentId) return json({ error: "documentId requis" }, 400);
 
       const doc = await loadDocument(documentId);
-      if (!doc || doc.storage_provider !== "o2switch") return json({ error: "Document introuvable" }, 404);
+      if (!doc || doc.storage_provider !== "kdrive") return json({ error: "Document introuvable" }, 404);
 
       const user = await getCaller(authHeader);
       const authorized = !doc.is_archived || await canManageOrOwn(user?.id ?? null, doc.uploaded_by);
       if (!authorized) return json({ error: "Accès refusé" }, 403);
 
-      const bridgeRes = await fetch(
-        `${BRIDGE_URL}/download.php?path=${encodeURIComponent(doc.file_path)}`,
-        { headers: { "X-Bridge-Secret": BRIDGE_SECRET } },
+      const kdriveRes = await fetch(
+        `${KDRIVE_API_BASE}/2/drive/${KDRIVE_DRIVE_ID}/files/${doc.file_path}/temporary_url?duration=60`,
+        { headers: kdriveHeaders() },
       );
-      if (!bridgeRes.ok || !bridgeRes.body) return json({ error: "Fichier introuvable sur o2switch" }, 502);
-
-      return new Response(bridgeRes.body, {
-        headers: {
-          ...corsHeaders,
-          "Content-Type": bridgeRes.headers.get("Content-Type") ?? "application/octet-stream",
-          "Content-Disposition": bridgeRes.headers.get("Content-Disposition") ?? "inline",
-        },
-      });
+      const kdriveBody = await kdriveRes.json();
+      if (!kdriveRes.ok || kdriveBody.result !== "success") {
+        console.error("kDrive temporary_url error", kdriveBody);
+        return json({ error: "Fichier introuvable sur kDrive" }, 502);
+      }
+      return json({ url: kdriveBody.data.temporary_url });
     }
 
     if (action === "delete") {
@@ -122,18 +131,28 @@ Deno.serve(async (req) => {
       if (!documentId) return json({ error: "documentId requis" }, 400);
 
       const doc = await loadDocument(documentId);
-      if (!doc || doc.storage_provider !== "o2switch") return json({ error: "Document introuvable" }, 404);
+      if (!doc || doc.storage_provider !== "kdrive") return json({ error: "Document introuvable" }, 404);
 
       const user = await getCaller(authHeader);
       const authorized = await canManageOrOwn(user?.id ?? null, doc.uploaded_by);
       if (!authorized) return json({ error: "Accès refusé" }, 403);
 
-      const bridgeRes = await fetch(`${BRIDGE_URL}/delete.php`, {
-        method: "POST",
-        headers: { "X-Bridge-Secret": BRIDGE_SECRET, "Content-Type": "application/json" },
-        body: JSON.stringify({ path: path || doc.file_path }),
+      const fileId = path || doc.file_path;
+      const trashRes = await fetch(`${KDRIVE_API_BASE}/2/drive/${KDRIVE_DRIVE_ID}/files/${fileId}`, {
+        method: "DELETE",
+        headers: kdriveHeaders(),
       });
-      if (!bridgeRes.ok) return json({ error: "Échec de la suppression sur o2switch" }, 502);
+      if (!trashRes.ok) {
+        console.error("kDrive trash error", await trashRes.text());
+        return json({ error: "Échec de la suppression sur kDrive" }, 502);
+      }
+      // Suppression définitive (best effort : si ça échoue, le fichier reste en corbeille kDrive).
+      const purgeRes = await fetch(`${KDRIVE_API_BASE}/2/drive/${KDRIVE_DRIVE_ID}/trash/${fileId}`, {
+        method: "DELETE",
+        headers: kdriveHeaders(),
+      });
+      if (!purgeRes.ok) console.error("kDrive purge error", await purgeRes.text());
+
       return json({ success: true });
     }
 
