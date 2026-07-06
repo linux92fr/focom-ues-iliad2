@@ -123,23 +123,16 @@ export default function DocumentsUtiles() {
   });
 
   const downloadDocument = async (doc: DocumentRow) => {
-    if (doc.storage_provider !== "o2switch") {
+    if (doc.storage_provider !== "kdrive") {
       const { data } = supabase.storage.from(BUCKET).getPublicUrl(doc.file_path);
       if (data.publicUrl) window.open(data.publicUrl, "_blank", "noopener,noreferrer");
       return;
     }
-    const { data, error } = await supabase.functions.invoke("documents-o2switch?action=download", {
+    const { data, error } = await supabase.functions.invoke("documents-kdrive?action=download", {
       body: { documentId: doc.id },
-      responseType: "blob",
     });
-    if (error || !data) return;
-    const blob = data instanceof Blob ? data : new Blob([data]);
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = doc.file_name;
-    link.click();
-    URL.revokeObjectURL(url);
+    if (error || !data?.url) return;
+    window.open(data.url as string, "_blank", "noopener,noreferrer");
   };
 
   return (

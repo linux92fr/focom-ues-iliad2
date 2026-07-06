@@ -85,14 +85,14 @@ export default function AdminDocuments() {
   const uploadFile = async (file: File) => {
     const formData = new FormData();
     formData.append("file", file);
-    const { data, error } = await supabase.functions.invoke("documents-o2switch?action=upload", { body: formData });
-    if (error || !data?.path) throw new Error(error?.message || "Échec de l'upload vers o2switch");
-    return { file_path: data.path as string, storage_provider: "o2switch", file_size: (data.size as number) ?? file.size };
+    const { data, error } = await supabase.functions.invoke("documents-kdrive?action=upload", { body: formData });
+    if (error || !data?.path) throw new Error(error?.message || "Échec de l'upload vers kDrive");
+    return { file_path: data.path as string, storage_provider: "kdrive", file_size: (data.size as number) ?? file.size };
   };
 
   const removeFile = async (doc: Pick<Doc, "id" | "storage_provider">, path: string) => {
-    if (doc.storage_provider === "o2switch") {
-      await supabase.functions.invoke("documents-o2switch?action=delete", { body: { documentId: doc.id, path } });
+    if (doc.storage_provider === "kdrive") {
+      await supabase.functions.invoke("documents-kdrive?action=delete", { body: { documentId: doc.id, path } });
     } else {
       await supabase.storage.from(BUCKET).remove([path]);
     }
@@ -160,24 +160,17 @@ export default function AdminDocuments() {
   };
 
   const handleDownload = async (doc: Doc) => {
-    if (doc.storage_provider !== "o2switch") {
+    if (doc.storage_provider !== "kdrive") {
       const { data } = supabase.storage.from(BUCKET).getPublicUrl(doc.file_path);
       if (!data.publicUrl) return toast.error("Lien indisponible");
       window.open(data.publicUrl, "_blank", "noopener,noreferrer");
       return;
     }
-    const { data, error } = await supabase.functions.invoke("documents-o2switch?action=download", {
+    const { data, error } = await supabase.functions.invoke("documents-kdrive?action=download", {
       body: { documentId: doc.id },
-      responseType: "blob",
     });
-    if (error || !data) return toast.error("Téléchargement impossible");
-    const blob = data instanceof Blob ? data : new Blob([data]);
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = doc.file_name;
-    link.click();
-    URL.revokeObjectURL(url);
+    if (error || !data?.url) return toast.error("Téléchargement impossible");
+    window.open(data.url as string, "_blank", "noopener,noreferrer");
   };
 
   const getIcon = (type?: string | null) => {
