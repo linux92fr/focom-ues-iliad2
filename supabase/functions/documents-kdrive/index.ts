@@ -9,9 +9,7 @@ const corsHeaders = {
 const ELEVATED_ROLES = ["admin", "representant", "gestionnaire_documents"];
 
 const KDRIVE_API_BASE = "https://api.infomaniak.com";
-const KDRIVE_TOKEN_URL = "https://login.infomaniak.com/token";
-const KDRIVE_CLIENT_ID = Deno.env.get("KDRIVE_CLIENT_ID")!;
-const KDRIVE_CLIENT_SECRET = Deno.env.get("KDRIVE_CLIENT_SECRET")!;
+const KDRIVE_API_TOKEN = Deno.env.get("KDRIVE_API_TOKEN")!;
 const KDRIVE_DRIVE_ID = Deno.env.get("KDRIVE_DRIVE_ID")!;
 const KDRIVE_DIRECTORY_PATH = Deno.env.get("KDRIVE_DIRECTORY_PATH") ?? "/FOCOM-Documents";
 
@@ -22,63 +20,16 @@ function json(body: unknown, status = 200) {
   });
 }
 
+function kdriveHeaders(extra?: Record<string, string>) {
+  return { Authorization: `Bearer ${KDRIVE_API_TOKEN}`, ...extra };
+}
+
 function serviceClient() {
   return createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     { auth: { persistSession: false, autoRefreshToken: false } },
   );
-}
-
-// L'access_token kDrive expire (~1h) et le refresh_token peut être remplacé à chaque
-// rafraîchissement (rotation). On met en cache l'access_token courant dans la table
-// kdrive_oauth_tokens et on persiste le nouveau refresh_token à chaque appel, pour ne
-// jamais dépendre d'un secret statique qui deviendrait invalide.
-async function getAccessToken(): Promise<string> {
-  const admin = serviceClient();
-  const { data: row, error } = await admin
-    .from("kdrive_oauth_tokens")
-    .select("refresh_token, access_token, access_token_expires_at")
-    .eq("id", 1)
-    .single();
-  if (error || !row) {
-    throw new Error("kDrive non configuré : table kdrive_oauth_tokens vide (voir procédure d'autorisation initiale)");
-  }
-
-  const stillValid = row.access_token && row.access_token_expires_at
-    && new Date(row.access_token_expires_at).getTime() - 60_000 > Date.now();
-  if (stillValid) return row.access_token as string;
-
-  const tokenRes = await fetch(KDRIVE_TOKEN_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      grant_type: "refresh_token",
-      refresh_token: row.refresh_token,
-      client_id: KDRIVE_CLIENT_ID,
-      client_secret: KDRIVE_CLIENT_SECRET,
-    }),
-  });
-  const tokenBody = await tokenRes.json();
-  if (!tokenRes.ok || !tokenBody.access_token) {
-    console.error("kDrive token refresh error", tokenBody);
-    throw new Error("Impossible de rafraîchir le token kDrive");
-  }
-
-  const expiresAt = new Date(Date.now() + (tokenBody.expires_in ?? 3600) * 1000).toISOString();
-  await admin.from("kdrive_oauth_tokens").update({
-    access_token: tokenBody.access_token,
-    access_token_expires_at: expiresAt,
-    refresh_token: tokenBody.refresh_token || row.refresh_token,
-    updated_at: new Date().toISOString(),
-  }).eq("id", 1);
-
-  return tokenBody.access_token as string;
-}
-
-async function kdriveHeaders(extra?: Record<string, string>) {
-  const token = await getAccessToken();
-  return { Authorization: `Bearer ${token}`, ...extra };
 }
 
 async function getCaller(authHeader: string) {
@@ -141,7 +92,7 @@ Deno.serve(async (req) => {
 
       const kdriveRes = await fetch(uploadUrl, {
         method: "POST",
-        headers: await kdriveHeaders({ "Content-Type": "application/octet-stream" }),
+        headers: kdriveHeaders({ "Content-Type": "application/octet-stream" }),
         body: file,
       });
       const kdriveBody = await kdriveRes.json();
@@ -165,7 +116,7 @@ Deno.serve(async (req) => {
 
       const kdriveRes = await fetch(
         `${KDRIVE_API_BASE}/2/drive/${KDRIVE_DRIVE_ID}/files/${doc.file_path}/temporary_url?duration=60`,
-        { headers: await kdriveHeaders() },
+        { headers: kdriveHeaders() },
       );
       const kdriveBody = await kdriveRes.json();
       if (!kdriveRes.ok || kdriveBody.result !== "success") {
@@ -189,7 +140,7 @@ Deno.serve(async (req) => {
       const fileId = path || doc.file_path;
       const trashRes = await fetch(`${KDRIVE_API_BASE}/2/drive/${KDRIVE_DRIVE_ID}/files/${fileId}`, {
         method: "DELETE",
-        headers: await kdriveHeaders(),
+        headers: kdriveHeaders(),
       });
       if (!trashRes.ok) {
         console.error("kDrive trash error", await trashRes.text());
@@ -198,7 +149,7 @@ Deno.serve(async (req) => {
       // Suppression définitive (best effort : si ça échoue, le fichier reste en corbeille kDrive).
       const purgeRes = await fetch(`${KDRIVE_API_BASE}/2/drive/${KDRIVE_DRIVE_ID}/trash/${fileId}`, {
         method: "DELETE",
-        headers: await kdriveHeaders(),
+        headers: kdriveHeaders(),
       });
       if (!purgeRes.ok) console.error("kDrive purge error", await purgeRes.text());
 
