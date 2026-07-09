@@ -88,6 +88,7 @@ Deno.serve(async (req) => {
       const uploadUrl = `${KDRIVE_API_BASE}/3/drive/${KDRIVE_DRIVE_ID}/upload`
         + `?file_name=${encodeURIComponent(file.name)}`
         + `&directory_path=${encodeURIComponent(KDRIVE_DIRECTORY_PATH)}`
+        + `&total_size=${file.size}`
         + `&conflict=rename`;
 
       const kdriveRes = await fetch(uploadUrl, {
