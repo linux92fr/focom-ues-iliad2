@@ -11,7 +11,7 @@ const ELEVATED_ROLES = ["admin", "representant", "gestionnaire_documents"];
 const KDRIVE_API_BASE = "https://api.infomaniak.com";
 const KDRIVE_API_TOKEN = Deno.env.get("KDRIVE_API_TOKEN")!;
 const KDRIVE_DRIVE_ID = Deno.env.get("KDRIVE_DRIVE_ID")!;
-const KDRIVE_DIRECTORY_PATH = Deno.env.get("KDRIVE_DIRECTORY_PATH") ?? "/FOCOM-Documents";
+const KDRIVE_DIRECTORY_ID = Deno.env.get("KDRIVE_DIRECTORY_ID")!;
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -87,7 +87,7 @@ Deno.serve(async (req) => {
 
       const uploadUrl = `${KDRIVE_API_BASE}/3/drive/${KDRIVE_DRIVE_ID}/upload`
         + `?file_name=${encodeURIComponent(file.name)}`
-        + `&directory_path=${encodeURIComponent(KDRIVE_DIRECTORY_PATH)}`
+        + `&directory_id=${KDRIVE_DIRECTORY_ID}`
         + `&total_size=${file.size}`
         + `&conflict=rename`;
 
