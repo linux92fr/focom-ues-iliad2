@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import AuthModal from "@/components/AuthModal";
 import UserMenu from "@/components/UserMenu";
 import logoFocom from "@/assets/logo-focom.png";
+import { adminPath } from "@/lib/adminPath";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -66,7 +67,7 @@ const Header = () => {
               
               {/* Écrou d'administration */}
               <Button asChild variant="ghost" size="icon" className="hidden md:flex">
-                <a href="/admin">
+                <a href={adminPath()}>
                   <Settings className="h-5 w-5" />
                 </a>
               </Button>

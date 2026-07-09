@@ -33,6 +33,7 @@ type DocumentRow = {
   file_size: number | null;
   file_type: string | null;
   created_at: string;
+  storage_provider: string;
   document_categories?: { name: string } | null;
 };
 
@@ -121,9 +122,17 @@ export default function DocumentsUtiles() {
     );
   });
 
-  const downloadDocument = (doc: DocumentRow) => {
-    const { data } = supabase.storage.from(BUCKET).getPublicUrl(doc.file_path);
-    if (data.publicUrl) window.open(data.publicUrl, "_blank", "noopener,noreferrer");
+  const downloadDocument = async (doc: DocumentRow) => {
+    if (doc.storage_provider !== "kdrive") {
+      const { data } = supabase.storage.from(BUCKET).getPublicUrl(doc.file_path);
+      if (data.publicUrl) window.open(data.publicUrl, "_blank", "noopener,noreferrer");
+      return;
+    }
+    const { data, error } = await supabase.functions.invoke("documents-kdrive?action=download", {
+      body: { documentId: doc.id },
+    });
+    if (error || !data?.url) return;
+    window.open(data.url as string, "_blank", "noopener,noreferrer");
   };
 
   return (

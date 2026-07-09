@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdminAuth } from "@/contexts/AdminAuthContext";
+import { adminPath } from "@/lib/adminPath";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import {
@@ -164,7 +165,7 @@ export default function EditArticle() {
       queryClient.invalidateQueries({ queryKey: ["admin-articles"] });
       queryClient.invalidateQueries({ queryKey: ["article-edit", id] });
       toast.success("Article mis à jour !");
-      navigate("/admin/actualites");
+      navigate(adminPath("/actualites"));
     },
     onError: (error) => {
       console.error("Erreur mise à jour article", error);
@@ -180,7 +181,7 @@ export default function EditArticle() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-articles"] });
       toast.success("Article supprimé");
-      navigate("/admin/actualites");
+      navigate(adminPath("/actualites"));
     },
     onError: () => toast.error("Erreur lors de la suppression"),
   });
@@ -195,7 +196,7 @@ export default function EditArticle() {
   };
 
   if (!isAuthenticated) {
-    navigate("/admin/login");
+    navigate(adminPath("/login"));
     return null;
   }
 
@@ -215,7 +216,7 @@ export default function EditArticle() {
         <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
-              <button onClick={() => navigate("/admin/actualites")} className="p-2 rounded-lg hover:bg-slate-100">
+              <button onClick={() => navigate(adminPath("/actualites"))} className="p-2 rounded-lg hover:bg-slate-100">
                 <ArrowLeft className="w-5 h-5" />
               </button>
               <img loading="lazy" src={LOGO_IMAGE} alt="FO Com" className="h-12 w-12 object-contain" />

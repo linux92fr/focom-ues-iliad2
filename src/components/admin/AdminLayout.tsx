@@ -8,25 +8,26 @@ import {
 import { Button } from "@/components/ui/button";
 import { useAdminAuth } from "@/contexts/AdminAuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { adminPath, ADMIN_BASE } from "@/lib/adminPath";
 
 const LOGO_IMAGE = "https://files.manuscdn.com/user_upload_by_module/session_file/310519663612648040/LldXxCbhFdcPcHwX.png";
 
 const navItems = [
-  { path: "/admin",            label: "Tableau de bord", icon: LayoutDashboard, exact: true },
-  { path: "/admin/actualites", label: "Actualités",      icon: Newspaper },
-  { path: "/admin/documents",  label: "Documents",       icon: FileText },
-  { path: "/admin/adherents",  label: "Adhérents",       icon: Users },
-  { path: "/admin/agenda",     label: "Agenda",          icon: CalendarDays },
-  { path: "/admin/bilan",      label: "Bilan",           icon: BarChart3 },
-  { path: "/admin/droits",     label: "Droits",          icon: Shield },
-  { path: "/admin/faq",        label: "FAQ",             icon: Eye },
-  { path: "/admin/messages",   label: "Messages",        icon: MessageSquare },
-  { path: "/admin/home-edit",  label: "Édition Home",    icon: Home },
-  { path: "/admin/sondages",   label: "Sondages",        icon: ClipboardList },
-  { path: "/admin/newsletter",   label: "Newsletter",   icon: Mail },
-  { path: "/admin/reclamations", label: "Réclamations",  icon: FolderOpen },
-  { path: "/admin/parametres",   label: "Paramètres",   icon: Settings },
-  { path: "/admin/poster",     label: "Compositeur",     icon: Layers }
+  { path: adminPath(),                  label: "Tableau de bord", icon: LayoutDashboard, exact: true },
+  { path: adminPath("/actualites"),   label: "Actualités",      icon: Newspaper },
+  { path: adminPath("/documents"),    label: "Documents",       icon: FileText },
+  { path: adminPath("/adherents"),    label: "Adhérents",       icon: Users },
+  { path: adminPath("/agenda"),       label: "Agenda",          icon: CalendarDays },
+  { path: adminPath("/bilan"),        label: "Bilan",           icon: BarChart3 },
+  { path: adminPath("/droits"),       label: "Droits",          icon: Shield },
+  { path: adminPath("/faq"),          label: "FAQ",             icon: Eye },
+  { path: adminPath("/messages"),     label: "Messages",        icon: MessageSquare },
+  { path: adminPath("/home-edit"),    label: "Édition Home",    icon: Home },
+  { path: adminPath("/sondages"),     label: "Sondages",        icon: ClipboardList },
+  { path: adminPath("/newsletter"),   label: "Newsletter",      icon: Mail },
+  { path: adminPath("/reclamations"), label: "Réclamations",    icon: FolderOpen },
+  { path: adminPath("/parametres"),   label: "Paramètres",      icon: Settings },
+  { path: adminPath("/poster"),       label: "Compositeur",     icon: Layers }
 ];
 
 interface ContactMessage {
@@ -102,7 +103,7 @@ export default function AdminLayout({ children, title, breadcrumb }: AdminLayout
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const handleLogout = () => { logout(); navigate("/admin/login"); };
+  const handleLogout = () => { logout(); navigate(adminPath("/login")); };
   const isActive = (item: (typeof navItems)[0]) => item.exact ? location.pathname === item.path : location.pathname.startsWith(item.path);
 
   return (
@@ -155,14 +156,14 @@ export default function AdminLayout({ children, title, breadcrumb }: AdminLayout
                   <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100"><p className="font-semibold text-sm text-slate-900">Messages non lus</p><span className="text-xs text-slate-400">{unreadCount} message{unreadCount > 1 ? "s" : ""}</span></div>
                   <div className="max-h-72 overflow-y-auto divide-y divide-slate-50">
                     {messages.length === 0 ? <div className="px-4 py-8 text-center text-sm text-slate-400">Aucun message non lu</div> : messages.map((msg) => (
-                      <Link key={msg.id} to="/admin/messages" onClick={() => setBellOpen(false)} className="flex items-start gap-3 px-4 py-3 hover:bg-slate-50 transition-colors">
+                      <Link key={msg.id} to={adminPath("/messages")} onClick={() => setBellOpen(false)} className="flex items-start gap-3 px-4 py-3 hover:bg-slate-50 transition-colors">
                         <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0 text-red-600 font-bold text-xs mt-0.5">{msg.name.charAt(0).toUpperCase()}</div>
                         <div className="flex-1 min-w-0"><p className="text-sm font-semibold text-slate-900 truncate">{msg.name}</p><p className="text-xs text-slate-500 truncate">{msg.subject}</p><p className="text-[10px] text-slate-400 flex items-center gap-1 mt-0.5"><Clock className="w-2.5 h-2.5" />{formatTime(msg.created_at)}</p></div>
                         <span className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0 mt-2" />
                       </Link>
                     ))}
                   </div>
-                  <div className="px-4 py-3 border-t border-slate-100 bg-slate-50"><Link to="/admin/messages" onClick={() => setBellOpen(false)} className="flex items-center justify-center gap-2 text-xs font-semibold text-red-600 hover:text-red-700 transition-colors"><ExternalLink className="w-3.5 h-3.5" />Voir tous les messages</Link></div>
+                  <div className="px-4 py-3 border-t border-slate-100 bg-slate-50"><Link to={adminPath("/messages")} onClick={() => setBellOpen(false)} className="flex items-center justify-center gap-2 text-xs font-semibold text-red-600 hover:text-red-700 transition-colors"><ExternalLink className="w-3.5 h-3.5" />Voir tous les messages</Link></div>
                 </div>
               )}
             </div>
@@ -178,7 +179,7 @@ export default function AdminLayout({ children, title, breadcrumb }: AdminLayout
 export function AdminAuthGuard({ children }: { children: ReactNode }) {
   const { isAuthenticated, ready } = useAdminAuth();
   const navigate = useNavigate();
-  useEffect(() => { if (ready && !isAuthenticated) navigate("/admin/login", { replace: true }); }, [ready, isAuthenticated, navigate]);
+  useEffect(() => { if (ready && !isAuthenticated) navigate(adminPath("/login"), { replace: true }); }, [ready, isAuthenticated, navigate]);
   if (!ready) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><div className="flex flex-col items-center gap-3 text-slate-400"><div className="w-8 h-8 border-2 border-slate-300 border-t-red-600 rounded-full animate-spin" /><p className="text-sm">Vérification en cours…</p></div></div>;
   if (!isAuthenticated) return null;
   return <>{children}</>;

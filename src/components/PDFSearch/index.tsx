@@ -1,401 +1,397 @@
-import React, { useState } from "react";
-import { pipeline } from "@xenova/transformers";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import React, { useState, useRef, useEffect } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Upload, Search, AlertCircle, FileText } from "lucide-react";
+import { Loader2, AlertCircle, FileText, Mic, Download, Lock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import AuthModal from "@/components/AuthModal";
+import logoFocom from "@/assets/logo-focom.png";
+
+const EDGE_FUNCTION_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/embed-pv`;
 
 interface SearchResult {
-  id: number;
   filename: string;
+  original_filename?: string;
   content: string;
   similarity: number;
   chunk_index: number;
 }
 
-interface UploadStatus {
-  status: "idle" | "uploading" | "extracting" | "embedding" | "storing" | "success" | "error";
-  message: string;
-  filename?: string;
+async function getAuthHeader(): Promise<Record<string, string>> {
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+function cleanText(text: string): string {
+  return text
+    .replace(/(\w+)\s*-\s*\n?\s*(\w)/g, "$1$2") // réunit les mots coupés par césure PDF
+    .replace(/\s*-\s{2,}/g, " ")                  // nettoie les tirets isolés
+    .replace(/\s{2,}/g, " ")                       // espaces multiples
+    .trim();
+}
+
+function extractSnippet(text: string, query: string, maxLen = 320): string {
+  const clean = cleanText(text);
+  const words = query.split(/\s+/).filter(Boolean);
+  if (!words.length) return clean.slice(0, maxLen);
+  const regex = new RegExp(words.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|"), "gi");
+  const match = regex.exec(clean);
+  if (!match) return clean.slice(0, maxLen);
+  const center = match.index;
+  const half = Math.floor(maxLen / 2);
+  const start = Math.max(0, center - half);
+  const end = Math.min(clean.length, start + maxLen);
+  const snippet = clean.slice(start, end);
+  return (start > 0 ? "…" : "") + snippet + (end < clean.length ? "…" : "");
+}
+
+// Masque les noms propres pour les visiteurs non connectés.
+// Couvre : mots tout-MAJUSCULES (≥2 lettres), titres de civilité + nom, séquences Title Case hors début de phrase.
+function maskProperNouns(text: string): string {
+  const ACCENTED = "ÀÂÄÉÈÊËÎÏÔÙÛÜÇàâäéèêëîïôùûüç";
+  const UC = `A-ZÀÂÄÉÈÊËÎÏÔÙÛÜÇ`;
+  const LC = `a-zàâäéèêëîïôùûüç`;
+  // 1) Mots entièrement en majuscules (≥2 lettres) — ex: SIDIBÉ, LAITHIER
+  const allCaps = new RegExp(`\\b[${UC}][${UC}${ACCENTED}]{1,}\\b`, "g");
+  // 2) Titre de civilité suivi d'un nom (M., Mme, Mme., Dr, Me) — ex: Mme LAITHIER, M. Dupont
+  const civility = /\b(M\.|Mme\.?|Dr\.?|Me\.?|Pr\.?)\s+[^\s,;.!?]+/g;
+  // 3) Séquences Title Case en milieu de phrase (pas après . ! ? ou en début)
+  const titleCase = new RegExp(
+    `(?<![.!?]\\s)(?<!^)\\b[${UC}][${LC}]{1,}(?:\\s+[${UC}][${LC}]{1,})*\\b`,
+    "g"
+  );
+  return text
+    .replace(civility, "***")
+    .replace(allCaps, "***")
+    .replace(titleCase, "***");
+}
+
+function highlight(text: string, query: string): React.ReactNode {
+  const words = query
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+  if (words.length === 0) return text;
+  const regex = new RegExp(`(${words.join("|")})`, "gi");
+  const parts = text.split(regex);
+  return parts.map((part, i) =>
+    regex.test(part) ? (
+      <mark key={i} className="bg-yellow-200 text-inherit rounded-sm px-0.5 font-medium">
+        {part}
+      </mark>
+    ) : (
+      part
+    )
+  );
 }
 
 export function PVSearchPage() {
-  const [uploadStatus, setUploadStatus] = useState<UploadStatus>({ status: "idle", message: "" });
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [query, setQuery] = useState("");
+  const [submitted, setSubmitted] = useState("");
+  const [results, setResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [documents, setDocuments] = useState<{ filename: string; chunks: number }[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [extractor, setExtractor] = useState<any>(null);
+  const [searched, setSearched] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  React.useEffect(() => {
-    loadModel();
-    loadDocuments();
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setIsAuthenticated(!!data.session);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsAuthenticated(!!session);
+    });
+    return () => subscription.unsubscribe();
   }, []);
 
-  const loadModel = async () => {
-    try {
-      const model = await pipeline("feature-extraction", "Xenova/all-MiniLM-L6-v2");
-      setExtractor(model);
-    } catch (error) {
-      console.error("Failed to load model:", error);
-    }
+  const downloadFile = async (filename: string) => {
+    const { data, error } = await supabase.storage
+      .from("pv-documents")
+      .createSignedUrl(filename, 60);
+    if (error || !data) return;
+    window.open(data.signedUrl, "_blank");
   };
 
-  const loadDocuments = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("pv_documents")
-        .select("filename")
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-
-      const grouped = (data ?? []).reduce((acc: { filename: string; chunks: number }[], doc) => {
-        const existing = acc.find((d) => d.filename === doc.filename);
-        if (existing) {
-          existing.chunks += 1;
-        } else {
-          acc.push({ filename: doc.filename ?? "", chunks: 1 });
-        }
-        return acc;
-      }, []);
-
-      setDocuments(grouped);
-    } catch (error) {
-      console.error("Error loading documents:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const extractTextFromPdf = async (file: File): Promise<string> => {
-    const { getDocument, GlobalWorkerOptions } = await import("pdfjs-dist");
-    // Use the bundled worker
-    GlobalWorkerOptions.workerSrc = new URL(
-      "pdfjs-dist/build/pdf.worker.min.mjs",
-      import.meta.url
-    ).toString();
-
-    const arrayBuffer = await file.arrayBuffer();
-    const loadingTask = getDocument({ data: arrayBuffer });
-    const pdf = await loadingTask.promise;
-
-    let fullText = "";
-    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-      const page = await pdf.getPage(pageNum);
-      const content = await page.getTextContent();
-      const pageText = content.items
-        .map((item: any) => ("str" in item ? item.str : ""))
-        .join(" ");
-      fullText += pageText + "\n";
-    }
-
-    return fullText.trim();
-  };
-
-  const chunkText = (text: string): string[] => {
-    const chunks: string[] = [];
-    const CHUNK_SIZE = 1000;
-    const OVERLAP = 100;
-
-    for (let i = 0; i < text.length && chunks.length < 100; i += CHUNK_SIZE - OVERLAP) {
-      const chunk = text.substring(i, i + CHUNK_SIZE).trim();
-      if (chunk.length > 50) {
-        chunks.push(chunk);
-      }
-    }
-
-    return chunks;
-  };
-
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file || !file.name.endsWith(".pdf")) {
-      setUploadStatus({ status: "error", message: "Veuillez sélectionner un fichier PDF" });
-      return;
-    }
-
-    if (!extractor) {
-      setUploadStatus({
-        status: "error",
-        message: "Modèle d'embedding en cours de chargement... Réessayez dans quelques secondes",
-      });
-      return;
-    }
-
-    setUploadStatus({ status: "uploading", message: "Lecture du fichier...", filename: file.name });
-
-    try {
-      setUploadStatus({ status: "extracting", message: "Extraction du texte du PDF..." });
-      const text = await extractTextFromPdf(file);
-
-      if (text.length < 100) {
-        throw new Error("PDF vide ou illisible — vérifiez que le PDF contient du texte sélectionnable (pas une image scannée)");
-      }
-
-      setUploadStatus({ status: "embedding", message: "Création des embeddings (peut prendre 30-60s)..." });
-      const chunks = chunkText(text);
-
-      if (chunks.length === 0) {
-        throw new Error("Impossible d'extraire le texte du PDF");
-      }
-
-      const embeddings = await Promise.all(
-        chunks.map(async (chunk) => {
-          const result = await extractor(chunk, { pooling: "mean", normalize: true });
-          return Array.from(result.data) as number[];
-        })
-      );
-
-      const docs = chunks.map((chunk, i) => ({
-        filename: file.name,
-        original_filename: file.name,
-        chunk_index: i,
-        content: chunk,
-        embedding: embeddings[i],
-        metadata: {
-          chunk_count: chunks.length,
-          extracted_at: new Date().toISOString(),
-        },
-      }));
-
-      setUploadStatus({ status: "storing", message: "Sauvegarde dans la base de données..." });
-      const BATCH_SIZE = 25;
-      for (let i = 0; i < docs.length; i += BATCH_SIZE) {
-        const batch = docs.slice(i, i + BATCH_SIZE);
-        const { error } = await supabase.from("pv_documents").insert(batch as any);
-        if (error) throw error;
-      }
-
-      setUploadStatus({
-        status: "success",
-        message: `${chunks.length} sections indexées de "${file.name}"`,
-        filename: file.name,
-      });
-
-      await loadDocuments();
-      event.target.value = "";
-    } catch (error) {
-      setUploadStatus({
-        status: "error",
-        message: `Erreur: ${error instanceof Error ? error.message : "Erreur inconnue"}`,
-      });
-    }
-  };
-
-  const handleSearch = async () => {
-    if (!searchQuery.trim() || !extractor) return;
+  const handleSearch = async (q?: string) => {
+    const term = (q ?? query).trim();
+    if (!term) return;
 
     setIsSearching(true);
+    setSearched(false);
+
     try {
-      const queryEmbedding = await extractor(searchQuery, { pooling: "mean", normalize: true });
-      const queryVector = Array.from(queryEmbedding.data) as number[];
-
-      const { data, error } = await supabase.rpc("search_pv_documents_vector", {
-        query_embedding: queryVector,
-        match_threshold: 0.4,
-        match_count: 10,
+      const authHeader = await getAuthHeader();
+      const resp = await fetch(`${EDGE_FUNCTION_URL}/search`, {
+        method: "POST",
+        headers: { ...authHeader, "Content-Type": "application/json" },
+        body: JSON.stringify({ query: term, match_count: 15 }),
       });
-
-      if (error) {
-        // Fallback to keyword search
-        console.warn("Vector search failed, falling back to keyword search:", error);
-        const { data: keywordData } = await supabase
-          .from("pv_documents")
-          .select("id, filename, content, chunk_index")
-          .ilike("content", `%${searchQuery}%`)
-          .limit(10);
-
-        setSearchResults(
-          (keywordData ?? []).map((row) => ({
-            id: row.id as number,
-            filename: row.filename ?? "",
-            content: row.content ?? "",
-            chunk_index: row.chunk_index ?? 0,
-            similarity: 0.5,
-          }))
-        );
-        return;
-      }
-
-      setSearchResults(
-        (data ?? []).map((row: any) => ({
-          id: row.id,
-          filename: row.filename,
-          content: row.content,
-          similarity: row.similarity,
-          chunk_index: row.chunk_index,
-        }))
-      );
-    } catch (error) {
-      console.error("Search error:", error);
-      setSearchResults([]);
-    } finally {
-      setIsSearching(false);
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data.error ?? "Erreur serveur");
+      setResults(data.results ?? []);
+    } catch {
+      const { data: keywordData } = await supabase
+        .from("pv_documents")
+        .select("filename, original_filename, content, chunk_index")
+        .ilike("content", `%${term}%`)
+        .limit(15);
+      setResults((keywordData ?? []).map((row) => ({
+        filename: row.filename ?? "",
+        original_filename: row.original_filename ?? row.filename ?? "",
+        content: row.content ?? "",
+        chunk_index: row.chunk_index ?? 0,
+        similarity: 0.5,
+      })));
     }
+
+    setSubmitted(term);
+    setIsSearching(false);
+    setSearched(true);
   };
 
-  const isProcessing =
-    uploadStatus.status === "uploading" ||
-    uploadStatus.status === "extracting" ||
-    uploadStatus.status === "embedding" ||
-    uploadStatus.status === "storing";
+  const handleLucky = async () => {
+    const q = query.trim();
+    if (!q) return;
+    await handleSearch(q);
+  };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 py-12 px-4">
-      <div className="max-w-4xl mx-auto space-y-8">
-        <div>
-          <h1 className="text-4xl font-bold text-slate-900 mb-2">Recherche PV du CSE</h1>
-          <p className="text-lg text-slate-600">
-            Indexation sémantique des procès-verbaux pour retrouver facilement les occurrences
-          </p>
+  const grouped = results.reduce((acc: Record<string, SearchResult[]>, r) => {
+    (acc[r.filename] ??= []).push(r);
+    return acc;
+  }, {});
+
+  const hasPvResults = results.length > 0;
+  const showResults = searched && submitted;
+
+  if (!showResults) {
+    return (
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center pb-20">
+        {/* Logo */}
+        <div className="mb-6 relative">
+          <img
+            src={logoFocom}
+            alt="FO COM UES ILIAD"
+            className="w-48 h-48 object-contain drop-shadow-lg"
+          />
+          <div className="absolute -right-4 -bottom-2 bg-white rounded-full p-1 shadow-md">
+            <svg viewBox="0 0 24 24" className="w-12 h-12 text-slate-400" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+          </div>
         </div>
 
-        {!extractor && (
-          <Alert>
-            <Loader2 className="h-4 w-4 animate-spin" />
-            <AlertDescription>
-              Chargement du modèle d'IA (première fois ~100MB)... Cela peut prendre une minute.
-            </AlertDescription>
-          </Alert>
-        )}
+        {/* Barre de recherche */}
+        <div className="w-full max-w-[584px] px-4">
+          <div className="flex items-center gap-3 border border-slate-300 rounded-full px-5 py-3 shadow-sm hover:shadow-md transition-shadow bg-white focus-within:shadow-md focus-within:border-slate-400">
+            <svg viewBox="0 0 24 24" className="w-5 h-5 text-slate-400 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input
+              ref={inputRef}
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+              placeholder="Rechercher dans les PV FO COM..."
+              className="flex-1 outline-none text-slate-800 placeholder-slate-400 bg-transparent text-base"
+              autoFocus
+            />
+            <button
+              className="text-blue-500 hover:text-blue-700 transition-colors shrink-0"
+              title="Recherche vocale"
+              tabIndex={-1}
+            >
+              <Mic className="w-5 h-5" />
+            </button>
+          </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Upload className="w-5 h-5" />
-              Importer un PV
-            </CardTitle>
-            <CardDescription>
-              Téléchargez un PDF de PV pour l'indexer (le PDF doit contenir du texte sélectionnable)
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col gap-4">
-              <div className="flex items-center gap-2">
-                <Input
-                  type="file"
-                  accept=".pdf"
-                  onChange={handleFileUpload}
-                  disabled={isProcessing || !extractor}
-                  className="cursor-pointer"
-                />
-                {isProcessing && (
-                  <div className="flex items-center gap-2 text-blue-600 shrink-0">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span className="text-sm">Traitement...</span>
-                  </div>
+          {/* Boutons */}
+          <div className="flex gap-3 justify-center mt-7">
+            <button
+              onClick={() => handleSearch()}
+              disabled={isSearching || !query.trim()}
+              className="px-5 py-2 bg-[#f8f9fa] text-slate-700 text-sm rounded border border-transparent hover:border-slate-300 hover:shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+            >
+              {isSearching ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Recherche…
+                </span>
+              ) : (
+                "Recherche FO COM"
+              )}
+            </button>
+            <button
+              onClick={handleLucky}
+              disabled={isSearching || !query.trim()}
+              className="px-5 py-2 bg-[#f8f9fa] text-slate-700 text-sm rounded border border-transparent hover:border-slate-300 hover:shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+            >
+              J'ai de la chance
+            </button>
+          </div>
+        </div>
+
+        {/* Guide pratique */}
+        <div className="w-full max-w-[584px] px-4 mt-10">
+          <details className="group">
+            <summary className="cursor-pointer text-sm text-slate-500 hover:text-slate-700 flex items-center gap-1 select-none list-none">
+              <svg viewBox="0 0 24 24" className="w-4 h-4 transition-transform group-open:rotate-90" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+              Comment utiliser le moteur de recherche ?
+            </summary>
+            <div className="mt-3 text-sm text-slate-600 space-y-3 pl-1">
+              <div>
+                <p className="font-medium text-slate-700 mb-1">Recherche par mots-clés</p>
+                <p>Tapez un ou plusieurs mots présents dans les PV. Le moteur cherche tous les documents contenant ces termes.</p>
+                <p className="mt-1 text-slate-500 italic">Exemple : <span className="bg-slate-100 px-1 rounded">télétravail accord</span></p>
+              </div>
+              <div>
+                <p className="font-medium text-slate-700 mb-1">Astuces</p>
+                <ul className="space-y-1 text-slate-500">
+                  <li>• Utilisez des mots précis plutôt que des phrases complètes</li>
+                  <li>• Les accents sont pris en compte (<span className="italic">réunion</span> ≠ <span className="italic">reunion</span>)</li>
+                  <li>• Plusieurs mots = tous les mots doivent être présents</li>
+                </ul>
+              </div>
+              <div>
+                <p className="font-medium text-slate-700 mb-1">Exemples de recherches</p>
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {["NAO salaires", "CSSCT sécurité", "télétravail", "élections CSE", "accord intéressement"].map((ex) => (
+                    <button
+                      key={ex}
+                      onClick={() => { setQuery(ex); inputRef.current?.focus(); }}
+                      className="text-xs px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded text-slate-600 transition-colors"
+                    >
+                      {ex}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </details>
+        </div>
+
+        {/* Bas de page */}
+        <p className="absolute bottom-8 text-sm text-slate-500">
+          Le moteur de recherche de{" "}
+          <span className="text-[#dc2626] font-semibold">FO COM UES ILIAD</span>
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-white flex flex-col">
+      <AuthModal open={authModalOpen} onOpenChange={setAuthModalOpen} />
+      {/* Header compact post-recherche */}
+      <div className="pt-4 pb-3 border-b border-slate-200 shadow-sm px-6 flex items-center gap-4">
+        <a href="/recherche" className="flex items-center shrink-0">
+          <img src={logoFocom} alt="FO COM" className="w-10 h-10 object-contain" />
+        </a>
+
+        <div className="flex-1 max-w-2xl">
+          <div className="flex items-center gap-2 border border-slate-300 rounded-full px-4 py-2 shadow-sm hover:shadow-md transition-shadow bg-white focus-within:shadow-md">
+            <svg viewBox="0 0 24 24" className="w-4 h-4 text-slate-400 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+              placeholder="Rechercher dans les PV FO COM..."
+              className="flex-1 outline-none text-slate-800 placeholder-slate-400 bg-transparent"
+            />
+            {isSearching && <Loader2 className="w-4 h-4 animate-spin text-slate-400 shrink-0" />}
+          </div>
+        </div>
+      </div>
+
+      {/* Résultats */}
+      <div className="flex-1 px-6 py-6 max-w-3xl ml-16 space-y-8">
+        <section>
+          <div className="flex items-center gap-2 mb-4">
+            <FileText className="w-4 h-4 text-slate-400" />
+            <h2 className="text-sm font-semibold text-slate-600 uppercase tracking-wide">
+              PV CSE / CSSCT — UES Iliad
+            </h2>
+          </div>
+
+          {hasPvResults ? (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between -mt-2">
+                <p className="text-xs text-slate-400">
+                  {results.length} résultat{results.length > 1 ? "s" : ""} pour « {submitted} »
+                </p>
+                {!isAuthenticated && (
+                  <button
+                    onClick={() => setAuthModalOpen(true)}
+                    className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-800 hover:underline"
+                  >
+                    <Lock className="w-3 h-3" />
+                    Connectez-vous pour voir les noms et télécharger les PDF
+                  </button>
                 )}
               </div>
-
-              {uploadStatus.message && (
-                <Alert variant={uploadStatus.status === "error" ? "destructive" : "default"}>
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{uploadStatus.message}</AlertDescription>
-                </Alert>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {!loading && documents.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="w-5 h-5" />
-                Documents indexés ({documents.length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-2">
-                {documents.map((doc) => (
-                  <li
-                    key={doc.filename}
-                    className="flex justify-between items-center p-2 bg-slate-50 rounded"
-                  >
-                    <span className="font-medium text-slate-700">{doc.filename}</span>
-                    <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                      {doc.chunks} sections
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
-        )}
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Search className="w-5 h-5" />
-              Rechercher dans les PV
-            </CardTitle>
-            <CardDescription>
-              Entrez des mots-clés ou des concepts pour chercher dans tous les PV indexés
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex gap-2">
-              <Input
-                placeholder="Ex: vote, salaire, délégués, formations..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                disabled={!extractor}
-              />
-              <Button
-                onClick={handleSearch}
-                disabled={isSearching || !searchQuery.trim() || !extractor}
-              >
-                {isSearching ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                    Recherche...
-                  </>
-                ) : (
-                  "Chercher"
-                )}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {searchResults.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>
-                {searchResults.length} résultat{searchResults.length > 1 ? "s" : ""} pour «{" "}
-                {searchQuery} »
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {searchResults.map((result) => (
-                <div key={result.id} className="border-l-4 border-blue-500 pl-4 py-2">
-                  <div className="flex justify-between items-start mb-2">
-                    <span className="font-semibold text-slate-900">{result.filename}</span>
-                    <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
-                      {(result.similarity * 100).toFixed(0)}% de pertinence
-                    </span>
+              {Object.entries(grouped).map(([filename, fileResults]) => {
+                const docLabel = filename.replace(/\.pdf$/i, "").replace(/[_/-]/g, " ");
+                return (
+                  <div key={filename} className="border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                    {/* En-tête document */}
+                    <div className="flex items-center justify-between gap-2 px-4 py-2.5 bg-slate-50 border-b border-slate-200">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <FileText className="w-4 h-4 text-slate-400 shrink-0" />
+                        <span className="text-xs font-medium text-slate-600 truncate" title={filename}>
+                          {docLabel}
+                        </span>
+                      </div>
+                      {isAuthenticated ? (
+                        <button
+                          onClick={() => downloadFile(filename)}
+                          className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 hover:underline shrink-0"
+                        >
+                          <Download className="w-3 h-3" />
+                          Télécharger le PDF
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => setAuthModalOpen(true)}
+                          className="flex items-center gap-1 text-xs text-slate-400 hover:text-blue-600 transition-colors shrink-0"
+                        >
+                          <Lock className="w-3 h-3" />
+                          Connexion pour télécharger
+                        </button>
+                      )}
+                    </div>
+                    {/* Extraits */}
+                    <div className="divide-y divide-slate-100">
+                      {fileResults.slice(0, 3).map((result, i) => {
+                        const snippet = extractSnippet(result.content, submitted);
+                        const displayText = isAuthenticated ? snippet : maskProperNouns(snippet);
+                        return (
+                          <div key={i} className="px-4 py-3">
+                            <p className="text-sm text-slate-700 leading-relaxed">
+                              {highlight(displayText, submitted)}
+                            </p>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
-                  <p className="text-slate-600 text-sm line-clamp-3">{result.content}</p>
-                  <p className="text-xs text-slate-500 mt-2">Section {result.chunk_index + 1}</p>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        )}
-
-        {searchQuery && searchResults.length === 0 && !isSearching && extractor && (
-          <Alert>
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              Aucun résultat pour «{searchQuery}». Essayez avec d'autres termes.
-            </AlertDescription>
-          </Alert>
-        )}
+                );
+              })}
+            </div>
+          ) : (
+            <Alert className="max-w-lg">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Aucun PV trouvé pour <strong>« {submitted} »</strong>. Essayez d'autres termes ou vérifiez que des PV ont bien été indexés.
+              </AlertDescription>
+            </Alert>
+          )}
+        </section>
       </div>
     </div>
   );

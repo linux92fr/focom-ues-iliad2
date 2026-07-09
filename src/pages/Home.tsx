@@ -87,7 +87,7 @@ export default function Home() {
       .from("site_content")
       .select("value")
       .eq("key", "home_hero")
-      .single()
+      .maybeSingle()
       .then(({ data }) => {
         if (!data?.value) return;
         try {

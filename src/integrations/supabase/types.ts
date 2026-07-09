@@ -132,48 +132,6 @@ export type Database = {
         }
         Relationships: []
       }
-      contact_messages: {
-        Row: {
-          id: string
-          name: string
-          email: string
-          subject: string
-          message: string
-          category: string
-          status: "non-lu" | "lu" | "repondu"
-          admin_reply: string | null
-          replied_at: string | null
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          name: string
-          email: string
-          subject: string
-          message: string
-          category?: string
-          status?: "non-lu" | "lu" | "repondu"
-          admin_reply?: string | null
-          replied_at?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          name?: string
-          email?: string
-          subject?: string
-          message?: string
-          category?: string
-          status?: "non-lu" | "lu" | "repondu"
-          admin_reply?: string | null
-          replied_at?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
       article_notifications: {
         Row: {
           article_id: string
@@ -357,6 +315,72 @@ export type Database = {
         }
         Relationships: []
       }
+      chat_sessions: {
+        Row: {
+          created_at: string
+          id: string
+          messages: Json
+          theme_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          messages?: Json
+          theme_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          messages?: Json
+          theme_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      contact_messages: {
+        Row: {
+          admin_reply: string | null
+          category: string
+          created_at: string
+          email: string
+          id: string
+          message: string
+          name: string
+          replied_at: string | null
+          status: string
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          admin_reply?: string | null
+          category?: string
+          created_at?: string
+          email: string
+          id?: string
+          message: string
+          name: string
+          replied_at?: string | null
+          status?: string
+          subject: string
+          updated_at?: string
+        }
+        Update: {
+          admin_reply?: string | null
+          category?: string
+          created_at?: string
+          email?: string
+          id?: string
+          message?: string
+          name?: string
+          replied_at?: string | null
+          status?: string
+          subject?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       delegation_hours: {
         Row: {
           created_at: string
@@ -428,6 +452,8 @@ export type Database = {
       }
       documents: {
         Row: {
+          archived_at: string | null
+          archived_by: string | null
           category_id: string | null
           created_at: string
           description: string | null
@@ -436,11 +462,15 @@ export type Database = {
           file_size: number | null
           file_type: string | null
           id: string
+          is_archived: boolean
+          storage_provider: string
           title: string
           updated_at: string
           uploaded_by: string | null
         }
         Insert: {
+          archived_at?: string | null
+          archived_by?: string | null
           category_id?: string | null
           created_at?: string
           description?: string | null
@@ -449,11 +479,15 @@ export type Database = {
           file_size?: number | null
           file_type?: string | null
           id?: string
+          is_archived?: boolean
+          storage_provider?: string
           title: string
           updated_at?: string
           uploaded_by?: string | null
         }
         Update: {
+          archived_at?: string | null
+          archived_by?: string | null
           category_id?: string | null
           created_at?: string
           description?: string | null
@@ -462,11 +496,20 @@ export type Database = {
           file_size?: number | null
           file_type?: string | null
           id?: string
+          is_archived?: boolean
+          storage_provider?: string
           title?: string
           updated_at?: string
           uploaded_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "documents_archived_by_fkey"
+            columns: ["archived_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "documents_category_id_fkey"
             columns: ["category_id"]
@@ -740,6 +783,60 @@ export type Database = {
           },
         ]
       }
+      fil_comments: {
+        Row: {
+          author_name: string
+          content: string
+          created_at: string
+          id: string
+          item_id: string
+          item_type: string
+          status: string
+        }
+        Insert: {
+          author_name: string
+          content: string
+          created_at?: string
+          id?: string
+          item_id: string
+          item_type: string
+          status?: string
+        }
+        Update: {
+          author_name?: string
+          content?: string
+          created_at?: string
+          id?: string
+          item_id?: string
+          item_type?: string
+          status?: string
+        }
+        Relationships: []
+      }
+      fil_reactions: {
+        Row: {
+          created_at: string
+          id: string
+          item_id: string
+          item_type: string
+          session_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_id: string
+          item_type: string
+          session_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_id?: string
+          item_type?: string
+          session_id?: string
+        }
+        Relationships: []
+      }
       flash_banners: {
         Row: {
           created_at: string | null
@@ -779,6 +876,89 @@ export type Database = {
         }
         Relationships: []
       }
+      formation_inscriptions: {
+        Row: {
+          adresse_direction: string | null
+          adresse_personnelle: string | null
+          code_postal_direction: string | null
+          code_postal_personnel: string | null
+          created_at: string | null
+          direction_rattachement: string | null
+          email: string
+          id: string
+          lieu_travail: string | null
+          niveau_fonction: string | null
+          nom: string
+          nom_drh: string | null
+          nom_entreprise: string | null
+          numero_departement: string | null
+          prenom: string
+          region_fo: string | null
+          session_id: string | null
+          statut_inscription: string | null
+          telephone: string | null
+          updated_at: string | null
+          ville_direction: string | null
+          ville_personnelle: string | null
+        }
+        Insert: {
+          adresse_direction?: string | null
+          adresse_personnelle?: string | null
+          code_postal_direction?: string | null
+          code_postal_personnel?: string | null
+          created_at?: string | null
+          direction_rattachement?: string | null
+          email: string
+          id?: string
+          lieu_travail?: string | null
+          niveau_fonction?: string | null
+          nom: string
+          nom_drh?: string | null
+          nom_entreprise?: string | null
+          numero_departement?: string | null
+          prenom: string
+          region_fo?: string | null
+          session_id?: string | null
+          statut_inscription?: string | null
+          telephone?: string | null
+          updated_at?: string | null
+          ville_direction?: string | null
+          ville_personnelle?: string | null
+        }
+        Update: {
+          adresse_direction?: string | null
+          adresse_personnelle?: string | null
+          code_postal_direction?: string | null
+          code_postal_personnel?: string | null
+          created_at?: string | null
+          direction_rattachement?: string | null
+          email?: string
+          id?: string
+          lieu_travail?: string | null
+          niveau_fonction?: string | null
+          nom?: string
+          nom_drh?: string | null
+          nom_entreprise?: string | null
+          numero_departement?: string | null
+          prenom?: string
+          region_fo?: string | null
+          session_id?: string | null
+          statut_inscription?: string | null
+          telephone?: string | null
+          updated_at?: string | null
+          ville_direction?: string | null
+          ville_personnelle?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "formation_inscriptions_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "formation_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       formation_participants: {
         Row: {
           created_at: string
@@ -817,6 +997,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      formation_sessions: {
+        Row: {
+          adresse_formation: string | null
+          code_postal: string
+          created_at: string | null
+          date_debut: string
+          date_fin: string
+          id: string
+          intitule: string
+          lieu: string
+          places_max: number | null
+          places_restantes: number | null
+          statut: string | null
+          type_formation: string
+          updated_at: string | null
+        }
+        Insert: {
+          adresse_formation?: string | null
+          code_postal: string
+          created_at?: string | null
+          date_debut: string
+          date_fin: string
+          id?: string
+          intitule: string
+          lieu: string
+          places_max?: number | null
+          places_restantes?: number | null
+          statut?: string | null
+          type_formation: string
+          updated_at?: string | null
+        }
+        Update: {
+          adresse_formation?: string | null
+          code_postal?: string
+          created_at?: string | null
+          date_debut?: string
+          date_fin?: string
+          id?: string
+          intitule?: string
+          lieu?: string
+          places_max?: number | null
+          places_restantes?: number | null
+          statut?: string | null
+          type_formation?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       formations: {
         Row: {
@@ -1063,6 +1291,42 @@ export type Database = {
           temps_commentaire?: string | null
           temps_priorite?: string | null
           top5?: string[] | null
+        }
+        Relationships: []
+      }
+      nao_sessions: {
+        Row: {
+          badge_label: string
+          created_at: string | null
+          date_session: string
+          description: string
+          id: string
+          ordre: number
+          statut: string
+          titre: string
+          updated_at: string | null
+        }
+        Insert: {
+          badge_label: string
+          created_at?: string | null
+          date_session: string
+          description: string
+          id?: string
+          ordre: number
+          statut: string
+          titre: string
+          updated_at?: string | null
+        }
+        Update: {
+          badge_label?: string
+          created_at?: string | null
+          date_session?: string
+          description?: string
+          id?: string
+          ordre?: number
+          statut?: string
+          titre?: string
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -1404,6 +1668,95 @@ export type Database = {
         }
         Relationships: []
       }
+      permanence_rdv: {
+        Row: {
+          created_at: string
+          id: string
+          message: string | null
+          note_delegue: string | null
+          permanence_id: string
+          statut: string
+          sujet: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message?: string | null
+          note_delegue?: string | null
+          permanence_id: string
+          statut?: string
+          sujet?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string | null
+          note_delegue?: string | null
+          permanence_id?: string
+          statut?: string
+          sujet?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "permanence_rdv_permanence_id_fkey"
+            columns: ["permanence_id"]
+            isOneToOne: false
+            referencedRelation: "permanences"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      permanences: {
+        Row: {
+          created_at: string
+          date_permanence: string
+          delegue_nom: string | null
+          heure_debut: string
+          heure_fin: string
+          id: string
+          lieu: string | null
+          places_total: number
+          published: boolean
+          statut: string
+          titre: string
+          type: string
+          visio_lien: string | null
+        }
+        Insert: {
+          created_at?: string
+          date_permanence: string
+          delegue_nom?: string | null
+          heure_debut: string
+          heure_fin: string
+          id?: string
+          lieu?: string | null
+          places_total?: number
+          published?: boolean
+          statut?: string
+          titre: string
+          type?: string
+          visio_lien?: string | null
+        }
+        Update: {
+          created_at?: string
+          date_permanence?: string
+          delegue_nom?: string | null
+          heure_debut?: string
+          heure_fin?: string
+          id?: string
+          lieu?: string | null
+          places_total?: number
+          published?: boolean
+          statut?: string
+          titre?: string
+          type?: string
+          visio_lien?: string | null
+        }
+        Relationships: []
+      }
       permissions: {
         Row: {
           category: string
@@ -1425,6 +1778,51 @@ export type Database = {
           description?: string
           id?: string
           name?: Database["public"]["Enums"]["permission_type"]
+        }
+        Relationships: []
+      }
+      podcasts: {
+        Row: {
+          audio_url: string
+          cover_url: string | null
+          created_at: string
+          description: string | null
+          duration_seconds: number | null
+          episode_number: number
+          id: string
+          is_members_only: boolean
+          is_published: boolean
+          published_at: string | null
+          title: string
+          transcript: string | null
+        }
+        Insert: {
+          audio_url: string
+          cover_url?: string | null
+          created_at?: string
+          description?: string | null
+          duration_seconds?: number | null
+          episode_number: number
+          id?: string
+          is_members_only?: boolean
+          is_published?: boolean
+          published_at?: string | null
+          title: string
+          transcript?: string | null
+        }
+        Update: {
+          audio_url?: string
+          cover_url?: string | null
+          created_at?: string
+          description?: string | null
+          duration_seconds?: number | null
+          episode_number?: number
+          id?: string
+          is_members_only?: boolean
+          is_published?: boolean
+          published_at?: string | null
+          title?: string
+          transcript?: string | null
         }
         Relationships: []
       }
@@ -1559,6 +1957,42 @@ export type Database = {
           },
         ]
       }
+      pv_documents: {
+        Row: {
+          chunk_index: number
+          content: string
+          created_at: string | null
+          embedding: string | null
+          filename: string
+          id: number
+          metadata: Json | null
+          original_filename: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          chunk_index: number
+          content: string
+          created_at?: string | null
+          embedding?: string | null
+          filename: string
+          id?: number
+          metadata?: Json | null
+          original_filename?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          chunk_index?: number
+          content?: string
+          created_at?: string | null
+          embedding?: string | null
+          filename?: string
+          id?: number
+          metadata?: Json | null
+          original_filename?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       rate_limits: {
         Row: {
           created_at: string
@@ -1586,6 +2020,172 @@ export type Database = {
           request_count?: number
           updated_at?: string
           window_start?: string
+        }
+        Relationships: []
+      }
+      reclamation_attachments: {
+        Row: {
+          created_at: string
+          file_name: string
+          file_path: string
+          file_size: number | null
+          id: string
+          mime_type: string | null
+          reclamation_id: string
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          id?: string
+          mime_type?: string | null
+          reclamation_id: string
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          mime_type?: string | null
+          reclamation_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reclamation_attachments_reclamation_id_fkey"
+            columns: ["reclamation_id"]
+            isOneToOne: false
+            referencedRelation: "reclamations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reclamation_messages: {
+        Row: {
+          author_id: string | null
+          content: string
+          created_at: string
+          id: string
+          is_admin: boolean
+          reclamation_id: string
+        }
+        Insert: {
+          author_id?: string | null
+          content: string
+          created_at?: string
+          id?: string
+          is_admin?: boolean
+          reclamation_id: string
+        }
+        Update: {
+          author_id?: string | null
+          content?: string
+          created_at?: string
+          id?: string
+          is_admin?: boolean
+          reclamation_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reclamation_messages_reclamation_id_fkey"
+            columns: ["reclamation_id"]
+            isOneToOne: false
+            referencedRelation: "reclamations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reclamations: {
+        Row: {
+          category: string
+          created_at: string
+          description: string
+          entity: string
+          id: string
+          priority: string
+          status: string
+          title: string
+          updated_at: string
+          user_email: string | null
+          user_id: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description: string
+          entity?: string
+          id?: string
+          priority?: string
+          status?: string
+          title: string
+          updated_at?: string
+          user_email?: string | null
+          user_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string
+          entity?: string
+          id?: string
+          priority?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          user_email?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      representatives: {
+        Row: {
+          actif: boolean
+          avatar_letters: string | null
+          created_at: string
+          email: string
+          entity: string
+          id: string
+          mandat: string
+          nom: string
+          ordre: number
+          photo_url: string | null
+          poste: string
+          region: string
+          telephone: string
+          updated_at: string
+        }
+        Insert: {
+          actif?: boolean
+          avatar_letters?: string | null
+          created_at?: string
+          email?: string
+          entity?: string
+          id?: string
+          mandat?: string
+          nom: string
+          ordre?: number
+          photo_url?: string | null
+          poste?: string
+          region?: string
+          telephone?: string
+          updated_at?: string
+        }
+        Update: {
+          actif?: boolean
+          avatar_letters?: string | null
+          created_at?: string
+          email?: string
+          entity?: string
+          id?: string
+          mandat?: string
+          nom?: string
+          ordre?: number
+          photo_url?: string | null
+          poste?: string
+          region?: string
+          telephone?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -1678,6 +2278,79 @@ export type Database = {
         }
         Relationships: []
       }
+      survey_email_verifications: {
+        Row: {
+          code_hash: string
+          created_at: string
+          email_hash: string
+          expires_at: string
+          id: string
+          survey_id: string
+          used_at: string | null
+        }
+        Insert: {
+          code_hash: string
+          created_at?: string
+          email_hash: string
+          expires_at: string
+          id?: string
+          survey_id: string
+          used_at?: string | null
+        }
+        Update: {
+          code_hash?: string
+          created_at?: string
+          email_hash?: string
+          expires_at?: string
+          id?: string
+          survey_id?: string
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "survey_email_verifications_survey_id_fkey"
+            columns: ["survey_id"]
+            isOneToOne: false
+            referencedRelation: "surveys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      survey_external_participants: {
+        Row: {
+          created_at: string
+          email_hash: string
+          first_name: string
+          id: string
+          last_name: string
+          survey_id: string
+        }
+        Insert: {
+          created_at?: string
+          email_hash: string
+          first_name: string
+          id?: string
+          last_name: string
+          survey_id: string
+        }
+        Update: {
+          created_at?: string
+          email_hash?: string
+          first_name?: string
+          id?: string
+          last_name?: string
+          survey_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "survey_external_participants_survey_id_fkey"
+            columns: ["survey_id"]
+            isOneToOne: false
+            referencedRelation: "surveys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       survey_options: {
         Row: {
           display_order: number
@@ -1745,6 +2418,7 @@ export type Database = {
       survey_responses: {
         Row: {
           created_at: string
+          external_participant_id: string | null
           id: string
           option_id: string | null
           question_id: string
@@ -1754,6 +2428,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          external_participant_id?: string | null
           id?: string
           option_id?: string | null
           question_id: string
@@ -1763,6 +2438,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          external_participant_id?: string | null
           id?: string
           option_id?: string | null
           question_id?: string
@@ -1771,6 +2447,13 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "survey_responses_external_participant_id_fkey"
+            columns: ["external_participant_id"]
+            isOneToOne: false
+            referencedRelation: "survey_external_participants"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "survey_responses_option_id_fkey"
             columns: ["option_id"]
@@ -1797,6 +2480,7 @@ export type Database = {
       surveys: {
         Row: {
           allow_multiple_votes: boolean
+          allowed_email_domain: string
           created_at: string
           created_by: string | null
           description: string | null
@@ -1804,12 +2488,14 @@ export type Database = {
           id: string
           is_active: boolean
           is_anonymous: boolean
+          participation_mode: string
           starts_at: string | null
           title: string
           updated_at: string
         }
         Insert: {
           allow_multiple_votes?: boolean
+          allowed_email_domain?: string
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -1817,12 +2503,14 @@ export type Database = {
           id?: string
           is_active?: boolean
           is_anonymous?: boolean
+          participation_mode?: string
           starts_at?: string | null
           title: string
           updated_at?: string
         }
         Update: {
           allow_multiple_votes?: boolean
+          allowed_email_domain?: string
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -1830,6 +2518,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           is_anonymous?: boolean
+          participation_mode?: string
           starts_at?: string | null
           title?: string
           updated_at?: string
@@ -1841,11 +2530,13 @@ export type Database = {
           body: string | null
           created_at: string
           created_by: string | null
+          file_url: string | null
           footer: string | null
           id: string
           image_url: string | null
           is_published: boolean
           layout_id: string
+          published_at: string | null
           subtitle: string | null
           theme_id: string
           title: string
@@ -1855,11 +2546,13 @@ export type Database = {
           body?: string | null
           created_at?: string
           created_by?: string | null
+          file_url?: string | null
           footer?: string | null
           id?: string
           image_url?: string | null
           is_published?: boolean
           layout_id?: string
+          published_at?: string | null
           subtitle?: string | null
           theme_id?: string
           title: string
@@ -1869,11 +2562,13 @@ export type Database = {
           body?: string | null
           created_at?: string
           created_by?: string | null
+          file_url?: string | null
           footer?: string | null
           id?: string
           image_url?: string | null
           is_published?: boolean
           layout_id?: string
+          published_at?: string | null
           subtitle?: string | null
           theme_id?: string
           title?: string
@@ -2074,6 +2769,44 @@ export type Database = {
         Args: { subscriber_email: string }
         Returns: string
       }
+      search_pv_documents: {
+        Args: {
+          match_count?: number
+          match_threshold?: number
+          query_text: string
+        }
+        Returns: {
+          chunk_index: number
+          content: string
+          filename: string
+          id: number
+          similarity: number
+        }[]
+      }
+      search_pv_documents_vector: {
+        Args: {
+          match_count?: number
+          match_threshold?: number
+          query_embedding: string
+        }
+        Returns: {
+          chunk_index: number
+          content: string
+          filename: string
+          id: number
+          similarity: number
+        }[]
+      }
+      search_pv_keywords: {
+        Args: { match_count?: number; query_text: string }
+        Returns: {
+          chunk_index: number
+          content: string
+          filename: string
+          id: number
+          similarity: number
+        }[]
+      }
       update_app_config: {
         Args: { p_key: string; p_value: string }
         Returns: undefined
@@ -2114,6 +2847,7 @@ export type Database = {
         | "tresorier"
         | "secretaire"
         | "visio"
+        | "gestionnaire_documents"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2276,8 +3010,8 @@ export const Constants = {
         "tresorier",
         "secretaire",
         "visio",
+        "gestionnaire_documents",
       ],
     },
   },
 } as const
-

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Users, Search, Filter, Eye, Edit, X, Save, Loader2, Shield } from "lucide-react";
+import { Users, Search, Filter, Eye, Edit, X, Save, Loader2, Shield, UserPlus } from "lucide-react";
 import AdminLayout, { AdminAuthGuard } from "@/components/admin/AdminLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -41,6 +41,9 @@ export default function AdminAdherents() {
   const [selectedStatus, setSelectedStatus] = useState<"Tous" | MemberStatus>("Tous");
   const [modal, setModal] = useState<{ mode: ModalMode; item: ProfileWithRoles } | null>(null);
   const [editForm, setEditForm] = useState<{ phone: string; status: MemberStatus; roles: UserRole[] }>({ phone: "", status: "actif", roles: [] });
+  const [createModal, setCreateModal] = useState(false);
+  const [createForm, setCreateForm] = useState({ firstName: "", lastName: "", email: "", password: "", role: "adherent" as UserRole });
+  const [creating, setCreating] = useState(false);
 
   const { data: profiles = [], isLoading } = useQuery({
     queryKey: ["admin-adherents"],
@@ -137,11 +140,67 @@ export default function AdminAdherents() {
     updateMutation.mutate({ profile: modal.item, updates: { phone: editForm.phone || null, status: editForm.status }, roles: editForm.roles });
   };
 
+  const handleCreateUser = async () => {
+    if (!createForm.email || !createForm.password) { toast.error("Email et mot de passe requis"); return; }
+    setCreating(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-create-user`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
+        body: JSON.stringify(createForm),
+      });
+      const result = await resp.json();
+      if (!resp.ok) throw new Error(result.error ?? "Erreur");
+      toast.success(`Utilisateur ${createForm.email} créé avec succès`);
+      setCreateModal(false);
+      setCreateForm({ firstName: "", lastName: "", email: "", password: "", role: "adherent" });
+      queryClient.invalidateQueries({ queryKey: ["admin-adherents"] });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erreur lors de la création");
+    } finally {
+      setCreating(false);
+    }
+  };
+
   const statusCounts = { actif: profiles.filter((p) => p.status === "actif").length, inactif: profiles.filter((p) => p.status === "inactif").length, suspendu: profiles.filter((p) => p.status === "suspendu").length };
 
   return (
     <AdminAuthGuard>
       <AdminLayout title="Adhérents" breadcrumb={["Administration", "Adhérents"]}>
+        {/* Modale création utilisateur */}
+        {createModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setCreateModal(false)}>
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+                <h3 className="font-bold text-slate-900">Créer un utilisateur</h3>
+                <button onClick={() => setCreateModal(false)} className="p-1.5 rounded-lg hover:bg-slate-100"><X className="w-4 h-4 text-slate-500" /></button>
+              </div>
+              <form className="p-6 space-y-4" onSubmit={(e) => { e.preventDefault(); handleCreateUser(); }}>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5"><Label>Prénom</Label><Input value={createForm.firstName} onChange={(e) => setCreateForm((f) => ({ ...f, firstName: e.target.value }))} placeholder="Marie" /></div>
+                  <div className="space-y-1.5"><Label>Nom</Label><Input value={createForm.lastName} onChange={(e) => setCreateForm((f) => ({ ...f, lastName: e.target.value }))} placeholder="Dupont" /></div>
+                </div>
+                <div className="space-y-1.5"><Label>Email <span className="text-red-500">*</span></Label><Input type="email" value={createForm.email} onChange={(e) => setCreateForm((f) => ({ ...f, email: e.target.value }))} placeholder="marie.dupont@example.com" /></div>
+                <div className="space-y-1.5"><Label>Mot de passe <span className="text-red-500">*</span></Label><Input type="password" value={createForm.password} onChange={(e) => setCreateForm((f) => ({ ...f, password: e.target.value }))} placeholder="Minimum 6 caractères" /></div>
+                <div className="space-y-1.5"><Label>Rôle initial</Label>
+                  <Select value={createForm.role} onValueChange={(v) => setCreateForm((f) => ({ ...f, role: v as UserRole }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>{roleOptions.map((r) => <SelectItem key={r} value={r}>{roleLabel[r] || r}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                  <Button type="button" variant="outline" onClick={() => setCreateModal(false)}>Annuler</Button>
+                  <Button type="submit" disabled={creating} className="bg-red-600 hover:bg-red-700 text-white gap-2">
+                    {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
+                    Créer l'utilisateur
+                  </Button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
         {modal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setModal(null)}>
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
@@ -184,7 +243,10 @@ export default function AdminAdherents() {
           <Card className="border-slate-200 shadow-sm"><CardContent className="p-4 text-center"><p className="text-2xl font-bold text-slate-900">{representantCount}</p><p className="text-xs text-slate-500 mt-1">Représentants</p></CardContent></Card>
         </div>
 
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6"><div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center"><Users className="w-5 h-5 text-red-600" /></div><div><h2 className="text-lg font-bold text-slate-900">Gestion des Adhérents</h2><p className="text-sm text-slate-500">{profiles.length} membres au total</p></div></div></div>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+          <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center"><Users className="w-5 h-5 text-red-600" /></div><div><h2 className="text-lg font-bold text-slate-900">Gestion des Adhérents</h2><p className="text-sm text-slate-500">{profiles.length} membres au total</p></div></div>
+          <Button onClick={() => setCreateModal(true)} className="bg-red-600 hover:bg-red-700 text-white gap-2 shrink-0"><UserPlus className="w-4 h-4" />Créer un utilisateur</Button>
+        </div>
 
         <Card className="border-slate-200 shadow-sm mb-6"><CardContent className="p-4"><div className="flex flex-col sm:flex-row gap-3"><div className="flex-1 relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" /><Input placeholder="Rechercher nom, email ou rôle..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10" /></div><Button variant="outline" size="sm" onClick={() => { setSearchQuery(""); setSelectedStatus("Tous"); }} className="gap-2"><Filter className="w-4 h-4" />Réinitialiser</Button></div><div className="flex flex-wrap gap-2 mt-3">{(["Tous", "actif", "inactif", "suspendu"] as const).map((s) => <button key={s} onClick={() => setSelectedStatus(s)} className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${selectedStatus === s ? "bg-red-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>{s === "Tous" ? "Tous" : statusLabel[s]}</button>)}</div></CardContent></Card>
 

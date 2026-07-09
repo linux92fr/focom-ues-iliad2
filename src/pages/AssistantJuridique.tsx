@@ -84,6 +84,7 @@ export default function AssistantJuridique() {
   const [selectedTheme, setSelectedTheme] = useState<Theme | null>(null);
   const [initialQuestion, setInitialQuestion] = useState<string | undefined>();
 
+
   const handleThemeSelect = (theme: Theme) => {
     setSelectedTheme(theme);
     setInitialQuestion(undefined);
