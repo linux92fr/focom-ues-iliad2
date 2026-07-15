@@ -19,17 +19,23 @@ export default function ResetPassword() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [showNext, setShowNext] = useState(false);
+  const [email, setEmail] = useState("");
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "PASSWORD_RECOVERY" || (event === "SIGNED_IN" && session)) {
         setStatus("ready");
+        if (session.user?.email) setEmail(session.user.email);
       }
     });
 
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) setStatus("ready");
-      else setStatus((s) => (s === "checking" ? "invalid" : s));
+      if (session) {
+        setStatus("ready");
+        if (session.user?.email) setEmail(session.user.email);
+      } else {
+        setStatus((s) => (s === "checking" ? "invalid" : s));
+      }
     });
 
     const timeout = setTimeout(() => {
@@ -102,6 +108,7 @@ export default function ResetPassword() {
 
           {status === "ready" && (
             <form onSubmit={handleSubmit} className="space-y-4">
+              <input type="text" name="username" autoComplete="username" value={email} readOnly hidden />
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="next">Nouveau mot de passe</Label>

@@ -736,12 +736,13 @@ const Profile = () => {
                     </CardHeader>
                     <CardContent>
                       <form onSubmit={handlePasswordChange} className="space-y-4">
+                        <input type="text" name="username" autoComplete="username" value={user.email || ""} readOnly hidden />
                         <div className="space-y-2">
                           <Label htmlFor="pw-next">Nouveau mot de passe</Label>
                           <div className="relative">
                             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                             <Input
-                              id="pw-next" name="username"
+                              id="pw-next"
                               type={showPw.next ? "text" : "password"}
                               value={pwData.next}
                               onChange={(e) => setPwData((p) => ({ ...p, next: e.target.value }))}
