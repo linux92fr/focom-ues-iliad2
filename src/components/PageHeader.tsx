@@ -161,6 +161,11 @@ export default function PageHeader() {
               <Menu className="h-5 w-5" />
             </button>
 
+            <Link to="/" className="lg:hidden flex min-w-0 items-center gap-2">
+              <img loading="lazy" src={logoFocom} alt="FOCOM" className="h-8 w-8 shrink-0 object-contain" />
+              <span className="hidden min-w-0 sm:block truncate font-display text-sm font-black leading-none text-primary">FOCOM UES ILIAD</span>
+            </Link>
+
             {!isHomePage && (
               <Link
                 to="/"
