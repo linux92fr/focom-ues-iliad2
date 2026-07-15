@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Loader2, Lock, CheckCircle2 } from "lucide-react";
+import { Loader2, Lock, CheckCircle2, Wand2, Eye, EyeOff } from "lucide-react";
+import { generateStrongPassword, getPasswordCriteria, getPasswordError } from "@/lib/password";
 
 type Status = "checking" | "ready" | "invalid" | "success";
 
@@ -17,6 +18,7 @@ export default function ResetPassword() {
   const [confirm, setConfirm] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+  const [showNext, setShowNext] = useState(false);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -40,11 +42,19 @@ export default function ResetPassword() {
     };
   }, []);
 
+  const handleGenerate = () => {
+    const generated = generateStrongPassword();
+    setNext(generated);
+    setConfirm(generated);
+    setShowNext(true);
+    setErrors({});
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const newErrors: Record<string, string> = {};
-    if (!next || next.length < 8) newErrors.next = "Le mot de passe doit contenir au moins 8 caractères";
-    else if (!/[A-Z]/.test(next)) newErrors.next = "Le mot de passe doit contenir au moins une majuscule";
+    const passwordError = getPasswordError(next);
+    if (passwordError) newErrors.next = passwordError;
     if (next !== confirm) newErrors.confirm = "Les mots de passe ne correspondent pas";
     if (Object.keys(newErrors).length > 0) { setErrors(newErrors); return; }
 
@@ -93,21 +103,59 @@ export default function ResetPassword() {
           {status === "ready" && (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="next">Nouveau mot de passe</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="next">Nouveau mot de passe</Label>
+                  <Button
+                    type="button" variant="ghost" size="sm"
+                    className="h-auto py-1 px-2 text-xs gap-1.5"
+                    onClick={handleGenerate}
+                  >
+                    <Wand2 className="h-3.5 w-3.5" />
+                    Générer un mot de passe sécurisé
+                  </Button>
+                </div>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="next"
-                    type="password"
+                    type={showNext ? "text" : "password"}
                     autoComplete="new-password"
                     placeholder="••••••••"
                     value={next}
                     onChange={(e) => setNext(e.target.value)}
-                    className="pl-10"
+                    className="pl-10 pr-10"
                   />
+                  <button
+                    type="button" onClick={() => setShowNext((v) => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    aria-label={showNext ? "Masquer" : "Afficher"}
+                  >
+                    {showNext ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
                 </div>
                 {errors.next && <p className="text-xs text-destructive">{errors.next}</p>}
-                <p className="text-xs text-muted-foreground">Minimum 8 caractères, avec au moins une majuscule.</p>
+                {next && (
+                  <div className="rounded-lg bg-muted/50 border border-border p-3 space-y-1.5">
+                    {[
+                      { label: "Au moins 8 caractères", ok: getPasswordCriteria(next).length },
+                      { label: "Une minuscule (a-z)", ok: getPasswordCriteria(next).lower },
+                      { label: "Une majuscule (A-Z)", ok: getPasswordCriteria(next).upper },
+                      { label: "Un chiffre (0-9)", ok: getPasswordCriteria(next).digit },
+                      { label: "Un caractère spécial (!@#...)", ok: getPasswordCriteria(next).symbol },
+                    ].map(({ label, ok }) => (
+                      <div key={label} className="flex items-center gap-2 text-xs">
+                        <span className={`w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${ok ? "bg-green-500" : "bg-slate-200"}`}>
+                          {ok && (
+                            <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </span>
+                        <span className={ok ? "text-green-700 font-medium" : "text-muted-foreground"}>{label}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">
