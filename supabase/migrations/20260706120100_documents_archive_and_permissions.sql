@@ -58,13 +58,13 @@ DROP POLICY IF EXISTS "Admins and representants can manage documents" ON public.
 DROP POLICY IF EXISTS "Admins, representants and gestionnaires can manage documents" ON public.documents;
 CREATE POLICY "Admins, representants and gestionnaires can manage documents"
 ON public.documents FOR ALL TO public
-USING (has_any_role(auth.uid(), ARRAY['admin', 'representant', 'gestionnaire_documents']::user_role[]));
+USING (has_any_role(auth.uid(), ARRAY['admin', 'representant', 'gestionnaire_documents']::text[]));
 
 DROP POLICY IF EXISTS "Admins and representants can manage categories" ON public.document_categories;
 DROP POLICY IF EXISTS "Admins, representants and gestionnaires can manage categories" ON public.document_categories;
 CREATE POLICY "Admins, representants and gestionnaires can manage categories"
 ON public.document_categories FOR ALL TO public
-USING (has_any_role(auth.uid(), ARRAY['admin', 'representant', 'gestionnaire_documents']::user_role[]));
+USING (has_any_role(auth.uid(), ARRAY['admin', 'representant', 'gestionnaire_documents']::text[]));
 
 -- Corrige le bucket storage "documents" : jusqu'ici n'importe quel utilisateur authentifié
 -- pouvait modifier/supprimer n'importe quel fichier, et la lecture était publique sans
@@ -95,7 +95,7 @@ CREATE POLICY "Documents storage update own or elevated"
 ON storage.objects FOR UPDATE TO authenticated
 USING (
   bucket_id = 'documents' AND (
-    has_any_role(auth.uid(), ARRAY['admin', 'representant', 'gestionnaire_documents']::user_role[])
+    has_any_role(auth.uid(), ARRAY['admin', 'representant', 'gestionnaire_documents']::text[])
     OR EXISTS (
       SELECT 1 FROM public.documents d
       WHERE d.file_path = storage.objects.name AND d.uploaded_by = auth.uid()
@@ -107,7 +107,7 @@ CREATE POLICY "Documents storage delete own or elevated"
 ON storage.objects FOR DELETE TO authenticated
 USING (
   bucket_id = 'documents' AND (
-    has_any_role(auth.uid(), ARRAY['admin', 'representant', 'gestionnaire_documents']::user_role[])
+    has_any_role(auth.uid(), ARRAY['admin', 'representant', 'gestionnaire_documents']::text[])
     OR EXISTS (
       SELECT 1 FROM public.documents d
       WHERE d.file_path = storage.objects.name AND d.uploaded_by = auth.uid()
