@@ -12,7 +12,8 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Mail, Lock, User } from "lucide-react";
+import { Loader2, Mail, Lock, User, Wand2, Eye, EyeOff } from "lucide-react";
+import { generateStrongPassword, getPasswordError } from "@/lib/password";
 
 interface AuthModalProps {
   open: boolean;
@@ -32,6 +33,8 @@ const AuthModal = ({ open, onOpenChange }: AuthModalProps) => {
   const [signupEmail, setSignupEmail] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
   const [signupName, setSignupName] = useState("");
+  const [signupPasswordError, setSignupPasswordError] = useState<string | null>(null);
+  const [showSignupPassword, setShowSignupPassword] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,8 +61,20 @@ const AuthModal = ({ open, onOpenChange }: AuthModalProps) => {
     setLoading(false);
   };
 
+  const handleGenerateSignupPassword = () => {
+    setSignupPassword(generateStrongPassword());
+    setSignupPasswordError(null);
+    setShowSignupPassword(true);
+  };
+
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    const passwordError = getPasswordError(signupPassword);
+    if (passwordError) {
+      setSignupPasswordError(passwordError);
+      return;
+    }
+    setSignupPasswordError(null);
     setLoading(true);
 
     const { error } = await signUp(signupEmail, signupPassword, signupName);
@@ -178,23 +193,46 @@ const AuthModal = ({ open, onOpenChange }: AuthModalProps) => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="signup-password">Mot de passe</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="signup-password">Mot de passe</Label>
+                  <Button
+                    type="button" variant="ghost" size="sm"
+                    className="h-auto py-1 px-2 text-xs gap-1.5"
+                    onClick={handleGenerateSignupPassword}
+                  >
+                    <Wand2 className="h-3.5 w-3.5" />
+                    Générer
+                  </Button>
+                </div>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="signup-password"
-                    type="password"
+                    type={showSignupPassword ? "text" : "password"}
                     placeholder="••••••••"
                     value={signupPassword}
-                    onChange={(e) => setSignupPassword(e.target.value)}
-                    className="pl-10"
-                    minLength={6}
+                    onChange={(e) => {
+                      setSignupPassword(e.target.value);
+                      setSignupPasswordError(null);
+                    }}
+                    className="pl-10 pr-10"
                     required
                   />
+                  <button
+                    type="button" onClick={() => setShowSignupPassword((v) => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    aria-label={showSignupPassword ? "Masquer" : "Afficher"}
+                  >
+                    {showSignupPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Minimum 6 caractères
-                </p>
+                {signupPasswordError ? (
+                  <p className="text-xs text-destructive">{signupPasswordError}</p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    Minimum 8 caractères, avec majuscule, minuscule, chiffre et caractère spécial
+                  </p>
+                )}
               </div>
 
               <Button type="submit" className="w-full" disabled={loading}>
