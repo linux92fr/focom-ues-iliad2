@@ -2,15 +2,12 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useAdminAuth } from "@/contexts/AdminAuthContext";
 import { adminPath } from "@/lib/adminPath";
 import { toast } from "sonner";
 import {
-  ArrowLeft,
   Save,
   Send,
   Loader2,
-  FileText,
   Upload,
   Image as ImageIcon,
 } from "lucide-react";
@@ -24,9 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
-const LOGO_IMAGE =
-  "https://files.manuscdn.com/user_upload_by_module/session_file/310519663612648040/LldXxCbhFdcPcHwX.png";
+import AdminLayout, { AdminAuthGuard } from "@/components/admin/AdminLayout";
 
 const ARTICLE_IMAGES_BUCKET = "article-images";
 
@@ -54,7 +49,6 @@ const safeFileName = (value: string) =>
 export default function NouvelArticle() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { isAuthenticated } = useAdminAuth();
 
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
@@ -130,52 +124,12 @@ export default function NouvelArticle() {
     return true;
   };
 
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-xl border border-slate-200 p-8 max-w-md text-center shadow-sm">
-          <FileText className="w-12 h-12 text-red-300 mx-auto mb-3" />
-          <h2 className="font-bold text-slate-900 mb-1">Accès refusé</h2>
-          <p className="text-sm text-slate-500 mb-4">
-            Vous devez être connecté à l'espace d'administration.
-          </p>
-          <button
-            onClick={() => navigate(adminPath("/login"))}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-lg transition-colors"
-          >
-            Se connecter
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   const previewUrl = imageFile ? URL.createObjectURL(imageFile) : imageUrl;
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
-        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-3 h-16">
-            <button
-              onClick={() => navigate(adminPath("/actualites"))}
-              className="p-2 rounded-lg hover:bg-slate-100"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <img loading="lazy" src={LOGO_IMAGE} alt="FO Com" className="h-12 w-12 object-contain" />
-            <div className="hidden sm:block">
-              <h1 className="text-lg font-bold text-slate-900 leading-tight">FOCOM UES ILIAD</h1>
-              <p className="text-[11px] text-slate-500 font-medium tracking-wide uppercase">
-                Nouvel article
-              </p>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-[860px] mx-auto p-4 lg:p-8">
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 lg:p-8 space-y-6">
+    <AdminAuthGuard>
+      <AdminLayout title="Nouvel article" breadcrumb={["Actualités", "Nouvel article"]}>
+        <div className="max-w-[860px] mx-auto bg-white rounded-xl border border-slate-200 shadow-sm p-6 lg:p-8 space-y-6">
           <div>
             <h2 className="text-xl font-bold text-slate-900">Créer un article</h2>
             <p className="text-sm text-slate-500 mt-0.5">
@@ -247,13 +201,7 @@ export default function NouvelArticle() {
             </button>
           </div>
         </div>
-      </main>
-
-      <footer className="mt-12 bg-white border-t border-slate-200 py-6">
-        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
-          <p className="text-xs text-slate-500 text-center">© 2026 FOCOM UES ILIAD – Tous droits réservés</p>
-        </div>
-      </footer>
-    </div>
+      </AdminLayout>
+    </AdminAuthGuard>
   );
 }
