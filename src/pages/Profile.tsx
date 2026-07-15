@@ -291,11 +291,15 @@ const Profile = () => {
     setPwErrors({});
     setPwSaving(true);
     try {
-      const { error } = await supabase.auth.updateUser({ password: pwData.next });
+      const timeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("La requête a pris trop de temps, veuillez réessayer.")), 15000)
+      );
+      const { error } = await Promise.race([supabase.auth.updateUser({ password: pwData.next }), timeout]);
       if (error) throw error;
       toast.success("Mot de passe modifié avec succès");
       setPwData({ next: "", confirm: "" });
     } catch (err: unknown) {
+      console.error("Échec de la modification du mot de passe:", err);
       toast.error(err instanceof Error ? err.message : "Impossible de modifier le mot de passe");
     } finally {
       setPwSaving(false);

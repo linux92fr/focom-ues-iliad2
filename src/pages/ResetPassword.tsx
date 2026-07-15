@@ -67,11 +67,15 @@ export default function ResetPassword() {
     setErrors({});
     setSaving(true);
     try {
-      const { error } = await supabase.auth.updateUser({ password: next });
+      const timeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("La requête a pris trop de temps, veuillez réessayer.")), 15000)
+      );
+      const { error } = await Promise.race([supabase.auth.updateUser({ password: next }), timeout]);
       if (error) throw error;
       setStatus("success");
       toast.success("Mot de passe défini avec succès");
     } catch (err) {
+      console.error("Échec de la définition du mot de passe:", err);
       toast.error(err instanceof Error ? err.message : "Impossible de définir le mot de passe");
     } finally {
       setSaving(false);
