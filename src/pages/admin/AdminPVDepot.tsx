@@ -215,7 +215,7 @@ export default function AdminPVDepot() {
 
       const text = texts.join("\n").trim();
       console.log(`[OCR] texte extrait : ${text.length} caractères`);
-      if (text.length < 50) throw new Error(`OCR échoué — seulement ${text.length} caractères reconnus`);
+      if (text.length < 50) throw new Error(`PDF scanné non lisible — l'OCR n'a reconnu que ${text.length} caractères. Ce document ne peut pas être indexé automatiquement.`);
       return { text, usedOcr: true };
     } finally {
       await worker?.terminate();
