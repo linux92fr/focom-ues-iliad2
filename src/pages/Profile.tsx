@@ -15,9 +15,10 @@ import {
   User, Mail, Phone, Loader2, Save, Lock, Eye, EyeOff,
   ShieldCheck, Camera, X, CreditCard, History, CalendarDays,
   Calendar, Clock, MapPin, Video, MessageSquare, AlertCircle,
-  CheckCircle2, XCircle, HelpCircle, ChevronRight,
+  CheckCircle2, XCircle, HelpCircle, ChevronRight, Wand2,
 } from "lucide-react";
 import CarteAdherent from "@/components/CarteAdherent";
+import { generateStrongPassword, getPasswordCriteria, getPasswordError } from "@/lib/password";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -271,13 +272,18 @@ const Profile = () => {
 
   // ─── Mot de passe ────────────────────────────────────────────────────────
 
+  const handleGeneratePw = () => {
+    const generated = generateStrongPassword();
+    setPwData({ next: generated, confirm: generated });
+    setShowPw({ next: true, confirm: true });
+    setPwErrors({});
+  };
+
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
     const errors: Record<string, string> = {};
-    if (!pwData.next || pwData.next.length < 8)
-      errors.next = "Le mot de passe doit contenir au moins 8 caractères";
-    else if (!/[A-Z]/.test(pwData.next))
-      errors.next = "Le mot de passe doit contenir au moins une majuscule";
+    const passwordError = getPasswordError(pwData.next);
+    if (passwordError) errors.next = passwordError;
     if (pwData.next !== pwData.confirm)
       errors.confirm = "Les mots de passe ne correspondent pas";
     if (Object.keys(errors).length > 0) { setPwErrors(errors); return; }
@@ -285,11 +291,15 @@ const Profile = () => {
     setPwErrors({});
     setPwSaving(true);
     try {
-      const { error } = await supabase.auth.updateUser({ password: pwData.next });
+      const timeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("La requête a pris trop de temps, veuillez réessayer.")), 15000)
+      );
+      const { error } = await Promise.race([supabase.auth.updateUser({ password: pwData.next }), timeout]);
       if (error) throw error;
       toast.success("Mot de passe modifié avec succès");
       setPwData({ next: "", confirm: "" });
     } catch (err: unknown) {
+      console.error("Échec de la modification du mot de passe:", err);
       toast.error(err instanceof Error ? err.message : "Impossible de modifier le mot de passe");
     } finally {
       setPwSaving(false);
@@ -715,19 +725,28 @@ const Profile = () => {
                 <TabsContent value="securite">
                   <Card>
                     <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Lock className="h-5 w-5" /> Changer le mot de passe
+                      <CardTitle className="flex items-center justify-between gap-2">
+                        <span className="flex items-center gap-2"><Lock className="h-5 w-5" /> Changer le mot de passe</span>
+                        <Button
+                          type="button" variant="ghost" size="sm"
+                          className="h-auto py-1 px-2 text-xs gap-1.5 font-normal"
+                          onClick={handleGeneratePw}
+                        >
+                          <Wand2 className="h-3.5 w-3.5" />
+                          Générer un mot de passe sécurisé
+                        </Button>
                       </CardTitle>
-                      <CardDescription>Minimum 8 caractères avec au moins une majuscule</CardDescription>
+                      <CardDescription>Minimum 8 caractères, avec majuscule, minuscule, chiffre et caractère spécial</CardDescription>
                     </CardHeader>
                     <CardContent>
                       <form onSubmit={handlePasswordChange} className="space-y-4">
+                        <input type="text" name="username" autoComplete="username" value={user.email || ""} readOnly hidden />
                         <div className="space-y-2">
                           <Label htmlFor="pw-next">Nouveau mot de passe</Label>
                           <div className="relative">
                             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                             <Input
-                              id="pw-next" name="username"
+                              id="pw-next"
                               type={showPw.next ? "text" : "password"}
                               value={pwData.next}
                               onChange={(e) => setPwData((p) => ({ ...p, next: e.target.value }))}
@@ -770,10 +789,11 @@ const Profile = () => {
                         <div className="rounded-lg bg-muted/50 border border-border p-3 space-y-2">
                           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Critères requis</p>
                           {[
-                            { label: "Au moins 8 caractères", ok: pwData.next.length >= 8 },
-                            { label: "Une lettre majuscule (A-Z)", ok: /[A-Z]/.test(pwData.next) },
-                            { label: "Un chiffre (0-9)", ok: /[0-9]/.test(pwData.next) },
-                            { label: "Un caractère spécial (!@#...)", ok: /[^A-Za-z0-9]/.test(pwData.next) },
+                            { label: "Au moins 8 caractères", ok: getPasswordCriteria(pwData.next).length },
+                            { label: "Une lettre minuscule (a-z)", ok: getPasswordCriteria(pwData.next).lower },
+                            { label: "Une lettre majuscule (A-Z)", ok: getPasswordCriteria(pwData.next).upper },
+                            { label: "Un chiffre (0-9)", ok: getPasswordCriteria(pwData.next).digit },
+                            { label: "Un caractère spécial (!@#...)", ok: getPasswordCriteria(pwData.next).symbol },
                           ].map(({ label, ok }) => (
                             <div key={label} className="flex items-center gap-2 text-xs">
                               <span className={`w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${ok ? "bg-green-500" : "bg-slate-200"}`}>
@@ -789,22 +809,12 @@ const Profile = () => {
                           {pwData.next && (
                             <div className="pt-1 mt-1 border-t border-border">
                               <div className="flex gap-1">
-                                {[
-                                  pwData.next.length >= 8,
-                                  /[A-Z]/.test(pwData.next),
-                                  /[0-9]/.test(pwData.next),
-                                  /[^A-Za-z0-9]/.test(pwData.next),
-                                ].map((ok, i) => (
+                                {Object.values(getPasswordCriteria(pwData.next)).map((ok, i) => (
                                   <div key={i} className={`h-1 flex-1 rounded-full transition-colors ${ok ? "bg-green-500" : "bg-slate-200"}`} />
                                 ))}
                               </div>
                               <p className="text-xs text-center mt-1 font-medium">
-                                {[
-                                  pwData.next.length >= 8,
-                                  /[A-Z]/.test(pwData.next),
-                                  /[0-9]/.test(pwData.next),
-                                  /[^A-Za-z0-9]/.test(pwData.next),
-                                ].every(Boolean)
+                                {Object.values(getPasswordCriteria(pwData.next)).every(Boolean)
                                   ? <span className="text-green-600">✓ Mot de passe fort</span>
                                   : <span className="text-muted-foreground">Complétez les critères ci-dessus</span>}
                               </p>

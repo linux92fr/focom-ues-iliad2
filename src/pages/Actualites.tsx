@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Calendar, Search, ArrowRight, Loader2 } from "lucide-react";
+import { Calendar, Search, ArrowRight, Loader2, Newspaper, Mail, Megaphone, Trophy } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Article = Tables<"articles">;
@@ -88,47 +88,73 @@ const Actualites = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <section className="py-16 gradient-hero">
-        <div className="container mx-auto px-4 text-center">
-          <h1 className="font-serif text-4xl md:text-5xl font-bold text-primary-foreground mb-4">
-            Actualités
-          </h1>
-          <p className="text-primary-foreground/90 max-w-2xl mx-auto">
-            Suivez les dernières nouvelles de FOCOM UES ILIAD
-          </p>
-        </div>
-      </section>
-
-      <section className="py-8 bg-muted/30 border-b">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Rechercher une actualité..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
+    <main className="min-h-screen overflow-x-hidden bg-slate-50 p-3 sm:p-4 lg:p-8">
+      <section className="relative overflow-hidden rounded-3xl bg-[#13233A] p-6 text-white shadow-xl sm:p-8 lg:p-10">
+        <div className="pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full border-[52px] border-white/5" />
+        <div className="pointer-events-none absolute -bottom-24 -left-24 h-80 w-80 rounded-full bg-red-600/25 blur-3xl" />
+        <div className="relative grid gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
+          <div>
+            <Badge className="mb-4 border border-white/15 bg-white/10 text-white hover:bg-white/10">
+              <Newspaper className="mr-1 h-3.5 w-3.5" /> Actualités
+            </Badge>
+            <h1 className="text-3xl font-extrabold leading-tight sm:text-5xl lg:text-6xl">
+              Actualités et communiqués FO COM
+            </h1>
+            <p className="mt-4 max-w-3xl text-sm leading-relaxed text-white/80 sm:text-lg">
+              Suivez les dernières nouvelles, communiqués et victoires syndicales de FO COM UES ILIAD.
+            </p>
+            <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+              <Button asChild className="bg-red-600 text-white hover:bg-red-700">
+                <Link to="/adhesion"><Newspaper className="mr-2 h-4 w-4" /> Adhérer</Link>
+              </Button>
+              <Button asChild variant="outline" className="border-white/30 bg-white/10 text-white hover:bg-white/20">
+                <Link to="/contact"><Mail className="mr-2 h-4 w-4" /> Nous contacter</Link>
+              </Button>
             </div>
-            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger className="w-full md:w-[200px]">
-                <SelectValue placeholder="Catégorie" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Toutes les catégories</SelectItem>
-                {Object.entries(categoryLabels).map(([key, label]) => (
-                  <SelectItem key={key} value={key}>{label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
+            {[
+              { icon: Newspaper, title: "Actualités", text: "L'essentiel de la vie syndicale FO COM." },
+              { icon: Megaphone, title: "Communiqués", text: "Les prises de position officielles FO." },
+              { icon: Trophy, title: "Victoires", text: "Les résultats obtenus pour les salariés." },
+            ].map((item) => (
+              <div key={item.title} className="rounded-2xl border border-white/10 bg-white/10 p-4 backdrop-blur">
+                <item.icon className="mb-3 h-5 w-5 text-red-200" />
+                <p className="font-bold">{item.title}</p>
+                <p className="mt-1 text-xs leading-relaxed text-white/70">{item.text}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
-      <main className="flex-grow py-12">
-        <div className="container mx-auto px-4">
+      <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="flex flex-col md:flex-row gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Rechercher une actualité..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+            <SelectTrigger className="w-full md:w-[200px]">
+              <SelectValue placeholder="Catégorie" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Toutes les catégories</SelectItem>
+              {Object.entries(categoryLabels).map(([key, label]) => (
+                <SelectItem key={key} value={key}>{label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </section>
+
+      <section className="mt-6">
           {loading ? (
             <div className="flex justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -173,9 +199,8 @@ const Actualites = () => {
               ))}
             </div>
           )}
-        </div>
-      </main>
-    </div>
+      </section>
+    </main>
   );
 };
 

@@ -77,6 +77,28 @@ Deno.serve(async (req) => {
       assigned_by: caller.id,
     });
 
+    // Envoi de l'email avec le lien de définition du mot de passe
+    // (email_confirm: true ci-dessus désactive l'email de confirmation automatique de Supabase,
+    // il faut donc explicitement notifier le nouvel utilisateur)
+    try {
+      const credentialsResp = await fetch(
+        `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-user-credentials`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+          },
+          body: JSON.stringify({ email, firstName, lastName, role: assignedRole }),
+        }
+      );
+      if (!credentialsResp.ok) {
+        console.error("send-user-credentials failed:", await credentialsResp.text());
+      }
+    } catch (emailErr) {
+      console.error("send-user-credentials call error:", emailErr);
+    }
+
     return new Response(JSON.stringify({ success: true, userId, email }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

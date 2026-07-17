@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Users, Search, Filter, Eye, Edit, X, Save, Loader2, Shield, UserPlus } from "lucide-react";
+import { Users, Search, Filter, Eye, Edit, X, Save, Loader2, Shield, UserPlus, Trash2, Mail } from "lucide-react";
 import AdminLayout, { AdminAuthGuard } from "@/components/admin/AdminLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -44,6 +44,11 @@ export default function AdminAdherents() {
   const [createModal, setCreateModal] = useState(false);
   const [createForm, setCreateForm] = useState({ firstName: "", lastName: "", email: "", password: "", role: "adherent" as UserRole });
   const [creating, setCreating] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => setCurrentUserId(user?.id ?? null));
+  }, []);
 
   const { data: profiles = [], isLoading } = useQuery({
     queryKey: ["admin-adherents"],
@@ -114,6 +119,61 @@ export default function AdminAdherents() {
       toast.error(error instanceof Error ? error.message : "Erreur lors de la mise à jour");
     },
   });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (profile: ProfileWithRoles) => {
+      const { data: { session } } = await supabase.auth.getSession();
+      const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-user`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
+        body: JSON.stringify({ userId: profile.id }),
+      });
+      const result = await resp.json();
+      if (!resp.ok) throw new Error(result.error ?? "Erreur lors de la suppression");
+    },
+    onSuccess: (_data, profile) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-adherents"] });
+      toast.success(`${fullName(profile)} supprimé`);
+    },
+    onError: (error) => {
+      console.error("Erreur suppression adhérent", error);
+      toast.error(error instanceof Error ? error.message : "Erreur lors de la suppression");
+    },
+  });
+
+  const handleDelete = (profile: ProfileWithRoles) => {
+    if (profile.id === currentUserId) {
+      toast.error("Vous ne pouvez pas supprimer votre propre compte.");
+      return;
+    }
+    if (!window.confirm(`Supprimer définitivement ${fullName(profile)} (${profile.email}) ? Cette action est irréversible.`)) return;
+    deleteMutation.mutate(profile);
+  };
+
+  const resendMutation = useMutation({
+    mutationFn: async (profile: ProfileWithRoles) => {
+      const { data: { session } } = await supabase.auth.getSession();
+      const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-user-credentials`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
+        body: JSON.stringify({ email: profile.email, firstName: profile.first_name, lastName: profile.last_name, role: profile.roles?.[0] }),
+      });
+      const result = await resp.json();
+      if (!resp.ok) throw new Error(result.error ?? "Erreur lors de l'envoi de l'email");
+    },
+    onSuccess: (_data, profile) => {
+      toast.success(`Email envoyé à ${profile.email}`);
+    },
+    onError: (error) => {
+      console.error("Erreur envoi email de confirmation", error);
+      toast.error(error instanceof Error ? error.message : "Erreur lors de l'envoi de l'email");
+    },
+  });
+
+  const handleResend = (profile: ProfileWithRoles) => {
+    if (!window.confirm(`Envoyer l'email de confirmation d'inscription à ${profile.email} ?`)) return;
+    resendMutation.mutate(profile);
+  };
 
   const filtered = profiles.filter((p) => {
     const matchStatus = selectedStatus === "Tous" || p.status === selectedStatus;
@@ -250,7 +310,7 @@ export default function AdminAdherents() {
 
         <Card className="border-slate-200 shadow-sm mb-6"><CardContent className="p-4"><div className="flex flex-col sm:flex-row gap-3"><div className="flex-1 relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" /><Input placeholder="Rechercher nom, email ou rôle..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10" /></div><Button variant="outline" size="sm" onClick={() => { setSearchQuery(""); setSelectedStatus("Tous"); }} className="gap-2"><Filter className="w-4 h-4" />Réinitialiser</Button></div><div className="flex flex-wrap gap-2 mt-3">{(["Tous", "actif", "inactif", "suspendu"] as const).map((s) => <button key={s} onClick={() => setSelectedStatus(s)} className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${selectedStatus === s ? "bg-red-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>{s === "Tous" ? "Tous" : statusLabel[s]}</button>)}</div></CardContent></Card>
 
-        <Card className="border-slate-200 shadow-sm"><CardContent className="p-0">{isLoading ? <div className="flex items-center justify-center py-16"><Loader2 className="w-8 h-8 animate-spin text-red-600" /></div> : <div className="overflow-x-auto"><table className="w-full"><thead className="bg-slate-50 border-b border-slate-200"><tr>{["Adhérent", "Email", "Téléphone", "Statut", "Rôles", "Depuis", "Actions"].map((h, i) => <th key={h} className={`p-4 text-sm font-semibold text-slate-600 ${i === 6 ? "text-right" : "text-left"}`}>{h}</th>)}</tr></thead><tbody>{filtered.map((p) => <tr key={p.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors"><td className="p-4"><div className="flex items-center gap-3"><Avatar className="h-9 w-9"><AvatarFallback className="bg-red-100 text-red-600">{initials(p)}</AvatarFallback></Avatar><span className="font-medium text-slate-900 text-sm">{fullName(p)}</span></div></td><td className="p-4 text-sm text-slate-600">{p.email}</td><td className="p-4 text-sm text-slate-500">{p.phone || "—"}</td><td className="p-4"><Badge className={statusBadgeClass[p.status as MemberStatus] ?? "bg-slate-100 text-slate-600"}>{statusLabel[p.status as MemberStatus] ?? p.status}</Badge></td><td className="p-4"><RoleBadges roles={p.roles} /></td><td className="p-4 text-sm text-slate-500">{formatDate(p.created_at)}</td><td className="p-4"><div className="flex items-center justify-end gap-1"><Button variant="ghost" size="sm" onClick={() => openView(p)} title="Voir"><Eye className="w-4 h-4 text-slate-400 hover:text-teal-600" /></Button><Button variant="ghost" size="sm" onClick={() => openEdit(p)} title="Modifier"><Edit className="w-4 h-4 text-slate-400 hover:text-blue-600" /></Button></div></td></tr>)}</tbody></table>{filtered.length === 0 && <div className="text-center py-12"><Users className="w-12 h-12 text-slate-300 mx-auto mb-3" /><p className="text-slate-500">Aucun adhérent trouvé</p></div>}</div>}</CardContent></Card>
+        <Card className="border-slate-200 shadow-sm"><CardContent className="p-0">{isLoading ? <div className="flex items-center justify-center py-16"><Loader2 className="w-8 h-8 animate-spin text-red-600" /></div> : <div className="overflow-x-auto"><table className="w-full"><thead className="bg-slate-50 border-b border-slate-200"><tr>{["Adhérent", "Email", "Téléphone", "Statut", "Rôles", "Depuis", "Actions"].map((h, i) => <th key={h} className={`p-4 text-sm font-semibold text-slate-600 ${i === 6 ? "text-right" : "text-left"}`}>{h}</th>)}</tr></thead><tbody>{filtered.map((p) => <tr key={p.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors"><td className="p-4"><div className="flex items-center gap-3"><Avatar className="h-9 w-9"><AvatarFallback className="bg-red-100 text-red-600">{initials(p)}</AvatarFallback></Avatar><span className="font-medium text-slate-900 text-sm">{fullName(p)}</span></div></td><td className="p-4 text-sm text-slate-600">{p.email}</td><td className="p-4 text-sm text-slate-500">{p.phone || "—"}</td><td className="p-4"><Badge className={statusBadgeClass[p.status as MemberStatus] ?? "bg-slate-100 text-slate-600"}>{statusLabel[p.status as MemberStatus] ?? p.status}</Badge></td><td className="p-4"><RoleBadges roles={p.roles} /></td><td className="p-4 text-sm text-slate-500">{formatDate(p.created_at)}</td><td className="p-4"><div className="flex items-center justify-end gap-1"><Button variant="ghost" size="sm" onClick={() => openView(p)} title="Voir"><Eye className="w-4 h-4 text-slate-400 hover:text-teal-600" /></Button><Button variant="ghost" size="sm" onClick={() => openEdit(p)} title="Modifier"><Edit className="w-4 h-4 text-slate-400 hover:text-blue-600" /></Button><Button variant="ghost" size="sm" onClick={() => handleResend(p)} disabled={resendMutation.isPending} title="Renvoyer l'email de confirmation d'inscription"><Mail className="w-4 h-4 text-slate-400 hover:text-teal-600" /></Button><Button variant="ghost" size="sm" onClick={() => handleDelete(p)} disabled={p.id === currentUserId || deleteMutation.isPending} title={p.id === currentUserId ? "Vous ne pouvez pas supprimer votre propre compte" : "Supprimer"}><Trash2 className="w-4 h-4 text-slate-400 hover:text-red-600" /></Button></div></td></tr>)}</tbody></table>{filtered.length === 0 && <div className="text-center py-12"><Users className="w-12 h-12 text-slate-300 mx-auto mb-3" /><p className="text-slate-500">Aucun adhérent trouvé</p></div>}</div>}</CardContent></Card>
 
         <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4 text-xs text-slate-500 flex gap-2"><Shield className="w-4 h-4 text-teal-600 flex-shrink-0" /><p>La gestion des rôles est active. La suppression du dernier rôle Admin est vérifiée directement dans Supabase avant modification.</p></div>
       </AdminLayout>

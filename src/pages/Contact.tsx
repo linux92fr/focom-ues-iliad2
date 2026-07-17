@@ -1,10 +1,12 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Mail, Phone, MapPin, Clock, Send, Loader2 } from "lucide-react";
+import { Mail, Phone, MapPin, Clock, Send, Loader2, HelpCircle } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
@@ -78,54 +80,73 @@ const Contact = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <main className="min-h-screen overflow-x-hidden bg-slate-50 p-3 sm:p-4 lg:p-8">
+      <section className="relative overflow-hidden rounded-3xl bg-[#13233A] p-6 text-white shadow-xl sm:p-8 lg:p-10">
+        <div className="pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full border-[52px] border-white/5" />
+        <div className="pointer-events-none absolute -bottom-24 -left-24 h-80 w-80 rounded-full bg-red-600/25 blur-3xl" />
+        <div className="relative grid gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
+          <div>
+            <Badge className="mb-4 border border-white/15 bg-white/10 text-white hover:bg-white/10">
+              <Mail className="mr-1 h-3.5 w-3.5" /> Contact
+            </Badge>
+            <h1 className="text-3xl font-extrabold leading-tight sm:text-5xl lg:text-6xl">
+              Contactez-nous
+            </h1>
+            <p className="mt-4 max-w-3xl text-sm leading-relaxed text-white/80 sm:text-lg">
+              Une question, un besoin d'assistance ? Notre équipe FO COM est à votre écoute.
+            </p>
+            <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+              <Button asChild className="bg-red-600 text-white hover:bg-red-700">
+                <a href="#contact-form"><Send className="mr-2 h-4 w-4" /> Envoyer un message</a>
+              </Button>
+              <Button asChild variant="outline" className="border-white/30 bg-white/10 text-white hover:bg-white/20">
+                <Link to="/faq"><HelpCircle className="mr-2 h-4 w-4" /> Consulter la FAQ</Link>
+              </Button>
+            </div>
+          </div>
 
-      {/* Hero */}
-      <section className="py-16 gradient-hero">
-        <div className="container mx-auto px-4 text-center">
-          <h1 className="font-serif text-4xl md:text-5xl font-bold text-primary-foreground mb-4">
-            Contactez-nous
-          </h1>
-          <p className="text-primary-foreground/90 max-w-2xl mx-auto">
-            Une question ? Un besoin d'assistance ? Notre équipe est à votre écoute
-          </p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {contactInfo.map((item) => (
+              <div key={item.title} className="rounded-2xl border border-white/10 bg-white/10 p-4 backdrop-blur">
+                <item.icon className="mb-3 h-5 w-5 text-red-200" />
+                <p className="font-bold">{item.title}</p>
+                <p className="mt-1 text-xs leading-relaxed text-white/70">{item.details}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
-      {/* Content */}
-      <main className="flex-grow py-12">
-        <div className="container mx-auto px-4">
-          <div className="grid lg:grid-cols-3 gap-8">
+      <section id="contact-form" className="mt-6 grid gap-6 lg:grid-cols-3">
+        {/* Contact Info */}
+        <div className="lg:col-span-1 space-y-4">
+          <h2 className="text-lg font-bold text-slate-900">Nos coordonnées</h2>
+          {contactInfo.map((item, index) => (
+            <Card key={index} className="border-slate-200 shadow-sm">
+              <CardContent className="flex items-start gap-4 p-4">
+                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <item.icon className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-medium text-foreground">{item.title}</h3>
+                  <p className="text-foreground">{item.details}</p>
+                  <p className="text-sm text-muted-foreground">{item.subtext}</p>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
 
-            {/* Contact Info */}
-            <div className="lg:col-span-1 space-y-4">
-              <h2 className="font-serif text-2xl font-bold text-foreground mb-6">Nos coordonnées</h2>
-              {contactInfo.map((item, index) => (
-                <Card key={index}>
-                  <CardContent className="flex items-start gap-4 p-4">
-                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                      <item.icon className="h-5 w-5 text-primary" />
-                    </div>
-                    <div>
-                      <h3 className="font-medium text-foreground">{item.title}</h3>
-                      <p className="text-foreground">{item.details}</p>
-                      <p className="text-sm text-muted-foreground">{item.subtext}</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-
-            {/* Contact Form */}
-            <div className="lg:col-span-2">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Envoyez-nous un message</CardTitle>
-                  <CardDescription>
-                    Remplissez le formulaire ci-dessous et nous vous répondrons rapidement
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
+        {/* Contact Form */}
+        <div className="lg:col-span-2">
+          <Card className="border-slate-200 shadow-sm">
+            <CardHeader>
+              <CardTitle>Envoyez-nous un message</CardTitle>
+              <CardDescription>
+                Remplissez le formulaire ci-dessous et nous vous répondrons rapidement
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
                   <form onSubmit={handleSubmit} className="space-y-6">
                     <div className="grid md:grid-cols-2 gap-4">
                       <div className="space-y-2">
@@ -185,10 +206,8 @@ const Contact = () => {
                 </CardContent>
               </Card>
             </div>
-          </div>
-        </div>
-      </main>
-    </div>
+      </section>
+    </main>
   );
 };
 

@@ -1,6 +1,6 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
@@ -53,6 +53,7 @@ import Permanences from "./pages/Permanences";
 import Sondages from "./pages/Sondages";
 import Agenda from "./pages/Agenda";
 import Profile from "./pages/Profile";
+import ResetPassword from "./pages/ResetPassword";
 
 import AdminNao2026 from "./pages/AdminNao2026";
 import AdminParticipation from "./pages/AdminParticipation";
@@ -124,6 +125,8 @@ function App() {
                       <Route path="/sondages" element={<Sondages />} />
                       <Route path="/agenda" element={<Agenda />} />
                       <Route path="/profil" element={<Profile />} />
+                      <Route path="/reset-password" element={<ResetPassword />} />
+                      <Route path="/auth" element={<Navigate to="/" replace />} />
                       <Route path="/mes-reclamations" element={<MesReclamations />} />
                       <Route path={`/${ADMIN_BASE}/nao2026`} element={<AdminNao2026 />} />
                       <Route path={`/${ADMIN_BASE}/participation`} element={<AdminParticipation />} />

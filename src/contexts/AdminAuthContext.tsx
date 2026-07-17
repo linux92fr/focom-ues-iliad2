@@ -18,7 +18,7 @@ interface AdminAuthContextType {
 
 const AdminAuthContext = createContext<AdminAuthContextType | null>(null);
 
-const ADMIN_ROLES = ["admin", "secretaire", "representant", "redacteur", "tresorier"];
+const ADMIN_ROLES = ["admin", "secretaire", "representant", "redacteur", "tresorier", "gestionnaire_documents"];
 
 async function fetchUserRole(userId: string): Promise<string | null> {
   const { data, error } = await supabase
