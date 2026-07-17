@@ -244,7 +244,7 @@ export default function AdminPVDepot() {
       const resp = await fetch(EDGE_FUNCTION_URL, {
         method: "POST",
         headers: { ...authHeader, "Content-Type": "application/json" },
-        body: JSON.stringify({ text, filename: storagePath }),
+        body: JSON.stringify({ text, filename: storagePath, original_filename: displayName }),
       });
 
       const result = await resp.json();
@@ -301,7 +301,7 @@ export default function AdminPVDepot() {
       const resp = await fetch(EDGE_FUNCTION_URL, {
         method: "POST",
         headers: { ...authHeader, "Content-Type": "application/json" },
-        body: JSON.stringify({ text, filename: filePath }),
+        body: JSON.stringify({ text, filename: filePath, original_filename: filePath.split("/").pop() }),
       });
       const result = await resp.json();
       console.log(`[REINDEX RESP] status=${resp.status}`, result);
