@@ -91,7 +91,7 @@ Deno.serve(async (req) => {
 
     // POST /embed-pv — indexation (stockage des chunks sans embedding)
     const body = await req.json();
-    const { filename } = body;
+    const { filename, original_filename } = body;
 
     if (!filename) {
       return new Response(JSON.stringify({ error: "Paramètre 'filename' requis" }), {
@@ -135,7 +135,7 @@ Deno.serve(async (req) => {
     for (let i = 0; i < chunks.length; i += BATCH) {
       const docs = chunks.slice(i, i + BATCH).map((chunk, j) => ({
         filename,
-        original_filename: filename,
+        original_filename: original_filename ?? filename.split("/").pop() ?? filename,
         chunk_index: i + j,
         content: chunk,
         metadata: { chunk_count: chunks.length, extracted_at: new Date().toISOString() },
