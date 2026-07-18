@@ -8,11 +8,13 @@ interface AdminUser {
   supabaseUser: User;
 }
 
+export type LoginResult = { ok: true } | { ok: false; reason: "invalid_credentials" | "no_admin_role" };
+
 interface AdminAuthContextType {
   user: AdminUser | null;
   isAuthenticated: boolean;
   ready: boolean;
-  login: (username: string, password: string) => Promise<boolean>;
+  login: (username: string, password: string) => Promise<LoginResult>;
   logout: () => void;
 }
 
@@ -78,22 +80,22 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const login = async (username: string, password: string): Promise<boolean> => {
+  const login = async (username: string, password: string): Promise<LoginResult> => {
     const email = username.includes("@")
       ? username
       : `${username}@focomues-iliad.fr`;
 
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error || !data.user) return false;
+    if (error || !data.user) return { ok: false, reason: "invalid_credentials" };
 
     const role = await fetchUserRole(data.user.id);
     if (!role || !ADMIN_ROLES.includes(role)) {
       await supabase.auth.signOut();
-      return false;
+      return { ok: false, reason: "no_admin_role" };
     }
 
     setUser(buildAdminUser(data.user, role));
-    return true;
+    return { ok: true };
   };
 
   const logout = async () => {
