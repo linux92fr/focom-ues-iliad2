@@ -202,13 +202,15 @@ export default function PageHeader() {
               )}
             </Link>
 
-            <Link
-              to={adminPath("/login")}
-              aria-label="Administration"
-              className="hidden sm:flex w-9 h-9 items-center justify-center rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors"
-            >
-              <Settings className="w-5 h-5" />
-            </Link>
+            {user && (
+              <Link
+                to={adminPath("/login")}
+                aria-label="Administration"
+                className="hidden sm:flex w-9 h-9 items-center justify-center rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors"
+              >
+                <Settings className="w-5 h-5" />
+              </Link>
+            )}
 
             {user ? (
               <div ref={userMenuRef} className="relative">
@@ -269,7 +271,7 @@ export default function PageHeader() {
             </div>
             <button type="button" onClick={() => setMobileMenuOpen(false)} className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-lg bg-muted text-foreground" aria-label="Fermer le menu"><X className="h-5 w-5" /></button>
             <nav className="flex-1 space-y-1 overflow-y-auto p-3">
-              {MOBILE_NAV.map((item) => {
+              {MOBILE_NAV.filter((item) => item.label !== "Admin" || user).map((item) => {
                 const Icon = item.icon;
                 return (
                   <NavLink
