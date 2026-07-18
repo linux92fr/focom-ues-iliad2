@@ -110,9 +110,9 @@ const ActualiteDetail = () => {
       <section className="relative overflow-hidden rounded-3xl bg-[#13233A] p-6 text-white shadow-xl sm:p-8 lg:p-10">
         <div className="pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full border-[52px] border-white/5" />
         <div className="pointer-events-none absolute -bottom-24 -left-24 h-80 w-80 rounded-full bg-red-600/25 blur-3xl" />
-        <div className="relative max-w-3xl">
+        <div className="relative mx-auto max-w-3xl text-center">
           <PageBreadcrumb
-            className="mb-4 [&_a]:text-white/70 [&_a:hover]:text-white [&_span]:text-white/90 [&_li]:text-white/50"
+            className="mb-4 [&_ol]:justify-center [&_a]:text-white/70 [&_a:hover]:text-white [&_span]:text-white/90 [&_li]:text-white/50"
             steps={[{ label: "Actualités", href: "/actualites" }, { label: article.title }]}
           />
 
@@ -124,7 +124,7 @@ const ActualiteDetail = () => {
           <h1 className="text-3xl font-extrabold leading-tight text-white sm:text-4xl lg:text-5xl">
             {article.title}
           </h1>
-          <div className="mt-4 flex items-center gap-4 text-white/80 text-sm">
+          <div className="mt-4 flex items-center justify-center gap-4 text-white/80 text-sm">
             <span className="flex items-center gap-1">
               <Calendar className="h-4 w-4" />
               {formatDate(article.published_at || article.created_at)}
