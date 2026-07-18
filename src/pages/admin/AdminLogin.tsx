@@ -30,9 +30,11 @@ export default function AdminLogin() {
     setLoading(true);
 
     try {
-      const success = await login(username, password);
-      if (success) {
+      const result = await login(username, password);
+      if (result.ok) {
         navigate(adminPath(), { replace: true });
+      } else if (result.reason === "no_admin_role") {
+        setError("Ce compte n'a pas accès à l'administration.");
       } else {
         setError("Identifiants incorrects. Veuillez réessayer.");
       }
