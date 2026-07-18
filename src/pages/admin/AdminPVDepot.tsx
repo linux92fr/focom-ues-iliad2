@@ -20,7 +20,9 @@ import {
   CloudUpload,
   Folder,
   ChevronRight,
+  ShieldCheck,
 } from "lucide-react";
+import { toast } from "sonner";
 
 const EDGE_FUNCTION_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/embed-pv`;
 
@@ -65,6 +67,7 @@ export default function AdminPVDepot() {
   const [selectedType, setSelectedType] = useState("CSE");
   const [selectedYear, setSelectedYear] = useState(String(CURRENT_YEAR));
   const [currentFolder, setCurrentFolder] = useState<string | null>(null);
+  const [cleaningOrphans, setCleaningOrphans] = useState(false);
 
   React.useEffect(() => {
     loadFiles();
@@ -244,7 +247,7 @@ export default function AdminPVDepot() {
       const resp = await fetch(EDGE_FUNCTION_URL, {
         method: "POST",
         headers: { ...authHeader, "Content-Type": "application/json" },
-        body: JSON.stringify({ text, filename: storagePath }),
+        body: JSON.stringify({ text, filename: storagePath, original_filename: displayName }),
       });
 
       const result = await resp.json();
@@ -301,7 +304,7 @@ export default function AdminPVDepot() {
       const resp = await fetch(EDGE_FUNCTION_URL, {
         method: "POST",
         headers: { ...authHeader, "Content-Type": "application/json" },
-        body: JSON.stringify({ text, filename: filePath }),
+        body: JSON.stringify({ text, filename: filePath, original_filename: filePath.split("/").pop() }),
       });
       const result = await resp.json();
       console.log(`[REINDEX RESP] status=${resp.status}`, result);
@@ -319,6 +322,61 @@ export default function AdminPVDepot() {
         status: "error",
         message: err instanceof Error ? err.message : "Erreur",
       });
+    }
+  };
+
+  const cleanOrphanedEntries = async () => {
+    if (!confirm("Supprimer de l'index tous les documents dont le fichier n'existe plus dans le stockage ?")) return;
+    setCleaningOrphans(true);
+    try {
+      // 1. Récupère tous les chemins de fichiers actuellement en storage
+      const storagePaths = new Set<string>();
+      const { data: rootItems } = await supabase.storage.from("pv-documents").list("", { sortBy: { column: "name", order: "asc" } });
+      for (const item of rootItems ?? []) {
+        if (item.name === ".emptyFolderPlaceholder") continue;
+        if (!item.metadata) {
+          const { data: yearItems } = await supabase.storage.from("pv-documents").list(item.name);
+          for (const yearItem of yearItems ?? []) {
+            if (yearItem.name === ".emptyFolderPlaceholder") continue;
+            if (!yearItem.metadata) {
+              const { data: pdfItems } = await supabase.storage.from("pv-documents").list(`${item.name}/${yearItem.name}`);
+              for (const pdf of pdfItems ?? []) {
+                if (pdf.name !== ".emptyFolderPlaceholder") storagePaths.add(`${item.name}/${yearItem.name}/${pdf.name}`);
+              }
+            } else {
+              storagePaths.add(`${item.name}/${yearItem.name}`);
+            }
+          }
+        } else {
+          storagePaths.add(item.name);
+        }
+      }
+
+      // 2. Récupère tous les filenames distincts dans pv_documents
+      const { data: dbRows } = await supabase.from("pv_documents").select("filename");
+      const dbFilenames = [...new Set((dbRows ?? []).map((r) => r.filename))];
+
+      // 3. Identifie les orphelins (dans DB mais pas en storage)
+      const orphans = dbFilenames.filter((f) => !storagePaths.has(f));
+
+      if (orphans.length === 0) {
+        toast.success("Aucune entrée orpheline trouvée — tout est cohérent.");
+        return;
+      }
+
+      // 4. Supprime par batch
+      let deleted = 0;
+      for (const orphan of orphans) {
+        await supabase.from("pv_documents").delete().eq("filename", orphan);
+        deleted++;
+      }
+
+      toast.success(`${deleted} entrée(s) orpheline(s) supprimée(s) de l'index.`);
+      await loadFiles();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erreur lors du nettoyage");
+    } finally {
+      setCleaningOrphans(false);
     }
   };
 
@@ -470,6 +528,17 @@ export default function AdminPVDepot() {
                 Tout ré-indexer ({nonIndexed.length})
               </Button>
             )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={cleanOrphanedEntries}
+              disabled={cleaningOrphans || loading}
+              className="text-xs text-amber-700 border-amber-300 hover:bg-amber-50"
+              title="Supprimer les entrées d'index dont le fichier n'existe plus dans le stockage"
+            >
+              {cleaningOrphans ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <ShieldCheck className="w-3 h-3 mr-1" />}
+              Nettoyer les orphelins
+            </Button>
             <Button variant="ghost" size="sm" onClick={loadFiles} disabled={loading}>
               <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
             </Button>

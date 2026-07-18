@@ -7,7 +7,6 @@ import { adminPath } from "@/lib/adminPath";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import {
-  ArrowLeft,
   Save,
   Send,
   Loader2,
@@ -25,9 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
-const LOGO_IMAGE =
-  "https://files.manuscdn.com/user_upload_by_module/session_file/310519663612648040/LldXxCbhFdcPcHwX.png";
+import AdminLayout, { AdminAuthGuard } from "@/components/admin/AdminLayout";
 
 const ARTICLE_IMAGES_BUCKET = "article-images";
 
@@ -195,49 +192,33 @@ export default function EditArticle() {
     updateMutation.mutate({ publish });
   };
 
-  if (!isAuthenticated) {
-    navigate(adminPath("/login"));
-    return null;
-  }
-
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-red-600" />
-      </div>
+      <AdminAuthGuard>
+        <AdminLayout title="Modifier l'article" breadcrumb={["Actualités", "Modifier l'article"]}>
+          <div className="flex items-center justify-center py-16">
+            <Loader2 className="w-8 h-8 animate-spin text-red-600" />
+          </div>
+        </AdminLayout>
+      </AdminAuthGuard>
     );
   }
 
   const previewUrl = imageFile ? URL.createObjectURL(imageFile) : form.image_url;
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
-        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-3">
-              <button onClick={() => navigate(adminPath("/actualites"))} className="p-2 rounded-lg hover:bg-slate-100">
-                <ArrowLeft className="w-5 h-5" />
-              </button>
-              <img loading="lazy" src={LOGO_IMAGE} alt="FO Com" className="h-12 w-12 object-contain" />
-              <div className="hidden sm:block">
-                <h1 className="text-lg font-bold text-slate-900 leading-tight">FOCOM UES ILIAD</h1>
-                <p className="text-[11px] text-slate-500 font-medium tracking-wide uppercase">Modifier l'article</p>
-              </div>
+    <AdminAuthGuard>
+      <AdminLayout title="Modifier l'article" breadcrumb={["Actualités", "Modifier l'article"]}>
+        <div className="max-w-[860px] mx-auto bg-white rounded-xl border border-slate-200 shadow-sm p-6 lg:p-8 space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-bold text-slate-900">Modifier l'article</h2>
+              <p className="text-sm text-slate-500 mt-0.5">Modifiez le contenu puis enregistrez ou publiez vos changements.</p>
             </div>
             <button onClick={handleDelete} disabled={deleteMutation.isPending} className="flex items-center gap-2 px-3 py-2 bg-red-50 hover:bg-red-100 text-red-600 text-sm font-semibold rounded-lg transition-colors border border-red-200">
               <Trash2 className="w-4 h-4" />
               <span className="hidden sm:inline">Supprimer</span>
             </button>
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-[860px] mx-auto p-4 lg:p-8">
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 lg:p-8 space-y-6">
-          <div>
-            <h2 className="text-xl font-bold text-slate-900">Modifier l'article</h2>
-            <p className="text-sm text-slate-500 mt-0.5">Modifiez le contenu puis enregistrez ou publiez vos changements.</p>
           </div>
 
           <div className="space-y-1.5">
@@ -312,13 +293,7 @@ export default function EditArticle() {
             </button>
           </div>
         </div>
-      </main>
-
-      <footer className="mt-12 bg-white border-t border-slate-200 py-6">
-        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
-          <p className="text-xs text-slate-500 text-center">© 2026 FOCOM UES ILIAD – Tous droits réservés</p>
-        </div>
-      </footer>
-    </div>
+      </AdminLayout>
+    </AdminAuthGuard>
   );
 }
