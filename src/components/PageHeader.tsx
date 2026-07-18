@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { adminPath } from "@/lib/adminPath";
 import logoFocom from "@/assets/logo-focom.png";
+import AuthModal from "@/components/AuthModal";
 
 const SEARCH_LINKS = [
   { label: "Le syndicat", href: "/le-syndicat" },
@@ -53,6 +54,7 @@ export default function PageHeader() {
   const [query, setQuery] = useState("");
   const [unreadCount, setUnreadCount] = useState(0);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [authOpen, setAuthOpen] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
@@ -236,9 +238,18 @@ export default function PageHeader() {
                 )}
               </div>
             ) : (
-              <Button asChild size="sm" className="hidden min-[380px]:inline-flex bg-red-600 hover:bg-red-700 text-white rounded-full px-3 sm:px-4 py-2 text-sm font-semibold shadow-sm">
-                <Link to="/adhesion">Nous rejoindre</Link>
-              </Button>
+              <>
+                <Button
+                  variant="outline" size="sm"
+                  onClick={() => setAuthOpen(true)}
+                  className="rounded-full px-3 sm:px-4 py-2 text-sm font-semibold"
+                >
+                  Se connecter
+                </Button>
+                <Button asChild size="sm" className="hidden min-[380px]:inline-flex bg-red-600 hover:bg-red-700 text-white rounded-full px-3 sm:px-4 py-2 text-sm font-semibold shadow-sm">
+                  <Link to="/adhesion">Nous rejoindre</Link>
+                </Button>
+              </>
             )}
           </div>
         </div>
@@ -279,10 +290,22 @@ export default function PageHeader() {
                   </NavLink>
                 );
               })}
+              {!user && (
+                <button
+                  type="button"
+                  onClick={() => { setMobileMenuOpen(false); setAuthOpen(true); }}
+                  className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-foreground hover:bg-muted"
+                >
+                  <User className="h-5 w-5 shrink-0" />
+                  <span className="truncate">Se connecter</span>
+                </button>
+              )}
             </nav>
           </aside>
         </div>
       )}
+
+      <AuthModal open={authOpen} onOpenChange={setAuthOpen} />
 
       {searchOpen && (
         <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4" onClick={() => setSearchOpen(false)}>
