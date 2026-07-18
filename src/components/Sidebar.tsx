@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import logoFocom from "@/assets/logo-focom.png";
 import { adminPath } from "@/lib/adminPath";
+import { useAuth } from "@/hooks/useAuth";
 
 const mainNavItems = [
   { to: "/", label: "Accueil", icon: LayoutDashboard, end: true },
@@ -64,6 +65,11 @@ function NavItem({ item, onNavigate }: { item: { to: string; label: string; icon
 }
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
+  const { user } = useAuth();
+  const visibleSecondaryItems = user
+    ? secondaryNavItems
+    : secondaryNavItems.filter((item) => item.label !== "Admin");
+
   return (
     <>
       <div className="border-b border-border p-5">
@@ -92,7 +98,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
         <div className="space-y-1">
           <p className="px-4 pb-1 text-[10px] font-black uppercase tracking-wider text-muted-foreground">Plus</p>
-          {secondaryNavItems.map((item) => <NavItem key={item.label} item={item} onNavigate={onNavigate} />)}
+          {visibleSecondaryItems.map((item) => <NavItem key={item.label} item={item} onNavigate={onNavigate} />)}
         </div>
       </nav>
 
