@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Loader2, Lock, CheckCircle2, Wand2, Eye, EyeOff } from "lucide-react";
+import { Loader2, Lock, CheckCircle2, Wand2, Eye, EyeOff, AlertTriangle } from "lucide-react";
 import { generateStrongPassword, getPasswordCriteria, getPasswordError } from "@/lib/password";
 
 type Status = "checking" | "ready" | "invalid" | "success";
@@ -20,6 +20,7 @@ export default function ResetPassword() {
   const [saving, setSaving] = useState(false);
   const [showNext, setShowNext] = useState(false);
   const [email, setEmail] = useState("");
+  const [timeoutUncertain, setTimeoutUncertain] = useState<string | null>(null);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -54,6 +55,7 @@ export default function ResetPassword() {
     setConfirm(generated);
     setShowNext(true);
     setErrors({});
+    setTimeoutUncertain(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -65,18 +67,24 @@ export default function ResetPassword() {
     if (Object.keys(newErrors).length > 0) { setErrors(newErrors); return; }
 
     setErrors({});
+    setTimeoutUncertain(null);
     setSaving(true);
+    const submittedPassword = next;
     try {
       const timeout = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("La requête a pris trop de temps, veuillez réessayer.")), 15000)
+        setTimeout(() => reject(new DOMException("timeout", "TimeoutError")), 15000)
       );
-      const { error } = await Promise.race([supabase.auth.updateUser({ password: next }), timeout]);
+      const { error } = await Promise.race([supabase.auth.updateUser({ password: submittedPassword }), timeout]);
       if (error) throw error;
       setStatus("success");
       toast.success("Mot de passe défini avec succès");
     } catch (err) {
       console.error("Échec de la définition du mot de passe:", err);
-      toast.error(err instanceof Error ? err.message : "Impossible de définir le mot de passe");
+      if (err instanceof DOMException && err.name === "TimeoutError") {
+        setTimeoutUncertain(submittedPassword);
+      } else {
+        toast.error(err instanceof Error ? err.message : "Impossible de définir le mot de passe");
+      }
     } finally {
       setSaving(false);
     }
@@ -185,6 +193,18 @@ export default function ResetPassword() {
                 </div>
                 {errors.confirm && <p className="text-xs text-destructive">{errors.confirm}</p>}
               </div>
+
+              {timeoutUncertain && (
+                <div className="flex gap-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-amber-900">
+                  <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5" />
+                  <div className="text-sm space-y-1">
+                    <p className="font-medium">La réponse a mis trop de temps à arriver, mais le mot de passe a peut-être quand même été enregistré.</p>
+                    <p>Essayez de vous connecter directement avec le mot de passe que vous venez de saisir :</p>
+                    <p className="font-mono font-semibold select-all break-all bg-white/70 rounded px-2 py-1">{timeoutUncertain}</p>
+                    <p>Si la connexion échoue, réessayez de définir votre mot de passe ci-dessus.</p>
+                  </div>
+                </div>
+              )}
 
               <Button type="submit" className="w-full" disabled={saving}>
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Définir mon mot de passe"}

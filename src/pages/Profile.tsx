@@ -116,6 +116,7 @@ const Profile = () => {
   const [pwData, setPwData] = useState({ next: "", confirm: "" });
   const [pwErrors, setPwErrors] = useState<Record<string, string>>({});
   const [pwSaving, setPwSaving] = useState(false);
+  const [pwTimeoutUncertain, setPwTimeoutUncertain] = useState<string | null>(null);
   const [showPw, setShowPw] = useState({ next: false, confirm: false });
 
   useEffect(() => {
@@ -277,6 +278,7 @@ const Profile = () => {
     setPwData({ next: generated, confirm: generated });
     setShowPw({ next: true, confirm: true });
     setPwErrors({});
+    setPwTimeoutUncertain(null);
   };
 
   const handlePasswordChange = async (e: React.FormEvent) => {
@@ -289,18 +291,24 @@ const Profile = () => {
     if (Object.keys(errors).length > 0) { setPwErrors(errors); return; }
 
     setPwErrors({});
+    setPwTimeoutUncertain(null);
     setPwSaving(true);
+    const submittedPassword = pwData.next;
     try {
       const timeout = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("La requête a pris trop de temps, veuillez réessayer.")), 15000)
+        setTimeout(() => reject(new DOMException("timeout", "TimeoutError")), 15000)
       );
-      const { error } = await Promise.race([supabase.auth.updateUser({ password: pwData.next }), timeout]);
+      const { error } = await Promise.race([supabase.auth.updateUser({ password: submittedPassword }), timeout]);
       if (error) throw error;
       toast.success("Mot de passe modifié avec succès");
       setPwData({ next: "", confirm: "" });
     } catch (err: unknown) {
       console.error("Échec de la modification du mot de passe:", err);
-      toast.error(err instanceof Error ? err.message : "Impossible de modifier le mot de passe");
+      if (err instanceof DOMException && err.name === "TimeoutError") {
+        setPwTimeoutUncertain(submittedPassword);
+      } else {
+        toast.error(err instanceof Error ? err.message : "Impossible de modifier le mot de passe");
+      }
     } finally {
       setPwSaving(false);
     }
@@ -821,6 +829,18 @@ const Profile = () => {
                             </div>
                           )}
                         </div>
+
+                        {pwTimeoutUncertain && (
+                          <div className="flex gap-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-amber-900">
+                            <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
+                            <div className="text-sm space-y-1">
+                              <p className="font-medium">La réponse a mis trop de temps à arriver, mais le mot de passe a peut-être quand même été modifié.</p>
+                              <p>Essayez de vous reconnecter avec le mot de passe que vous venez de saisir :</p>
+                              <p className="font-mono font-semibold select-all break-all bg-white/70 rounded px-2 py-1">{pwTimeoutUncertain}</p>
+                              <p>Si la connexion échoue, réessayez de le modifier ci-dessus.</p>
+                            </div>
+                          </div>
+                        )}
 
                         <Separator />
                         <div className="flex justify-stretch sm:justify-end">
