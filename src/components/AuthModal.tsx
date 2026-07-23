@@ -124,6 +124,7 @@ const AuthModal = ({ open, onOpenChange }: AuthModalProps) => {
                   <Input
                     id="login-email"
                     type="email"
+                    autoComplete="username"
                     placeholder="votre@email.com"
                     value={loginEmail}
                     onChange={(e) => setLoginEmail(e.target.value)}
@@ -140,6 +141,7 @@ const AuthModal = ({ open, onOpenChange }: AuthModalProps) => {
                   <Input
                     id="login-password"
                     type="password"
+                    autoComplete="current-password"
                     placeholder="••••••••"
                     value={loginPassword}
                     onChange={(e) => setLoginPassword(e.target.value)}
@@ -168,6 +170,7 @@ const AuthModal = ({ open, onOpenChange }: AuthModalProps) => {
                   <Input
                     id="signup-name"
                     type="text"
+                    autoComplete="name"
                     placeholder="Jean Dupont"
                     value={signupName}
                     onChange={(e) => setSignupName(e.target.value)}
@@ -183,6 +186,7 @@ const AuthModal = ({ open, onOpenChange }: AuthModalProps) => {
                   <Input
                     id="signup-email"
                     type="email"
+                    autoComplete="email"
                     placeholder="votre@email.com"
                     value={signupEmail}
                     onChange={(e) => setSignupEmail(e.target.value)}
@@ -209,6 +213,7 @@ const AuthModal = ({ open, onOpenChange }: AuthModalProps) => {
                   <Input
                     id="signup-password"
                     type={showSignupPassword ? "text" : "password"}
+                    autoComplete="new-password"
                     placeholder="••••••••"
                     value={signupPassword}
                     onChange={(e) => {

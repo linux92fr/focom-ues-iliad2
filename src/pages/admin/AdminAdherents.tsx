@@ -242,7 +242,7 @@ export default function AdminAdherents() {
                   <div className="space-y-1.5"><Label>Nom</Label><Input value={createForm.lastName} onChange={(e) => setCreateForm((f) => ({ ...f, lastName: e.target.value }))} placeholder="Dupont" /></div>
                 </div>
                 <div className="space-y-1.5"><Label>Email <span className="text-red-500">*</span></Label><Input type="email" value={createForm.email} onChange={(e) => setCreateForm((f) => ({ ...f, email: e.target.value }))} placeholder="marie.dupont@example.com" /></div>
-                <div className="space-y-1.5"><Label>Mot de passe <span className="text-red-500">*</span></Label><Input type="password" value={createForm.password} onChange={(e) => setCreateForm((f) => ({ ...f, password: e.target.value }))} placeholder="Minimum 6 caractères" /></div>
+                <div className="space-y-1.5"><Label>Mot de passe <span className="text-red-500">*</span></Label><Input type="password" autoComplete="new-password" value={createForm.password} onChange={(e) => setCreateForm((f) => ({ ...f, password: e.target.value }))} placeholder="Minimum 6 caractères" /></div>
                 <div className="space-y-1.5"><Label>Rôle initial</Label>
                   <Select value={createForm.role} onValueChange={(v) => setCreateForm((f) => ({ ...f, role: v as UserRole }))}>
                     <SelectTrigger><SelectValue /></SelectTrigger>

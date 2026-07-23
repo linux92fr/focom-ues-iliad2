@@ -105,6 +105,7 @@ export default function AdminLogin() {
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
+                  autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Entrez votre mot de passe"
