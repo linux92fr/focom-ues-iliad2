@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,8 +13,9 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Mail, Lock, User, Wand2, Eye, EyeOff } from "lucide-react";
+import { Loader2, Mail, Lock, User, Wand2, Eye, EyeOff, Fingerprint } from "lucide-react";
 import { generateStrongPassword, getPasswordError } from "@/lib/password";
+import { startAuthentication, browserSupportsWebAuthn } from "@simplewebauthn/browser";
 
 interface AuthModalProps {
   open: boolean;
@@ -35,6 +37,54 @@ const AuthModal = ({ open, onOpenChange }: AuthModalProps) => {
   const [signupName, setSignupName] = useState("");
   const [signupPasswordError, setSignupPasswordError] = useState<string | null>(null);
   const [showSignupPassword, setShowSignupPassword] = useState(false);
+  const [passkeyLoading, setPasskeyLoading] = useState(false);
+
+  const handlePasskeyLogin = async () => {
+    setPasskeyLoading(true);
+    try {
+      const { data: optionsData, error: optionsError } = await supabase.functions.invoke(
+        "webauthn-authenticate",
+        { body: { action: "generate-options" } }
+      );
+      if (optionsError || !optionsData?.options) {
+        throw new Error(optionsData?.error || optionsError?.message || "Impossible de démarrer la connexion par passkey");
+      }
+
+      const credential = await startAuthentication({ optionsJSON: optionsData.options });
+
+      const { data: verifyData, error: verifyError } = await supabase.functions.invoke(
+        "webauthn-authenticate",
+        { body: { action: "verify-authentication", credential } }
+      );
+      if (verifyError || !verifyData?.success) {
+        throw new Error(verifyData?.error || verifyError?.message || "Passkey non reconnu");
+      }
+
+      const hashedToken = verifyData.linkData?.properties?.hashed_token;
+      if (!hashedToken) throw new Error("Lien de connexion invalide");
+
+      const { error: otpError } = await supabase.auth.verifyOtp({
+        token_hash: hashedToken,
+        type: "magiclink",
+      });
+      if (otpError) throw otpError;
+
+      toast({ title: "Bienvenue !", description: "Vous êtes maintenant connecté." });
+      onOpenChange(false);
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === "NotAllowedError") {
+        // Annulé par l'utilisateur, pas d'erreur à afficher
+      } else {
+        toast({
+          title: "Connexion par passkey impossible",
+          description: err instanceof Error ? err.message : "Une erreur est survenue",
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setPasskeyLoading(false);
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -158,6 +208,19 @@ const AuthModal = ({ open, onOpenChange }: AuthModalProps) => {
                   "Se connecter"
                 )}
               </Button>
+
+              {browserSupportsWebAuthn() && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full gap-2"
+                  disabled={passkeyLoading}
+                  onClick={handlePasskeyLogin}
+                >
+                  {passkeyLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Fingerprint className="h-4 w-4" />}
+                  Se connecter avec un passkey
+                </Button>
+              )}
             </form>
           </TabsContent>
 
