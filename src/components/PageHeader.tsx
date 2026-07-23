@@ -8,6 +8,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useAdminAuth } from "@/contexts/AdminAuthContext";
 import { adminPath } from "@/lib/adminPath";
 import logoFocom from "@/assets/logo-focom.png";
 import AuthModal from "@/components/AuthModal";
@@ -62,6 +63,7 @@ export default function PageHeader() {
   const location = useLocation();
   const isHomePage = location.pathname === "/";
   const { user, signOut } = useAuth();
+  const { isAuthenticated: isAdmin } = useAdminAuth();
 
   const initials = user
     ? (user.user_metadata?.display_name?.substring(0, 2) || user.email?.substring(0, 2) || "U").toUpperCase()
@@ -152,7 +154,7 @@ export default function PageHeader() {
   return (
     <>
       <header className="shrink-0 z-40 w-full max-w-full overflow-x-hidden bg-card border-b border-border shadow-sm">
-        <div className="h-14 w-full max-w-full px-2 sm:px-4 flex items-center justify-between gap-1 overflow-hidden">
+        <div className="h-14 w-full max-w-full px-2 sm:px-4 flex items-center justify-between gap-1">
           <div className="flex min-w-0 items-center gap-1 sm:gap-2">
             <button
               type="button"
@@ -202,9 +204,9 @@ export default function PageHeader() {
               )}
             </Link>
 
-            {user && (
+            {isAdmin && (
               <Link
-                to={adminPath("/login")}
+                to={adminPath()}
                 aria-label="Administration"
                 className="hidden sm:flex w-9 h-9 items-center justify-center rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors"
               >
@@ -223,7 +225,7 @@ export default function PageHeader() {
                 </button>
 
                 {userMenuOpen && (
-                  <div className="absolute right-0 top-12 w-56 max-w-[calc(100vw-1rem)] bg-white rounded-xl shadow-2xl border border-slate-200 z-50 overflow-hidden">
+                  <div className="fixed right-2 top-16 sm:right-4 w-56 max-w-[calc(100vw-1rem)] bg-white rounded-xl shadow-2xl border border-slate-200 z-50 overflow-hidden">
                     <div className="px-4 py-3 border-b border-slate-100">
                       <p className="text-xs font-semibold text-slate-900">Mon compte</p>
                       <p className="text-xs text-slate-400 truncate">{user.email}</p>
@@ -271,7 +273,7 @@ export default function PageHeader() {
             </div>
             <button type="button" onClick={() => setMobileMenuOpen(false)} className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-lg bg-muted text-foreground" aria-label="Fermer le menu"><X className="h-5 w-5" /></button>
             <nav className="flex-1 space-y-1 overflow-y-auto p-3">
-              {MOBILE_NAV.filter((item) => item.label !== "Admin" || user).map((item) => {
+              {MOBILE_NAV.filter((item) => item.label !== "Admin" || isAdmin).map((item) => {
                 const Icon = item.icon;
                 return (
                   <NavLink

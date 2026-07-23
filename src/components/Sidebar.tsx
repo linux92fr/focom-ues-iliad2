@@ -19,6 +19,7 @@ import {
 import logoFocom from "@/assets/logo-focom.png";
 import { adminPath } from "@/lib/adminPath";
 import { useAuth } from "@/hooks/useAuth";
+import { useAdminAuth } from "@/contexts/AdminAuthContext";
 import AuthModal from "@/components/AuthModal";
 
 const mainNavItems = [
@@ -69,8 +70,9 @@ function NavItem({ item, onNavigate }: { item: { to: string; label: string; icon
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const { user } = useAuth();
+  const { isAuthenticated: isAdmin } = useAdminAuth();
   const [authOpen, setAuthOpen] = useState(false);
-  const visibleSecondaryItems = user
+  const visibleSecondaryItems = isAdmin
     ? secondaryNavItems
     : secondaryNavItems.filter((item) => item.label !== "Admin");
 
