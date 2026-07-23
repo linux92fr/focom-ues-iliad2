@@ -457,24 +457,33 @@ function AddDocumentDialog({
 
     const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "-");
     const path = `${userId}/${Date.now()}-${safeName}`;
+    const withTimeout = <T,>(promise: Promise<T>, ms: number) =>
+      Promise.race([
+        promise,
+        new Promise<never>((_, reject) => setTimeout(() => reject(new DOMException("timeout", "TimeoutError")), ms)),
+      ]);
+
     try {
-      const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, file);
+      const { error: upErr } = await withTimeout(supabase.storage.from(BUCKET).upload(path, file), 45000);
       if (upErr) {
         toast.error(`Échec de l'envoi du fichier : ${upErr.message}`);
         return;
       }
 
-      const { error } = await supabase.from("user_documents").insert({
-        user_id: userId,
-        title: title.trim(),
-        description: description.trim() || null,
-        file_name: file.name,
-        file_path: path,
-        file_size: file.size,
-        file_type: file.type || null,
-        is_public: isPublic,
-        folder_id: folderId,
-      });
+      const { error } = await withTimeout(
+        supabase.from("user_documents").insert({
+          user_id: userId,
+          title: title.trim(),
+          description: description.trim() || null,
+          file_name: file.name,
+          file_path: path,
+          file_size: file.size,
+          file_type: file.type || null,
+          is_public: isPublic,
+          folder_id: folderId,
+        }),
+        15000,
+      );
 
       if (error) {
         await supabase.storage.from(BUCKET).remove([path]);
@@ -487,7 +496,11 @@ function AddDocumentDialog({
       onCreated();
       onClose();
     } catch (err) {
-      toast.error(err instanceof Error ? `Erreur inattendue : ${err.message}` : "Une erreur inattendue est survenue lors de l'envoi");
+      if (err instanceof DOMException && err.name === "TimeoutError") {
+        toast.error("L'envoi a mis trop de temps à répondre (connexion instable ?). Réessayez.");
+      } else {
+        toast.error(err instanceof Error ? `Erreur inattendue : ${err.message}` : "Une erreur inattendue est survenue lors de l'envoi");
+      }
     } finally {
       setSaving(false);
     }
