@@ -437,10 +437,18 @@ function AddDocumentDialog({
   const [file, setFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const fileInputId = `user-document-file-${userId}`;
 
   useEffect(() => { if (open) setFolderId(defaultFolderId); }, [open, defaultFolderId]);
 
-  const reset = () => { setTitle(""); setDescription(""); setIsPublic(false); setFile(null); setFolderId(null); };
+  const reset = () => {
+    setTitle("");
+    setDescription("");
+    setIsPublic(false);
+    setFile(null);
+    setFolderId(null);
+    if (fileRef.current) fileRef.current.value = "";
+  };
 
   const pickFile = (selected: File | null) => {
     if (!selected) return setFile(null);
@@ -532,11 +540,21 @@ function AddDocumentDialog({
             </div>
           )}
           <div>
-            <Label>Fichier *</Label>
-            <input ref={fileRef} type="file" className="hidden" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.gif,.webp,.txt" onChange={(e) => pickFile(e.target.files?.[0] ?? null)} />
-            <button type="button" onClick={() => fileRef.current?.click()} className="mt-1 w-full border-2 border-dashed border-slate-200 rounded-lg py-3 text-sm text-slate-500 hover:border-teal-300 hover:text-teal-700 transition-colors flex items-center justify-center gap-2">
-              <Upload className="w-4 h-4" /> {file ? file.name : "Choisir un fichier, 20 Mo max"}
-            </button>
+            <Label htmlFor={fileInputId}>Fichier *</Label>
+            <input
+              id={fileInputId}
+              ref={fileRef}
+              type="file"
+              className="sr-only"
+              accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.gif,.webp,.txt"
+              onChange={(e) => pickFile(e.target.files?.[0] ?? null)}
+            />
+            <label
+              htmlFor={fileInputId}
+              className="mt-1 w-full cursor-pointer border-2 border-dashed border-slate-200 rounded-lg py-3 px-3 text-sm text-slate-500 hover:border-teal-300 hover:text-teal-700 transition-colors flex items-center justify-center gap-2 text-center"
+            >
+              <Upload className="w-4 h-4 flex-shrink-0" /> <span className="truncate">{file ? file.name : "Choisir un fichier, 20 Mo max"}</span>
+            </label>
           </div>
           <div className="flex items-center justify-between rounded-lg border border-slate-200 p-3">
             <div>
