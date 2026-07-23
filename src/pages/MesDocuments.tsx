@@ -297,17 +297,21 @@ function NewFolderDialog({ open, onClose, userId, onCreated }: { open: boolean; 
     e.preventDefault();
     if (!name.trim()) return toast.error("Nom du dossier requis");
     setSaving(true);
-    const { error } = await supabase.from("document_folders").insert({ user_id: userId, name: name.trim() });
-    if (error) {
-      toast.error(error.code === "23505" ? "Un dossier avec ce nom existe déjà" : `Impossible de créer le dossier : ${getSupabaseErrorMessage(error)}`);
+    try {
+      const { error } = await supabase.from("document_folders").insert({ user_id: userId, name: name.trim() });
+      if (error) {
+        toast.error(error.code === "23505" ? "Un dossier avec ce nom existe déjà" : `Impossible de créer le dossier : ${getSupabaseErrorMessage(error)}`);
+        return;
+      }
+      toast.success("Dossier créé");
+      setName("");
+      onCreated();
+      onClose();
+    } catch (err) {
+      toast.error(err instanceof Error ? `Erreur inattendue : ${err.message}` : "Une erreur inattendue est survenue");
+    } finally {
       setSaving(false);
-      return;
     }
-    toast.success("Dossier créé");
-    setName("");
-    onCreated();
-    onClose();
-    setSaving(false);
   };
 
   return (
@@ -453,37 +457,40 @@ function AddDocumentDialog({
 
     const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "-");
     const path = `${userId}/${Date.now()}-${safeName}`;
-    const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, file);
-    if (upErr) {
-      toast.error(`Échec de l'envoi du fichier : ${upErr.message}`);
+    try {
+      const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, file);
+      if (upErr) {
+        toast.error(`Échec de l'envoi du fichier : ${upErr.message}`);
+        return;
+      }
+
+      const { error } = await supabase.from("user_documents").insert({
+        user_id: userId,
+        title: title.trim(),
+        description: description.trim() || null,
+        file_name: file.name,
+        file_path: path,
+        file_size: file.size,
+        file_type: file.type || null,
+        is_public: isPublic,
+        folder_id: folderId,
+      });
+
+      if (error) {
+        await supabase.storage.from(BUCKET).remove([path]);
+        toast.error(`Erreur lors de l'enregistrement : ${getSupabaseErrorMessage(error)}`);
+        return;
+      }
+
+      toast.success("Document ajouté");
+      reset();
+      onCreated();
+      onClose();
+    } catch (err) {
+      toast.error(err instanceof Error ? `Erreur inattendue : ${err.message}` : "Une erreur inattendue est survenue lors de l'envoi");
+    } finally {
       setSaving(false);
-      return;
     }
-
-    const { error } = await supabase.from("user_documents").insert({
-      user_id: userId,
-      title: title.trim(),
-      description: description.trim() || null,
-      file_name: file.name,
-      file_path: path,
-      file_size: file.size,
-      file_type: file.type || null,
-      is_public: isPublic,
-      folder_id: folderId,
-    });
-
-    if (error) {
-      await supabase.storage.from(BUCKET).remove([path]);
-      toast.error(`Erreur lors de l'enregistrement : ${getSupabaseErrorMessage(error)}`);
-      setSaving(false);
-      return;
-    }
-
-    toast.success("Document ajouté");
-    reset();
-    onCreated();
-    onClose();
-    setSaving(false);
   };
 
   return (
