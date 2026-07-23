@@ -16,9 +16,11 @@ import {
   ShieldCheck, Camera, X, CreditCard, History, CalendarDays,
   Calendar, Clock, MapPin, Video, MessageSquare, AlertCircle,
   CheckCircle2, XCircle, HelpCircle, ChevronRight, Wand2,
+  Fingerprint, Smartphone, KeyRound, Trash2,
 } from "lucide-react";
 import CarteAdherent from "@/components/CarteAdherent";
 import { generateStrongPassword, getPasswordCriteria, getPasswordError } from "@/lib/password";
+import { startRegistration, browserSupportsWebAuthn } from "@simplewebauthn/browser";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -32,6 +34,14 @@ interface ProfileData {
   avatar_url: string | null;
   access_key: string | null;
   created_at: string;
+}
+
+interface Passkey {
+  id: string;
+  friendly_name: string | null;
+  device_type: string | null;
+  created_at: string;
+  last_used_at: string | null;
 }
 
 interface Adhesion {
@@ -196,6 +206,85 @@ const Profile = () => {
 
   const upcomingRdv = mesRdv.filter(isUpcoming);
   const pastRdv = mesRdv.filter((r) => !isUpcoming(r));
+
+  // ─── Passkeys ────────────────────────────────────────────────────────────
+
+  const { data: passkeys = [], isLoading: passkeysLoading } = useQuery({
+    queryKey: ["profil-passkeys", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("passkey_credentials")
+        .select("id, friendly_name, device_type, created_at, last_used_at")
+        .eq("user_id", user!.id)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as Passkey[];
+    },
+  });
+
+  const [passkeyName, setPasskeyName] = useState("");
+  const [addingPasskey, setAddingPasskey] = useState(false);
+
+  const handleAddPasskey = async () => {
+    if (!user?.email) return;
+    setAddingPasskey(true);
+    try {
+      const { data: optionsData, error: optionsError } = await supabase.functions.invoke(
+        "webauthn-register",
+        { body: { action: "generate-options", email: user.email, userId: user.id } }
+      );
+      if (optionsError || !optionsData?.options) {
+        throw new Error(optionsData?.error || optionsError?.message || "Impossible de démarrer la création du passkey");
+      }
+
+      const credential = await startRegistration({ optionsJSON: optionsData.options });
+
+      const { data: verifyData, error: verifyError } = await supabase.functions.invoke(
+        "webauthn-register",
+        {
+          body: {
+            action: "verify-registration",
+            credential,
+            email: user.email,
+            userId: user.id,
+            friendlyName: passkeyName.trim() || "Passkey",
+          },
+        }
+      );
+      if (verifyError || !verifyData?.success) {
+        throw new Error(verifyData?.error || verifyError?.message || "Erreur lors de l'enregistrement du passkey");
+      }
+
+      toast.success("Passkey ajouté avec succès");
+      setPasskeyName("");
+      queryClient.invalidateQueries({ queryKey: ["profil-passkeys"] });
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === "NotAllowedError") {
+        // Annulé par l'utilisateur
+      } else {
+        toast.error(err instanceof Error ? err.message : "Impossible d'ajouter le passkey");
+      }
+    } finally {
+      setAddingPasskey(false);
+    }
+  };
+
+  const deletePasskeyMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("passkey_credentials")
+        .delete()
+        .eq("id", id)
+        .eq("user_id", user!.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["profil-passkeys"] });
+      toast.success("Passkey supprimé");
+    },
+    onError: () => toast.error("Impossible de supprimer ce passkey"),
+  });
 
   // ─── Avatar ──────────────────────────────────────────────────────────────
 
@@ -858,6 +947,82 @@ const Profile = () => {
                       </form>
                     </CardContent>
                   </Card>
+
+                  {browserSupportsWebAuthn() && (
+                    <Card className="mt-6">
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <Fingerprint className="h-5 w-5" /> Passkeys
+                        </CardTitle>
+                        <CardDescription>
+                          Connectez-vous sans mot de passe avec votre empreinte, Face ID ou clé de sécurité
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        {passkeysLoading ? (
+                          <div className="flex items-center justify-center py-6">
+                            <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                          </div>
+                        ) : passkeys.length === 0 ? (
+                          <p className="text-sm text-muted-foreground">Aucun passkey enregistré pour le moment</p>
+                        ) : (
+                          <div className="space-y-2">
+                            {passkeys.map((pk) => (
+                              <div
+                                key={pk.id}
+                                className="flex items-center justify-between gap-3 rounded-lg border border-border p-3"
+                              >
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                  <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                                    {pk.device_type === "singleDevice"
+                                      ? <Smartphone className="w-4 h-4 text-muted-foreground" />
+                                      : <KeyRound className="w-4 h-4 text-muted-foreground" />}
+                                  </div>
+                                  <div className="min-w-0">
+                                    <p className="text-sm font-medium truncate">{pk.friendly_name || "Passkey"}</p>
+                                    <p className="text-xs text-muted-foreground">
+                                      Ajouté le {new Date(pk.created_at).toLocaleDateString("fr-FR")}
+                                      {pk.last_used_at && ` · Utilisé le ${new Date(pk.last_used_at).toLocaleDateString("fr-FR")}`}
+                                    </p>
+                                  </div>
+                                </div>
+                                <Button
+                                  variant="ghost" size="sm"
+                                  className="text-destructive hover:text-destructive hover:bg-destructive/10 flex-shrink-0"
+                                  onClick={() => deletePasskeyMutation.mutate(pk.id)}
+                                  disabled={deletePasskeyMutation.isPending}
+                                  aria-label="Supprimer ce passkey"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        <Separator />
+                        <div className="flex flex-col sm:flex-row gap-2">
+                          <Input
+                            value={passkeyName}
+                            onChange={(e) => setPasskeyName(e.target.value)}
+                            placeholder="Nom de l'appareil (ex : iPhone de Marie)"
+                            maxLength={100}
+                          />
+                          <Button
+                            type="button"
+                            onClick={handleAddPasskey}
+                            disabled={addingPasskey}
+                            className="gap-2 sm:w-auto w-full"
+                          >
+                            {addingPasskey
+                              ? <Loader2 className="h-4 w-4 animate-spin" />
+                              : <Fingerprint className="h-4 w-4" />}
+                            Ajouter un passkey
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
                 </TabsContent>
               </Tabs>
             </div>
