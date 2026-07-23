@@ -52,8 +52,34 @@ const SHEET_TYPES = [
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 ];
 const PREVIEWABLE_TYPES = [...IMAGE_TYPES, "application/pdf", DOCX_TYPE, ...SHEET_TYPES, "text/plain"];
+const ALLOWED_EXTENSIONS = ["pdf", "doc", "docx", "xls", "xlsx", "png", "jpg", "jpeg", "gif", "webp", "txt"];
+const EXTENSION_CONTENT_TYPES: Record<string, string> = {
+  pdf: "application/pdf",
+  doc: "application/msword",
+  docx: DOCX_TYPE,
+  xls: "application/vnd.ms-excel",
+  xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  png: "image/png",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  gif: "image/gif",
+  webp: "image/webp",
+  txt: "text/plain",
+};
 
 const isPreviewable = (fileType: string | null) => !!fileType && PREVIEWABLE_TYPES.includes(fileType);
+
+const getFileExtension = (fileName: string) => fileName.split(".").pop()?.toLowerCase() ?? "";
+
+const getFileContentType = (file: File) => {
+  if (file.type && ALLOWED_TYPES.includes(file.type)) return file.type;
+  return EXTENSION_CONTENT_TYPES[getFileExtension(file.name)] ?? (file.type || "application/octet-stream");
+};
+
+const isAllowedFile = (file: File) => {
+  if (file.type && ALLOWED_TYPES.includes(file.type)) return true;
+  return ALLOWED_EXTENSIONS.includes(getFileExtension(file.name));
+};
 
 const fmtDate = (iso: string) =>
   new Date(iso).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" });
@@ -437,15 +463,23 @@ function AddDocumentDialog({
   const [file, setFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const fileInputId = `user-document-file-${userId}`;
 
   useEffect(() => { if (open) setFolderId(defaultFolderId); }, [open, defaultFolderId]);
 
-  const reset = () => { setTitle(""); setDescription(""); setIsPublic(false); setFile(null); setFolderId(null); };
+  const reset = () => {
+    setTitle("");
+    setDescription("");
+    setIsPublic(false);
+    setFile(null);
+    setFolderId(null);
+    if (fileRef.current) fileRef.current.value = "";
+  };
 
   const pickFile = (selected: File | null) => {
     if (!selected) return setFile(null);
     if (selected.size > MAX_FILE_SIZE) return toast.error(`${selected.name} dépasse 20 Mo`);
-    if (selected.type && !ALLOWED_TYPES.includes(selected.type)) return toast.error(`${selected.name} n'est pas un format autorisé`);
+    if (!isAllowedFile(selected)) return toast.error(`${selected.name} n'est pas un format autorisé`);
     setFile(selected);
   };
 
@@ -464,7 +498,12 @@ function AddDocumentDialog({
       ]);
 
     try {
-      const { error: upErr } = await withTimeout(supabase.storage.from(BUCKET).upload(path, file), 45000);
+      const contentType = getFileContentType(file);
+      const uploadBody = new Blob([await withTimeout(file.arrayBuffer(), 30000)], { type: contentType });
+      const { error: upErr } = await withTimeout(
+        supabase.storage.from(BUCKET).upload(path, uploadBody, { contentType, upsert: false }),
+        120000,
+      );
       if (upErr) {
         toast.error(`Échec de l'envoi du fichier : ${upErr.message}`);
         return;
@@ -478,7 +517,7 @@ function AddDocumentDialog({
           file_name: file.name,
           file_path: path,
           file_size: file.size,
-          file_type: file.type || null,
+          file_type: contentType,
           is_public: isPublic,
           folder_id: folderId,
         }),
@@ -532,11 +571,21 @@ function AddDocumentDialog({
             </div>
           )}
           <div>
-            <Label>Fichier *</Label>
-            <input ref={fileRef} type="file" className="hidden" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.gif,.webp,.txt" onChange={(e) => pickFile(e.target.files?.[0] ?? null)} />
-            <button type="button" onClick={() => fileRef.current?.click()} className="mt-1 w-full border-2 border-dashed border-slate-200 rounded-lg py-3 text-sm text-slate-500 hover:border-teal-300 hover:text-teal-700 transition-colors flex items-center justify-center gap-2">
-              <Upload className="w-4 h-4" /> {file ? file.name : "Choisir un fichier, 20 Mo max"}
-            </button>
+            <Label htmlFor={fileInputId}>Fichier *</Label>
+            <input
+              id={fileInputId}
+              ref={fileRef}
+              type="file"
+              className="sr-only"
+              accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.gif,.webp,.txt"
+              onChange={(e) => pickFile(e.target.files?.[0] ?? null)}
+            />
+            <label
+              htmlFor={fileInputId}
+              className="mt-1 w-full cursor-pointer border-2 border-dashed border-slate-200 rounded-lg py-3 px-3 text-sm text-slate-500 hover:border-teal-300 hover:text-teal-700 transition-colors flex items-center justify-center gap-2 text-center"
+            >
+              <Upload className="w-4 h-4 flex-shrink-0" /> <span className="truncate">{file ? file.name : "Choisir un fichier, 20 Mo max"}</span>
+            </label>
           </div>
           <div className="flex items-center justify-between rounded-lg border border-slate-200 p-3">
             <div>
