@@ -127,6 +127,20 @@ Deno.serve(async (req) => {
       return json({ url: kdriveBody.data.temporary_url });
     }
 
+    if (action === "weburl") {
+      const { documentId } = await req.json();
+      if (!documentId) return json({ error: "documentId requis" }, 400);
+
+      const doc = await loadDocument(documentId);
+      if (!doc || doc.storage_provider !== "kdrive") return json({ error: "Document introuvable" }, 404);
+
+      const user = await getCaller(authHeader);
+      const authorized = !doc.is_archived || await canManageOrOwn(user?.id ?? null, doc.uploaded_by);
+      if (!authorized) return json({ error: "Accès refusé" }, 403);
+
+      return json({ url: `https://drive.infomaniak.com/app/drive/${KDRIVE_DRIVE_ID}/files/${doc.file_path}` });
+    }
+
     if (action === "delete") {
       const { documentId, path } = await req.json();
       if (!documentId) return json({ error: "documentId requis" }, 400);
