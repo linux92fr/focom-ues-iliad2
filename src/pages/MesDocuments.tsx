@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, SUPABASE_PROJECT_URL, SUPABASE_ANON_KEY } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -95,6 +95,59 @@ function getSupabaseErrorMessage(error: { code?: string; message?: string } | nu
   if (!error) return "Erreur inconnue";
   if (error.code === "42501") return "Accès refusé par Supabase/RLS. Vérifiez les policies de la table user_documents.";
   return error.message || "Erreur inconnue";
+}
+
+type XhrUploadResult = { error: null } | { error: { message: string; isTimeout?: boolean } };
+
+// Upload direct via XMLHttpRequest plutôt que le fetch multipart de supabase-js.
+// Sur certains navigateurs mobiles, l'upload fetch peut rester bloqué sans jamais
+// atteindre le serveur (constaté sur plusieurs téléphones/réseaux/navigateurs, alors
+// que GET/DELETE passent) ; XHR utilise une pile réseau distincte, bien plus fiable
+// pour l'envoi de fichiers sur mobile, et expose une vraie progression.
+async function uploadFileViaXHR(
+  bucket: string,
+  path: string,
+  file: File,
+  contentType: string,
+  onProgress?: (pct: number) => void,
+  timeoutMs = 120000,
+): Promise<XhrUploadResult> {
+  const { data: { session } } = await supabase.auth.getSession();
+  const url = `${SUPABASE_PROJECT_URL}/storage/v1/object/${bucket}/${path}`;
+  // On garantit le bon type MIME dans la partie multipart : certains fichiers issus
+  // de l'appareil photo/galerie Android ont un file.type vide, ce qui ferait rejeter
+  // l'upload par la liste allowed_mime_types du bucket.
+  const typedFile = file.type === contentType ? file : new File([file], file.name, { type: contentType });
+  const form = new FormData();
+  form.append("cacheControl", "3600");
+  form.append("", typedFile, file.name);
+
+  return new Promise<XhrUploadResult>((resolve) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", url, true);
+    xhr.timeout = timeoutMs;
+    if (session?.access_token) xhr.setRequestHeader("Authorization", `Bearer ${session.access_token}`);
+    xhr.setRequestHeader("apikey", SUPABASE_ANON_KEY);
+    xhr.setRequestHeader("x-upsert", "false");
+    if (onProgress && xhr.upload) {
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100));
+      };
+    }
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) return resolve({ error: null });
+      let message = `Envoi refusé (HTTP ${xhr.status})`;
+      try {
+        const body = JSON.parse(xhr.responseText);
+        message = body.message || body.error || message;
+      } catch { /* réponse non JSON */ }
+      resolve({ error: { message } });
+    };
+    xhr.onerror = () => resolve({ error: { message: "Erreur réseau pendant l'envoi" } });
+    xhr.ontimeout = () => resolve({ error: { message: "timeout", isTimeout: true } });
+    xhr.onabort = () => resolve({ error: { message: "Envoi annulé" } });
+    xhr.send(form);
+  });
 }
 
 const ROOT_FOLDER = "__root__";
@@ -462,6 +515,7 @@ function AddDocumentDialog({
   const [folderId, setFolderId] = useState<string | null>(defaultFolderId);
   const [file, setFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
+  const [progress, setProgress] = useState<number | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const fileInputId = `user-document-file-${userId}`;
 
@@ -477,6 +531,7 @@ function AddDocumentDialog({
     setIsPublic(false);
     setFile(null);
     setFolderId(null);
+    setProgress(null);
     clearFileInput();
   };
 
@@ -503,6 +558,7 @@ function AddDocumentDialog({
     if (!title.trim()) return toast.error("Titre du document requis");
     if (!file) return toast.error("Fichier requis");
     setSaving(true);
+    setProgress(0);
 
     const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "-");
     const path = `${userId}/${Date.now()}-${safeName}`;
@@ -514,12 +570,13 @@ function AddDocumentDialog({
 
     try {
       const contentType = getFileContentType(file);
-      const { error: upErr } = await withTimeout(
-        supabase.storage.from(BUCKET).upload(path, file, { contentType, upsert: false }),
-        120000,
-      );
-      if (upErr) {
-        toast.error(`Échec de l'envoi du fichier : ${upErr.message}`);
+      const up = await uploadFileViaXHR(BUCKET, path, file, contentType, setProgress, 120000);
+      if (up.error) {
+        if (up.error.isTimeout) {
+          toast.error("L'envoi a mis trop de temps à répondre (connexion instable ?). Réessayez.");
+        } else {
+          toast.error(`Échec de l'envoi du fichier : ${up.error.message}`);
+        }
         return;
       }
 
@@ -550,12 +607,13 @@ function AddDocumentDialog({
       onClose();
     } catch (err) {
       if (err instanceof DOMException && err.name === "TimeoutError") {
-        toast.error("L'envoi a mis trop de temps à répondre (connexion instable ?). Réessayez.");
+        toast.error("L'enregistrement a mis trop de temps à répondre. Réessayez.");
       } else {
         toast.error(err instanceof Error ? `Erreur inattendue : ${err.message}` : "Une erreur inattendue est survenue lors de l'envoi");
       }
     } finally {
       setSaving(false);
+      setProgress(null);
     }
   };
 
@@ -612,7 +670,9 @@ function AddDocumentDialog({
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={() => { reset(); onClose(); }}>Annuler</Button>
             <Button type="submit" disabled={saving} className="bg-red-600 hover:bg-red-700 text-white">
-              {saving ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Envoi…</> : "Ajouter"}
+              {saving
+                ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />{progress !== null && progress < 100 ? `Envoi… ${progress}%` : "Envoi…"}</>
+                : "Ajouter"}
             </Button>
           </div>
         </form>
