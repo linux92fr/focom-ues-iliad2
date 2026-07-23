@@ -52,8 +52,34 @@ const SHEET_TYPES = [
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 ];
 const PREVIEWABLE_TYPES = [...IMAGE_TYPES, "application/pdf", DOCX_TYPE, ...SHEET_TYPES, "text/plain"];
+const ALLOWED_EXTENSIONS = ["pdf", "doc", "docx", "xls", "xlsx", "png", "jpg", "jpeg", "gif", "webp", "txt"];
+const EXTENSION_CONTENT_TYPES: Record<string, string> = {
+  pdf: "application/pdf",
+  doc: "application/msword",
+  docx: DOCX_TYPE,
+  xls: "application/vnd.ms-excel",
+  xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  png: "image/png",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  gif: "image/gif",
+  webp: "image/webp",
+  txt: "text/plain",
+};
 
 const isPreviewable = (fileType: string | null) => !!fileType && PREVIEWABLE_TYPES.includes(fileType);
+
+const getFileExtension = (fileName: string) => fileName.split(".").pop()?.toLowerCase() ?? "";
+
+const getFileContentType = (file: File) => {
+  if (file.type && ALLOWED_TYPES.includes(file.type)) return file.type;
+  return EXTENSION_CONTENT_TYPES[getFileExtension(file.name)] ?? (file.type || "application/octet-stream");
+};
+
+const isAllowedFile = (file: File) => {
+  if (file.type && ALLOWED_TYPES.includes(file.type)) return true;
+  return ALLOWED_EXTENSIONS.includes(getFileExtension(file.name));
+};
 
 const fmtDate = (iso: string) =>
   new Date(iso).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" });
@@ -453,7 +479,7 @@ function AddDocumentDialog({
   const pickFile = (selected: File | null) => {
     if (!selected) return setFile(null);
     if (selected.size > MAX_FILE_SIZE) return toast.error(`${selected.name} dépasse 20 Mo`);
-    if (selected.type && !ALLOWED_TYPES.includes(selected.type)) return toast.error(`${selected.name} n'est pas un format autorisé`);
+    if (!isAllowedFile(selected)) return toast.error(`${selected.name} n'est pas un format autorisé`);
     setFile(selected);
   };
 
@@ -472,7 +498,12 @@ function AddDocumentDialog({
       ]);
 
     try {
-      const { error: upErr } = await withTimeout(supabase.storage.from(BUCKET).upload(path, file), 45000);
+      const contentType = getFileContentType(file);
+      const uploadBody = new Blob([await withTimeout(file.arrayBuffer(), 30000)], { type: contentType });
+      const { error: upErr } = await withTimeout(
+        supabase.storage.from(BUCKET).upload(path, uploadBody, { contentType, upsert: false }),
+        120000,
+      );
       if (upErr) {
         toast.error(`Échec de l'envoi du fichier : ${upErr.message}`);
         return;
@@ -486,7 +517,7 @@ function AddDocumentDialog({
           file_name: file.name,
           file_path: path,
           file_size: file.size,
-          file_type: file.type || null,
+          file_type: contentType,
           is_public: isPublic,
           folder_id: folderId,
         }),
