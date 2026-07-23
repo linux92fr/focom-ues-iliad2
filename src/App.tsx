@@ -54,6 +54,7 @@ import Sondages from "./pages/Sondages";
 import Agenda from "./pages/Agenda";
 import Profile from "./pages/Profile";
 import ResetPassword from "./pages/ResetPassword";
+import MesDocuments from "./pages/MesDocuments";
 
 import AdminNao2026 from "./pages/AdminNao2026";
 import AdminParticipation from "./pages/AdminParticipation";
@@ -125,6 +126,7 @@ function App() {
                       <Route path="/sondages" element={<Sondages />} />
                       <Route path="/agenda" element={<Agenda />} />
                       <Route path="/profil" element={<Profile />} />
+                      <Route path="/mes-documents" element={<MesDocuments />} />
                       <Route path="/reset-password" element={<ResetPassword />} />
                       <Route path="/auth" element={<Navigate to="/" replace />} />
                       <Route path="/mes-reclamations" element={<MesReclamations />} />

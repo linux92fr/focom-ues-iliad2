@@ -3,7 +3,7 @@ import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
   Search, Bell, Settings, X, ArrowRight, LogOut, User, Lock, Home, Menu,
   LayoutDashboard, Newspaper, BarChart3, UserCircle, Shield, FolderOpen,
-  Mail, Calendar, AlertCircle, UserPlus, Users, Scale,
+  Mail, Calendar, AlertCircle, UserPlus, Users, Scale, Folder,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -30,6 +30,7 @@ const SEARCH_LINKS = [
   { label: "Sondages", href: "/sondages" },
   { label: "Agenda", href: "/agenda" },
   { label: "Mon profil", href: "/profil" },
+  { label: "Mes documents", href: "/mes-documents" },
   { label: "Notifications", href: "/notifications" },
 ];
 
@@ -42,6 +43,7 @@ const MOBILE_NAV = [
   { to: "/vos-droits", label: "Vos droits", icon: Shield },
   { to: "/adhesion", label: "Adhérer", icon: UserPlus },
   { to: "/mes-reclamations", label: "Mes demandes", icon: AlertCircle },
+  { to: "/mes-documents", label: "Mes documents", icon: Folder },
   { to: "/profil", label: "Espace adhérent", icon: UserCircle },
   { to: "/agenda", label: "Agenda", icon: Calendar },
   { to: "/documents-utiles", label: "Documents", icon: FolderOpen },
@@ -232,6 +234,7 @@ export default function PageHeader() {
                     </div>
                     <div className="py-1">
                       <button onClick={() => { setUserMenuOpen(false); navigate("/profil"); }} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors text-left"><User className="w-4 h-4 text-slate-400" /> Mon profil</button>
+                      <button onClick={() => { setUserMenuOpen(false); navigate("/mes-documents"); }} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors text-left"><Folder className="w-4 h-4 text-slate-400" /> Mes documents</button>
                       <button onClick={() => { setUserMenuOpen(false); navigate("/profil"); }} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors text-left"><Lock className="w-4 h-4 text-slate-400" /> Changer mon mot de passe</button>
                       <button onClick={() => { setUserMenuOpen(false); navigate("/notifications"); }} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors text-left"><Bell className="w-4 h-4 text-slate-400" /> Notifications</button>
                     </div>

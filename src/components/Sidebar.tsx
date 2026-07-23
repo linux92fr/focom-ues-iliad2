@@ -15,6 +15,7 @@ import {
   Users,
   Scale,
   LogIn,
+  Folder,
 } from "lucide-react";
 import logoFocom from "@/assets/logo-focom.png";
 import { adminPath } from "@/lib/adminPath";
@@ -34,6 +35,7 @@ const mainNavItems = [
 const actionNavItems = [
   { to: "/adhesion", label: "Adhérer", icon: UserPlus, highlight: true },
   { to: "/mes-reclamations", label: "Mes demandes", icon: AlertCircle },
+  { to: "/mes-documents", label: "Mes documents", icon: Folder },
   { to: "/profil", label: "Espace adhérent", icon: UserCircle },
 ];
 
