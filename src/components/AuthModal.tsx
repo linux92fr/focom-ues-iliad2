@@ -40,17 +40,30 @@ const AuthModal = ({ open, onOpenChange }: AuthModalProps) => {
   const [passkeyLoading, setPasskeyLoading] = useState(false);
 
   const handlePasskeyLogin = async () => {
+    const email = loginEmail.trim();
+    if (!email) {
+      toast({
+        title: "Email requis",
+        description: "Saisissez votre email ci-dessus avant de vous connecter avec un passkey.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setPasskeyLoading(true);
     try {
       const { data: optionsData, error: optionsError } = await supabase.functions.invoke(
         "webauthn-authenticate",
-        { body: { action: "generate-options" } }
+        { body: { action: "generate-options", email } }
       );
       if (optionsError || !optionsData?.options) {
         throw new Error(optionsData?.error || optionsError?.message || "Impossible de démarrer la connexion par passkey");
       }
 
-      const credential = await startAuthentication({ optionsJSON: optionsData.options });
+      const timeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new DOMException("timeout", "TimeoutError")), 65000)
+      );
+      const credential = await Promise.race([startAuthentication({ optionsJSON: optionsData.options }), timeout]);
 
       const { data: verifyData, error: verifyError } = await supabase.functions.invoke(
         "webauthn-authenticate",
@@ -74,6 +87,12 @@ const AuthModal = ({ open, onOpenChange }: AuthModalProps) => {
     } catch (err: unknown) {
       if (err instanceof Error && err.name === "NotAllowedError") {
         // Annulé par l'utilisateur, pas d'erreur à afficher
+      } else if (err instanceof DOMException && err.name === "TimeoutError") {
+        toast({
+          title: "Délai dépassé",
+          description: "La demande de passkey a mis trop de temps à répondre. Réessayez.",
+          variant: "destructive",
+        });
       } else {
         toast({
           title: "Connexion par passkey impossible",
@@ -210,16 +229,21 @@ const AuthModal = ({ open, onOpenChange }: AuthModalProps) => {
               </Button>
 
               {browserSupportsWebAuthn() && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full gap-2"
-                  disabled={passkeyLoading}
-                  onClick={handlePasskeyLogin}
-                >
-                  {passkeyLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Fingerprint className="h-4 w-4" />}
-                  Se connecter avec un passkey
-                </Button>
+                <>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full gap-2"
+                    disabled={passkeyLoading}
+                    onClick={handlePasskeyLogin}
+                  >
+                    {passkeyLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Fingerprint className="h-4 w-4" />}
+                    Se connecter avec un passkey
+                  </Button>
+                  <p className="text-xs text-muted-foreground text-center -mt-2">
+                    Saisissez votre email ci-dessus, puis utilisez votre empreinte, Face ID ou clé de sécurité
+                  </p>
+                </>
               )}
             </form>
           </TabsContent>
