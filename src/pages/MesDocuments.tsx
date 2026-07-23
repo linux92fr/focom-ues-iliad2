@@ -467,19 +467,34 @@ function AddDocumentDialog({
 
   useEffect(() => { if (open) setFolderId(defaultFolderId); }, [open, defaultFolderId]);
 
+  const clearFileInput = () => {
+    if (fileRef.current) fileRef.current.value = "";
+  };
+
   const reset = () => {
     setTitle("");
     setDescription("");
     setIsPublic(false);
     setFile(null);
     setFolderId(null);
-    if (fileRef.current) fileRef.current.value = "";
+    clearFileInput();
+  };
+
+  const openFilePicker = () => {
+    clearFileInput();
+    fileRef.current?.click();
   };
 
   const pickFile = (selected: File | null) => {
-    if (!selected) return setFile(null);
-    if (selected.size > MAX_FILE_SIZE) return toast.error(`${selected.name} dépasse 20 Mo`);
-    if (!isAllowedFile(selected)) return toast.error(`${selected.name} n'est pas un format autorisé`);
+    if (!selected) return;
+    if (selected.size > MAX_FILE_SIZE) {
+      clearFileInput();
+      return toast.error(`${selected.name} dépasse 20 Mo`);
+    }
+    if (!isAllowedFile(selected)) {
+      clearFileInput();
+      return toast.error(`${selected.name} n'est pas un format autorisé`);
+    }
     setFile(selected);
   };
 
@@ -499,9 +514,8 @@ function AddDocumentDialog({
 
     try {
       const contentType = getFileContentType(file);
-      const uploadBody = new Blob([await withTimeout(file.arrayBuffer(), 30000)], { type: contentType });
       const { error: upErr } = await withTimeout(
-        supabase.storage.from(BUCKET).upload(path, uploadBody, { contentType, upsert: false }),
+        supabase.storage.from(BUCKET).upload(path, file, { contentType, upsert: false }),
         120000,
       );
       if (upErr) {
@@ -580,12 +594,13 @@ function AddDocumentDialog({
               accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.gif,.webp,.txt"
               onChange={(e) => pickFile(e.target.files?.[0] ?? null)}
             />
-            <label
-              htmlFor={fileInputId}
+            <button
+              type="button"
+              onClick={openFilePicker}
               className="mt-1 w-full cursor-pointer border-2 border-dashed border-slate-200 rounded-lg py-3 px-3 text-sm text-slate-500 hover:border-teal-300 hover:text-teal-700 transition-colors flex items-center justify-center gap-2 text-center"
             >
               <Upload className="w-4 h-4 flex-shrink-0" /> <span className="truncate">{file ? file.name : "Choisir un fichier, 20 Mo max"}</span>
-            </label>
+            </button>
           </div>
           <div className="flex items-center justify-between rounded-lg border border-slate-200 p-3">
             <div>
