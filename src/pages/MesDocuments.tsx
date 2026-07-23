@@ -10,6 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import DOMPurify from "dompurify";
 import {
   Plus, FileText, Download, Trash2, Loader2, Lock, Globe, FolderOpen, Folder,
   ChevronRight, Upload, Eye, X,
@@ -44,7 +45,13 @@ const ALLOWED_TYPES = [
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   "text/plain",
 ];
-const PREVIEWABLE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp", "application/pdf"];
+const IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+const DOCX_TYPE = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+const SHEET_TYPES = [
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+];
+const PREVIEWABLE_TYPES = [...IMAGE_TYPES, "application/pdf", DOCX_TYPE, ...SHEET_TYPES, "text/plain"];
 
 const isPreviewable = (fileType: string | null) => !!fileType && PREVIEWABLE_TYPES.includes(fileType);
 
@@ -324,33 +331,84 @@ function NewFolderDialog({ open, onClose, userId, onCreated }: { open: boolean; 
   );
 }
 
+type PreviewState =
+  | { kind: "loading" }
+  | { kind: "error" }
+  | { kind: "image"; url: string }
+  | { kind: "pdf"; url: string }
+  | { kind: "html"; html: string }
+  | { kind: "text"; text: string };
+
 function PreviewDialog({ doc, onClose }: { doc: UserDocument | null; onClose: () => void }) {
-  const [signedUrl, setSignedUrl] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [state, setState] = useState<PreviewState>({ kind: "loading" });
 
   useEffect(() => {
-    if (!doc) { setSignedUrl(null); return; }
-    setLoading(true);
-    supabase.storage.from(BUCKET).createSignedUrl(doc.file_path, 300).then(({ data, error }) => {
-      if (error || !data?.signedUrl) toast.error("Impossible de charger l'aperçu");
-      else setSignedUrl(data.signedUrl);
-      setLoading(false);
-    });
+    if (!doc) return;
+    let cancelled = false;
+    setState({ kind: "loading" });
+
+    (async () => {
+      const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(doc.file_path, 300);
+      if (error || !data?.signedUrl) {
+        if (!cancelled) setState({ kind: "error" });
+        return;
+      }
+      const signedUrl = data.signedUrl;
+
+      try {
+        if (IMAGE_TYPES.includes(doc.file_type ?? "")) {
+          if (!cancelled) setState({ kind: "image", url: signedUrl });
+        } else if (doc.file_type === "application/pdf") {
+          if (!cancelled) setState({ kind: "pdf", url: signedUrl });
+        } else if (doc.file_type === DOCX_TYPE) {
+          const [{ convertToHtml }, res] = await Promise.all([import("mammoth"), fetch(signedUrl)]);
+          const arrayBuffer = await res.arrayBuffer();
+          const result = await convertToHtml({ arrayBuffer });
+          if (!cancelled) setState({ kind: "html", html: DOMPurify.sanitize(result.value) });
+        } else if (SHEET_TYPES.includes(doc.file_type ?? "")) {
+          const [XLSX, res] = await Promise.all([import("xlsx"), fetch(signedUrl)]);
+          const arrayBuffer = await res.arrayBuffer();
+          const workbook = XLSX.read(arrayBuffer, { type: "array" });
+          const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+          const html = XLSX.utils.sheet_to_html(firstSheet);
+          if (!cancelled) setState({ kind: "html", html: DOMPurify.sanitize(html) });
+        } else if (doc.file_type === "text/plain") {
+          const res = await fetch(signedUrl);
+          const text = await res.text();
+          if (!cancelled) setState({ kind: "text", text });
+        } else if (!cancelled) {
+          setState({ kind: "error" });
+        }
+      } catch {
+        if (!cancelled) setState({ kind: "error" });
+      }
+    })();
+
+    return () => { cancelled = true; };
   }, [doc]);
 
   return (
     <Dialog open={!!doc} onOpenChange={(v) => { if (!v) onClose(); }}>
       <DialogContent className="max-w-3xl">
         <DialogHeader><DialogTitle className="truncate pr-6">{doc?.title}</DialogTitle></DialogHeader>
-        <div className="flex items-center justify-center min-h-[50vh] bg-slate-50 rounded-lg overflow-hidden">
-          {loading ? (
-            <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
-          ) : !signedUrl ? (
-            <p className="text-sm text-slate-400 py-12">Aperçu indisponible</p>
-          ) : doc?.file_type === "application/pdf" ? (
-            <iframe src={signedUrl} title={doc.title} className="w-full h-[70vh]" />
+        <div className="min-h-[50vh] max-h-[70vh] bg-slate-50 rounded-lg overflow-auto">
+          {state.kind === "loading" ? (
+            <div className="flex items-center justify-center h-[50vh]"><Loader2 className="w-6 h-6 animate-spin text-slate-400" /></div>
+          ) : state.kind === "error" ? (
+            <p className="text-sm text-slate-400 text-center py-24">Aperçu indisponible</p>
+          ) : state.kind === "pdf" ? (
+            <iframe src={state.url} title={doc?.title} className="w-full h-[70vh]" />
+          ) : state.kind === "image" ? (
+            <div className="flex items-center justify-center h-[50vh]">
+              <img src={state.url} alt={doc?.title} className="max-h-[70vh] max-w-full object-contain" />
+            </div>
+          ) : state.kind === "text" ? (
+            <pre className="whitespace-pre-wrap break-words p-4 text-sm text-slate-700">{state.text}</pre>
           ) : (
-            <img src={signedUrl} alt={doc?.title} className="max-h-[70vh] max-w-full object-contain" />
+            <>
+              <style>{`.preview-office-content table { border-collapse: collapse; } .preview-office-content td, .preview-office-content th { border: 1px solid #e2e8f0; padding: 4px 8px; }`}</style>
+              <div className="preview-office-content p-4 text-sm text-slate-700" dangerouslySetInnerHTML={{ __html: state.html }} />
+            </>
           )}
         </div>
       </DialogContent>
