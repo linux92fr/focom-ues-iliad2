@@ -104,48 +104,58 @@ type XhrUploadResult = { error: null } | { error: { message: string; isTimeout?:
 // atteindre le serveur (constaté sur plusieurs téléphones/réseaux/navigateurs, alors
 // que GET/DELETE passent) ; XHR utilise une pile réseau distincte, bien plus fiable
 // pour l'envoi de fichiers sur mobile, et expose une vraie progression.
-async function uploadFileViaXHR(
+// Upload direct via XMLHttpRequest plutôt que le fetch multipart de supabase-js.
+// Sur certains navigateurs mobiles, l'upload fetch peut rester bloqué sans jamais
+// atteindre le serveur (constaté sur plusieurs téléphones/réseaux/navigateurs, alors
+// que GET/DELETE/insert REST passent) ; XHR utilise une pile réseau distincte, plus
+// fiable pour l'envoi de fichiers sur mobile, et expose une vraie progression.
+// `body` est déjà en mémoire (arrayBuffer pré-lu) pour éviter les lectures de fichier
+// qui échouent sur certains Android.
+function uploadBlobViaXHR(
   bucket: string,
   path: string,
-  file: File,
-  contentType: string,
+  body: Blob,
+  fileName: string,
+  accessToken: string | undefined,
   onProgress?: (pct: number) => void,
+  onEvent?: (step: string, detail?: unknown) => void,
   timeoutMs = 120000,
 ): Promise<XhrUploadResult> {
-  const { data: { session } } = await supabase.auth.getSession();
   const url = `${SUPABASE_PROJECT_URL}/storage/v1/object/${bucket}/${path}`;
-  // On garantit le bon type MIME dans la partie multipart : certains fichiers issus
-  // de l'appareil photo/galerie Android ont un file.type vide, ce qui ferait rejeter
-  // l'upload par la liste allowed_mime_types du bucket.
-  const typedFile = file.type === contentType ? file : new File([file], file.name, { type: contentType });
   const form = new FormData();
   form.append("cacheControl", "3600");
-  form.append("", typedFile, file.name);
+  form.append("", body, fileName);
 
   return new Promise<XhrUploadResult>((resolve) => {
     const xhr = new XMLHttpRequest();
     xhr.open("POST", url, true);
     xhr.timeout = timeoutMs;
-    if (session?.access_token) xhr.setRequestHeader("Authorization", `Bearer ${session.access_token}`);
+    if (accessToken) xhr.setRequestHeader("Authorization", `Bearer ${accessToken}`);
     xhr.setRequestHeader("apikey", SUPABASE_ANON_KEY);
     xhr.setRequestHeader("x-upsert", "false");
-    if (onProgress && xhr.upload) {
+    let firstProgress = true;
+    if (xhr.upload) {
       xhr.upload.onprogress = (e) => {
-        if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100));
+        if (firstProgress) { onEvent?.("xhr_first_progress", { loaded: e.loaded, total: e.total }); firstProgress = false; }
+        if (e.lengthComputable && onProgress) onProgress(Math.round((e.loaded / e.total) * 100));
       };
+      xhr.upload.onerror = () => onEvent?.("xhr_upload_error");
     }
+    xhr.onreadystatechange = () => { if (xhr.readyState === 2) onEvent?.("xhr_headers_received", { status: xhr.status }); };
     xhr.onload = () => {
+      onEvent?.("xhr_load", { status: xhr.status });
       if (xhr.status >= 200 && xhr.status < 300) return resolve({ error: null });
       let message = `Envoi refusé (HTTP ${xhr.status})`;
       try {
-        const body = JSON.parse(xhr.responseText);
-        message = body.message || body.error || message;
+        const parsed = JSON.parse(xhr.responseText);
+        message = parsed.message || parsed.error || message;
       } catch { /* réponse non JSON */ }
       resolve({ error: { message } });
     };
-    xhr.onerror = () => resolve({ error: { message: "Erreur réseau pendant l'envoi" } });
-    xhr.ontimeout = () => resolve({ error: { message: "timeout", isTimeout: true } });
-    xhr.onabort = () => resolve({ error: { message: "Envoi annulé" } });
+    xhr.onerror = () => { onEvent?.("xhr_error"); resolve({ error: { message: "Erreur réseau pendant l'envoi" } }); };
+    xhr.ontimeout = () => { onEvent?.("xhr_timeout"); resolve({ error: { message: "timeout", isTimeout: true } }); };
+    xhr.onabort = () => { onEvent?.("xhr_abort"); resolve({ error: { message: "Envoi annulé" } }); };
+    onEvent?.("xhr_send");
     xhr.send(form);
   });
 }
@@ -560,6 +570,19 @@ function AddDocumentDialog({
     setSaving(true);
     setProgress(0);
 
+    const sessionId = (crypto.randomUUID?.() ?? String(Date.now()));
+    // Journal de diagnostic (fire-and-forget) : l'insert REST fonctionne sur mobile,
+    // ce qui nous permet de tracer précisément où l'upload de fichier échoue.
+    const logDiag = (step: string, detail?: unknown) => {
+      void supabase.from("upload_diagnostics").insert({
+        user_id: userId,
+        session_id: sessionId,
+        step,
+        detail: (detail ?? null) as never,
+        user_agent: navigator.userAgent,
+      }).then(() => {}, () => {});
+    };
+
     const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "-");
     const path = `${userId}/${Date.now()}-${safeName}`;
     const withTimeout = <T,>(promise: Promise<T>, ms: number) =>
@@ -570,8 +593,35 @@ function AddDocumentDialog({
 
     try {
       const contentType = getFileContentType(file);
-      const up = await uploadFileViaXHR(BUCKET, path, file, contentType, setProgress, 120000);
+      logDiag("submit_start", { name: file.name, size: file.size, type: file.type, contentType });
+
+      // Étape critique : lire les octets du fichier EN MÉMOIRE avant l'envoi.
+      // Sur certains Android, la lecture du File au moment de l'upload échoue/bloque,
+      // ce qui fait planter fetch ET XHR à 0 %. En pré-lisant, on isole ce cas et on
+      // envoie un Blob garanti lisible.
+      let blob: Blob;
+      try {
+        const t0 = performance.now();
+        const buf = await withTimeout(file.arrayBuffer(), 30000);
+        logDiag("file_read_ok", { bytes: buf.byteLength, ms: Math.round(performance.now() - t0) });
+        blob = new Blob([buf], { type: contentType });
+      } catch (readErr) {
+        logDiag("file_read_failed", { message: readErr instanceof Error ? readErr.message : String(readErr) });
+        toast.error("Impossible de lire le fichier sur cet appareil. Essayez un autre fichier ou un autre navigateur.");
+        return;
+      }
+
+      const { data: { session } } = await supabase.auth.getSession();
+      logDiag("token_ready", { hasToken: !!session?.access_token });
+
+      const up = await uploadBlobViaXHR(
+        BUCKET, path, blob, file.name, session?.access_token,
+        setProgress,
+        (step, detail) => logDiag(step, detail),
+        120000,
+      );
       if (up.error) {
+        logDiag("upload_error", { message: up.error.message, isTimeout: !!up.error.isTimeout });
         if (up.error.isTimeout) {
           toast.error("L'envoi a mis trop de temps à répondre (connexion instable ?). Réessayez.");
         } else {
@@ -579,6 +629,7 @@ function AddDocumentDialog({
         }
         return;
       }
+      logDiag("upload_ok");
 
       const { error } = await withTimeout(
         supabase.from("user_documents").insert({
