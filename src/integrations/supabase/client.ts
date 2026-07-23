@@ -46,3 +46,8 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_KEY, {
     lock: async (_name, _acquireTimeout, fn) => fn(),
   },
 });
+
+// Valeurs résolues, réutilisables pour un upload direct (XHR) plus robuste sur mobile
+// que le fetch multipart de supabase-js (voir uploadFileViaXHR dans MesDocuments).
+export const SUPABASE_PROJECT_URL = SUPABASE_URL;
+export const SUPABASE_ANON_KEY = SUPABASE_KEY;
