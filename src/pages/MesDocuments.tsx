@@ -8,11 +8,17 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import {
-  Plus, FileText, Download, Trash2, Loader2, Lock, Globe, FolderOpen,
-  ChevronRight, Upload,
+  Plus, FileText, Download, Trash2, Loader2, Lock, Globe, FolderOpen, Folder,
+  ChevronRight, Upload, Eye, X,
 } from "lucide-react";
+
+interface DocumentFolder {
+  id: string;
+  name: string;
+}
 
 interface UserDocument {
   id: string;
@@ -23,6 +29,7 @@ interface UserDocument {
   file_size: number | null;
   file_type: string | null;
   is_public: boolean;
+  folder_id: string | null;
   created_at: string;
 }
 
@@ -37,6 +44,9 @@ const ALLOWED_TYPES = [
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   "text/plain",
 ];
+const PREVIEWABLE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp", "application/pdf"];
+
+const isPreviewable = (fileType: string | null) => !!fileType && PREVIEWABLE_TYPES.includes(fileType);
 
 const fmtDate = (iso: string) =>
   new Date(iso).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" });
@@ -54,11 +64,28 @@ function getSupabaseErrorMessage(error: { code?: string; message?: string } | nu
   return error.message || "Erreur inconnue";
 }
 
+const ROOT_FOLDER = "__root__";
+const ALL_FOLDERS = "__all__";
+
 export default function MesDocuments() {
   const { user, loading: authLoading } = useAuth();
   const [documents, setDocuments] = useState<UserDocument[]>([]);
+  const [folders, setFolders] = useState<DocumentFolder[]>([]);
+  const [activeFolder, setActiveFolder] = useState<string>(ALL_FOLDERS);
   const [loading, setLoading] = useState(true);
   const [addOpen, setAddOpen] = useState(false);
+  const [newFolderOpen, setNewFolderOpen] = useState(false);
+  const [previewDoc, setPreviewDoc] = useState<UserDocument | null>(null);
+
+  const fetchFolders = useCallback(async () => {
+    if (!user) return;
+    const { data, error } = await supabase
+      .from("document_folders")
+      .select("id, name")
+      .eq("user_id", user.id)
+      .order("name", { ascending: true });
+    if (!error) setFolders(data ?? []);
+  }, [user]);
 
   const fetchDocuments = useCallback(async () => {
     if (!user) return;
@@ -72,7 +99,9 @@ export default function MesDocuments() {
     setLoading(false);
   }, [user]);
 
-  useEffect(() => { if (!authLoading) fetchDocuments(); }, [authLoading, fetchDocuments]);
+  useEffect(() => {
+    if (!authLoading) { fetchDocuments(); fetchFolders(); }
+  }, [authLoading, fetchDocuments, fetchFolders]);
 
   const togglePublic = async (doc: UserDocument) => {
     const { error } = await supabase
@@ -98,6 +127,22 @@ export default function MesDocuments() {
     setDocuments((prev) => prev.filter((d) => d.id !== doc.id));
     toast.success("Document supprimé");
   };
+
+  const handleDeleteFolder = async (folder: DocumentFolder) => {
+    if (!window.confirm(`Supprimer le dossier "${folder.name}" ? Les documents qu'il contient ne seront pas supprimés.`)) return;
+    const { error } = await supabase.from("document_folders").delete().eq("id", folder.id);
+    if (error) return toast.error(`Impossible de supprimer le dossier : ${getSupabaseErrorMessage(error)}`);
+    setFolders((prev) => prev.filter((f) => f.id !== folder.id));
+    setDocuments((prev) => prev.map((d) => (d.folder_id === folder.id ? { ...d, folder_id: null } : d)));
+    if (activeFolder === folder.id) setActiveFolder(ALL_FOLDERS);
+    toast.success("Dossier supprimé");
+  };
+
+  const visibleDocuments = documents.filter((d) => {
+    if (activeFolder === ALL_FOLDERS) return true;
+    if (activeFolder === ROOT_FOLDER) return !d.folder_id;
+    return d.folder_id === activeFolder;
+  });
 
   if (authLoading) {
     return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="w-6 h-6 animate-spin text-slate-400" /></div>;
@@ -130,17 +175,59 @@ export default function MesDocuments() {
         </Button>
       </div>
 
+      {/* Dossiers */}
+      <div className="flex flex-wrap items-center gap-2 mb-5">
+        <button
+          type="button" onClick={() => setActiveFolder(ALL_FOLDERS)}
+          className={`text-xs font-medium px-3 py-1.5 rounded-full border transition-colors ${activeFolder === ALL_FOLDERS ? "bg-red-600 border-red-600 text-white" : "border-slate-200 text-slate-600 hover:border-slate-300"}`}
+        >
+          Tous
+        </button>
+        <button
+          type="button" onClick={() => setActiveFolder(ROOT_FOLDER)}
+          className={`text-xs font-medium px-3 py-1.5 rounded-full border transition-colors ${activeFolder === ROOT_FOLDER ? "bg-red-600 border-red-600 text-white" : "border-slate-200 text-slate-600 hover:border-slate-300"}`}
+        >
+          Sans dossier
+        </button>
+        {folders.map((folder) => (
+          <div key={folder.id} className="group relative">
+            <button
+              type="button" onClick={() => setActiveFolder(folder.id)}
+              className={`text-xs font-medium pl-3 pr-6 py-1.5 rounded-full border transition-colors flex items-center gap-1.5 ${activeFolder === folder.id ? "bg-red-600 border-red-600 text-white" : "border-slate-200 text-slate-600 hover:border-slate-300"}`}
+            >
+              <Folder className="w-3 h-3" /> {folder.name}
+            </button>
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); handleDeleteFolder(folder); }}
+              aria-label={`Supprimer le dossier ${folder.name}`}
+              className={`absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity ${activeFolder === folder.id ? "text-white/80 hover:text-white" : "text-slate-400 hover:text-red-600"}`}
+            >
+              <X className="w-3 h-3" />
+            </button>
+          </div>
+        ))}
+        <button
+          type="button" onClick={() => setNewFolderOpen(true)}
+          className="text-xs font-medium px-3 py-1.5 rounded-full border border-dashed border-slate-300 text-slate-500 hover:border-teal-400 hover:text-teal-700 transition-colors flex items-center gap-1"
+        >
+          <Plus className="w-3 h-3" /> Nouveau dossier
+        </button>
+      </div>
+
       {loading ? (
         <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-slate-400" /></div>
-      ) : documents.length === 0 ? (
+      ) : visibleDocuments.length === 0 ? (
         <div className="text-center py-16 text-slate-400 rounded-2xl border border-dashed border-slate-200 bg-white">
           <FolderOpen className="w-12 h-12 mx-auto mb-3 opacity-40" />
           <p className="font-medium">Aucun document</p>
-          <p className="text-sm mt-1">Cliquez sur "Ajouter un document" pour envoyer votre premier fichier.</p>
+          <p className="text-sm mt-1">
+            {activeFolder === ALL_FOLDERS ? 'Cliquez sur "Ajouter un document" pour envoyer votre premier fichier.' : "Aucun document dans ce dossier."}
+          </p>
         </div>
       ) : (
         <div className="space-y-3">
-          {documents.map((doc) => (
+          {visibleDocuments.map((doc) => (
             <div key={doc.id} className="bg-white rounded-xl border border-slate-200 p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-start gap-3 flex-1 min-w-0">
@@ -148,10 +235,18 @@ export default function MesDocuments() {
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-slate-900 text-sm truncate">{doc.title}</p>
                     {doc.description && <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{doc.description}</p>}
-                    <p className="text-[11px] text-slate-400 mt-1.5">{doc.file_name} · {fmtSize(doc.file_size)} · {fmtDate(doc.created_at)}</p>
+                    <p className="text-[11px] text-slate-400 mt-1.5">
+                      {doc.file_name} · {fmtSize(doc.file_size)} · {fmtDate(doc.created_at)}
+                      {doc.folder_id && activeFolder === ALL_FOLDERS && (
+                        <> · <span className="inline-flex items-center gap-0.5"><Folder className="w-3 h-3" />{folders.find((f) => f.id === doc.folder_id)?.name}</span></>
+                      )}
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-1 flex-shrink-0">
+                  {isPreviewable(doc.file_type) && (
+                    <Button variant="ghost" size="sm" onClick={() => setPreviewDoc(doc)} aria-label="Aperçu"><Eye className="w-4 h-4 text-slate-400 hover:text-red-600" /></Button>
+                  )}
                   <Button variant="ghost" size="sm" onClick={() => handleDownload(doc)} aria-label="Télécharger"><Download className="w-4 h-4 text-slate-400 hover:text-red-600" /></Button>
                   <Button variant="ghost" size="sm" onClick={() => handleDelete(doc)} aria-label="Supprimer"><Trash2 className="w-4 h-4 text-slate-400 hover:text-red-600" /></Button>
                 </div>
@@ -168,20 +263,122 @@ export default function MesDocuments() {
         </div>
       )}
 
-      <AddDocumentDialog open={addOpen} onClose={() => setAddOpen(false)} userId={user.id} onCreated={fetchDocuments} />
+      <AddDocumentDialog
+        open={addOpen}
+        onClose={() => setAddOpen(false)}
+        userId={user.id}
+        folders={folders}
+        defaultFolderId={activeFolder === ALL_FOLDERS || activeFolder === ROOT_FOLDER ? null : activeFolder}
+        onCreated={fetchDocuments}
+      />
+      <NewFolderDialog
+        open={newFolderOpen}
+        onClose={() => setNewFolderOpen(false)}
+        userId={user.id}
+        onCreated={fetchFolders}
+      />
+      <PreviewDialog doc={previewDoc} onClose={() => setPreviewDoc(null)} />
     </div>
   );
 }
 
-function AddDocumentDialog({ open, onClose, userId, onCreated }: { open: boolean; onClose: () => void; userId: string; onCreated: () => void }) {
+function NewFolderDialog({ open, onClose, userId, onCreated }: { open: boolean; onClose: () => void; userId: string; onCreated: () => void }) {
+  const [name, setName] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) return toast.error("Nom du dossier requis");
+    setSaving(true);
+    const { error } = await supabase.from("document_folders").insert({ user_id: userId, name: name.trim() });
+    if (error) {
+      toast.error(error.code === "23505" ? "Un dossier avec ce nom existe déjà" : `Impossible de créer le dossier : ${getSupabaseErrorMessage(error)}`);
+      setSaving(false);
+      return;
+    }
+    toast.success("Dossier créé");
+    setName("");
+    onCreated();
+    onClose();
+    setSaving(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => { if (!v) { setName(""); onClose(); } }}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader><DialogTitle className="flex items-center gap-2"><Folder className="w-5 h-5 text-red-600" />Nouveau dossier</DialogTitle></DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4 mt-2">
+          <div>
+            <Label htmlFor="folder-name">Nom du dossier</Label>
+            <Input id="folder-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex : Contrats" maxLength={100} required className="mt-1" autoFocus />
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="outline" onClick={() => { setName(""); onClose(); }}>Annuler</Button>
+            <Button type="submit" disabled={saving} className="bg-red-600 hover:bg-red-700 text-white">
+              {saving ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Création…</> : "Créer"}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function PreviewDialog({ doc, onClose }: { doc: UserDocument | null; onClose: () => void }) {
+  const [signedUrl, setSignedUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!doc) { setSignedUrl(null); return; }
+    setLoading(true);
+    supabase.storage.from(BUCKET).createSignedUrl(doc.file_path, 300).then(({ data, error }) => {
+      if (error || !data?.signedUrl) toast.error("Impossible de charger l'aperçu");
+      else setSignedUrl(data.signedUrl);
+      setLoading(false);
+    });
+  }, [doc]);
+
+  return (
+    <Dialog open={!!doc} onOpenChange={(v) => { if (!v) onClose(); }}>
+      <DialogContent className="max-w-3xl">
+        <DialogHeader><DialogTitle className="truncate pr-6">{doc?.title}</DialogTitle></DialogHeader>
+        <div className="flex items-center justify-center min-h-[50vh] bg-slate-50 rounded-lg overflow-hidden">
+          {loading ? (
+            <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
+          ) : !signedUrl ? (
+            <p className="text-sm text-slate-400 py-12">Aperçu indisponible</p>
+          ) : doc?.file_type === "application/pdf" ? (
+            <iframe src={signedUrl} title={doc.title} className="w-full h-[70vh]" />
+          ) : (
+            <img src={signedUrl} alt={doc?.title} className="max-h-[70vh] max-w-full object-contain" />
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function AddDocumentDialog({
+  open, onClose, userId, folders, defaultFolderId, onCreated,
+}: {
+  open: boolean;
+  onClose: () => void;
+  userId: string;
+  folders: DocumentFolder[];
+  defaultFolderId: string | null;
+  onCreated: () => void;
+}) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [isPublic, setIsPublic] = useState(false);
+  const [folderId, setFolderId] = useState<string | null>(defaultFolderId);
   const [file, setFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const reset = () => { setTitle(""); setDescription(""); setIsPublic(false); setFile(null); };
+  useEffect(() => { if (open) setFolderId(defaultFolderId); }, [open, defaultFolderId]);
+
+  const reset = () => { setTitle(""); setDescription(""); setIsPublic(false); setFile(null); setFolderId(null); };
 
   const pickFile = (selected: File | null) => {
     if (!selected) return setFile(null);
@@ -214,6 +411,7 @@ function AddDocumentDialog({ open, onClose, userId, onCreated }: { open: boolean
       file_size: file.size,
       file_type: file.type || null,
       is_public: isPublic,
+      folder_id: folderId,
     });
 
     if (error) {
@@ -243,6 +441,18 @@ function AddDocumentDialog({ open, onClose, userId, onCreated }: { open: boolean
             <Label htmlFor="doc-desc">Description</Label>
             <Textarea id="doc-desc" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Facultatif" rows={3} className="mt-1 resize-none" />
           </div>
+          {folders.length > 0 && (
+            <div>
+              <Label htmlFor="doc-folder">Dossier</Label>
+              <Select value={folderId ?? ROOT_FOLDER} onValueChange={(v) => setFolderId(v === ROOT_FOLDER ? null : v)}>
+                <SelectTrigger id="doc-folder" className="mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ROOT_FOLDER}>Aucun dossier</SelectItem>
+                  {folders.map((f) => <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <div>
             <Label>Fichier *</Label>
             <input ref={fileRef} type="file" className="hidden" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.gif,.webp,.txt" onChange={(e) => pickFile(e.target.files?.[0] ?? null)} />
