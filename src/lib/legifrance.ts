@@ -99,6 +99,8 @@ export function searchLegifrance(options: {
   sort?: string;
   typeChamp?: string;
   typeRecherche?: "UN_DES_MOTS" | "EXACTE" | "TOUS_LES_MOTS_DANS_UN_CHAMP";
+  /** Restreint la recherche à une convention collective précise (ex. "2148" pour la CCNT Télécoms). */
+  idcc?: string;
 }): Promise<SearchResponse> {
   const {
     query,
@@ -108,18 +110,48 @@ export function searchLegifrance(options: {
     sort = "PERTINENCE",
     typeChamp = "ALL",
     typeRecherche = "TOUS_LES_MOTS_DANS_UN_CHAMP",
+    idcc,
   } = options;
+
+  type Champ = {
+    typeChamp: string;
+    criteres: { valeur: string; typeRecherche: string; operateur: string }[];
+    operateur: string;
+  };
+
+  const champs: Champ[] = [];
+
+  // Champ mot-clé (omis si la requête est vide, ex. « parcourir » une convention par IDCC).
+  if (query.trim()) {
+    champs.push({
+      typeChamp,
+      criteres: [{ valeur: query.trim(), typeRecherche, operateur: "ET" }],
+      operateur: "ET",
+    });
+  }
+
+  // Restriction à une convention précise via son IDCC (fond KALI).
+  if (idcc) {
+    champs.push({
+      typeChamp: "IDCC",
+      criteres: [{ valeur: idcc, typeRecherche: "EXACTE", operateur: "ET" }],
+      operateur: "ET",
+    });
+  }
+
+  // Filet de sécurité : au moins un champ requis par l'API.
+  if (champs.length === 0) {
+    champs.push({
+      typeChamp,
+      criteres: [{ valeur: query, typeRecherche, operateur: "ET" }],
+      operateur: "ET",
+    });
+  }
 
   return callProxy<SearchResponse>("search", {
     fond,
     recherche: {
-      champs: [
-        {
-          typeChamp,
-          criteres: [{ valeur: query, typeRecherche, operateur: "ET" }],
-          operateur: "ET",
-        },
-      ],
+      champs,
       filtres: [],
       pageNumber,
       pageSize,
