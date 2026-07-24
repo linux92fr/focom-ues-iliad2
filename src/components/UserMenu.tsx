@@ -71,7 +71,13 @@ const UserMenu = () => {
 
         <DropdownMenuSeparator />
 
-        <DropdownMenuItem onClick={signOut} className="text-destructive focus:text-destructive">
+        <DropdownMenuItem
+          onClick={async () => {
+            await signOut();
+            navigate("/");
+          }}
+          className="text-destructive focus:text-destructive"
+        >
           <LogOut className="mr-2 h-4 w-4" />
           <span>Se déconnecter</span>
         </DropdownMenuItem>

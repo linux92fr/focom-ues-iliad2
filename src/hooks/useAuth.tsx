@@ -61,7 +61,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    // Scope "local" : efface la session du navigateur sans dépendre d'un appel
+    // serveur de révocation (qui échoue si le token est déjà expiré/invalide et
+    // laissait alors l'utilisateur connecté). On force ensuite l'état à null pour
+    // que l'UI se mette à jour immédiatement, même si signOut a levé une erreur.
+    try {
+      await supabase.auth.signOut({ scope: "local" });
+    } catch (error) {
+      console.warn("signOut: échec de la révocation, déconnexion locale forcée", error);
+    }
+    setSession(null);
+    setUser(null);
   };
 
   return (
