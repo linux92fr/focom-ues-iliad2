@@ -4,6 +4,7 @@ import {
   searchLegifrance,
   suggestLegifrance,
   legifranceUrl,
+  extractSnippets,
   CODES,
   type Fond,
   type SearchResultItem,
@@ -12,13 +13,12 @@ import LegifranceContentDialog, {
   type LegifranceContentTarget,
 } from "@/components/LegifranceContentDialog";
 
+// Recherche limitée au domaine du droit du travail.
 const FONDS: { value: Fond; label: string }[] = [
-  { value: "ALL", label: "Tous les fonds" },
-  { value: "CODE_DATE", label: "Codes (en vigueur)" },
-  { value: "LODA_DATE", label: "Lois, ordonnances, décrets, arrêtés" },
-  { value: "JORF", label: "Journal officiel (JORF)" },
-  { value: "KALI", label: "Conventions collectives (KALI)" },
-  { value: "JURI", label: "Jurisprudence judiciaire" },
+  { value: "CODE_DATE", label: "Code du travail & codes" },
+  { value: "KALI", label: "Conventions collectives" },
+  { value: "JURI", label: "Jurisprudence sociale" },
+  { value: "LODA_DATE", label: "Lois & décrets (travail)" },
 ];
 
 function resultTitle(item: SearchResultItem): string {
@@ -36,7 +36,7 @@ function resultId(item: SearchResultItem): string | undefined {
 
 export default function Legifrance() {
   const [query, setQuery] = useState("");
-  const [fond, setFond] = useState<Fond>("ALL");
+  const [fond, setFond] = useState<Fond>("CODE_DATE");
   const [results, setResults] = useState<SearchResultItem[]>([]);
   const [total, setTotal] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
@@ -102,10 +102,10 @@ export default function Legifrance() {
           <Scale className="w-5 h-5 text-primary" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Recherche Légifrance</h1>
+          <h1 className="text-2xl font-bold text-foreground">Recherche juridique</h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Recherchez dans les codes, lois, décrets, conventions collectives et la jurisprudence
-            — données officielles de la DILA.
+            Droit du travail : Code du travail, conventions collectives et jurisprudence sociale
+            — données officielles de la DILA (Légifrance).
           </p>
         </div>
       </div>
@@ -113,7 +113,7 @@ export default function Legifrance() {
       {/* Accès rapides aux codes */}
       <div className="flex flex-wrap gap-2">
         <span className="text-xs text-muted-foreground self-center mr-1">Accès rapide :</span>
-        {Object.values(CODES).map((code) => (
+        {[CODES.travail, CODES.securiteSociale].map((code) => (
           <a
             key={code.id}
             href={legifranceUrl(code.id) ?? "#"}
@@ -219,7 +219,7 @@ export default function Legifrance() {
                   <div className="min-w-0">
                     <button
                       type="button"
-                      onClick={() => setSelected({ id, title: resultTitle(item) })}
+                      onClick={() => setSelected({ id, title: resultTitle(item), snippets: extractSnippets(item) })}
                       className="text-sm font-medium text-foreground text-left hover:text-primary hover:underline"
                     >
                       {resultTitle(item)}
@@ -237,7 +237,7 @@ export default function Legifrance() {
                   <div className="flex items-center gap-3 flex-shrink-0">
                     <button
                       type="button"
-                      onClick={() => setSelected({ id, title: resultTitle(item) })}
+                      onClick={() => setSelected({ id, title: resultTitle(item), snippets: extractSnippets(item) })}
                       className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
                     >
                       <BookOpen className="w-3 h-3" /> Lire

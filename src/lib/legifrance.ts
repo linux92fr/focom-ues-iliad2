@@ -12,6 +12,9 @@ export type LegifranceAction =
   | "getArticleWithId"
   | "consultCode"
   | "consultLegi"
+  | "consultJuri"
+  | "consultKaliText"
+  | "consultJorf"
   | "tableMatieres"
   | "ping";
 
@@ -213,7 +216,7 @@ export function consultCode(options: {
 }
 
 /**
- * Consulte un texte du fonds LEGI/LODA/JORF (loi, décret, arrêté…) par son
+ * Consulte un texte du fonds LEGI/LODA (loi, décret, arrêté…) par son
  * identifiant de texte. Retourne le texte et ses articles.
  */
 export function consultLegi(options: {
@@ -222,6 +225,56 @@ export function consultLegi(options: {
 }): Promise<ConsultTextResponse> {
   const { textId, date = new Date().toISOString().slice(0, 10) } = options;
   return callProxy<ConsultTextResponse>("consultLegi", { textId, date });
+}
+
+/** Consulte une convention collective (fonds KALI) par son identifiant de texte. */
+export function consultKaliText(id: string): Promise<ConsultTextResponse> {
+  return callProxy<ConsultTextResponse>("consultKaliText", { id });
+}
+
+/** Consulte un texte du Journal officiel (fonds JORF) par son cid de texte. */
+export function consultJorf(textCid: string): Promise<ConsultTextResponse> {
+  return callProxy<ConsultTextResponse>("consultJorf", { textCid });
+}
+
+/** Réponse de consultation d'une décision de jurisprudence (fonds JURI). */
+export interface JuriResponse {
+  text?: {
+    titre?: string;
+    titreLong?: string;
+    texteHtml?: string;
+    texte?: string;
+    juridiction?: string;
+    nature?: string;
+    dateTexte?: string;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+}
+
+/** Consulte une décision de jurisprudence (fonds JURI) par son identifiant de texte. */
+export function consultJuri(textId: string): Promise<JuriResponse> {
+  return callProxy<JuriResponse>("consultJuri", { textId });
+}
+
+/**
+ * Extrait les passages (extraits) déjà présents dans un résultat de recherche.
+ * Ces extraits contiennent le texte correspondant à la requête (avec <mark>…</mark>)
+ * et servent d'aperçu de repli lorsque la consultation complète n'est pas dispo.
+ */
+export function extractSnippets(item: SearchResultItem): string[] {
+  const out: string[] = [];
+  const sections = (item.sections ?? []) as Array<{
+    extracts?: Array<{ values?: string[] }>;
+  }>;
+  sections.forEach((s) => {
+    (s.extracts ?? []).forEach((ex) => {
+      (ex.values ?? []).forEach((v) => {
+        if (typeof v === "string" && v.trim()) out.push(v);
+      });
+    });
+  });
+  return out;
 }
 
 /** Codes fréquemment consultés (Chronical IDs stables). */
