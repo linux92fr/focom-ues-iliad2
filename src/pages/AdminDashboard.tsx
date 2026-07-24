@@ -268,7 +268,7 @@ export default function AdminDashboard() {
 
               <div className="px-4 py-3 border-t border-slate-200">
                 <Link
-                  to=adminPath("/messages")
+                  to={adminPath("/messages")}
                   onClick={() => setNotifOpen(false)}
                   className="flex items-center justify-center gap-2 text-xs text-slate-600 hover:text-slate-900 font-medium py-1.5 hover:bg-slate-100 rounded-lg transition-colors"
                 >
