@@ -22,16 +22,25 @@ async function callProxy<T>(action: LegifranceAction, params: unknown): Promise<
 
   if (error) {
     // Tente de récupérer un message d'erreur détaillé renvoyé par le proxy.
+    // NB : on extrait le message dans une variable AVANT de throw, sinon le throw
+    // serait capturé par le catch du parsing et on perdrait le détail.
+    let message = error.message || "Erreur Légifrance";
     const context = (error as { context?: Response } | null)?.context;
     if (context) {
       try {
         const payload = await context.clone().json();
-        throw new Error(payload?.error || payload?.message || error.message);
+        message = payload?.error || payload?.message || payload?.details || message;
+        if (payload?.details && typeof payload.details === "object") {
+          const detailMsg =
+            (payload.details as { message?: string; error?: string }).message ??
+            (payload.details as { message?: string; error?: string }).error;
+          if (detailMsg) message = `${message} — ${detailMsg}`;
+        }
       } catch {
-        /* fallthrough */
+        /* corps non JSON : on garde error.message */
       }
     }
-    throw new Error(error.message || "Erreur Légifrance");
+    throw new Error(message);
   }
 
   if (data && typeof data === "object" && "error" in data && (data as { error?: string }).error) {
