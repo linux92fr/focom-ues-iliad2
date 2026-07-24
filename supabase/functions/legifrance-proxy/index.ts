@@ -43,6 +43,9 @@ const ACTIONS: Record<string, string> = {
   getArticleWithId: "/consult/getArticleWithIdEliOrAlias",
   consultCode: "/consult/code",
   consultLegi: "/consult/legiPart",
+  consultJuri: "/consult/juri",
+  consultKaliText: "/consult/kaliText",
+  consultJorf: "/consult/jorf",
   tableMatieres: "/consult/code/tableMatieres",
   ping: "/search/ping",
 };
