@@ -50,6 +50,7 @@ import Notifications from "./pages/Notifications";
 import AI from "./pages/AI";
 import AssistantJuridique from "./pages/AssistantJuridique";
 import Legifrance from "./pages/Legifrance";
+import Judilibre from "./pages/Judilibre";
 import Permanences from "./pages/Permanences";
 import Sondages from "./pages/Sondages";
 import Agenda from "./pages/Agenda";
@@ -124,6 +125,7 @@ function App() {
                       <Route path="/ai" element={<AI />} />
                       <Route path="/assistant-juridique" element={<AssistantJuridique />} />
                       <Route path="/legifrance" element={<Legifrance />} />
+                      <Route path="/judilibre" element={<Judilibre />} />
                       <Route path="/permanences" element={<Permanences />} />
                       <Route path="/sondages" element={<Sondages />} />
                       <Route path="/agenda" element={<Agenda />} />
