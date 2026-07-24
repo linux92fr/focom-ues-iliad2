@@ -49,6 +49,7 @@ import Notifications from "./pages/Notifications";
 
 import AI from "./pages/AI";
 import AssistantJuridique from "./pages/AssistantJuridique";
+import Legifrance from "./pages/Legifrance";
 import Permanences from "./pages/Permanences";
 import Sondages from "./pages/Sondages";
 import Agenda from "./pages/Agenda";
@@ -122,6 +123,7 @@ function App() {
                       <Route path="/notifications" element={<Notifications />} />
                       <Route path="/ai" element={<AI />} />
                       <Route path="/assistant-juridique" element={<AssistantJuridique />} />
+                      <Route path="/legifrance" element={<Legifrance />} />
                       <Route path="/permanences" element={<Permanences />} />
                       <Route path="/sondages" element={<Sondages />} />
                       <Route path="/agenda" element={<Agenda />} />
