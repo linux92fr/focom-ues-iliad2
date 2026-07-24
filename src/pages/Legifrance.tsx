@@ -8,6 +8,9 @@ import {
   type Fond,
   type SearchResultItem,
 } from "@/lib/legifrance";
+import LegifranceContentDialog, {
+  type LegifranceContentTarget,
+} from "@/components/LegifranceContentDialog";
 
 const FONDS: { value: Fond; label: string }[] = [
   { value: "ALL", label: "Tous les fonds" },
@@ -38,6 +41,7 @@ export default function Legifrance() {
   const [total, setTotal] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selected, setSelected] = useState<LegifranceContentTarget | null>(null);
   const [searched, setSearched] = useState(false);
 
   const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -213,7 +217,13 @@ export default function Legifrance() {
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <h3 className="text-sm font-medium text-foreground">{resultTitle(item)}</h3>
+                    <button
+                      type="button"
+                      onClick={() => setSelected({ id, title: resultTitle(item) })}
+                      className="text-sm font-medium text-foreground text-left hover:text-primary hover:underline"
+                    >
+                      {resultTitle(item)}
+                    </button>
                     <div className="flex flex-wrap gap-2 mt-1.5 text-xs text-muted-foreground">
                       {item.nature && (
                         <span className="px-2 py-0.5 rounded-full bg-muted">{item.nature}</span>
@@ -224,16 +234,26 @@ export default function Legifrance() {
                       )}
                     </div>
                   </div>
-                  {url && (
-                    <a
-                      href={url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-xs text-primary hover:underline flex-shrink-0"
+                  <div className="flex items-center gap-3 flex-shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setSelected({ id, title: resultTitle(item) })}
+                      className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
                     >
-                      Ouvrir <ExternalLink className="w-3 h-3" />
-                    </a>
-                  )}
+                      <BookOpen className="w-3 h-3" /> Lire
+                    </button>
+                    {url && (
+                      <a
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="Voir sur Légifrance"
+                        className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary"
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    )}
+                  </div>
                 </div>
               </div>
             );
@@ -246,6 +266,14 @@ export default function Legifrance() {
         Données issues de l'API Légifrance (DILA) sous Licence ouverte v2.0. Ce service fournit des
         informations générales et ne remplace pas un conseil juridique personnalisé.
       </p>
+
+      {/* Consultation du contenu en page */}
+      <LegifranceContentDialog
+        target={selected}
+        onOpenChange={(o) => {
+          if (!o) setSelected(null);
+        }}
+      />
     </div>
   );
 }

@@ -142,17 +142,23 @@ export function suggestLegifrance(searchText: string): Promise<SuggestResponse> 
 
 // --- Consultation d'un article par identifiant ---
 
+export interface LegifranceArticle {
+  id?: string;
+  num?: string;
+  texte?: string;
+  texteHtml?: string;
+  nota?: string;
+  notaHtml?: string;
+  etat?: string;
+  dateDebut?: string;
+  dateFin?: string;
+  cid?: string;
+  content?: string;
+  [key: string]: unknown;
+}
+
 export interface ArticleResponse {
-  article?: {
-    id?: string;
-    num?: string;
-    texte?: string;
-    etat?: string;
-    dateDebut?: string;
-    dateFin?: string;
-    cid?: string;
-    [key: string]: unknown;
-  };
+  article?: LegifranceArticle;
   [key: string]: unknown;
 }
 
@@ -160,14 +166,34 @@ export function getArticle(id: string): Promise<ArticleResponse> {
   return callProxy<ArticleResponse>("getArticle", { id });
 }
 
-// --- Consultation d'un texte du fonds CODE (ex. Code du travail) ---
+// --- Consultation d'un texte (CODE / LODA / JORF…) ---
 
-export interface CodeResponse {
+export interface ConsultSection {
   title?: string;
-  sections?: unknown[];
-  articles?: unknown[];
+  etat?: string;
+  id?: string;
+  cid?: string;
+  articles?: LegifranceArticle[];
+  sections?: ConsultSection[];
   [key: string]: unknown;
 }
+
+export interface ConsultTextResponse {
+  title?: string;
+  nature?: string;
+  etat?: string;
+  cid?: string;
+  id?: string;
+  articles?: LegifranceArticle[];
+  sections?: ConsultSection[];
+  visa?: string;
+  notice?: string;
+  nota?: string;
+  [key: string]: unknown;
+}
+
+/** Alias historique. */
+export type CodeResponse = ConsultTextResponse;
 
 /**
  * Consulte un CODE (table des matières si `sctCid` omis, sinon une section).
@@ -177,13 +203,25 @@ export function consultCode(options: {
   textId: string;
   date?: string;
   sctCid?: string;
-}): Promise<CodeResponse> {
+}): Promise<ConsultTextResponse> {
   const { textId, date = new Date().toISOString().slice(0, 10), sctCid } = options;
-  return callProxy<CodeResponse>("consultCode", {
+  return callProxy<ConsultTextResponse>("consultCode", {
     textId,
     date,
     ...(sctCid ? { sctCid } : {}),
   });
+}
+
+/**
+ * Consulte un texte du fonds LEGI/LODA/JORF (loi, décret, arrêté…) par son
+ * identifiant de texte. Retourne le texte et ses articles.
+ */
+export function consultLegi(options: {
+  textId: string;
+  date?: string;
+}): Promise<ConsultTextResponse> {
+  const { textId, date = new Date().toISOString().slice(0, 10) } = options;
+  return callProxy<ConsultTextResponse>("consultLegi", { textId, date });
 }
 
 /** Codes fréquemment consultés (Chronical IDs stables). */
