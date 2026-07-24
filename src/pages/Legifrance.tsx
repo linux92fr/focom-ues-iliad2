@@ -1,6 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import DOMPurify from "dompurify";
-import { Scale, Search, ExternalLink, AlertCircle, Loader2, BookOpen } from "lucide-react";
+import {
+  Scale,
+  Search,
+  ExternalLink,
+  AlertCircle,
+  Loader2,
+  BookOpen,
+  FolderTree,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import {
   searchLegifrance,
   suggestLegifrance,
@@ -64,10 +74,13 @@ export default function Legifrance() {
   const scope = SCOPES.find((s) => s.key === scopeKey) ?? SCOPES[0];
   const [results, setResults] = useState<SearchResultItem[]>([]);
   const [total, setTotal] = useState<number | null>(null);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<LegifranceContentTarget | null>(null);
   const [searched, setSearched] = useState(false);
+  const [inForceOnly, setInForceOnly] = useState(false);
+  const [grouped, setGrouped] = useState(true);
 
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggest, setShowSuggest] = useState(false);
@@ -99,7 +112,9 @@ export default function Legifrance() {
     };
   }, [query]);
 
-  const runSearch = async (q?: string) => {
+  const PAGE_SIZE = 15;
+
+  const runSearch = async (q?: string, pageArg = 1) => {
     const term = (q ?? query).trim();
     // Un mot-clé est requis, sauf pour un scope restreint à une convention (IDCC),
     // où l'on peut parcourir tout le texte sans mot-clé.
@@ -108,15 +123,18 @@ export default function Legifrance() {
     setLoading(true);
     setError(null);
     setSearched(true);
+    setPage(pageArg);
     try {
       const res = await searchLegifrance({
         query: term,
         fond: scope.fond,
         idcc: scope.idcc,
-        pageSize: 15,
+        pageNumber: pageArg,
+        pageSize: PAGE_SIZE,
       });
       setResults(res.results ?? []);
       setTotal(res.totalResultNumber ?? res.results?.length ?? 0);
+      window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erreur lors de la recherche.");
       setResults([]);
@@ -124,6 +142,118 @@ export default function Legifrance() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const totalPages = Math.max(1, Math.ceil((total ?? 0) / PAGE_SIZE));
+
+  // Filtre « en vigueur » (côté client, sur la page courante).
+  const displayed = results.filter((item) => {
+    if (!inForceOnly) return true;
+    const status = String(item.titles?.[0]?.legalStatus ?? item.etat ?? "");
+    return !/ABROG|PERIME|ANNUL|MODIFIE_MORT/i.test(status);
+  });
+
+  // Regroupement par chapitre/section (arborescence simple).
+  const chapterOf = (item: SearchResultItem): string => {
+    const secs = item.sections as Array<{ title?: string }> | undefined;
+    return secs?.[0]?.title?.trim() || resultTitle(item) || "Autres";
+  };
+  const groups: { chapter: string; items: SearchResultItem[] }[] = [];
+  if (grouped) {
+    const index = new Map<string, number>();
+    displayed.forEach((item) => {
+      const ch = chapterOf(item);
+      if (!index.has(ch)) {
+        index.set(ch, groups.length);
+        groups.push({ chapter: ch, items: [] });
+      }
+      groups[index.get(ch)!].items.push(item);
+    });
+  }
+
+  const renderCard = (item: SearchResultItem, key: React.Key) => {
+    const id = resultId(item);
+    const url = legifranceUrl(id);
+    const previews = articlePreviews(item);
+    const date = formatDate(item.date as string | undefined);
+    return (
+      <div
+        key={key}
+        className="bg-card rounded-xl border border-border p-4 hover:border-primary/40 transition-colors space-y-3"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <button
+              type="button"
+              onClick={() =>
+                setSelected({ id, title: resultTitle(item), snippets: extractSnippets(item) })
+              }
+              className="text-sm font-medium text-foreground text-left hover:text-primary [&_mark]:bg-primary/20 [&_mark]:rounded [&_mark]:px-0.5"
+              dangerouslySetInnerHTML={{ __html: clean(resultTitle(item)) }}
+            />
+            <div className="flex flex-wrap gap-2 mt-1.5 text-xs text-muted-foreground">
+              {item.nature && <span className="px-2 py-0.5 rounded-full bg-muted">{item.nature}</span>}
+              {date && <span>{date}</span>}
+              {item.titles?.[0]?.legalStatus && (
+                <span className="text-primary">{item.titles[0].legalStatus}</span>
+              )}
+            </div>
+          </div>
+          {url && (
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Voir sur Légifrance"
+              className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary flex-shrink-0"
+            >
+              <ExternalLink className="w-3 h-3" />
+            </a>
+          )}
+        </div>
+
+        {previews.length > 0 ? (
+          <div className="space-y-1.5">
+            {previews.slice(0, 4).map((p, j) => (
+              <button
+                key={p.id ?? j}
+                type="button"
+                onClick={() =>
+                  setSelected({
+                    id: p.id ?? id,
+                    title: p.num ? `Article ${p.num}` : resultTitle(item),
+                    snippets: [p.html],
+                  })
+                }
+                className="w-full text-left rounded-lg bg-muted/30 hover:bg-muted/60 border border-border px-3 py-2 transition-colors"
+              >
+                {p.num && <span className="text-xs font-semibold text-primary">Article {p.num}</span>}
+                <span
+                  className="block text-xs text-foreground/80 leading-relaxed mt-0.5 line-clamp-3 [&_mark]:bg-primary/20 [&_mark]:rounded [&_mark]:px-0.5"
+                  dangerouslySetInnerHTML={{ __html: clean(p.html) }}
+                />
+              </button>
+            ))}
+            {previews.length > 4 && (
+              <p className="text-[11px] text-muted-foreground pl-1">
+                + {previews.length - 4} autre{previews.length - 4 > 1 ? "s" : ""} article
+                {previews.length - 4 > 1 ? "s" : ""}…
+              </p>
+            )}
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() =>
+              setSelected({ id, title: resultTitle(item), snippets: extractSnippets(item) })
+            }
+            className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+          >
+            <BookOpen className="w-3 h-3" /> Lire le contenu
+          </button>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -231,104 +361,84 @@ export default function Legifrance() {
       {/* Résultats */}
       {searched && !loading && !error && (
         <div className="space-y-3">
-          <p className="text-sm text-muted-foreground">
-            {total === 0
-              ? "Aucun résultat."
-              : `${total} résultat${(total ?? 0) > 1 ? "s" : ""}${
-                  results.length < (total ?? 0) ? ` (affichage des ${results.length} premiers)` : ""
-                }`}
-          </p>
+          {/* Barre d'outils : compteur + filtres */}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-muted-foreground">
+              {total === 0
+                ? "Aucun résultat."
+                : `${total} résultat${(total ?? 0) > 1 ? "s" : ""}${
+                    totalPages > 1 ? ` · page ${page}/${totalPages}` : ""
+                  }`}
+            </p>
+            {(total ?? 0) > 0 && (
+              <div className="flex items-center gap-3 text-xs">
+                <label className="flex items-center gap-1.5 cursor-pointer text-muted-foreground hover:text-foreground">
+                  <input
+                    type="checkbox"
+                    checked={inForceOnly}
+                    onChange={(e) => setInForceOnly(e.target.checked)}
+                    className="accent-primary"
+                  />
+                  En vigueur uniquement
+                </label>
+                <label className="flex items-center gap-1.5 cursor-pointer text-muted-foreground hover:text-foreground">
+                  <input
+                    type="checkbox"
+                    checked={grouped}
+                    onChange={(e) => setGrouped(e.target.checked)}
+                    className="accent-primary"
+                  />
+                  Grouper par chapitre
+                </label>
+              </div>
+            )}
+          </div>
 
-          {results.map((item, i) => {
-            const id = resultId(item);
-            const url = legifranceUrl(id);
-            const previews = articlePreviews(item);
-            const date = formatDate(item.date as string | undefined);
-            return (
-              <div
-                key={id ?? i}
-                className="bg-card rounded-xl border border-border p-4 hover:border-primary/40 transition-colors space-y-3"
-              >
-                {/* En-tête du résultat : titre du texte (ex. « Code du travail ») */}
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setSelected({ id, title: resultTitle(item), snippets: extractSnippets(item) })
-                      }
-                      className="text-sm font-medium text-foreground text-left hover:text-primary [&_mark]:bg-primary/20 [&_mark]:rounded [&_mark]:px-0.5"
-                      dangerouslySetInnerHTML={{ __html: clean(resultTitle(item)) }}
+          {/* Liste (groupée par chapitre ou à plat) */}
+          {grouped
+            ? groups.map((g, gi) => (
+                <div key={gi} className="space-y-2">
+                  <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground pt-1">
+                    <FolderTree className="w-3.5 h-3.5" />
+                    <span
+                      className="[&_mark]:bg-primary/20 [&_mark]:rounded [&_mark]:px-0.5"
+                      dangerouslySetInnerHTML={{ __html: clean(g.chapter) }}
                     />
-                    <div className="flex flex-wrap gap-2 mt-1.5 text-xs text-muted-foreground">
-                      {item.nature && (
-                        <span className="px-2 py-0.5 rounded-full bg-muted">{item.nature}</span>
-                      )}
-                      {date && <span>{date}</span>}
-                      {item.titles?.[0]?.legalStatus && (
-                        <span className="text-primary">{item.titles[0].legalStatus}</span>
-                      )}
+                    <span className="text-muted-foreground/60">({g.items.length})</span>
+                  </h3>
+                  <div className="space-y-2 pl-1 border-l-2 border-border/60">
+                    <div className="space-y-2 pl-3">
+                      {g.items.map((item, i) => renderCard(item, resultId(item) ?? `${gi}-${i}`))}
                     </div>
                   </div>
-                  {url && (
-                    <a
-                      href={url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      title="Voir sur Légifrance"
-                      className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary flex-shrink-0"
-                    >
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
-                  )}
                 </div>
+              ))
+            : displayed.map((item, i) => renderCard(item, resultId(item) ?? i))}
 
-                {/* Aperçus des articles trouvés (numéro + passage surligné), cliquables */}
-                {previews.length > 0 ? (
-                  <div className="space-y-1.5">
-                    {previews.slice(0, 4).map((p, j) => (
-                      <button
-                        key={p.id ?? j}
-                        type="button"
-                        onClick={() =>
-                          setSelected({
-                            id: p.id ?? id,
-                            title: p.num ? `Article ${p.num}` : resultTitle(item),
-                            snippets: [p.html],
-                          })
-                        }
-                        className="w-full text-left rounded-lg bg-muted/30 hover:bg-muted/60 border border-border px-3 py-2 transition-colors"
-                      >
-                        {p.num && (
-                          <span className="text-xs font-semibold text-primary">Article {p.num}</span>
-                        )}
-                        <span
-                          className="block text-xs text-foreground/80 leading-relaxed mt-0.5 line-clamp-3 [&_mark]:bg-primary/20 [&_mark]:rounded [&_mark]:px-0.5"
-                          dangerouslySetInnerHTML={{ __html: clean(p.html) }}
-                        />
-                      </button>
-                    ))}
-                    {previews.length > 4 && (
-                      <p className="text-[11px] text-muted-foreground pl-1">
-                        + {previews.length - 4} autre{previews.length - 4 > 1 ? "s" : ""} article
-                        {previews.length - 4 > 1 ? "s" : ""}…
-                      </p>
-                    )}
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setSelected({ id, title: resultTitle(item), snippets: extractSnippets(item) })
-                    }
-                    className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
-                  >
-                    <BookOpen className="w-3 h-3" /> Lire le contenu
-                  </button>
-                )}
-              </div>
-            );
-          })}
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-3 pt-3">
+              <button
+                type="button"
+                onClick={() => runSearch(undefined, page - 1)}
+                disabled={page <= 1 || loading}
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-border text-sm text-foreground hover:border-primary disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft className="w-4 h-4" /> Précédent
+              </button>
+              <span className="text-sm text-muted-foreground">
+                Page {page} / {totalPages}
+              </span>
+              <button
+                type="button"
+                onClick={() => runSearch(undefined, page + 1)}
+                disabled={page >= totalPages || loading}
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-border text-sm text-foreground hover:border-primary disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Suivant <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          )}
         </div>
       )}
 
