@@ -263,15 +263,34 @@ export function consultJuri(textId: string): Promise<JuriResponse> {
  * et servent d'aperçu de repli lorsque la consultation complète n'est pas dispo.
  */
 export function extractSnippets(item: SearchResultItem): string[] {
-  const out: string[] = [];
+  return articlePreviews(item).map((p) => p.html);
+}
+
+/** Aperçu d'un article trouvé dans un résultat de recherche. */
+export interface ArticlePreview {
+  /** Identifiant de l'article (souvent LEGIARTI…), pour consultation directe. */
+  id?: string;
+  /** Numéro d'article (ex. « L1234-5 »). */
+  num?: string;
+  /** Passage(s) correspondant à la requête, en HTML (avec <mark>…</mark>). */
+  html: string;
+}
+
+/**
+ * Liste les articles correspondant à la requête à l'intérieur d'un résultat
+ * (chaque « extrait » de section = un article, avec son numéro et son passage).
+ */
+export function articlePreviews(item: SearchResultItem): ArticlePreview[] {
+  const out: ArticlePreview[] = [];
   const sections = (item.sections ?? []) as Array<{
-    extracts?: Array<{ values?: string[] }>;
+    extracts?: Array<{ id?: string; num?: string; values?: string[] }>;
   }>;
   sections.forEach((s) => {
     (s.extracts ?? []).forEach((ex) => {
-      (ex.values ?? []).forEach((v) => {
-        if (typeof v === "string" && v.trim()) out.push(v);
-      });
+      const html = (ex.values ?? [])
+        .filter((v) => typeof v === "string" && v.trim())
+        .join(" […] ");
+      if (html) out.push({ id: ex.id, num: ex.num, html });
     });
   });
   return out;

@@ -1,14 +1,29 @@
 import { useEffect, useRef, useState } from "react";
+import DOMPurify from "dompurify";
 import { Scale, Search, ExternalLink, AlertCircle, Loader2, BookOpen } from "lucide-react";
 import {
   searchLegifrance,
   suggestLegifrance,
   legifranceUrl,
   extractSnippets,
+  articlePreviews,
   CODES,
   type Fond,
   type SearchResultItem,
 } from "@/lib/legifrance";
+
+/** Formate une date ISO en JJ/MM/AAAA (ou renvoie la chaîne telle quelle). */
+function formatDate(value?: string): string | null {
+  if (!value) return null;
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return value.slice(0, 10);
+  return d.toLocaleDateString("fr-FR");
+}
+
+/** Sanitize un fragment HTML (titres/extraits avec <mark>) avant rendu. */
+function clean(html: string): string {
+  return DOMPurify.sanitize(html);
+}
 import LegifranceContentDialog, {
   type LegifranceContentTarget,
 } from "@/components/LegifranceContentDialog";
@@ -210,51 +225,90 @@ export default function Legifrance() {
           {results.map((item, i) => {
             const id = resultId(item);
             const url = legifranceUrl(id);
+            const previews = articlePreviews(item);
+            const date = formatDate(item.date as string | undefined);
             return (
               <div
                 key={id ?? i}
-                className="bg-card rounded-xl border border-border p-4 hover:border-primary/40 transition-colors"
+                className="bg-card rounded-xl border border-border p-4 hover:border-primary/40 transition-colors space-y-3"
               >
+                {/* En-tête du résultat : titre du texte (ex. « Code du travail ») */}
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <button
                       type="button"
-                      onClick={() => setSelected({ id, title: resultTitle(item), snippets: extractSnippets(item) })}
-                      className="text-sm font-medium text-foreground text-left hover:text-primary hover:underline"
-                    >
-                      {resultTitle(item)}
-                    </button>
+                      onClick={() =>
+                        setSelected({ id, title: resultTitle(item), snippets: extractSnippets(item) })
+                      }
+                      className="text-sm font-medium text-foreground text-left hover:text-primary [&_mark]:bg-primary/20 [&_mark]:rounded [&_mark]:px-0.5"
+                      dangerouslySetInnerHTML={{ __html: clean(resultTitle(item)) }}
+                    />
                     <div className="flex flex-wrap gap-2 mt-1.5 text-xs text-muted-foreground">
                       {item.nature && (
                         <span className="px-2 py-0.5 rounded-full bg-muted">{item.nature}</span>
                       )}
-                      {item.date && <span>{item.date}</span>}
+                      {date && <span>{date}</span>}
                       {item.titles?.[0]?.legalStatus && (
                         <span className="text-primary">{item.titles[0].legalStatus}</span>
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-3 flex-shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => setSelected({ id, title: resultTitle(item), snippets: extractSnippets(item) })}
-                      className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                  {url && (
+                    <a
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title="Voir sur Légifrance"
+                      className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary flex-shrink-0"
                     >
-                      <BookOpen className="w-3 h-3" /> Lire
-                    </button>
-                    {url && (
-                      <a
-                        href={url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        title="Voir sur Légifrance"
-                        className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary"
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  )}
+                </div>
+
+                {/* Aperçus des articles trouvés (numéro + passage surligné), cliquables */}
+                {previews.length > 0 ? (
+                  <div className="space-y-1.5">
+                    {previews.slice(0, 4).map((p, j) => (
+                      <button
+                        key={p.id ?? j}
+                        type="button"
+                        onClick={() =>
+                          setSelected({
+                            id: p.id ?? id,
+                            title: p.num ? `Article ${p.num}` : resultTitle(item),
+                            snippets: [p.html],
+                          })
+                        }
+                        className="w-full text-left rounded-lg bg-muted/30 hover:bg-muted/60 border border-border px-3 py-2 transition-colors"
                       >
-                        <ExternalLink className="w-3 h-3" />
-                      </a>
+                        {p.num && (
+                          <span className="text-xs font-semibold text-primary">Article {p.num}</span>
+                        )}
+                        <span
+                          className="block text-xs text-foreground/80 leading-relaxed mt-0.5 line-clamp-3 [&_mark]:bg-primary/20 [&_mark]:rounded [&_mark]:px-0.5"
+                          dangerouslySetInnerHTML={{ __html: clean(p.html) }}
+                        />
+                      </button>
+                    ))}
+                    {previews.length > 4 && (
+                      <p className="text-[11px] text-muted-foreground pl-1">
+                        + {previews.length - 4} autre{previews.length - 4 > 1 ? "s" : ""} article
+                        {previews.length - 4 > 1 ? "s" : ""}…
+                      </p>
                     )}
                   </div>
-                </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setSelected({ id, title: resultTitle(item), snippets: extractSnippets(item) })
+                    }
+                    className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                  >
+                    <BookOpen className="w-3 h-3" /> Lire le contenu
+                  </button>
+                )}
               </div>
             );
           })}
