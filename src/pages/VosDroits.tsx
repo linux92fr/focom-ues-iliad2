@@ -21,6 +21,7 @@ import {
   Mail,
   FileText,
   Users,
+  Gavel,
   ChevronRight,
 } from "lucide-react";
 import ChatbotJuridique from "@/components/ChatbotJuridique";
@@ -148,6 +149,18 @@ const quickAccess = [
     title: "Assistant juridique",
     description: "Posez une question et obtenez une première orientation.",
     href: "#assistant-juridique",
+  },
+  {
+    icon: Scale,
+    title: "Recherche Légifrance",
+    description: "Code du travail, CCNT Télécoms, conventions, lois et décrets.",
+    href: "/legifrance",
+  },
+  {
+    icon: Gavel,
+    title: "Jurisprudence",
+    description: "Décisions de la Cour de cassation (base JUDILIBRE).",
+    href: "/judilibre",
   },
   {
     icon: FileText,
