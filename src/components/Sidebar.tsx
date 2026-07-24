@@ -14,7 +14,6 @@ import {
   UserPlus,
   Users,
   Scale,
-  Gavel,
   LogIn,
   Folder,
 } from "lucide-react";
@@ -31,8 +30,6 @@ const mainNavItems = [
   { to: "/nao2026", label: "NAO 2026", icon: Scale },
   { to: "/bilan-mandat", label: "Bilan", icon: BarChart3 },
   { to: "/vos-droits", label: "Vos droits", icon: Shield },
-  { to: "/legifrance", label: "Légifrance", icon: Scale },
-  { to: "/judilibre", label: "Jurisprudence", icon: Gavel },
 ];
 
 const actionNavItems = [
