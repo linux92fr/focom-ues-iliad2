@@ -158,6 +158,11 @@ Deno.serve(async (req) => {
     }
 
     if (!upstream.ok) {
+      // Log diagnostic : statut + corps renvoyés par la DILA (visible dans les logs Supabase).
+      console.error(
+        `legifrance upstream ${upstream.status} on ${endpoint} (env=${ENV}) :`,
+        text.slice(0, 800),
+      );
       return json(
         { error: `API Légifrance ${upstream.status}`, details: data },
         upstream.status,
