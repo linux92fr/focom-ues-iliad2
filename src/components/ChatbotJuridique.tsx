@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Bot, Send, User, RotateCcw, Sparkles, AlertCircle, ThumbsUp, ThumbsDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import LegifranceReferences from "@/components/LegifranceReferences";
 
 interface Message {
   role: "user" | "assistant";
@@ -297,6 +298,14 @@ export default function ChatbotJuridique({ initialQuestion, ccntContext, themeId
               )}
             </div>
           ))
+        )}
+
+        {/* Références juridiques réelles (Légifrance) liées à la dernière question.
+            Invisible tant que l'accès API n'est pas actif (dégradation silencieuse). */}
+        {!loading && messages.length > 0 && messages[messages.length - 1].role === "assistant" && (
+          <LegifranceReferences
+            query={[...messages].reverse().find((m) => m.role === "user")?.content}
+          />
         )}
 
         {loading && (
