@@ -29,11 +29,20 @@ import LegifranceContentDialog, {
 } from "@/components/LegifranceContentDialog";
 
 // Recherche limitée au domaine du droit du travail.
-const FONDS: { value: Fond; label: string }[] = [
-  { value: "CODE_DATE", label: "Code du travail & codes" },
-  { value: "KALI", label: "Conventions collectives" },
-  { value: "JURI", label: "Jurisprudence sociale" },
-  { value: "LODA_DATE", label: "Lois & décrets (travail)" },
+// Un « scope » = un fond, éventuellement restreint à une convention (IDCC).
+interface Scope {
+  key: string;
+  label: string;
+  fond: Fond;
+  idcc?: string;
+}
+
+const SCOPES: Scope[] = [
+  { key: "code", label: "Code du travail & codes", fond: "CODE_DATE" },
+  { key: "ccnt", label: "CCNT Télécoms (IDCC 2148)", fond: "KALI", idcc: "2148" },
+  { key: "kali", label: "Autres conventions collectives", fond: "KALI" },
+  { key: "juri", label: "Jurisprudence sociale", fond: "JURI" },
+  { key: "loda", label: "Lois & décrets (travail)", fond: "LODA_DATE" },
 ];
 
 function resultTitle(item: SearchResultItem): string {
@@ -51,7 +60,8 @@ function resultId(item: SearchResultItem): string | undefined {
 
 export default function Legifrance() {
   const [query, setQuery] = useState("");
-  const [fond, setFond] = useState<Fond>("CODE_DATE");
+  const [scopeKey, setScopeKey] = useState<string>("code");
+  const scope = SCOPES.find((s) => s.key === scopeKey) ?? SCOPES[0];
   const [results, setResults] = useState<SearchResultItem[]>([]);
   const [total, setTotal] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
@@ -91,13 +101,20 @@ export default function Legifrance() {
 
   const runSearch = async (q?: string) => {
     const term = (q ?? query).trim();
-    if (!term) return;
+    // Un mot-clé est requis, sauf pour un scope restreint à une convention (IDCC),
+    // où l'on peut parcourir tout le texte sans mot-clé.
+    if (!term && !scope.idcc) return;
     setShowSuggest(false);
     setLoading(true);
     setError(null);
     setSearched(true);
     try {
-      const res = await searchLegifrance({ query: term, fond, pageSize: 15 });
+      const res = await searchLegifrance({
+        query: term,
+        fond: scope.fond,
+        idcc: scope.idcc,
+        pageSize: 15,
+      });
       setResults(res.results ?? []);
       setTotal(res.totalResultNumber ?? res.results?.length ?? 0);
     } catch (err) {
@@ -181,20 +198,20 @@ export default function Legifrance() {
           </div>
 
           <select
-            value={fond}
-            onChange={(e) => setFond(e.target.value as Fond)}
+            value={scopeKey}
+            onChange={(e) => setScopeKey(e.target.value)}
             className="text-sm rounded-xl bg-muted/30 border border-border px-3 py-2.5 text-foreground outline-none focus:border-primary"
           >
-            {FONDS.map((f) => (
-              <option key={f.value} value={f.value}>
-                {f.label}
+            {SCOPES.map((s) => (
+              <option key={s.key} value={s.key}>
+                {s.label}
               </option>
             ))}
           </select>
 
           <button
             onClick={() => runSearch()}
-            disabled={loading || !query.trim()}
+            disabled={loading || (!query.trim() && !scope.idcc)}
             className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
