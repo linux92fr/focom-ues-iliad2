@@ -34,8 +34,8 @@ const mainNavItems = [
 
 const actionNavItems = [
   { to: "/adhesion", label: "Adhérer", icon: UserPlus, highlight: true },
-  { to: "/mes-reclamations", label: "Mes demandes", icon: AlertCircle },
-  { to: "/mes-documents", label: "Mes documents", icon: Folder },
+  { to: "/mes-reclamations", label: "Mes demandes", icon: AlertCircle, authOnly: true },
+  { to: "/mes-documents", label: "Mes documents", icon: Folder, authOnly: true },
   { to: "/profil", label: "Espace adhérent", icon: UserCircle },
 ];
 
@@ -77,6 +77,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const visibleSecondaryItems = isAdmin
     ? secondaryNavItems
     : secondaryNavItems.filter((item) => item.label !== "Admin");
+  const visibleActionItems = actionNavItems.filter((item) => user || !item.authOnly);
 
   return (
     <>
@@ -101,7 +102,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
         <div className="space-y-1">
           <p className="px-4 pb-1 text-[10px] font-black uppercase tracking-wider text-muted-foreground">Agir</p>
-          {actionNavItems.map((item) => <NavItem key={item.label} item={item} onNavigate={onNavigate} />)}
+          {visibleActionItems.map((item) => <NavItem key={item.label} item={item} onNavigate={onNavigate} />)}
           {!user && (
             <button
               type="button"
