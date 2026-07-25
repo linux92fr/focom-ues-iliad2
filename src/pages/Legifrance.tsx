@@ -50,7 +50,6 @@ interface Scope {
 const SCOPES: Scope[] = [
   { key: "code", label: "Code du travail & codes", fond: "CODE_DATE" },
   { key: "ccnt", label: "CCNT Télécoms (IDCC 2148)", fond: "KALI", idcc: "2148" },
-  { key: "kali", label: "Autres conventions collectives", fond: "KALI" },
   { key: "juri", label: "Jurisprudence sociale", fond: "JURI" },
   { key: "loda", label: "Lois & décrets (travail)", fond: "LODA_DATE" },
 ];
