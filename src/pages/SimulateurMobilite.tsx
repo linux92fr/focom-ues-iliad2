@@ -486,7 +486,7 @@ function calculerResultats(
       });
     }
 
-    if (options.concretisationRapide) {
+    if (dispositif === 'emploi_salarie' && options.concretisationRapide) {
       const txDir    = dir('tauxConcretisationRapide');
       const txAcc    = acc('tauxConcretisationRapide');
       const txSynRaw = syn('tauxConcretisationRapide');
@@ -1001,7 +1001,7 @@ const SimulateurMobilite = () => {
                         )}
                       </>
                     )}
-                    {dispositif !== 'mobilite_interne' && (
+                    {dispositif === 'emploi_salarie' && (
                       <div className="flex items-center justify-between">
                         <div>
                           <Label className="text-xs">Concrétisation rapide (CDI)</Label>
