@@ -1,0 +1,138 @@
+From 0db15ad85194f0b9ab5174f08de154dd38e73347 Mon Sep 17 00:00:00 2001
+From: Claude <assistant@example.com>
+Date: Tue, 15 Sep 2026 10:43:59 +0000
+Subject: [PATCH] =?UTF-8?q?fix:=20verrou=20auth=20r=C3=A9el=20pour=20?=
+ =?UTF-8?q?=C3=A9viter=20le=20spinner=20infini=20au=20clic=20sur=20Publier?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- client.ts: remplace le lock désactivé (fn() direct) par un mutex en
+  mémoire qui sérialise les opérations d'auth (getSession/refresh) sans
+  dépendre de navigator.locks (source de l'AbortError d'origine).
+  Sans verrou, deux rafraîchissements de session concurrents pouvaient
+  se bloquer mutuellement et laisser la requête de publication en
+  attente indéfinie d'une session qui ne se résolvait jamais.
+- NouvelArticle.tsx: ajoute un timeout de 20s sur l'upload d'image, la
+  récupération de l'utilisateur et l'insertion en base, pour qu'un
+  blocage réseau/auth se traduise par un message d'erreur au lieu d'un
+  spinner infini. Corrige aussi author_id, envoyé à null au lieu de
+  l'utilisateur connecté (violait potentiellement la policy RLS
+  'Content editors can create articles' pour les comptes non-admin).
+---
+ src/integrations/supabase/client.ts | 23 ++++++++++++-
+ src/pages/NouvelArticle.tsx         | 52 +++++++++++++++++++----------
+ 2 files changed, 56 insertions(+), 19 deletions(-)
+
+diff --git a/src/integrations/supabase/client.ts b/src/integrations/supabase/client.ts
+index 7ba308c..8021f3c 100644
+--- a/src/integrations/supabase/client.ts
++++ b/src/integrations/supabase/client.ts
+@@ -38,12 +38,33 @@ if (!SUPABASE_KEY) {
+   );
+ }
+ 
++// Verrou en mémoire (par onglet) pour sérialiser les opérations d'auth de supabase-js
++// (getSession / refreshSession). navigator.locks provoquait un AbortError intermittent
++// dans certains environnements (webview, onglets multiples avec acquireTimeout), d'où
++// sa désactivation précédente — mais sans verrou du tout, deux rafraîchissements de
++// session concurrents peuvent se marcher dessus et laisser une requête (ex: publication
++// d'article) bloquée indéfiniment en attente d'une session qui ne se résout jamais.
++// Ce mutex maison évite ce problème sans dépendre de l'API navigator.locks.
++function createAuthMutex() {
++  let queue: Promise<unknown> = Promise.resolve();
++  return function withLock<R>(fn: () => Promise<R>): Promise<R> {
++    const result = queue.then(fn, fn);
++    queue = result.then(
++      () => undefined,
++      () => undefined,
++    );
++    return result;
++  };
++}
++
++const authMutex = createAuthMutex();
++
+ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_KEY, {
+   auth: {
+     storage: localStorage,
+     persistSession: true,
+     autoRefreshToken: true,
+-    lock: async (_name, _acquireTimeout, fn) => fn(),
++    lock: async (_name, _acquireTimeout, fn) => authMutex(fn),
+   },
+ });
+ 
+diff --git a/src/pages/NouvelArticle.tsx b/src/pages/NouvelArticle.tsx
+index ebfd413..d8dce91 100644
+--- a/src/pages/NouvelArticle.tsx
++++ b/src/pages/NouvelArticle.tsx
+@@ -40,6 +40,18 @@ const slugify = (value: string) =>
+     .replace(/[^a-z0-9]+/g, "-")
+     .replace(/(^-|-$)/g, "");
+ 
++// Si une requête reste bloquée (ex: session/token en attente), on force un échec explicite
++// après 20s au lieu de laisser le bouton tourner indéfiniment sans jamais informer l'utilisateur.
++function withTimeout<T>(promise: Promise<T>, ms = 20000, message = "Délai dépassé, réessayez."): Promise<T> {
++  return new Promise<T>((resolve, reject) => {
++    const timer = setTimeout(() => reject(new Error(message)), ms);
++    promise.then(
++      (value) => { clearTimeout(timer); resolve(value); },
++      (error) => { clearTimeout(timer); reject(error); },
++    );
++  });
++}
++
+ const safeFileName = (value: string) =>
+   value
+     .normalize("NFD")
+@@ -85,24 +97,28 @@ export default function NouvelArticle() {
+ 
+   const createMutation = useMutation({
+     mutationFn: async ({ publish }: { publish: boolean }) => {
+-      const finalImageUrl = await uploadArticleImage();
+-
+-      const { data, error } = await supabase
+-        .from("articles")
+-        .insert({
+-          title: title.trim(),
+-          slug: slug.trim(),
+-          excerpt: excerpt.trim() || null,
+-          content: content.trim(),
+-          category,
+-          image_url: finalImageUrl,
+-          author_id: null,
+-          is_published: publish,
+-          status: publish ? ("publie" as const) : ("brouillon" as const),
+-          published_at: publish ? new Date().toISOString() : null,
+-        })
+-        .select()
+-        .single();
++      const finalImageUrl = await withTimeout(uploadArticleImage());
++
++      const { data: userData } = await withTimeout(supabase.auth.getUser());
++
++      const { data, error } = await withTimeout(
++        supabase
++          .from("articles")
++          .insert({
++            title: title.trim(),
++            slug: slug.trim(),
++            excerpt: excerpt.trim() || null,
++            content: content.trim(),
++            category,
++            image_url: finalImageUrl,
++            author_id: userData?.user?.id ?? null,
++            is_published: publish,
++            status: publish ? ("publie" as const) : ("brouillon" as const),
++            published_at: publish ? new Date().toISOString() : null,
++          })
++          .select()
++          .single(),
++      );
+       if (error) throw error;
+       return data;
+     },
+-- 
+2.43.0
+
