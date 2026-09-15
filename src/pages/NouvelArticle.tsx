@@ -40,6 +40,18 @@ const slugify = (value: string) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
 
+// Si une requête reste bloquée (ex: session/token en attente), on force un échec explicite
+// après 20s au lieu de laisser le bouton tourner indéfiniment sans jamais informer l'utilisateur.
+function withTimeout<T>(promise: Promise<T>, ms = 20000, message = "Délai dépassé, réessayez."): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(message)), ms);
+    promise.then(
+      (value) => { clearTimeout(timer); resolve(value); },
+      (error) => { clearTimeout(timer); reject(error); },
+    );
+  });
+}
+
 const safeFileName = (value: string) =>
   value
     .normalize("NFD")
@@ -85,24 +97,28 @@ export default function NouvelArticle() {
 
   const createMutation = useMutation({
     mutationFn: async ({ publish }: { publish: boolean }) => {
-      const finalImageUrl = await uploadArticleImage();
+      const finalImageUrl = await withTimeout(uploadArticleImage());
 
-      const { data, error } = await supabase
-        .from("articles")
-        .insert({
-          title: title.trim(),
-          slug: slug.trim(),
-          excerpt: excerpt.trim() || null,
-          content: content.trim(),
-          category,
-          image_url: finalImageUrl,
-          author_id: null,
-          is_published: publish,
-          status: publish ? ("publie" as const) : ("brouillon" as const),
-          published_at: publish ? new Date().toISOString() : null,
-        })
-        .select()
-        .single();
+      const { data: userData } = await withTimeout(supabase.auth.getUser());
+
+      const { data, error } = await withTimeout(
+        supabase
+          .from("articles")
+          .insert({
+            title: title.trim(),
+            slug: slug.trim(),
+            excerpt: excerpt.trim() || null,
+            content: content.trim(),
+            category,
+            image_url: finalImageUrl,
+            author_id: userData?.user?.id ?? null,
+            is_published: publish,
+            status: publish ? ("publie" as const) : ("brouillon" as const),
+            published_at: publish ? new Date().toISOString() : null,
+          })
+          .select()
+          .single(),
+      );
       if (error) throw error;
       return data;
     },

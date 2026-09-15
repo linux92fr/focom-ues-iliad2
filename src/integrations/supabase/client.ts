@@ -38,12 +38,33 @@ if (!SUPABASE_KEY) {
   );
 }
 
+// Verrou en mémoire (par onglet) pour sérialiser les opérations d'auth de supabase-js
+// (getSession / refreshSession). navigator.locks provoquait un AbortError intermittent
+// dans certains environnements (webview, onglets multiples avec acquireTimeout), d'où
+// sa désactivation précédente — mais sans verrou du tout, deux rafraîchissements de
+// session concurrents peuvent se marcher dessus et laisser une requête (ex: publication
+// d'article) bloquée indéfiniment en attente d'une session qui ne se résout jamais.
+// Ce mutex maison évite ce problème sans dépendre de l'API navigator.locks.
+function createAuthMutex() {
+  let queue: Promise<unknown> = Promise.resolve();
+  return function withLock<R>(fn: () => Promise<R>): Promise<R> {
+    const result = queue.then(fn, fn);
+    queue = result.then(
+      () => undefined,
+      () => undefined,
+    );
+    return result;
+  };
+}
+
+const authMutex = createAuthMutex();
+
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_KEY, {
   auth: {
     storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
-    lock: async (_name, _acquireTimeout, fn) => fn(),
+    lock: async (_name, _acquireTimeout, fn) => authMutex(fn),
   },
 });
 
