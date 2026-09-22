@@ -29,11 +29,30 @@ function cleanText(text: string): string {
     .trim();
 }
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function getSearchWords(query: string): string[] {
+  return query.split(/\s+/).map((word) => word.trim()).filter(Boolean);
+}
+
+function getSearchPatterns(query: string): string[] {
+  const normalized = query.replace(/\s+/g, " ").trim();
+  const words = getSearchWords(normalized);
+  return [
+    ...(words.length > 1 ? [normalized] : []),
+    ...words,
+  ]
+    .filter(Boolean)
+    .sort((a, b) => b.length - a.length);
+}
+
 function extractSnippet(text: string, query: string, maxLen = 320): string {
   const clean = cleanText(text);
-  const words = query.split(/\s+/).filter(Boolean);
-  if (!words.length) return clean.slice(0, maxLen);
-  const regex = new RegExp(words.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|"), "gi");
+  const patterns = getSearchPatterns(query);
+  if (!patterns.length) return clean.slice(0, maxLen);
+  const regex = new RegExp(patterns.map(escapeRegExp).join("|"), "i");
   const match = regex.exec(clean);
   if (!match) return clean.slice(0, maxLen);
   const center = match.index;
@@ -66,15 +85,13 @@ function maskProperNouns(text: string): string {
 }
 
 function highlight(text: string, query: string): React.ReactNode {
-  const words = query
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
-  if (words.length === 0) return text;
-  const regex = new RegExp(`(${words.join("|")})`, "gi");
+  const patterns = getSearchPatterns(query).map(escapeRegExp);
+  if (patterns.length === 0) return text;
+  const regex = new RegExp(`(${patterns.join("|")})`, "gi");
+  const exactRegex = new RegExp(`^(${patterns.join("|")})$`, "i");
   const parts = text.split(regex);
   return parts.map((part, i) =>
-    regex.test(part) ? (
+    exactRegex.test(part) ? (
       <mark key={i} className="bg-yellow-200 text-inherit rounded-sm px-0.5 font-medium">
         {part}
       </mark>
@@ -130,18 +147,51 @@ export function PVSearchPage() {
       if (!resp.ok) throw new Error(data.error ?? "Erreur serveur");
       setResults(data.results ?? []);
     } catch {
-      const { data: keywordData } = await supabase
+      const words = getSearchWords(term);
+      const fallbackResults = new Map<string, SearchResult>();
+
+      if (words.length > 1) {
+        const { data: phraseData } = await supabase
+          .from("pv_documents")
+          .select("filename, original_filename, content, chunk_index")
+          .ilike("content", `%${term}%`)
+          .limit(15);
+
+        for (const row of phraseData ?? []) {
+          const key = `${row.filename ?? ""}:${row.chunk_index ?? 0}`;
+          fallbackResults.set(key, {
+            filename: row.filename ?? "",
+            original_filename: row.original_filename ?? row.filename ?? "",
+            content: row.content ?? "",
+            chunk_index: row.chunk_index ?? 0,
+            similarity: 1.2,
+          });
+        }
+      }
+
+      let keywordQuery = supabase
         .from("pv_documents")
-        .select("filename, original_filename, content, chunk_index")
-        .ilike("content", `%${term}%`)
-        .limit(15);
-      setResults((keywordData ?? []).map((row) => ({
-        filename: row.filename ?? "",
-        original_filename: row.original_filename ?? row.filename ?? "",
-        content: row.content ?? "",
-        chunk_index: row.chunk_index ?? 0,
-        similarity: 0.5,
-      })));
+        .select("filename, original_filename, content, chunk_index");
+
+      for (const word of words) {
+        keywordQuery = keywordQuery.ilike("content", `%${word}%`);
+      }
+
+      const { data: keywordData } = await keywordQuery.limit(15);
+      for (const row of keywordData ?? []) {
+        const key = `${row.filename ?? ""}:${row.chunk_index ?? 0}`;
+        if (!fallbackResults.has(key)) {
+          fallbackResults.set(key, {
+            filename: row.filename ?? "",
+            original_filename: row.original_filename ?? row.filename ?? "",
+            content: row.content ?? "",
+            chunk_index: row.chunk_index ?? 0,
+            similarity: 0.5,
+          });
+        }
+      }
+
+      setResults(Array.from(fallbackResults.values()).slice(0, 15));
     }
 
     setSubmitted(term);
@@ -244,7 +294,7 @@ export function PVSearchPage() {
             <div className="mt-3 text-sm text-slate-600 space-y-3 pl-1">
               <div>
                 <p className="font-medium text-slate-700 mb-1">Recherche par mots-clés</p>
-                <p>Tapez un ou plusieurs mots présents dans les PV. Le moteur cherche tous les documents contenant ces termes.</p>
+                <p>Tapez un ou plusieurs mots présents dans les PV. Le moteur cherche l'expression complète quand plusieurs mots sont saisis, puis complète avec les documents contenant ces termes.</p>
                 <p className="mt-1 text-slate-500 italic">Exemple : <span className="bg-slate-100 px-1 rounded">télétravail accord</span></p>
               </div>
               <div>
@@ -252,7 +302,7 @@ export function PVSearchPage() {
                 <ul className="space-y-1 text-slate-500">
                   <li>• Utilisez des mots précis plutôt que des phrases complètes</li>
                   <li>• Les accents sont pris en compte (<span className="italic">réunion</span> ≠ <span className="italic">reunion</span>)</li>
-                  <li>• Plusieurs mots = tous les mots doivent être présents</li>
+                  <li>• Plusieurs mots = l'association exacte est prioritaire, puis les mots sont recherchés ensemble</li>
                 </ul>
               </div>
               <div>

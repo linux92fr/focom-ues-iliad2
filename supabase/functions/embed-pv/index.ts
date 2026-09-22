@@ -50,6 +50,29 @@ function chunkText(text: string): string[] {
   return chunks;
 }
 
+function normalizeSearchQuery(query: string): string {
+  return query.replace(/\s+/g, " ").trim();
+}
+
+function hasWordAssociation(query: string): boolean {
+  return normalizeSearchQuery(query).split(/\s+/).length > 1;
+}
+
+function toSearchResult(row: {
+  filename: string | null;
+  original_filename: string | null;
+  content: string | null;
+  chunk_index: number | null;
+}, similarity: number) {
+  return {
+    filename: row.filename,
+    original_filename: row.original_filename,
+    content: row.content,
+    chunk_index: row.chunk_index,
+    similarity,
+  };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -61,28 +84,53 @@ Deno.serve(async (req) => {
     // GET/POST /embed-pv/search — recherche plein-texte PostgreSQL
     if (url.pathname.endsWith("/search")) {
       const { query, match_count = 10 } = await req.json();
-      if (!query?.trim()) {
+      const normalizedQuery = normalizeSearchQuery(query ?? "");
+      if (!normalizedQuery) {
         return new Response(JSON.stringify({ error: "Paramètre 'query' manquant" }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
+      const resultsByChunk = new Map<string, {
+        filename: string | null;
+        original_filename: string | null;
+        content: string | null;
+        chunk_index: number | null;
+        similarity: number;
+      }>();
+
+      if (hasWordAssociation(normalizedQuery)) {
+        const { data: phraseData, error: phraseError } = await supabase
+          .from("pv_documents")
+          .select("filename, original_filename, content, chunk_index, metadata")
+          .ilike("content", `%${normalizedQuery}%`)
+          .limit(match_count);
+
+        if (phraseError) throw phraseError;
+
+        for (const row of phraseData ?? []) {
+          const key = `${row.filename ?? ""}:${row.chunk_index ?? ""}`;
+          resultsByChunk.set(key, toSearchResult(row, 1.2));
+        }
+      }
+
       const { data, error } = await supabase
         .from("pv_documents")
         .select("filename, original_filename, content, chunk_index, metadata")
-        .textSearch("content", query, { type: "plain", config: "french" })
+        .textSearch("content", normalizedQuery, { type: "plain", config: "french" })
         .limit(match_count);
 
       if (error) throw error;
 
-      const results = (data ?? []).map((row) => ({
-        filename: row.filename,
-        original_filename: row.original_filename,
-        content: row.content,
-        chunk_index: row.chunk_index,
-        similarity: 1,
-      }));
+      for (const row of data ?? []) {
+        const key = `${row.filename ?? ""}:${row.chunk_index ?? ""}`;
+        if (!resultsByChunk.has(key)) {
+          resultsByChunk.set(key, toSearchResult(row, 1));
+        }
+      }
+
+      const results = Array.from(resultsByChunk.values()).slice(0, match_count);
 
       return new Response(JSON.stringify({ results }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
