@@ -56,7 +56,7 @@ export default function OctobreRosePopup() {
       aria-labelledby="octobre-rose-popup-title"
     >
       <div
-        className="relative flex max-h-[calc(100dvh-1rem)] w-full max-w-2xl flex-col overflow-y-auto overscroll-contain rounded-2xl bg-white shadow-2xl sm:max-h-[calc(100dvh-2rem)] sm:rounded-3xl"
+        className="relative flex max-h-[90dvh] w-full max-w-2xl flex-col overflow-y-auto overscroll-contain rounded-2xl bg-white shadow-2xl sm:max-h-[calc(100dvh-2rem)] sm:rounded-3xl"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="sticky top-0 z-30 flex justify-end bg-transparent px-2 pt-2">
