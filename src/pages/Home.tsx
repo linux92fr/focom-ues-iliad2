@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import OctobreRoseFlash from "@/components/OctobreRoseFlash";
+import OctobreRosePopup from "@/components/OctobreRosePopup";
 
 const HERO_IMAGE = "https://d2xsxph8kpxj0f.cloudfront.net/310519663612648040/CNuRjrgGqWcQ7xt7rtMbHT/hero-banner-VHxfVX6tjRfujGise9ibwf.webp";
 const SOLIDARITY_IMAGE = "https://d2xsxph8kpxj0f.cloudfront.net/310519663612648040/CNuRjrgGqWcQ7xt7rtMbHT/solidarity-icon-GxfeM5FU9pzPmnbJUShvCH.webp";
@@ -193,6 +194,7 @@ export default function Home() {
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-slate-50 p-3 sm:p-4 lg:p-8">
+      <OctobreRosePopup />
       <section className="relative mb-6 overflow-hidden rounded-3xl bg-[#13233A] shadow-xl">
         <img src={HERO_IMAGE} alt="FO COM UES ILIAD" className="absolute inset-0 h-full w-full object-cover opacity-30" />
         <div className="absolute inset-0 bg-gradient-to-br from-[#13233A] via-[#13233A]/95 to-red-950/75" />
