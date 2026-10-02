@@ -31,6 +31,7 @@ import {
   Users,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import OctobreRoseFlash from "@/components/OctobreRoseFlash";
 
 const HERO_IMAGE = "https://d2xsxph8kpxj0f.cloudfront.net/310519663612648040/CNuRjrgGqWcQ7xt7rtMbHT/hero-banner-VHxfVX6tjRfujGise9ibwf.webp";
 const SOLIDARITY_IMAGE = "https://d2xsxph8kpxj0f.cloudfront.net/310519663612648040/CNuRjrgGqWcQ7xt7rtMbHT/solidarity-icon-GxfeM5FU9pzPmnbJUShvCH.webp";
@@ -224,6 +225,8 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      <OctobreRoseFlash />
 
       <section className="mb-6 rounded-2xl border border-teal-100 bg-white p-4 shadow-sm sm:p-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
