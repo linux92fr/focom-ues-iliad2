@@ -5,7 +5,7 @@ export default function OctobreRoseFlash() {
   const [open, setOpen] = useState(false);
 
   return (
-    <section className="mb-6 overflow-hidden rounded-3xl border border-pink-200 bg-gradient-to-br from-pink-50 via-white to-rose-50 shadow-lg">
+    <section id="octobre-rose" className="mb-6 scroll-mt-6 overflow-hidden rounded-3xl border border-pink-200 bg-gradient-to-br from-pink-50 via-white to-rose-50 shadow-lg">
       <div className="relative overflow-hidden bg-gradient-to-r from-pink-600 via-rose-500 to-fuchsia-600 px-5 py-5 text-white sm:px-7">
         <div className="pointer-events-none absolute -right-10 -top-16 h-40 w-40 rounded-full border-[24px] border-white/15" />
         <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
