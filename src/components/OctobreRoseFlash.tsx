@@ -89,14 +89,14 @@ export default function OctobreRoseFlash() {
         <div className="flex items-start gap-3">
           <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-rose-600" />
           <div>
-            <h3 className="font-extrabold text-slate-900">ALD et cancers : ce qui évolue en 2026</h3>
+            <h3 className="font-extrabold text-slate-900">ALD et cancers : une évolution entrée en vigueur le 1er octobre 2026</h3>
             <p className="mt-1 text-sm leading-relaxed text-slate-600">
-              Depuis le <strong>1er octobre 2026</strong>, un décret supprime l’exonération du ticket modérateur pour les médicaments dont le service médical rendu est considéré comme faible, y compris pour les personnes en ALD. Le principe de prise en charge à 100 % des autres soins liés à l’ALD reste toutefois en vigueur.
+              Le décret n° 2026-285 supprime, pour les personnes en ALD, l’exonération de participation sur les médicaments dont le <strong>service médical rendu (SMR) est faible</strong>. Ces médicaments, remboursés à 15 %, ne sont donc plus pris en charge à 100 % au titre de l’ALD. Le principe de prise en charge à 100 % des autres soins en rapport avec l’ALD reste en vigueur.
             </p>
             {open && (
               <div className="mt-3 space-y-3 border-t border-slate-100 pt-3 text-sm leading-relaxed text-slate-600">
                 <p>
-                  L’Assurance Maladie avait par ailleurs proposé en 2025 d’évaluer régulièrement la situation de certaines personnes en rémission, notamment après un cancer, afin d’envisager dans certains cas un passage d’une exonération ALD à un dispositif de suivi renforcé. Il s’agissait d’une <strong>proposition de l’Assurance Maladie</strong>, et non d’une suppression générale de l’ALD pour les personnes atteintes de cancer.
+                  <strong>Position FO COM :</strong> nous dénonçons cette évolution lorsqu’elle conduit à faire supporter un reste à charge supplémentaire à des personnes atteintes d’une maladie grave. Nous demandons que la protection des personnes malades et l’accès aux traitements restent prioritaires.
                 </p>
                 <p>
                   Pour les personnes concernées, il est donc important de distinguer les mesures effectivement entrées en vigueur des propositions de réforme et de vérifier ses droits avec son médecin, sa caisse d’Assurance Maladie ou un service d’information spécialisé.
