@@ -59,7 +59,7 @@ export default function OctobreRosePopup() {
         className="relative flex max-h-[90dvh] w-full max-w-2xl flex-col overflow-y-auto overscroll-contain rounded-2xl bg-white shadow-2xl sm:max-h-[calc(100dvh-2rem)] sm:rounded-3xl"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="sticky top-0 z-30 flex justify-end bg-transparent px-2 pt-2">
+        <div className="absolute right-2 top-2 z-30 flex justify-end">
           <button
             type="button"
             onClick={close}
@@ -70,11 +70,11 @@ export default function OctobreRosePopup() {
           </button>
         </div>
 
-        <div className="relative -mt-12 overflow-hidden bg-gradient-to-br from-pink-600 via-rose-500 to-fuchsia-600 px-4 pb-5 pt-6 text-white sm:-mt-0 sm:px-9 sm:pb-7 sm:pt-8">
+        <div className="relative overflow-hidden bg-gradient-to-br from-pink-600 via-rose-500 to-fuchsia-600 px-4 pb-5 pt-6 text-white sm:px-9 sm:pb-7 sm:pt-8">
           <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full border-[32px] border-white/10" />
           <div className="pointer-events-none absolute -bottom-20 -left-12 h-44 w-44 rounded-full border-[28px] border-white/10" />
           <div className="relative">
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/15 px-3 py-1.5 text-xs font-extrabold uppercase tracking-[0.16em] backdrop-blur">
+            <div className="mb-4 inline-flex max-w-[calc(100%-3rem)] items-center gap-2 rounded-full border border-white/20 bg-white/15 px-3 py-1.5 text-xs font-extrabold uppercase tracking-[0.12em] whitespace-nowrap backdrop-blur">
               <HeartPulse className="h-4 w-4" /> Octobre Rose 2026
             </div>
             <h2 id="octobre-rose-popup-title" className="max-w-xl pr-10 text-2xl font-black leading-tight sm:pr-0 sm:text-4xl">Cancer du sein : s’informer, se faire dépister</h2>
