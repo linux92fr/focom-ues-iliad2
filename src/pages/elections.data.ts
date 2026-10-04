@@ -120,8 +120,8 @@ export const CANDIDATS_T2_TITULAIRES: Candidat[] = [
   { name: 'Fabien RACAULT',          photo: '/candidats/fracault.png',  role: 'Technicien Fibre - XMI - Free Réseau' },
   { name: 'Awa BA DIALLO',           photo: '/candidats/adiallo.png',   role: 'Recouvrement - Iliad' },
   { name: 'Fadil KENDIRA',           photo: '/candidats/fkendira.png',  role: 'TMRE -ex-PDEM - Free Réseau ' },
-  { name: 'Aurelien DESMARS',        photo: '/candidats/adesmars.png',  role: 'TMRE -ex-CDEM - Free Réseau' },
-  { name: 'Sofiane ZIOUI',           photo: '/candidats/szioui.png',    role: 'Technicien PCI - Free Réseau' },
+  { name: 'Aurelien DESMARS',        photo: '/candidats/adesmars.png',  role: 'CIR - ex-TMRE - Free Réseau' },
+  { name: 'Sofiane ZIOUI',           photo: '/candidats/szioui.png',    role: 'TMRE - ex-Technicien PCI - Free Réseau' },
   { name: 'Yann DADIA',              photo: '/candidats/ydadia.png',    role: 'TMRE - ex-CDEM - Free Réseau' },
   { name: 'Jean Patrick DE BOISROLIN', photo: '/candidats/undefined',   role: 'Technicien UPR' },
   { name: 'Souleymane NDAO',         photo: '/candidats/sndao.png',     role: 'Technicien Fibre - XMI - Free Réseau' },
@@ -138,7 +138,6 @@ export const CANDIDATS_T2_TITULAIRES: Candidat[] = [
 export const CANDIDATS_T2_SUPPLEANTS: Candidat[] = [
   { name: 'Sylvie JAYAKUMAR',        photo: '/candidats/sjayakumar.jpg', role: 'Gestionnaire Flotte Automobile - Iliad' },
   { name: 'Mody DIAWARA',            photo: '/candidats/mdiawara.png',   role: 'Référent Opérationnel Pôle Gestion des Prestataires' },
-  { name: 'Aicha BEGUEDAR',          photo: '/candidats/abeguedar.png',  role: 'Assistante Technique - Transport' },
   { name: 'David ETTLIN',            photo: '/candidats/dettlin.png',    role: 'Référent TM - ex-CQIS' },
   { name: 'Mohamed Ali LATIF',       photo: '/candidats/mlatif.png',     role: 'Technicien Fibre - Free Réseau' },
   { name: 'Jose DELATTRE',           photo: '/candidats/jdelattre.png',  role: "Concepteur Systeme d'Information - SI ABONNES" },
