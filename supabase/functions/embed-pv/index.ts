@@ -89,6 +89,9 @@ Deno.serve(async (req) => {
 
   try {
     if (url.pathname.endsWith("/search")) {
+      const searchUser = await getCaller(req.headers.get("Authorization") ?? "");
+      if (!searchUser) return json({ error: "Connexion requise pour rechercher dans les PV" }, 401);
+
       const body = await req.json();
       const normalizedQuery = normalizeSearchQuery(typeof body?.query === "string" ? body.query : "");
       const rawCount = Number(body?.match_count);
