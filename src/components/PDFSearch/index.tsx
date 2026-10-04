@@ -133,6 +133,11 @@ export function PVSearchPage() {
     const term = (q ?? query).trim();
     if (!term) return;
 
+    if (!isAuthenticated) {
+      setAuthModalOpen(true);
+      return;
+    }
+
     setIsSearching(true);
     setSearched(false);
 

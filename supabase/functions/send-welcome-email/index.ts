@@ -1,3 +1,5 @@
+import { createClient } from "@supabase/supabase-js";
+
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -16,12 +18,31 @@ Deno.serve(async (req) => {
   try {
     const { email, unsubscribeToken } = await req.json();
 
+    if (typeof email !== "string" || typeof unsubscribeToken !== "string") {
+      return json({ error: "Paramètres manquants" }, 400);
+    }
+
+    const serviceClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      { auth: { persistSession: false, autoRefreshToken: false } },
+    );
+
+    const { data: subscriber } = await serviceClient
+      .from("newsletter_subscribers")
+      .select("id, email, is_active")
+      .eq("email", email.trim().toLowerCase())
+      .eq("unsubscribe_token", unsubscribeToken)
+      .eq("is_active", true)
+      .maybeSingle();
+
+    if (!subscriber) return json({ error: "Abonnement newsletter invalide" }, 403);
+
     const resendKey = Deno.env.get("RESEND_API_KEY");
     const siteUrl = Deno.env.get("SITE_URL") ?? "https://focom-ues-iliad.fr";
     const fromEmail = Deno.env.get("FROM_EMAIL") ?? "newsletter@focom-ues-iliad.fr";
 
     if (!resendKey) return json({ error: "RESEND_API_KEY manquant" }, 500);
-    if (!email || !unsubscribeToken) return json({ error: "Paramètres manquants" }, 400);
 
     const unsubscribeUrl = `${siteUrl}/newsletter/unsubscribe?token=${unsubscribeToken}`;
 
