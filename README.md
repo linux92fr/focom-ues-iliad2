@@ -1,9 +1,8 @@
-# Welcome to your project
+# Bienvenue sur notre projet
 
-## What technologies are used for this project?
+## Quelles technologies sont utilisées pour ce projet ?
 
-This project is built with:
-
+Ce projet est conçu avec :
 - Vite
 - TypeScript
 - React
