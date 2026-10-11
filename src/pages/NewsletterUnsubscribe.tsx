@@ -11,40 +11,29 @@ const NewsletterUnsubscribe = () => {
   useEffect(() => {
     const unsubscribe = async () => {
       const token = searchParams.get('token')?.trim();
-      const email = searchParams.get('email')?.trim().toLowerCase();
 
-      if (!token && !email) {
+      if (!token) {
         setStatus('error');
         setMessage('Lien de désabonnement incomplet.');
         return;
       }
 
       try {
-        const updatePayload = {
-          is_active: false,
-          unsubscribed_at: new Date().toISOString(),
-        };
-
-        const query = supabase
-          .from('newsletter_subscribers')
-          .update(updatePayload)
-          .select('id, email, is_active')
-          .limit(1);
-
-        const { data, error } = token
-          ? await query.eq('unsubscribe_token', token)
-          : await query.eq('email', email);
+        const { data, error } = await supabase.rpc('unsubscribe_newsletter', {
+          p_token: token,
+        });
 
         if (error) throw error;
 
-        if (!data || data.length === 0) {
+        const email = Array.isArray(data) ? data[0]?.email : null;
+        if (!email) {
           setStatus('error');
           setMessage('Aucun abonnement actif ne correspond à ce lien.');
           return;
         }
 
         setStatus('success');
-        setMessage(`L'adresse ${data[0].email} a été désabonnée avec succès de notre newsletter.`);
+        setMessage(`L'adresse ${email} a été désabonnée avec succès de notre newsletter.`);
       } catch (error) {
         console.error('Error unsubscribing:', error);
         setStatus('error');
