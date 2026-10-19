@@ -136,7 +136,7 @@ function AIStudio() {
           <Wand2 className="w-5 h-5 text-primary" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Studio IA — 1min.ai</h1>
+          <h1 className="text-2xl font-bold text-foreground">Studio IA</h1>
           <p className="text-muted-foreground text-sm mt-1">Rédaction syndicale, synthèse documentaire, correction, visuels et assistant salarié.</p>
         </div>
       </div>
@@ -184,7 +184,7 @@ function AIStudio() {
         <form onSubmit={handleChat} className="flex flex-col sm:flex-row gap-2"><textarea value={chatInput} onChange={(e) => setChatInput(e.target.value)} rows={2} maxLength={4000} disabled={isLoading} placeholder="Pose ta question…" className="min-w-0 flex-1 rounded-xl border border-border bg-background p-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30" /><button type="submit" disabled={isLoading || !chatInput.trim()} className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50">{isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <MessageCircle className="w-4 h-4" />}Envoyer</button></form>
       </section>}
 
-      <p className="text-xs leading-relaxed text-muted-foreground">Confidentialité : les textes transmis sont envoyés à 1min.ai pour traitement et peuvent être conservés selon les règles du fournisseur. N’envoie pas de données personnelles ou confidentielles sans autorisation. Vérifie les résumés, références juridiques et contenus générés avant toute diffusion. L’usage dépend des crédits et limites de ton compte 1min.ai.</p>
+      <p className="text-xs leading-relaxed text-muted-foreground">Confidentialité : les textes transmis sont envoyés à FOCOM UES ILIAD pour traitement et peuvent être conservés selon les règles du fournisseur. N’envoie pas de données personnelles ou confidentielles sans autorisation. Vérifie les résumés, références juridiques et contenus générés avant toute diffusion. L’usage dépend des crédits et limites de ton compte.</p>
     </div>
   );
 }
