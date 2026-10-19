@@ -93,7 +93,7 @@ Deno.serve(async (req) => {
         headers: { "Content-Type": "application/json", "API-KEY": ONE_MIN_API_KEY },
         body: JSON.stringify({
           type: "IMAGE_GENERATOR",
-          model: "black-forest-labs/flux-schnell",
+          model: "gemini-3.1-flash-image-preview",
           async: true,
           promptObject: { prompt, num_outputs: 1, aspect_ratio: "16:9", output_format: "webp" },
         }),
