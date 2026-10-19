@@ -1,3 +1,4 @@
+import AdminLayout, { AdminAuthGuard } from "@/components/admin/AdminLayout";
 import { useState, FormEvent, ChangeEvent } from 'react';
 import { Wand2, Bot, ArrowRight, Copy, Check, FileText, Image as ImageIcon, MessageCircle, Newspaper, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -188,8 +189,6 @@ function AIStudio() {
   );
 }
 
-
-import AdminLayout, { AdminAuthGuard } from "@/components/admin/AdminLayout";
 
 export default function AdminAI() {
   return <AdminAuthGuard><AdminLayout title="Studio IA" breadcrumb={["Administration", "Studio IA"]}><AIStudio /></AdminLayout></AdminAuthGuard>;
