@@ -67,6 +67,24 @@ Deno.serve(async (req) => {
   const text = typeof payload.text === "string" ? payload.text.trim() : "";
   const prompt = typeof payload.prompt === "string" ? payload.prompt.trim() : "";
 
+  if (action === "image-result") {
+    if (!canUseImages) return json({ error: "Accès réservé aux administrateurs et rédacteurs." }, 403, headers);
+    const resultId = typeof payload.prompt === "string" ? payload.prompt.trim() : "";
+    if (!/^[0-9a-f-]{20,60}$/i.test(resultId)) return json({ error: "Identifiant de génération invalide." }, 400, headers);
+    try {
+      const upstream = await fetch(`https://api.1min.ai/api/results/${encodeURIComponent(resultId)}`, {
+        headers: { "API-KEY": ONE_MIN_API_KEY },
+        signal: AbortSignal.timeout(20000),
+      });
+      const data = await upstream.json().catch(() => ({}));
+      if (!upstream.ok || !data?.aiRecord) return json({ error: "Résultat introuvable ou inaccessible." }, 502, headers);
+      return json({ result: data.aiRecord, temporaryUrl: data.temporaryUrl ?? null }, 200, headers);
+    } catch (error) {
+      console.error("1min.ai image result failed", error);
+      return json({ error: "Impossible de récupérer l'image pour le moment." }, 502, headers);
+    }
+  }
+
   if (action === "image") {
     if (!canUseImages) return json({ error: "La génération d'images est réservée aux administrateurs et rédacteurs." }, 403, headers);
     if (prompt.length < 5 || prompt.length > 2000) return json({ error: "Décris l'image (5 à 2 000 caractères)." }, 400, headers);
