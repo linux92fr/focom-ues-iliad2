@@ -58,7 +58,7 @@ Deno.serve(async (req) => {
   const isAdmin = roles.has("admin");
   const canUseText = isAdmin || ["redacteur", "representant", "secretaire"].some((r) => roles.has(r));
   const canUseImages = isAdmin || roles.has("redacteur");
-  const canUseAssistant = roles.size > 0 && !roles.has("public");
+  const canUseAssistant = ["admin", "redacteur", "representant", "secretaire", "tresorier", "gestionnaire_documents"].some((r) => roles.has(r));
   if (!canUseAssistant) return json({ error: "Votre rôle ne permet pas d'utiliser cet assistant." }, 403, headers);
 
   let payload: { action?: string; text?: string; prompt?: string; messages?: Array<{role: string; content: string}> };
