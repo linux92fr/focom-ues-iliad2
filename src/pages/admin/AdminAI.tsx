@@ -32,7 +32,7 @@ function AIStudio() {
   const [copied, setCopied] = useState(false);
 
   const invoke = async (body: Record<string, unknown>) => {
-    const { data, error: fnError } = await supabase.functions.invoke('1min-ai', { body });
+    const { data, error: fnError } = await supabase.functions.invoke('min-ai', { body });
     if (fnError) throw new Error(fnError.message);
     if (data?.error) throw new Error(data.error);
     return data;
