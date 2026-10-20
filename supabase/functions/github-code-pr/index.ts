@@ -133,7 +133,8 @@ Deno.serve(async (req) => {
       if (!upstream.ok) return json({ error: upstream.status === 429 ? "Limite ou crédits 1min.ai atteints." : "Le modèle 1min.ai n’a pas pu préparer les modifications." }, upstream.status === 429 ? 429 : 502, headers);
       const raw = data?.choices?.[0]?.message?.content;
       if (typeof raw !== "string") return json({ error: "Réponse vide du modèle." }, 502, headers);
-      const clean = raw.trim().replace(/^\`\`\`(?:json)?\s*/i, "").replace(/\s*\`\`\`$/, "");
+      let clean = raw.trim();
+      if (clean.startsWith("```")) clean = clean.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
       let proposal: { summary?: string; files?: Array<{ path?: string; content?: string; summary?: string }> };
       try { proposal = JSON.parse(clean); } catch { return json({ error: "Le modèle a renvoyé une proposition illisible. Relance avec une demande plus précise." }, 502, headers); }
       if (!Array.isArray(proposal.files) || proposal.files.length > 8) return json({ error: "La proposition du modèle ne respecte pas le format attendu." }, 502, headers);
@@ -166,17 +167,21 @@ Deno.serve(async (req) => {
       validated.push({ path: value.path, sha: value.sha, content: value.content });
     }
     try {
+      const currentFiles = [];
+      for (const file of validated) {
+        const current = await github(`/repos/${REPOSITORY}/contents/${file.path.split("/").map(encodeURIComponent).join("/")}?ref=main`);
+        if (current.sha !== file.sha) return json({ error: `Le fichier ${file.path} a changé depuis l’analyse. Recommence la proposition avant de créer la PR.` }, 409, headers);
+        currentFiles.push({ ...file, currentSha: current.sha });
+      }
       const branch = `ai/studio-ia-${new Date().toISOString().replace(/[-:.TZ]/g, "").slice(0, 14)}-${crypto.randomUUID().slice(0, 8)}`;
       const refData = await github(`/repos/${REPOSITORY}/git/ref/heads/main`);
       const baseSha = refData.object?.sha;
       if (typeof baseSha !== "string") throw new Error("Impossible de déterminer le commit main.");
       await github(`/repos/${REPOSITORY}/git/refs`, { method: "POST", body: JSON.stringify({ ref: `refs/heads/${branch}`, sha: baseSha }) });
-      for (const file of validated) {
-        const current = await github(`/repos/${REPOSITORY}/contents/${file.path.split("/").map(encodeURIComponent).join("/")}?ref=main`);
-        if (current.sha !== file.sha) return json({ error: `Le fichier ${file.path} a changé depuis l’analyse. Recommence la proposition avant de créer la PR.` }, 409, headers);
+      for (const file of currentFiles) {
         await github(`/repos/${REPOSITORY}/contents/${file.path.split("/").map(encodeURIComponent).join("/")}`, {
           method: "PUT",
-          body: JSON.stringify({ message: `ai: update ${file.path}`, content: encodeBase64(file.content), sha: current.sha, branch }),
+          body: JSON.stringify({ message: `ai: update ${file.path}`, content: encodeBase64(file.content), sha: file.currentSha, branch }),
         });
       }
       const pr = await github(`/repos/${REPOSITORY}/pulls`, {
