@@ -63,6 +63,7 @@ import AdminParticipation from "./pages/AdminParticipation";
 
 import AdminLogin from "./pages/admin/AdminLogin";
 import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminAI from "./pages/admin/AdminAI";
 import AdminActualites from "./pages/admin/AdminActualites";
 import AdminDocuments from "./pages/admin/AdminDocuments";
 import AdminAdherents from "./pages/admin/AdminAdherents";
@@ -142,6 +143,7 @@ function App() {
                     <Route path={`/${ADMIN_BASE}/login`} element={<AdminLogin />} />
                     <Route path={`/${ADMIN_BASE}`} element={<AdminDashboard />} />
                     <Route path={`/${ADMIN_BASE}/actualites`} element={<AdminActualites />} />
+                    <Route path={`/${ADMIN_BASE}/ai`} element={<AdminAI />} />
                     <Route path={`/${ADMIN_BASE}/actualites/nouveau`} element={<NouvelArticle />} />
                     <Route path={`/${ADMIN_BASE}/actualites/:id/editer`} element={<EditArticle />} />
                     <Route path={`/${ADMIN_BASE}/documents`} element={<AdminDocuments />} />
