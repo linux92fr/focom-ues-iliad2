@@ -50,3 +50,34 @@ L'extraction PDF est effectuée dans le navigateur avec PDF.js, limitée à 15 M
 - Tester depuis le site avec un compte autorisé afin de vérifier ensemble l'authentification, les rôles, le CORS et les appels 1min.ai.
 - Exécuter les vérifications CI/build du dépôt avant de fusionner la Pull Request.
 - Le déploiement manuel dans Supabase n'est pas synchronisé automatiquement avec GitHub : conserver les deux versions cohérentes.
+
+
+## Assistant Code → GitHub (PR en brouillon)
+
+Le panneau **Proposer des changements sur GitHub**, intégré au mode Code du Studio IA, est distinct de la génération de code à copier.
+
+### Secrets supplémentaires
+Dans Supabase → Edge Functions → Secrets, ajouter `GITHUB_TOKEN` avec un jeton GitHub fine-grained limité au dépôt `linux92fr/focom-ues-iliad2`. Accorder uniquement :
+- **Contents: Read and write** (lecture des fichiers, branche et commits) ;
+- **Pull requests: Read and write** (création d’une PR) ;
+- **Metadata: Read-only**.
+
+Ne jamais mettre ce jeton dans le frontend ni dans Git. Le dépôt est volontairement fixé côté serveur à `linux92fr/focom-ues-iliad2`.
+
+### Déploiement
+Déployer la nouvelle Edge Function sous le nom exact `github-code-pr` à partir de `supabase/functions/github-code-pr/index.ts`. Elle utilise `ONEMIN_API_KEY`, `SUPABASE_URL` et `SUPABASE_ANON_KEY` déjà configurés, plus `GITHUB_TOKEN`. La fonction doit conserver la validation JWT par défaut de Supabase.
+
+### Utilisation
+1. Dans Administration → Studio IA → Code, renseigner la modification et 1 à 8 chemins de fichiers existants.
+2. L’IA lit ces fichiers sur `main` et propose un contenu complet modifié.
+3. Relire les contenus actuels et proposés, modifier si nécessaire, puis demander la création de la PR.
+4. Le backend vérifie à nouveau les SHA des fichiers, crée une branche `ai/studio-ia-...`, committe les fichiers modifiés et ouvre une pull request **en brouillon** vers `main`.
+5. Relire les diffs sur GitHub, lancer/consulter la CI et ne fusionner qu’après validation.
+
+### Garde-fous et limites
+- Accès réservé aux rôles `admin` ; session Supabase obligatoire.
+- Limite à 8 fichiers texte de 50 Ko chacun ; seuls les chemins autorisés dans `src/`, `supabase/functions/`, `public/`, `scripts/`, `docs/` et quelques fichiers de configuration racine sont acceptés.
+- Les workflows GitHub, secrets, fichiers d’identifiants et migrations de base de données sont exclus.
+- L’IA ne peut modifier que les fichiers fournis comme contexte. Pour des changements transverses, ajouter les composants, types et dépendances concernés à la liste.
+- La fonction ne lance pas le build elle-même et ne fusionne jamais la PR. Les contrôles CI et une revue humaine restent obligatoires.
+- Le code source dans GitHub ne déploie pas automatiquement cette Edge Function sur Supabase, sauf si un workflow de déploiement explicite est configuré.
