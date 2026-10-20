@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import * as pdfjsLib from 'pdfjs-dist';
 import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import { supabase } from '@/integrations/supabase/client';
+import StudioGitHubAssistant from '@/components/admin/StudioGitHubAssistant';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
 
@@ -317,6 +318,8 @@ function AIStudio() {
         </form>
         {output && <div className="rounded-xl border border-border bg-muted/20 p-4 space-y-3"><div className="flex flex-wrap justify-between items-center gap-3"><h3 className="font-semibold text-foreground">Réponse — code prêt à copier</h3><button type="button" onClick={copyOutput} className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary">{copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}{copied ? 'Copié' : 'Copier la réponse'}</button></div><pre className="max-h-[38rem] overflow-auto rounded-lg border border-border bg-background p-4 text-xs sm:text-sm leading-relaxed text-foreground whitespace-pre-wrap break-words"><code>{output}</code></pre></div>}
       </section>}
+
+      {mode === 'code' && <StudioGitHubAssistant />}
 
       {mode === 'chat' && <section className="bg-card rounded-xl border border-border p-5 sm:p-6 space-y-4">
         <div><h2 className="font-bold text-foreground">Assistant IA pour les salariés</h2><p className="text-sm text-muted-foreground mt-1">Réponses générales sur le travail et les droits des salariés. Les réponses juridiques doivent être vérifiées, et ne remplacent pas un accompagnement syndical.</p></div>
