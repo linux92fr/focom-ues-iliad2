@@ -110,7 +110,7 @@ export default function AdminLayout({ children, title, breadcrumb }: AdminLayout
     <div className="min-h-screen bg-slate-50 flex">
       <aside className={`${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"} fixed lg:sticky top-0 left-0 z-40 h-screen w-64 bg-slate-900 text-white flex flex-col transition-transform duration-300 ease-in-out`}>
         <div className="flex items-center gap-3 p-5 border-b border-slate-700">
-          <img loading="lazy" src={LOGO_IMAGE} alt="FOCOM" className="h-9 w-9 object-contain" />
+          <img loading="lazy" src={LOGO_IMAGE} alt="FOCOM" className="h-9 w-auto max-w-16 object-contain flex-shrink-0" />
           <div>
             <p className="font-bold text-sm leading-tight">FOCOM UES ILIAD</p>
             <p className="text-[10px] text-slate-400 uppercase tracking-widest flex items-center gap-1"><Shield className="w-2.5 h-2.5" /> Administration</p>
