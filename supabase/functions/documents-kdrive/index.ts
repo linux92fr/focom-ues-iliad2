@@ -56,9 +56,9 @@ async function hasElevatedRole(userId: string | null): Promise<boolean> {
   return (data ?? []).some((r) => ELEVATED_ROLES.includes(r.role as string));
 }
 
-async function canManageOrOwn(userId: string | null, uploadedBy: string | null): Promise<boolean> {
-  if (!userId) return false;
-  if (uploadedBy === userId) return true;
+function canManageOrOwn(userId: string | null, uploadedBy: string | null): Promise<boolean> {
+  if (!userId) return Promise.resolve(false);
+  if (uploadedBy === userId) return Promise.resolve(true);
   return hasElevatedRole(userId);
 }
 
