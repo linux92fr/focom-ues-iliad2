@@ -60,7 +60,7 @@ Deno.serve(async (req) => {
   const canUseAssistant = ["admin", "redacteur", "representant", "secretaire", "tresorier", "gestionnaire_documents"].some((r) => roles.has(r));
   if (!canUseAssistant) return json({ error: "Votre rôle ne permet pas d'utiliser cet assistant." }, 403, headers);
 
-  let payload: { action?: string; text?: string; prompt?: string; messages?: Array<{role: string; content: string}> };
+  let payload: { action?: string; text?: string; prompt?: string; size?: string; quality?: string; messages?: Array<{role: string; content: string}> };
   try { payload = await req.json(); } catch { return json({ error: "Requête JSON invalide." }, 400, headers); }
   const action = payload.action ?? "";
   const text = typeof payload.text === "string" ? payload.text.trim() : "";
@@ -77,7 +77,7 @@ Deno.serve(async (req) => {
       });
       const data = await upstream.json().catch(() => ({}));
       if (!upstream.ok || !data?.aiRecord) return json({ error: "Résultat introuvable ou inaccessible." }, 502, headers);
-      return json({ result: data.aiRecord, temporaryUrl: data.temporaryUrl ?? null }, 200, headers);
+      return json({ result: data.aiRecord, temporaryUrl: data.aiRecord.temporaryUrl ?? data.temporaryUrl ?? null }, 200, headers);
     } catch (error) {
       console.error("1min.ai image result failed", error);
       return json({ error: "Impossible de récupérer l'image pour le moment." }, 502, headers);
@@ -87,15 +87,19 @@ Deno.serve(async (req) => {
   if (action === "image") {
     if (!canUseImages) return json({ error: "La génération d'images est réservée aux administrateurs et rédacteurs." }, 403, headers);
     if (prompt.length < 5 || prompt.length > 2000) return json({ error: "Décris l'image (5 à 2 000 caractères)." }, 400, headers);
+    const allowedSizes = ["1024x1024", "1536x1024", "1024x1536"];
+    const size = typeof payload.size === "string" && allowedSizes.includes(payload.size) ? payload.size : "1024x1024";
+    const allowedQualities = ["low", "medium", "high"];
+    const quality = typeof payload.quality === "string" && allowedQualities.includes(payload.quality) ? payload.quality : "medium";
     try {
       const upstream = await fetch("https://api.1min.ai/api/features", {
         method: "POST",
         headers: { "Content-Type": "application/json", "API-KEY": ONE_MIN_API_KEY },
         body: JSON.stringify({
           type: "IMAGE_GENERATOR",
-          model: "gemini-3.1-flash-image-preview",
+          model: "gpt-image-2",
           async: true,
-          promptObject: { prompt, num_outputs: 1, aspect_ratio: "16:9", output_format: "webp" },
+          promptObject: { prompt, size, quality, n: 1, background: "auto", output_format: "png" },
         }),
         signal: AbortSignal.timeout(30000),
       });
