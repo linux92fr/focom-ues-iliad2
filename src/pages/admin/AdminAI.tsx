@@ -8,7 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
 
-type Mode = 'article' | 'summary' | 'correction' | 'image' | 'chat';
+type Mode = 'article' | 'summary' | 'correction' | 'image' | 'chat' | 'code';
 type ChatMessage = { role: 'user' | 'assistant'; content: string };
 const MODES: { value: Mode; label: string; desc: string; icon: typeof Wand2 }[] = [
   { value: 'article', label: 'Article', desc: 'Articles syndicaux et actualités', icon: Newspaper },
@@ -16,12 +16,16 @@ const MODES: { value: Mode; label: string; desc: string; icon: typeof Wand2 }[] 
   { value: 'correction', label: 'Correction', desc: 'Orthographe et reformulation', icon: Wand2 },
   { value: 'image', label: 'Image', desc: 'Illustrations pour les publications', icon: ImageIcon },
   { value: 'chat', label: 'Assistant', desc: 'Questions des salariés', icon: MessageCircle },
+  { value: 'code', label: 'Code', desc: 'Générer, expliquer et corriger du code', icon: Bot },
 ];
 
 function AIStudio() {
   const [mode, setMode] = useState<Mode>('article');
   const [input, setInput] = useState('');
   const [imagePrompt, setImagePrompt] = useState('');
+  const [codePrompt, setCodePrompt] = useState('');
+  const [codeModel, setCodeModel] = useState('gpt-5.3-codex');
+  const [codeReasoning, setCodeReasoning] = useState('medium');
   const [imageSize, setImageSize] = useState('1024x1024');
   const [imageQuality, setImageQuality] = useState('medium');
   const [output, setOutput] = useState('');
@@ -83,6 +87,18 @@ function AIStudio() {
       setOutput(data.result ?? '');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Une erreur est survenue.');
+    } finally { setIsLoading(false); }
+  };
+
+  const handleCodeSubmit = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!codePrompt.trim() || isLoading) return;
+    setIsLoading(true); setError(''); setOutput('');
+    try {
+      const data = await invoke({ action: 'code', text: codePrompt.trim(), model: codeModel, reasoning: codeReasoning });
+      setOutput(data.result ?? '');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'La génération du code a échoué.');
     } finally { setIsLoading(false); }
   };
 
@@ -149,7 +165,7 @@ function AIStudio() {
         <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary" />
       </Link>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-2">
         {MODES.map((item) => {
           const Icon = item.icon;
           return <button key={item.value} type="button" onClick={() => { setMode(item.value); setError(''); }} className={`text-left rounded-xl border p-3 transition-colors ${mode === item.value ? 'border-primary bg-primary/5 ring-1 ring-primary/20' : 'border-border bg-card hover:border-primary/40'}`}>
@@ -200,6 +216,106 @@ function AIStudio() {
         </form>
         {imageStatus && <p className="text-sm text-muted-foreground">{imageStatus}</p>}
         {imageUrl && <div className="space-y-3"><img src={imageUrl} alt="Illustration générée par 1min.ai" className="max-w-full rounded-xl border border-border" /><a href={imageUrl} target="_blank" rel="noreferrer" className="text-sm text-primary underline">Ouvrir / enregistrer l’image</a></div>}
+      </section>}
+
+      {mode === 'code' && <section className="bg-card rounded-xl border border-border p-5 sm:p-6 space-y-4">
+        <div><h2 className="font-bold text-foreground">Assistant de programmation</h2><p className="text-sm text-muted-foreground mt-1">Décris ce que tu veux créer, corriger ou comprendre. La réponse sera affichée dans une zone prête à copier.</p></div>
+        <form onSubmit={handleCodeSubmit} className="space-y-4">
+          <label className="block space-y-2"><span className="block text-sm font-semibold text-foreground">Demande ou code à traiter</span><textarea value={codePrompt} onChange={(e) => setCodePrompt(e.target.value)} rows={8} maxLength={20000} disabled={isLoading} placeholder="Ex. : écris une fonction TypeScript, explique ce code ou corrige cette erreur…" className="w-full rounded-xl border border-border bg-background p-3 text-sm font-mono text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30" /><span className="block text-xs text-muted-foreground">{codePrompt.length.toLocaleString('fr-FR')}/20 000 caractères</span></label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3"><label className="block space-y-2"><span className="block text-sm font-semibold text-foreground">Modèle IA</span><select value={codeModel} onChange={(e) => setCodeModel(e.target.value)} disabled={isLoading} className="w-full rounded-lg border border-border bg-background p-3 text-sm text-foreground">
+<optgroup label="Alibaba">
+<option value="qwen3.8-max">qwen3.8-max</option>
+<option value="qwen3.8-flash">qwen3.8-flash</option>
+<option value="qwen3.7-plus">qwen3.7-plus</option>
+<option value="qwen3.7-max">qwen3.7-max</option>
+<option value="qwen3.7-flash">qwen3.7-flash</option>
+<option value="qwen3.6-plus">qwen3.6-plus</option>
+<option value="qwen3.6-flash">qwen3.6-flash</option>
+<option value="qwen3-coder-plus">qwen3-coder-plus</option>
+<option value="qwen3-coder-flash">qwen3-coder-flash</option>
+</optgroup>
+<optgroup label="AWS Bedrock · Anthropic">
+<option value="us.anthropic.claude-sonnet-5-5">us.anthropic.claude-sonnet-5-5</option>
+<option value="us.anthropic.claude-sonnet-5">us.anthropic.claude-sonnet-5</option>
+<option value="us.anthropic.claude-sonnet-4-6">us.anthropic.claude-sonnet-4-6</option>
+<option value="us.anthropic.claude-sonnet-4-5-20250929-v1:0">us.anthropic.claude-sonnet-4-5-20250929-v1:0</option>
+<option value="us.anthropic.claude-opus-5-5">us.anthropic.claude-opus-5-5</option>
+<option value="us.anthropic.claude-opus-5">us.anthropic.claude-opus-5</option>
+<option value="us.anthropic.claude-opus-4-8">us.anthropic.claude-opus-4-8</option>
+<option value="us.anthropic.claude-opus-4-7">us.anthropic.claude-opus-4-7</option>
+<option value="us.anthropic.claude-opus-4-6-v1">us.anthropic.claude-opus-4-6-v1</option>
+<option value="us.anthropic.claude-opus-4-5-20251101-v1:0">us.anthropic.claude-opus-4-5-20251101-v1:0</option>
+<option value="us.anthropic.claude-haiku-5-5">us.anthropic.claude-haiku-5-5</option>
+<option value="us.anthropic.claude-haiku-4-5-20251001-v1:0">us.anthropic.claude-haiku-4-5-20251001-v1:0</option>
+<option value="us.anthropic.claude-fable-5-1">us.anthropic.claude-fable-5-1</option>
+<option value="us.anthropic.claude-fable-5">us.anthropic.claude-fable-5</option>
+</optgroup>
+<optgroup label="Cohere">
+<option value="command-a-plus-05-2026">command-a-plus-05-2026</option>
+</optgroup>
+<optgroup label="DeepSeek">
+<option value="deepseek-v4-pro">deepseek-v4-pro</option>
+<option value="deepseek-flash">deepseek-flash</option>
+</optgroup>
+<optgroup label="Google AI">
+<option value="gemini-4-argon">gemini-4-argon</option>
+<option value="gemini-3.8-flash">gemini-3.8-flash</option>
+<option value="gemini-3.7-flash">gemini-3.7-flash</option>
+<option value="gemini-3.6-flash">gemini-3.6-flash</option>
+<option value="gemini-3.5-flash">gemini-3.5-flash</option>
+<option value="gemini-3.1-pro-preview">gemini-3.1-pro-preview</option>
+<option value="gemini-3.1-flash-lite-preview">gemini-3.1-flash-lite-preview</option>
+<option value="gemini-3-flash-preview">gemini-3-flash-preview</option>
+</optgroup>
+<optgroup label="Mistral">
+<option value="mistral-small-2603">mistral-small-2603</option>
+<option value="mistral-medium-3-5">mistral-medium-3-5</option>
+<option value="mistral-large-2512">mistral-large-2512</option>
+</optgroup>
+<optgroup label="OpenAI">
+<option value="gpt-5.3-codex">gpt-5.3-codex</option>
+<option value="gpt-6.1-sol">gpt-6.1-sol</option>
+<option value="gpt-6-sol">gpt-6-sol</option>
+<option value="gpt-6-luna">gpt-6-luna</option>
+<option value="gpt-6-astra">gpt-6-astra</option>
+<option value="gpt-5.6-terra">gpt-5.6-terra</option>
+<option value="gpt-5.6-sol">gpt-5.6-sol</option>
+<option value="gpt-5.6-luna">gpt-5.6-luna</option>
+<option value="gpt-5.5-pro">gpt-5.5-pro</option>
+<option value="gpt-5.5">gpt-5.5</option>
+<option value="gpt-5.4-nano">gpt-5.4-nano</option>
+<option value="gpt-5.4-mini">gpt-5.4-mini</option>
+<option value="gpt-5.4">gpt-5.4</option>
+<option value="gpt-5">gpt-5</option>
+<option value="gpt-4o">gpt-4o</option>
+<option value="o3">o3</option>
+</optgroup>
+<optgroup label="OpenRouter">
+<option value="moonshotai/kimi-k3">moonshotai/kimi-k3</option>
+<option value="moonshotai/kimi-k2.7-code">moonshotai/kimi-k2.7-code</option>
+<option value="moonshotai/kimi-k2.6">moonshotai/kimi-k2.6</option>
+<option value="meta/muse-wonder">meta/muse-wonder</option>
+<option value="meta/muse-spark-1.3">meta/muse-spark-1.3</option>
+<option value="meta/muse-spark-1.2">meta/muse-spark-1.2</option>
+<option value="meta/muse-spark-1.1">meta/muse-spark-1.1</option>
+</optgroup>
+<optgroup label="xAI">
+<option value="grok-4.7">grok-4.7</option>
+<option value="grok-4.6">grok-4.6</option>
+<option value="grok-4.5">grok-4.5</option>
+<option value="grok-4.3">grok-4.3</option>
+</optgroup>
+<optgroup label="Z.AI">
+<option value="glm-5.3">glm-5.3</option>
+<option value="glm-5.2">glm-5.2</option>
+<option value="glm-5.1">glm-5.1</option>
+<option value="glm-5">glm-5</option>
+</optgroup>
+          </select><span className="block text-xs text-muted-foreground">GPT-5.3 Codex est sélectionné par défaut. La disponibilité dépend de l’API 1min.ai et de ton compte.</span></label>
+          <label className="block space-y-2"><span className="block text-sm font-semibold text-foreground">Niveau de raisonnement demandé</span><select value={codeReasoning} onChange={(e) => setCodeReasoning(e.target.value)} disabled={isLoading} className="w-full rounded-lg border border-border bg-background p-3 text-sm text-foreground"><option value="low">Rapide — réponse concise</option><option value="medium">Équilibré — recommandé</option><option value="high">Approfondi — cas limites et sécurité</option></select><span className="block text-xs text-muted-foreground">Ce niveau guide la consigne envoyée au modèle ; tous les fournisseurs ne proposent pas un paramètre natif.</span></label></div>
+          <div className="flex flex-wrap items-center justify-between gap-3"><span className="text-xs text-muted-foreground">Vérifie et teste le code avant de le déployer.</span><button type="submit" disabled={isLoading || !codePrompt.trim()} className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-50">{isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Bot className="w-4 h-4" />}{isLoading ? 'Génération du code…' : 'Générer le code'}</button></div>
+        </form>
+        {output && <div className="rounded-xl border border-border bg-muted/20 p-4 space-y-3"><div className="flex flex-wrap justify-between items-center gap-3"><h3 className="font-semibold text-foreground">Réponse — code prêt à copier</h3><button type="button" onClick={copyOutput} className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary">{copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}{copied ? 'Copié' : 'Copier la réponse'}</button></div><pre className="max-h-[38rem] overflow-auto rounded-lg border border-border bg-background p-4 text-xs sm:text-sm leading-relaxed text-foreground whitespace-pre-wrap break-words"><code>{output}</code></pre></div>}
       </section>}
 
       {mode === 'chat' && <section className="bg-card rounded-xl border border-border p-5 sm:p-6 space-y-4">
