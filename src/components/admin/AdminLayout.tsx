@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Newspaper, FileText, Users, Settings,
   LogOut, Menu, X, ChevronRight, Bell, Shield, BarChart3,
-  MessageSquare, Home, Eye, Clock, ExternalLink, Layers, ClipboardList, Mail, FolderOpen, CalendarDays, Sparkles
+  MessageSquare, Home, Eye, Clock, ExternalLink, ClipboardList, Mail, FolderOpen, CalendarDays, Sparkles
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAdminAuth } from "@/contexts/AdminAuthContext";
@@ -28,7 +28,6 @@ const navItems = [
   { path: adminPath("/newsletter"),   label: "Newsletter",      icon: Mail },
   { path: adminPath("/reclamations"), label: "Réclamations",    icon: FolderOpen },
   { path: adminPath("/parametres"),   label: "Paramètres",      icon: Settings },
-  { path: adminPath("/poster"),       label: "Compositeur",     icon: Layers }
 ];
 
 interface ContactMessage {

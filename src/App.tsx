@@ -8,7 +8,6 @@ import { AdminAuthProvider } from "./contexts/AdminAuthContext";
 import { SupabaseAuthProvider } from "./contexts/SupabaseAuthContext";
 import { AuthProvider } from "./hooks/useAuth";
 import PublicLayout from "./components/PublicLayout";
-import PosterComposer from "./components/PosterComposer";
 import { ADMIN_BASE } from "./lib/adminPath";
 
 import Home from "./pages/Home";
@@ -137,7 +136,6 @@ function App() {
                       <Route path="/mes-reclamations" element={<MesReclamations />} />
                       <Route path={`/${ADMIN_BASE}/nao2026`} element={<AdminNao2026 />} />
                       <Route path={`/${ADMIN_BASE}/participation`} element={<AdminParticipation />} />
-                      <Route path={`/${ADMIN_BASE}/poster`} element={<PosterComposer />} />
                     </Route>
 
                     <Route path={`/${ADMIN_BASE}/login`} element={<AdminLogin />} />
