@@ -23,8 +23,80 @@ const taskInstructions: Record<string, string> = {
   correction: "Corrige l'orthographe, la grammaire et la clarté du texte en français sans changer le fond. Retourne le texte corrigé uniquement.",
   summary: "Résume fidèlement le document en français. Présente l'objet, les points essentiels, les obligations/délais/chiffres cités et les questions à vérifier. Distingue explicitement ce que le document dit de tes commentaires. Ne présente pas ce résumé comme un conseil juridique définitif.",
   chat: "Tu es l'assistant d'information FO COM UES ILIAD. Réponds en français, avec prudence et pédagogie. Pour les questions juridiques, précise les incertitudes et les sources/dates à vérifier. N'invente jamais d'article de loi, de jurisprudence, de règle interne ou de donnée. Rappelle que la réponse ne remplace pas l'analyse d'un représentant syndical.",
+  code: "Tu es un ingénieur logiciel senior. Réponds en français. Produis du code cohérent, maintenable, sécurisé et directement copiable. Indique le langage et les fichiers concernés si utile. N’invente pas les API ou fonctions disponibles dans l’environnement. Pour une correction, explique brièvement le problème, donne une solution complète puis propose des tests. Signale les hypothèses, dépendances et risques de sécurité. Ne prétends jamais avoir exécuté ou testé le code si ce n’est pas le cas.",
 };
 const MAX_TEXT = 30000;
+const CODE_MODELS = new Set([
+  "qwen3.8-max",
+  "qwen3.8-flash",
+  "qwen3.7-plus",
+  "qwen3.7-max",
+  "qwen3.7-flash",
+  "qwen3.6-plus",
+  "qwen3.6-flash",
+  "qwen3-coder-plus",
+  "qwen3-coder-flash",
+  "us.anthropic.claude-sonnet-5-5",
+  "us.anthropic.claude-sonnet-5",
+  "us.anthropic.claude-sonnet-4-6",
+  "us.anthropic.claude-sonnet-4-5-20250929-v1:0",
+  "us.anthropic.claude-opus-5-5",
+  "us.anthropic.claude-opus-5",
+  "us.anthropic.claude-opus-4-8",
+  "us.anthropic.claude-opus-4-7",
+  "us.anthropic.claude-opus-4-6-v1",
+  "us.anthropic.claude-opus-4-5-20251101-v1:0",
+  "us.anthropic.claude-haiku-5-5",
+  "us.anthropic.claude-haiku-4-5-20251001-v1:0",
+  "us.anthropic.claude-fable-5-1",
+  "us.anthropic.claude-fable-5",
+  "command-a-plus-05-2026",
+  "deepseek-v4-pro",
+  "deepseek-flash",
+  "gemini-4-argon",
+  "gemini-3.8-flash",
+  "gemini-3.7-flash",
+  "gemini-3.6-flash",
+  "gemini-3.5-flash",
+  "gemini-3.1-pro-preview",
+  "gemini-3.1-flash-lite-preview",
+  "gemini-3-flash-preview",
+  "mistral-small-2603",
+  "mistral-medium-3-5",
+  "mistral-large-2512",
+  "gpt-5.3-codex",
+  "gpt-6.1-sol",
+  "gpt-6-sol",
+  "gpt-6-luna",
+  "gpt-6-astra",
+  "gpt-5.6-terra",
+  "gpt-5.6-sol",
+  "gpt-5.6-luna",
+  "gpt-5.5-pro",
+  "gpt-5.5",
+  "gpt-5.4-nano",
+  "gpt-5.4-mini",
+  "gpt-5.4",
+  "gpt-5",
+  "gpt-4o",
+  "o3",
+  "moonshotai/kimi-k3",
+  "moonshotai/kimi-k2.7-code",
+  "moonshotai/kimi-k2.6",
+  "meta/muse-wonder",
+  "meta/muse-spark-1.3",
+  "meta/muse-spark-1.2",
+  "meta/muse-spark-1.1",
+  "grok-4.7",
+  "grok-4.6",
+  "grok-4.5",
+  "grok-4.3",
+  "glm-5.3",
+  "glm-5.2",
+  "glm-5.1",
+  "glm-5",
+]);
+
 
 Deno.serve(async (req) => {
   const origin = req.headers.get("origin");
@@ -60,7 +132,7 @@ Deno.serve(async (req) => {
   const canUseAssistant = ["admin", "redacteur", "representant", "secretaire", "tresorier", "gestionnaire_documents"].some((r) => roles.has(r));
   if (!canUseAssistant) return json({ error: "Votre rôle ne permet pas d'utiliser cet assistant." }, 403, headers);
 
-  let payload: { action?: string; text?: string; prompt?: string; size?: string; quality?: string; messages?: Array<{role: string; content: string}> };
+  let payload: { action?: string; text?: string; prompt?: string; size?: string; quality?: string; model?: string; reasoning?: string; messages?: Array<{role: string; content: string}> };
   try { payload = await req.json(); } catch { return json({ error: "Requête JSON invalide." }, 400, headers); }
   const action = payload.action ?? "";
   const text = typeof payload.text === "string" ? payload.text.trim() : "";
@@ -112,6 +184,47 @@ Deno.serve(async (req) => {
     } catch (error) {
       console.error("1min.ai image request failed", error);
       return json({ error: "Le service d'images est temporairement indisponible." }, 502, headers);
+    }
+  }
+
+
+  if (action === "code") {
+    if (!canUseText) return json({ error: "Votre rôle ne permet pas de générer du code." }, 403, headers);
+    if (!text || text.length > 20000) return json({ error: "La demande de code est obligatoire et limitée à 20 000 caractères." }, 400, headers);
+    const requestedModel = typeof payload.model === "string" ? payload.model : "gpt-5.3-codex";
+    if (!CODE_MODELS.has(requestedModel)) return json({ error: "Le modèle demandé n’est pas autorisé." }, 400, headers);
+    const reasoning = ["low", "medium", "high"].includes(payload.reasoning ?? "") ? payload.reasoning! : "medium";
+    const reasoningInstructions: Record<string, string> = {
+      low: "Niveau demandé : rapide. Va directement à la solution, avec une explication concise et sans complexité inutile.",
+      medium: "Niveau demandé : équilibré. Vérifie les hypothèses importantes, propose une solution maintenable et explique comment la tester.",
+      high: "Niveau demandé : approfondi. Analyse les cas limites, la sécurité, les erreurs possibles, les dépendances et les tests avant de proposer une solution complète.",
+    };
+    try {
+      const upstream = await fetch("https://api.1min.ai/openai/v1/chat/completions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + ONE_MIN_API_KEY },
+        body: JSON.stringify({
+          model: requestedModel,
+          messages: [
+            { role: "system", content: taskInstructions.code + "\n\n" + reasoningInstructions[reasoning] },
+            { role: "user", content: text },
+          ],
+          max_completion_tokens: reasoning === "high" ? 6000 : reasoning === "medium" ? 4000 : 2500,
+          store: false,
+        }),
+        signal: AbortSignal.timeout(120000),
+      });
+      const data = await upstream.json().catch(() => ({}));
+      if (!upstream.ok) {
+        console.error("1min.ai code error", upstream.status, requestedModel);
+        return json({ error: upstream.status === 429 ? "Limite ou crédits 1min.ai atteints." : "Le modèle sélectionné est indisponible ou la requête a été refusée par 1min.ai." }, upstream.status === 429 ? 429 : 502, headers);
+      }
+      const result = data?.choices?.[0]?.message?.content;
+      if (typeof result !== "string" || !result.trim()) return json({ error: "La réponse du modèle est vide." }, 502, headers);
+      return json({ result: result.trim(), model: data?.model ?? requestedModel, reasoning }, 200, headers);
+    } catch (error) {
+      console.error("1min.ai code request failed", error);
+      return json({ error: "Le service de génération de code est temporairement indisponible." }, 502, headers);
     }
   }
 
