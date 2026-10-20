@@ -177,23 +177,23 @@ function AIStudio() {
         <div><h2 className="font-bold text-foreground">Générer une illustration</h2><p className="text-sm text-muted-foreground mt-1">Décris une scène, une ambiance et le format souhaité. Évite d’inclure des informations confidentielles.</p></div>
         <form onSubmit={handleImageSubmit} className="space-y-4">
           <textarea value={imagePrompt} onChange={(e) => setImagePrompt(e.target.value)} rows={4} maxLength={2000} disabled={isLoading} placeholder="Ex. : illustration réaliste d’une réunion de salariés dans une entreprise française, ambiance professionnelle…" className="w-full rounded-xl border border-border bg-background p-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30" />
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <label className="block space-y-1.5">
-              <span className="text-sm font-medium text-foreground">Format de l’image</span>
-              <select value={imageSize} onChange={(e) => setImageSize(e.target.value)} disabled={isLoading} className="w-full rounded-lg border border-border bg-background p-2.5 text-sm text-foreground">
+          <div className="space-y-4 rounded-lg border border-border bg-muted/20 p-4">
+            <label className="block space-y-2">
+              <span className="block text-sm font-semibold text-foreground">1. Format de l’image</span>
+              <select value={imageSize} onChange={(e) => setImageSize(e.target.value)} disabled={isLoading} className="w-full rounded-lg border border-border bg-background p-3 text-sm text-foreground">
                 <option value="1024x1024">Carré (1:1) — publications</option>
                 <option value="1536x1024">Paysage (3:2) — articles et site</option>
                 <option value="1024x1536">Portrait (2:3) — affiches</option>
               </select>
             </label>
-            <label className="block space-y-1.5">
-              <span className="text-sm font-medium text-foreground">Qualité de génération</span>
-              <select value={imageQuality} onChange={(e) => setImageQuality(e.target.value)} disabled={isLoading} className="w-full rounded-lg border border-border bg-background p-2.5 text-sm text-foreground">
+            <label className="block space-y-2">
+              <span className="block text-sm font-semibold text-foreground">2. Qualité de génération</span>
+              <select value={imageQuality} onChange={(e) => setImageQuality(e.target.value)} disabled={isLoading} className="w-full rounded-lg border border-border bg-background p-3 text-sm text-foreground">
                 <option value="low">Rapide / économique</option>
                 <option value="medium">Équilibrée (recommandée)</option>
                 <option value="high">Qualité élevée</option>
               </select>
-              <span className="block text-xs text-muted-foreground">Une qualité élevée peut consommer davantage de crédits.</span>
+              <span className="block text-xs text-muted-foreground">Choisis le niveau de qualité avant de cliquer sur « Générer l’image ». Une qualité élevée peut consommer davantage de crédits.</span>
             </label>
           </div>
           <div className="flex flex-wrap justify-between items-center gap-3"><span className="text-xs text-muted-foreground">{imagePrompt.length}/2 000</span><button type="submit" disabled={isLoading || imagePrompt.trim().length < 5} className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-50">{isLoading && <Loader2 className="w-4 h-4 animate-spin" />}{isLoading ? 'Génération…' : 'Générer l’image'}</button></div>
