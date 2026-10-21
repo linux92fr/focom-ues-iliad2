@@ -16,6 +16,7 @@ type Attachment = { id: string; name: string; content: string; size: number };
 const MAX_TEXT = 30000;
 const MAX_CODE_TEXT = 20000;
 const MAX_CHAT_TEXT = 8000;
+const MAX_IMAGE_PROMPT = 2000;
 const MAX_ATTACHMENTS = 5;
 const MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024;
 const MAX_ATTACHMENT_CHARS = 10000;
@@ -193,7 +194,8 @@ function AIStudio() {
     if (!imagePrompt.trim()) return;
     setIsLoading(true); setError(''); setImageUrl(''); setImageStatus('Génération en cours…');
     try {
-      const started = await invoke({ action: 'image', prompt: imagePrompt.trim(), size: imageSize, quality: imageQuality });
+      const promptWithAttachments = buildPromptWithAttachments(imagePrompt.trim(), MAX_IMAGE_PROMPT);
+      const started = await invoke({ action: 'image', prompt: promptWithAttachments, size: imageSize, quality: imageQuality });
       const recordId = started?.result?.aiRecord?.uuid;
       if (!recordId) throw new Error('La génération a démarré sans identifiant de résultat.');
       for (let attempt = 0; attempt < 15; attempt++) {
@@ -282,14 +284,15 @@ function AIStudio() {
     </section>}
 
     {mode === 'image' && <section className='bg-card rounded-xl border border-border p-5 sm:p-6 space-y-4'>
-      <div><h2 className='font-bold text-foreground'>Générer une illustration</h2><p className='text-sm text-muted-foreground mt-1'>Décris une scène, une ambiance et le format souhaité. Évite d’inclure des informations confidentielles.</p></div>
+      <div><h2 className='font-bold text-foreground'>Générer une illustration</h2><p className='text-sm text-muted-foreground mt-1'>Décris une scène, une ambiance et le format souhaité. Tu peux aussi joindre un fichier texte ou PDF comme contexte. Évite d’inclure des informations confidentielles.</p></div>
+      {attachmentsBlock}
       <form onSubmit={handleImageSubmit} className='space-y-4'>
-        <textarea value={imagePrompt} onChange={(e) => setImagePrompt(e.target.value)} rows={4} maxLength={2000} disabled={isLoading} placeholder='Ex. : illustration réaliste d’une réunion de salariés dans une entreprise française, ambiance professionnelle…' className='w-full rounded-xl border border-border bg-background p-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30' />
+        <textarea value={imagePrompt} onChange={(e) => setImagePrompt(e.target.value)} rows={4} maxLength={MAX_IMAGE_PROMPT} disabled={isLoading} placeholder='Ex. : illustration réaliste d’une réunion de salariés dans une entreprise française, ambiance professionnelle…' className='w-full rounded-xl border border-border bg-background p-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30' />
         <div className='space-y-4 rounded-lg border border-border bg-muted/20 p-4'>
           <label className='block space-y-2'><span className='block text-sm font-semibold text-foreground'>1. Format de l’image</span><select value={imageSize} onChange={(e) => setImageSize(e.target.value)} disabled={isLoading} className='w-full rounded-lg border border-border bg-background p-3 text-sm text-foreground'><option value='1024x1024'>Carré (1:1) — publications</option><option value='1536x1024'>Paysage (3:2) — articles et site</option><option value='1024x1536'>Portrait (2:3) — affiches</option></select></label>
           <label className='block space-y-2'><span className='block text-sm font-semibold text-foreground'>2. Qualité de génération</span><select value={imageQuality} onChange={(e) => setImageQuality(e.target.value)} disabled={isLoading} className='w-full rounded-lg border border-border bg-background p-3 text-sm text-foreground'><option value='low'>Rapide / économique</option><option value='medium'>Équilibrée (recommandée)</option><option value='high'>Qualité élevée</option></select><span className='block text-xs text-muted-foreground'>Choisis le niveau de qualité avant de cliquer sur « Générer l’image ». Une qualité élevée peut consommer davantage de crédits.</span></label>
         </div>
-        <div className='flex flex-wrap justify-between items-center gap-3'><span className='text-xs text-muted-foreground'>{imagePrompt.length}/2 000</span><button type='submit' disabled={isLoading || imagePrompt.trim().length < 5} className='inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-50'>{isLoading && <Loader2 className='w-4 h-4 animate-spin' />}{isLoading ? 'Génération…' : 'Générer l’image'}</button></div>
+        <div className='flex flex-wrap justify-between items-center gap-3'><span className='text-xs text-muted-foreground'>{imagePrompt.length}/2 000 caractères hors fichiers joints</span><button type='submit' disabled={isLoading || isReadingAttachment || imagePrompt.trim().length < 5} className='inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-50'>{isLoading && <Loader2 className='w-4 h-4 animate-spin' />}{isLoading ? 'Génération…' : 'Générer l’image'}</button></div>
       </form>
       {imageStatus && <p className='text-sm text-muted-foreground'>{imageStatus}</p>}
       {imageUrl && <div className='space-y-3'><img src={imageUrl} alt='Illustration générée par 1min.ai' className='max-w-full rounded-xl border border-border' /><a href={imageUrl} target='_blank' rel='noreferrer' className='text-sm text-primary underline'>Ouvrir / enregistrer l’image</a></div>}
