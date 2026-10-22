@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Newspaper, FileText, Users, Settings,
   LogOut, Menu, X, ChevronRight, Bell, Shield, BarChart3,
-  MessageSquare, Home, Eye, Clock, ExternalLink, ClipboardList, Mail, FolderOpen, CalendarDays, Sparkles
+  MessageSquare, Home, Eye, Clock, ExternalLink, ClipboardList, Mail, FolderOpen, CalendarDays, Sparkles, Bot
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAdminAuth } from "@/contexts/AdminAuthContext";
@@ -16,6 +16,7 @@ const navItems = [
   { path: adminPath(),                  label: "Tableau de bord", icon: LayoutDashboard, exact: true },
   { path: adminPath("/actualites"),   label: "Actualités",      icon: Newspaper },
   { path: adminPath("/ai"),            label: "Studio IA",        icon: Sparkles },
+  { path: adminPath("/assistant-ia"),  label: "Assistant IA",     icon: Bot, roles: ["admin", "redacteur"] },
   { path: adminPath("/documents"),    label: "Documents",       icon: FileText },
   { path: adminPath("/adherents"),    label: "Adhérents",       icon: Users },
   { path: adminPath("/agenda"),       label: "Agenda",          icon: CalendarDays },
@@ -117,7 +118,7 @@ export default function AdminLayout({ children, title, breadcrumb }: AdminLayout
           </div>
         </div>
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-          {navItems.map((item) => {
+          {navItems.filter((item) => !("roles" in item) || item.roles.includes(user?.role ?? "")).map((item) => {
             const active = isActive(item);
             return (
               <Link key={item.path} to={item.path} onClick={() => setSidebarOpen(false)} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${active ? "bg-red-600 text-white shadow-lg shadow-red-900/30" : "text-slate-300 hover:bg-slate-800 hover:text-white"}`}>

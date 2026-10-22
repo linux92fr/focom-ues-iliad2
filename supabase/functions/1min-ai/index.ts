@@ -128,6 +128,7 @@ Deno.serve(async (req) => {
   const roles = new Set((roleRows ?? []).map((row) => row.role as string));
   const isAdmin = roles.has("admin");
   const canUseText = isAdmin || ["redacteur", "representant", "secretaire"].some((r) => roles.has(r));
+  const rolesHasAny = (currentRoles: Set<string>, allowed: Set<string>) => [...allowed].some((role) => currentRoles.has(role));
   const canUseImages = isAdmin || roles.has("redacteur");
   const canUseAssistant = ["admin", "redacteur", "representant", "secretaire", "tresorier", "gestionnaire_documents"].some((r) => roles.has(r));
   if (!canUseAssistant) return json({ error: "Votre rôle ne permet pas d'utiliser cet assistant." }, 403, headers);
@@ -187,6 +188,58 @@ Deno.serve(async (req) => {
     }
   }
 
+
+  if (action === "assistant-chat") {
+    const allowedRoles = new Set(["admin", "redacteur"]);
+    if (!rolesHasAny(roles, allowedRoles)) return json({ error: "L’assistant IA est réservé aux administrateurs et rédacteurs." }, 403, headers);
+    const model = typeof payload.model === "string" ? payload.model : "gpt-4.1-mini";
+    const allowedModels = new Set([
+      "gpt-4.1-mini", "gpt-4.1", "gpt-4o-mini", "gpt-4o", "gpt-5-mini", "gpt-5.4", "gpt-5.5", "gpt-6-sol", "gpt-6-luna",
+      "deepseek-flash", "deepseek-v4-pro", "qwen-flash", "qwen-plus", "qwen-max", "qwen3.6-flash", "qwen3.6-plus", "qwen3.7-flash", "qwen3.7-plus",
+      "mistral-small-latest", "mistral-small-2603", "mistral-medium-3-5", "mistral-large-latest", "mistral-large-2512",
+      "glm-5", "glm-5.1", "glm-5.2", "glm-5.3", "moonshotai/kimi-k2.6", "moonshotai/kimi-k2.7-code", "meta/muse-spark-1.3",
+    ]);
+    if (!allowedModels.has(model)) return json({ error: "Le modèle demandé n’est pas autorisé." }, 400, headers);
+    const incoming = Array.isArray(payload.messages) ? payload.messages : [];
+    if (!incoming.length || incoming.length > 30) return json({ error: "La conversation doit contenir entre 1 et 30 messages." }, 400, headers);
+    const safeMessages = incoming.filter((message) =>
+      message && ["user", "assistant"].includes(message.role) &&
+      typeof message.content === "string" && message.content.trim().length > 0
+    ).map((message) => ({ role: message.role, content: message.content.trim().slice(0, 8000) }));
+    if (!safeMessages.length || safeMessages[safeMessages.length - 1].role !== "user") {
+      return json({ error: "Le dernier message doit être une question utilisateur." }, 400, headers);
+    }
+    if (safeMessages.reduce((sum, message) => sum + message.content.length, 0) > 30000) {
+      return json({ error: "La conversation dépasse 30 000 caractères. Démarre une nouvelle discussion." }, 413, headers);
+    }
+    try {
+      const upstream = await fetch("https://api.1min.ai/openai/v1/chat/completions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${ONE_MIN_API_KEY}` },
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: "system", content: "Tu es un assistant IA généraliste destiné aux administrateurs et rédacteurs de FO COM UES ILIAD. Réponds en français par défaut, clairement et utilement. Distingue les faits des hypothèses. N'invente pas de sources, de chiffres ou de références juridiques ; indique ce qui doit être vérifié. Pour les questions de droit, précise que la réponse est informative et ne remplace pas une vérification des textes à jour. Ne demande pas de données personnelles inutiles." },
+            ...safeMessages,
+          ],
+          max_completion_tokens: 1800,
+          store: false,
+        }),
+        signal: AbortSignal.timeout(120000),
+      });
+      const data = await upstream.json().catch(() => ({}));
+      if (!upstream.ok) {
+        console.error("1min.ai assistant chat error", upstream.status, model);
+        return json({ error: upstream.status === 429 ? "Limite ou crédits 1min.ai atteints." : "Le modèle sélectionné est indisponible ou la requête a été refusée par 1min.ai." }, upstream.status === 429 ? 429 : 502, headers);
+      }
+      const reply = data?.choices?.[0]?.message?.content;
+      if (typeof reply !== "string" || !reply.trim()) return json({ error: "La réponse de l’IA est vide." }, 502, headers);
+      return json({ reply: reply.trim(), model: data?.model ?? model }, 200, headers);
+    } catch (error) {
+      console.error("1min.ai assistant chat failed", error);
+      return json({ error: "L’assistant IA est temporairement indisponible." }, 502, headers);
+    }
+  }
 
   if (action === "code") {
     if (!canUseText) return json({ error: "Votre rôle ne permet pas de générer du code." }, 403, headers);
