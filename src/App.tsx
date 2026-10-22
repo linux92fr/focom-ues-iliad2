@@ -64,6 +64,7 @@ import AdminLogin from "./pages/admin/AdminLogin";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminAI from "./pages/admin/AdminAI";
 import AdminAssistantIA from "./pages/admin/AdminAssistantIA";
+import AdminAutorisations from "./pages/admin/AdminAutorisations";
 import AdminActualites from "./pages/admin/AdminActualites";
 import AdminDocuments from "./pages/admin/AdminDocuments";
 import AdminAdherents from "./pages/admin/AdminAdherents";
@@ -144,6 +145,7 @@ function App() {
                     <Route path={`/${ADMIN_BASE}/actualites`} element={<AdminActualites />} />
                     <Route path={`/${ADMIN_BASE}/ai`} element={<AdminAI />} />
                     <Route path={`/${ADMIN_BASE}/assistant-ia`} element={<AdminAssistantIA />} />
+                    <Route path={`/${ADMIN_BASE}/autorisations`} element={<AdminAutorisations />} />
                     <Route path={`/${ADMIN_BASE}/actualites/nouveau`} element={<NouvelArticle />} />
                     <Route path={`/${ADMIN_BASE}/actualites/:id/editer`} element={<EditArticle />} />
                     <Route path={`/${ADMIN_BASE}/documents`} element={<AdminDocuments />} />
