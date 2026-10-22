@@ -67,17 +67,24 @@ function PermissionsContent() {
   const { data, isLoading, error } = useQuery({
     queryKey: ["admin-permissions-settings"],
     queryFn: async () => {
-      const [rolesRes, usersRes, profilesRes, userRolesRes] = await Promise.all([
+      const [rolesRes, usersRes, userRolesRes] = await Promise.all([
         db.from("admin_role_permissions").select("*"),
         db.from("admin_user_permissions").select("*"),
-        db.from("profiles").select("id,email,first_name,last_name,display_name").order("last_name", { ascending: true }),
         db.from("user_roles").select("user_id,role"),
       ]);
-      for (const result of [rolesRes, usersRes, profilesRes, userRolesRes]) if (result.error) throw result.error;
+      for (const result of [rolesRes, usersRes, userRolesRes]) if (result.error) throw result.error;
+
+      // public.profiles is a content/profile catalogue in this project, not the
+      // authentication-users table. Build this list from actual auth user IDs
+      // present in user_roles so individual permissions use auth.users.id.
       const roleMap = new Map<string, string[]>();
-      (userRolesRes.data || []).forEach((r: { user_id: string; role: string }) => roleMap.set(r.user_id, [...(roleMap.get(r.user_id) || []), r.role]));
-      const members: Member[] = (profilesRes.data || []).map((p: any) => ({
-        ...p, roles: roleMap.get(p.id) || roleMap.get(p.user_id) || [],
+      (userRolesRes.data || []).forEach((r: { user_id: string; role: string }) => {
+        roleMap.set(r.user_id, [...(roleMap.get(r.user_id) || []), r.role]);
+      });
+      const members: Member[] = Array.from(roleMap.entries()).map(([id, memberRoles]) => ({
+        id,
+        email: null,
+        roles: memberRoles,
       }));
       return {
         roleRows: (rolesRes.data || []) as PermissionRow[],
@@ -99,7 +106,7 @@ function PermissionsContent() {
 
   const filteredMembers = useMemo(() => (data?.members || []).filter((m) => {
     const q = search.toLowerCase().trim();
-    return !q || memberName(m).toLowerCase().includes(q) || (m.email || "").toLowerCase().includes(q) || m.roles.some((r) => r.includes(q));
+    return !q || m.id.toLowerCase().includes(q) || m.roles.some((r) => r.toLowerCase().includes(q));
   }), [data, search]);
 
   const updateDraft = (setter: typeof setRoleDraft, key: string, field: keyof Access, value: boolean) => {
@@ -186,7 +193,7 @@ function PermissionsContent() {
       <TabsContent value="members" className="space-y-4">
         <Card><CardHeader><CardTitle className="text-base flex items-center gap-2"><Users className="w-5 h-5" />Exceptions individuelles</CardTitle></CardHeader><CardContent className="space-y-4">
           <div className="grid md:grid-cols-2 gap-4">
-            <div className="space-y-2"><Label>Rechercher un adhérent</Label><div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 top-1/2" /><Input className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Nom, email ou rôle" /></div></div>
+            <div className="space-y-2"><Label>Rechercher un adhérent</Label><div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 top-1/2" /><Input className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Identifiant utilisateur ou rôle" /></div></div>
             <div className="space-y-2"><Label>Adhérent</Label><Select value={selectedMember} onValueChange={setSelectedMember}><SelectTrigger><SelectValue placeholder="Choisir un adhérent" /></SelectTrigger><SelectContent>{filteredMembers.map((m) => <SelectItem key={m.id} value={m.id}>{memberName(m)}{m.roles.length ? ` — ${m.roles.join(", ")}` : ""}</SelectItem>)}</SelectContent></Select></div>
           </div>
           {!selectedMember ? <div className="py-10 text-center text-sm text-slate-500">Sélectionnez un adhérent pour configurer ses exceptions.</div> : accessTable("user")}
