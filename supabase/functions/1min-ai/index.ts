@@ -190,7 +190,7 @@ Deno.serve(async (req) => {
 
 
   if (action === "assistant-chat") {
-    const allowedRoles = new Set(["admin", "redacteur"]);
+    const allowedRoles = new Set(["admin", "redacteur", "utilisateur_ia"]);
     if (!rolesHasAny(roles, allowedRoles)) return json({ error: "L’assistant IA est réservé aux administrateurs et rédacteurs." }, 403, headers);
     const model = typeof payload.model === "string" ? payload.model : "gpt-4.1-mini";
     const allowedModels = new Set([
