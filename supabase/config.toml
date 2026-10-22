@@ -1,4 +1,4 @@
-project_id = "hduqvneurhqjyjlmrlxs"
+project_id = "qinekdmyycyujsrcsfbe"
 
 # The function validates the caller JWT and administrator role itself.
 # Disable gateway JWT validation so OPTIONS preflight can reach its CORS handler.
