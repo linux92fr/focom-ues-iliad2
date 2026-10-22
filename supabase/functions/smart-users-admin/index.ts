@@ -74,7 +74,15 @@ Deno.serve(async (req) => {
     }
     const { data: created, error: createError } = await admin.auth.admin.createUser({ email, password, email_confirm: true });
     if (createError || !created.user) {
-      return json({ error: createError?.message?.includes("already") ? "Cette adresse e-mail possède déjà un compte." : "Création du compte impossible." }, 400, headers);
+      // Keep the client response generic; record safe provider diagnostics for server-side debugging.
+      console.error("Smart user creation failed", {
+        errorName: createError?.name ?? null,
+        errorCode: createError?.code ?? null,
+        errorStatus: createError?.status ?? null,
+        errorMessage: createError?.message ?? "Supabase Auth returned no user and no error",
+      });
+      const alreadyExists = /already|registered|exists/i.test(createError?.message ?? "");
+      return json({ error: alreadyExists ? "Cette adresse e-mail possède déjà un compte." : "Création du compte impossible." }, 400, headers);
     }
     const { error: roleInsertError } = await admin.from("user_roles").insert({ user_id: created.user.id, role: "utilisateur_ia" });
     if (roleInsertError) {
