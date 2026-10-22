@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Newspaper, FileText, Users, Settings,
   LogOut, Menu, X, ChevronRight, Bell, Shield, BarChart3,
-  MessageSquare, Home, Eye, Clock, ExternalLink, ClipboardList, Mail, FolderOpen, CalendarDays, Sparkles, Bot
+  MessageSquare, Home, Eye, Clock, ExternalLink, ClipboardList, Mail, FolderOpen, CalendarDays, Sparkles, Bot, ShieldCheck
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAdminAuth } from "@/contexts/AdminAuthContext";
@@ -19,6 +19,7 @@ const navItems = [
   { path: adminPath("/assistant-ia"),  label: "Assistant IA",     icon: Bot, roles: ["admin", "redacteur"] },
   { path: adminPath("/documents"),    label: "Documents",       icon: FileText },
   { path: adminPath("/adherents"),    label: "Adhérents",       icon: Users },
+  { path: adminPath("/autorisations"), label: "Gestion des autorisations", icon: ShieldCheck, roles: ["admin"] },
   { path: adminPath("/agenda"),       label: "Agenda",          icon: CalendarDays },
   { path: adminPath("/bilan"),        label: "Bilan",           icon: BarChart3 },
   { path: adminPath("/droits"),       label: "Droits",          icon: Shield },
