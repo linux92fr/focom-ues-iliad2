@@ -64,6 +64,7 @@ import AdminLogin from "./pages/admin/AdminLogin";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminAI from "./pages/admin/AdminAI";
 import AdminAssistantIA from "./pages/admin/AdminAssistantIA";
+import SmartPortal from "./pages/SmartPortal";
 import AdminAutorisations from "./pages/admin/AdminAutorisations";
 import AdminActualites from "./pages/admin/AdminActualites";
 import AdminDocuments from "./pages/admin/AdminDocuments";
@@ -140,6 +141,7 @@ function App() {
                       <Route path={`/${ADMIN_BASE}/participation`} element={<AdminParticipation />} />
                     </Route>
 
+                    <Route path="/smart" element={<SmartPortal />} />
                     <Route path={`/${ADMIN_BASE}/login`} element={<AdminLogin />} />
                     <Route path={`/${ADMIN_BASE}`} element={<AdminDashboard />} />
                     <Route path={`/${ADMIN_BASE}/actualites`} element={<AdminActualites />} />
