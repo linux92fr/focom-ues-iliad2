@@ -66,6 +66,7 @@ import AdminAI from "./pages/admin/AdminAI";
 import AdminAssistantIA from "./pages/admin/AdminAssistantIA";
 import SmartPortal from "./pages/SmartPortal";
 import AdminAutorisations from "./pages/admin/AdminAutorisations";
+import AdminSmartUsers from "./pages/admin/AdminSmartUsers";
 import AdminActualites from "./pages/admin/AdminActualites";
 import AdminDocuments from "./pages/admin/AdminDocuments";
 import AdminAdherents from "./pages/admin/AdminAdherents";
@@ -148,6 +149,7 @@ function App() {
                     <Route path={`/${ADMIN_BASE}/ai`} element={<AdminAI />} />
                     <Route path={`/${ADMIN_BASE}/assistant-ia`} element={<AdminAssistantIA />} />
                     <Route path={`/${ADMIN_BASE}/autorisations`} element={<AdminAutorisations />} />
+                    <Route path={`/${ADMIN_BASE}/utilisateurs-smart`} element={<AdminSmartUsers />} />
                     <Route path={`/${ADMIN_BASE}/actualites/nouveau`} element={<NouvelArticle />} />
                     <Route path={`/${ADMIN_BASE}/actualites/:id/editer`} element={<EditArticle />} />
                     <Route path={`/${ADMIN_BASE}/documents`} element={<AdminDocuments />} />
