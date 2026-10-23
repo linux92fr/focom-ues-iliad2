@@ -81,6 +81,6 @@ export default function AssistantIAPage() {
         <p className="mt-2 text-xs text-muted-foreground">Limite de 8 000 caractères par message. N’envoie pas de données personnelles ou confidentielles. Les réponses peuvent contenir des erreurs.</p>
       </form>
     </section>
-    <p className="text-xs leading-relaxed text-muted-foreground">Accès réservé aux administrateurs et rédacteurs. Les messages sont transmis à 1min.ai pour génération, selon les conditions et la conservation du fournisseur. Le modèle par défaut est {DEFAULT_MODEL} ; sa disponibilité dépend du catalogue de ton compte.</p>
+    <p className="text-xs leading-relaxed text-muted-foreground">Accès réservé aux comptes autorisés. Les messages sont transmis à 1min.ai pour génération, selon les conditions et la conservation du fournisseur. Le modèle par défaut est {DEFAULT_MODEL} ; sa disponibilité dépend du catalogue de ton compte.</p>
   </main>;
 }
