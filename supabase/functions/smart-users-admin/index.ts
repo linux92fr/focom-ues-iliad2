@@ -69,8 +69,9 @@ Deno.serve(async (req) => {
   if (action === "create") {
     const email = typeof payload.email === "string" ? payload.email.trim().toLowerCase() : "";
     const password = typeof payload.password === "string" ? payload.password : "";
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || password.length < 12 || password.length > 128) {
-      return json({ error: "Adresse e-mail invalide ou mot de passe de 12 à 128 caractères requis." }, 400, headers);
+    const strong = /[a-z]/.test(password) && /[A-Z]/.test(password) && /\d/.test(password) && /[^A-Za-z0-9]/.test(password);
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || password.length < 12 || password.length > 128 || !strong) {
+      return json({ error: "Adresse e-mail invalide, ou mot de passe de 12 à 128 caractères avec minuscule, majuscule, chiffre et symbole requis." }, 400, headers);
     }
     const { data: created, error: createError } = await admin.auth.admin.createUser({ email, password, email_confirm: true });
     if (createError || !created.user) {
@@ -82,7 +83,12 @@ Deno.serve(async (req) => {
         errorMessage: createError?.message ?? "Supabase Auth returned no user and no error",
       });
       const alreadyExists = /already|registered|exists/i.test(createError?.message ?? "");
-      return json({ error: alreadyExists ? "Cette adresse e-mail possède déjà un compte." : "Création du compte impossible." }, 400, headers);
+      const weakPassword = createError?.code === "weak_password";
+      return json({
+        error: alreadyExists ? "Cette adresse e-mail possède déjà un compte."
+          : weakPassword ? "Mot de passe trop faible : minuscule, majuscule, chiffre et symbole requis."
+          : "Création du compte impossible.",
+      }, 400, headers);
     }
     const { error: roleInsertError } = await admin.from("user_roles").insert({ user_id: created.user.id, role: "utilisateur_ia" });
     if (roleInsertError) {
