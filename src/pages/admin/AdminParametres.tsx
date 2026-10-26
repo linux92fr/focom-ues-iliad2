@@ -38,16 +38,16 @@ export default function AdminParametres() {
     const loadSettings = async () => {
       const { data, error } = await supabase
         .from("site_content")
-        .select("key, value")
+        .select("key, content")
         .eq("key", "site_settings")
         .maybeSingle();
       if (cancelled) return;
       if (error && error.code !== "PGRST116") {
         console.error("Impossible de charger les paramètres du site", error);
         toast.error("Impossible de charger les paramètres enregistrés");
-      } else if (data?.value) {
+      } else if (data?.content) {
         try {
-          const savedSettings = JSON.parse(data.value) as Partial<Settings>;
+          const savedSettings = (typeof data.content === "string" ? JSON.parse(data.content) : data.content) as Partial<Settings>;
           setSettings({ ...defaultSettings, ...savedSettings });
         } catch {
           console.error("Les paramètres enregistrés sont illisibles");
@@ -65,7 +65,7 @@ export default function AdminParametres() {
   const handleSave = async () => {
     setSaving(true);
     const { error } = await supabase.from("site_content").upsert(
-      { key: "site_settings", value: JSON.stringify(settings), title: "Paramètres du site", subtitle: "Configuration générale" },
+      { key: "site_settings", content: settings as unknown as import("@/integrations/supabase/types").Json, title: "Paramètres du site", subtitle: "Configuration générale" },
       { onConflict: "key" },
     );
     setSaving(false);
