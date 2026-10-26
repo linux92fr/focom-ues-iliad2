@@ -1,86 +1,293 @@
-import { useMemo, useState, FormEvent } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { Bot, Loader2, Send, Plus, Copy, Check, Sparkles } from "lucide-react";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-type Message = { role: "user" | "assistant"; content: string };
-const DEFAULT_MODEL = "gpt-4.1-mini";
-const MODEL_GROUPS = [
-  { label: "OpenAI", models: ["gpt-4.1-mini", "gpt-4.1", "gpt-4o-mini", "gpt-4o", "gpt-5-mini", "gpt-5.4", "gpt-5.5", "gpt-6-sol", "gpt-6-luna"] },
-  { label: "DeepSeek", models: ["deepseek-flash", "deepseek-v4-pro"] },
-  { label: "Qwen", models: ["qwen-flash", "qwen-plus", "qwen-max", "qwen3.6-flash", "qwen3.6-plus", "qwen3.7-flash", "qwen3.7-plus"] },
-  { label: "Mistral", models: ["mistral-small-latest", "mistral-small-2603", "mistral-medium-3-5", "mistral-large-latest", "mistral-large-2512"] },
-  { label: "GLM", models: ["glm-5", "glm-5.1", "glm-5.2", "glm-5.3"] },
-  { label: "Autres", models: ["moonshotai/kimi-k2.6", "moonshotai/kimi-k2.7-code", "meta/muse-spark-1.3"] },
-];
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
+const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+const ONE_MIN_API_KEY = Deno.env.get("ONEMIN_API_KEY") ?? "";
+const ALLOWED_ORIGINS = (Deno.env.get("ALLOWED_ORIGIN") ?? "https://focomues-iliad.fr,https://www.focomues-iliad.fr")
+  .split(",").map((v) => v.trim()).filter(Boolean);
 
-export default function AssistantIAPage() {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState("");
-  const [model, setModel] = useState(DEFAULT_MODEL);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [copied, setCopied] = useState<number | null>(null);
-  const flatModels = useMemo(() => MODEL_GROUPS.flatMap((group) => group.models), []);
-
-  const submit = async (event: FormEvent) => {
-    event.preventDefault();
-    const question = input.trim();
-    if (!question || loading) return;
-    const next: Message[] = [...messages, { role: "user", content: question }];
-    setMessages(next); setInput(""); setError(""); setLoading(true);
-    try {
-      const { data, error: invokeError } = await supabase.functions.invoke("min-ai", {
-        body: { action: "assistant-chat", model, messages: next },
-      });
-      if (invokeError) throw new Error(invokeError.message);
-      if (data?.error) throw new Error(data.error);
-      if (typeof data?.reply !== "string" || !data.reply.trim()) throw new Error("La réponse de l’IA est vide.");
-      setMessages([...next, { role: "assistant", content: data.reply.trim() }]);
-    } catch (err) {
-      setMessages(next);
-      setError(err instanceof Error ? err.message : "L’assistant IA est temporairement indisponible.");
-    } finally { setLoading(false); }
+function cors(origin: string | null): Record<string, string> {
+  const allowed = origin !== null && (ALLOWED_ORIGINS.includes(origin) || /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin));
+  return {
+    "Access-Control-Allow-Origin": allowed ? origin! : "null",
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Vary": "Origin",
   };
-
-  const copy = async (content: string, index: number) => {
-    await navigator.clipboard.writeText(content);
-    setCopied(index);
-    window.setTimeout(() => setCopied(null), 1500);
-  };
-
-  return <main className="mx-auto max-w-5xl space-y-6 p-4 sm:p-6 lg:p-8">
-    <header className="flex items-start gap-3">
-      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10"><Bot className="h-6 w-6 text-primary" /></div>
-      <div className="min-w-0 flex-1">
-        <h2 className="text-2xl font-bold text-foreground">Assistant IA</h2>
-        <p className="mt-1 text-sm text-muted-foreground">Un assistant généraliste pour poser des questions, rédiger, synthétiser ou explorer des idées.</p>
-      </div>
-      <button type="button" onClick={() => { setMessages([]); setError(""); }} disabled={loading || messages.length === 0} className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm text-foreground disabled:opacity-50"><Plus className="h-4 w-4" /><span className="hidden sm:inline">Nouvelle discussion</span></button>
-    </header>
-
-    <section className="overflow-hidden rounded-2xl border border-border bg-card">
-      <div className="flex flex-col gap-3 border-b border-border p-4 sm:flex-row sm:items-center sm:justify-between">
-        <div><p className="font-semibold text-foreground">Conversation</p><p className="text-xs text-muted-foreground">Le modèle choisi s’applique aux prochains messages.</p></div>
-        <label className="flex items-center gap-2 text-sm text-foreground"><span className="whitespace-nowrap">Modèle IA</span><select value={model} onChange={(e) => setModel(e.target.value)} disabled={loading} className="max-w-full rounded-lg border border-border bg-background px-3 py-2 text-sm">{MODEL_GROUPS.map((group) => <optgroup key={group.label} label={group.label}>{group.models.map((item) => <option key={item} value={item}>{item}</option>)}</optgroup>)}</select></label>
-      </div>
-
-      {messages.length === 0 ? <div className="flex min-h-72 flex-col items-center justify-center px-6 py-12 text-center">
-        <div className="mb-4 rounded-2xl bg-primary/10 p-4"><Sparkles className="h-8 w-8 text-primary" /></div>
-        <h3 className="text-lg font-semibold text-foreground">Que souhaites-tu savoir ?</h3>
-        <p className="mt-2 max-w-lg text-sm text-muted-foreground">Pose une question, demande une explication, prépare un texte ou fais résumer des informations. Vérifie les faits et références importants avant de les réutiliser.</p>
-        <div className="mt-5 flex flex-wrap justify-center gap-2">{["Explique-moi simplement…", "Aide-moi à rédiger…", "Résume les points clés de…"].map((hint) => <button key={hint} type="button" onClick={() => setInput(hint)} className="rounded-full border border-border px-3 py-2 text-xs text-foreground hover:border-primary/50">{hint}</button>)}</div>
-      </div> : <div className="max-h-[55vh] min-h-72 space-y-4 overflow-y-auto p-4 sm:p-6">{messages.map((message, index) => <article key={index} className={message.role === "user" ? "ml-5 rounded-xl bg-primary/10 p-4 sm:ml-16" : "mr-5 rounded-xl border border-border bg-background p-4 sm:mr-16"}>
-        <div className="mb-2 flex items-center justify-between gap-3"><span className="text-xs font-semibold text-muted-foreground">{message.role === "user" ? "Vous" : "Assistant IA"}</span>{message.role === "assistant" && <button type="button" onClick={() => copy(message.content, index)} className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary">{copied === index ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}{copied === index ? "Copié" : "Copier"}</button>}</div>
-        <div className="whitespace-pre-wrap break-words text-sm leading-6 text-foreground">{message.content}</div>
-      </article>)}{loading && <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Réponse en cours…</div>}</div>}
-
-      {error && <div role="alert" className="mx-4 mb-3 rounded-lg border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive">{error}</div>}
-      <form onSubmit={submit} className="border-t border-border bg-muted/20 p-3 sm:p-4">
-        <label htmlFor="assistant-ia-prompt" className="sr-only">Votre message</label>
-        <div className="flex items-end gap-2"><textarea id="assistant-ia-prompt" value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); if (input.trim() && !loading) e.currentTarget.form?.requestSubmit(); } }} rows={3} maxLength={8000} disabled={loading} placeholder="Écris ta question… (Entrée pour envoyer, Maj+Entrée pour une nouvelle ligne)" className="min-w-0 flex-1 resize-y rounded-xl border border-border bg-background p-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30" /><button type="submit" disabled={loading || !input.trim()} className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground disabled:opacity-50"><Send className="h-4 w-4" /><span className="hidden sm:inline">Envoyer</span></button></div>
-        <p className="mt-2 text-xs text-muted-foreground">Limite de 8 000 caractères par message. N’envoie pas de données personnelles ou confidentielles. Les réponses peuvent contenir des erreurs.</p>
-      </form>
-    </section>
-    <p className="text-xs leading-relaxed text-muted-foreground">Accès réservé aux comptes autorisés. Les messages sont transmis à 1min.ai pour génération, selon les conditions et la conservation du fournisseur. Le modèle par défaut est {DEFAULT_MODEL} ; sa disponibilité dépend du catalogue de ton compte.</p>
-  </main>;
 }
+function json(data: unknown, status: number, headers: Record<string, string>) {
+  return new Response(JSON.stringify(data), { status, headers: { ...headers, "Content-Type": "application/json" } });
+}
+const taskInstructions: Record<string, string> = {
+  article: "Rédige un article syndical FO COM UES ILIAD en français, factuel, clair et structuré avec titre, chapô et intertitres. N'invente ni chiffre, ni citation, ni jurisprudence. Signale les éléments qui doivent être vérifiés.",
+  correction: "Corrige l'orthographe, la grammaire et la clarté du texte en français sans changer le fond. Retourne le texte corrigé uniquement.",
+  summary: "Résume fidèlement le document en français. Présente l'objet, les points essentiels, les obligations/délais/chiffres cités et les questions à vérifier. Distingue explicitement ce que le document dit de tes commentaires. Ne présente pas ce résumé comme un conseil juridique définitif.",
+  chat: "Tu es l'assistant d'information FO COM UES ILIAD. Réponds en français, avec prudence et pédagogie. Pour les questions juridiques, précise les incertitudes et les sources/dates à vérifier. N'invente jamais d'article de loi, de jurisprudence, de règle interne ou de donnée. Rappelle que la réponse ne remplace pas l'analyse d'un représentant syndical.",
+  code: "Tu es un ingénieur logiciel senior. Réponds en français. Produis du code cohérent, maintenable, sécurisé et directement copiable. Indique le langage et les fichiers concernés si utile. N’invente pas les API ou fonctions disponibles dans l’environnement. Pour une correction, explique brièvement le problème, donne une solution complète puis propose des tests. Signale les hypothèses, dépendances et risques de sécurité. Ne prétends jamais avoir exécuté ou testé le code si ce n’est pas le cas.",
+};
+const MAX_TEXT = 30000;
+const CODE_MODELS = new Set([
+  "qwen3.8-max",
+  "qwen3.8-flash",
+  "qwen3.7-plus",
+  "qwen3.7-max",
+  "qwen3.7-flash",
+  "qwen3.6-plus",
+  "qwen3.6-flash",
+  "qwen3-coder-plus",
+  "qwen3-coder-flash",
+  "us.anthropic.claude-sonnet-5-5",
+  "us.anthropic.claude-sonnet-5",
+  "us.anthropic.claude-sonnet-4-6",
+  "us.anthropic.claude-sonnet-4-5-20250929-v1:0",
+  "us.anthropic.claude-opus-5-5",
+  "us.anthropic.claude-opus-5",
+  "us.anthropic.claude-opus-4-8",
+  "us.anthropic.claude-opus-4-7",
+  "us.anthropic.claude-opus-4-6-v1",
+  "us.anthropic.claude-opus-4-5-20251101-v1:0",
+  "us.anthropic.claude-haiku-5-5",
+  "us.anthropic.claude-haiku-4-5-20251001-v1:0",
+  "us.anthropic.claude-fable-5-1",
+  "us.anthropic.claude-fable-5",
+  "command-a-plus-05-2026",
+  "deepseek-v4-pro",
+  "deepseek-flash",
+  "gemini-4-argon",
+  "gemini-3.8-flash",
+  "gemini-3.7-flash",
+  "gemini-3.6-flash",
+  "gemini-3.5-flash",
+  "gemini-3.1-pro-preview",
+  "gemini-3.1-flash-lite-preview",
+  "gemini-3-flash-preview",
+  "mistral-small-2603",
+  "mistral-medium-3-5",
+  "mistral-large-2512",
+  "gpt-5.3-codex",
+  "gpt-6.1-sol",
+  "gpt-6-sol",
+  "gpt-6-luna",
+  "gpt-6-astra",
+  "gpt-5.6-terra",
+  "gpt-5.6-sol",
+  "gpt-5.6-luna",
+  "gpt-5.5-pro",
+  "gpt-5.5",
+  "gpt-5.4-nano",
+  "gpt-5.4-mini",
+  "gpt-5.4",
+  "gpt-5",
+  "gpt-4o",
+  "o3",
+  "moonshotai/kimi-k3",
+  "moonshotai/kimi-k2.7-code",
+  "moonshotai/kimi-k2.6",
+  "meta/muse-wonder",
+  "meta/muse-spark-1.3",
+  "meta/muse-spark-1.2",
+  "meta/muse-spark-1.1",
+  "grok-4.7",
+  "grok-4.6",
+  "grok-4.5",
+  "grok-4.3",
+  "glm-5.3",
+  "glm-5.2",
+  "glm-5.1",
+  "glm-5",
+]);
+
+
+Deno.serve(async (req) => {
+  const origin = req.headers.get("origin");
+  const headers = cors(origin);
+  if (req.method === "OPTIONS") return new Response("ok", { headers });
+  if (req.method !== "POST") return json({ error: "Méthode non autorisée." }, 405, headers);
+  if (!origin || headers["Access-Control-Allow-Origin"] === "null") return json({ error: "Origine non autorisée." }, 403, headers);
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !ONE_MIN_API_KEY) {
+    return json({ error: "Configuration serveur incomplète : secrets Supabase et ONEMIN_API_KEY requis." }, 503, headers);
+  }
+
+  const authHeader = req.headers.get("Authorization") ?? "";
+  const token = authHeader.replace(/^Bearer\s+/i, "");
+  if (!token || token === authHeader) return json({ error: "Authentification requise." }, 401, headers);
+
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: { headers: { Authorization: `Bearer ${token}` } },
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const { data: authData, error: authError } = await supabase.auth.getUser(token);
+  if (authError || !authData.user) return json({ error: "Session invalide ou expirée." }, 401, headers);
+
+  const { data: roleRows, error: roleError } = await supabase
+    .from("user_roles").select("role").eq("user_id", authData.user.id);
+  if (roleError) {
+    console.error("1min-ai role lookup failed", roleError.message);
+    return json({ error: "Impossible de vérifier les autorisations." }, 403, headers);
+  }
+  const roles = new Set((roleRows ?? []).map((row) => row.role as string));
+  const isAdmin = roles.has("admin");
+  const canUseText = isAdmin || ["redacteur", "representant", "secretaire"].some((r) => roles.has(r));
+  const canUseImages = isAdmin || roles.has("redacteur");
+  const canUseAssistant = ["admin", "redacteur", "representant", "secretaire", "tresorier", "gestionnaire_documents"].some((r) => roles.has(r));
+  if (!canUseAssistant) return json({ error: "Votre rôle ne permet pas d'utiliser cet assistant." }, 403, headers);
+
+  let payload: { action?: string; text?: string; prompt?: string; size?: string; quality?: string; model?: string; reasoning?: string; messages?: Array<{role: string; content: string}> };
+  try { payload = await req.json(); } catch { return json({ error: "Requête JSON invalide." }, 400, headers); }
+  const action = payload.action ?? "";
+  const text = typeof payload.text === "string" ? payload.text.trim() : "";
+  const prompt = typeof payload.prompt === "string" ? payload.prompt.trim() : "";
+
+  if (action === "image-result") {
+    if (!canUseImages) return json({ error: "Accès réservé aux administrateurs et rédacteurs." }, 403, headers);
+    const resultId = typeof payload.prompt === "string" ? payload.prompt.trim() : "";
+    if (!/^[0-9a-f-]{20,60}$/i.test(resultId)) return json({ error: "Identifiant de génération invalide." }, 400, headers);
+    try {
+      const upstream = await fetch(`https://api.1min.ai/api/results/${encodeURIComponent(resultId)}`, {
+        headers: { "API-KEY": ONE_MIN_API_KEY },
+        signal: AbortSignal.timeout(20000),
+      });
+      const data = await upstream.json().catch(() => ({}));
+      if (!upstream.ok || !data?.aiRecord) return json({ error: "Résultat introuvable ou inaccessible." }, 502, headers);
+      return json({ result: data.aiRecord, temporaryUrl: data.aiRecord.temporaryUrl ?? data.temporaryUrl ?? null }, 200, headers);
+    } catch (error) {
+      console.error("1min.ai image result failed", error);
+      return json({ error: "Impossible de récupérer l'image pour le moment." }, 502, headers);
+    }
+  }
+
+  if (action === "image") {
+    if (!canUseImages) return json({ error: "La génération d'images est réservée aux administrateurs et rédacteurs." }, 403, headers);
+    if (prompt.length < 5 || prompt.length > 2000) return json({ error: "Décris l'image (5 à 2 000 caractères)." }, 400, headers);
+    const allowedSizes = ["1024x1024", "1536x1024", "1024x1536"];
+    const size = typeof payload.size === "string" && allowedSizes.includes(payload.size) ? payload.size : "1024x1024";
+    const allowedQualities = ["low", "medium", "high"];
+    const quality = typeof payload.quality === "string" && allowedQualities.includes(payload.quality) ? payload.quality : "medium";
+    try {
+      const upstream = await fetch("https://api.1min.ai/api/features", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "API-KEY": ONE_MIN_API_KEY },
+        body: JSON.stringify({
+          type: "IMAGE_GENERATOR",
+          model: "gpt-image-2",
+          async: true,
+          promptObject: { prompt, size, quality, n: 1, background: "auto", output_format: "png" },
+        }),
+        signal: AbortSignal.timeout(30000),
+      });
+      const data = await upstream.json().catch(() => ({}));
+      if (!upstream.ok) {
+        console.error("1min.ai image error", upstream.status);
+        return json({ error: upstream.status === 429 ? "Limite ou crédits 1min.ai atteints." : "Le service de génération d'images a refusé la demande." }, upstream.status === 429 ? 429 : 502, headers);
+      }
+      return json({ result: data, action: "image" }, 200, headers);
+    } catch (error) {
+      console.error("1min.ai image request failed", error);
+      return json({ error: "Le service d'images est temporairement indisponible." }, 502, headers);
+    }
+  }
+
+
+  if (action === "code") {
+    if (!canUseText) return json({ error: "Votre rôle ne permet pas de générer du code." }, 403, headers);
+    if (!text || text.length > 20000) return json({ error: "La demande de code est obligatoire et limitée à 20 000 caractères." }, 400, headers);
+    const requestedModel = typeof payload.model === "string" ? payload.model : "gpt-5.3-codex";
+    if (!CODE_MODELS.has(requestedModel)) return json({ error: "Le modèle demandé n’est pas autorisé." }, 400, headers);
+    const reasoning = ["low", "medium", "high"].includes(payload.reasoning ?? "") ? payload.reasoning! : "medium";
+    const reasoningInstructions: Record<string, string> = {
+      low: "Niveau demandé : rapide. Va directement à la solution, avec une explication concise et sans complexité inutile.",
+      medium: "Niveau demandé : équilibré. Vérifie les hypothèses importantes, propose une solution maintenable et explique comment la tester.",
+      high: "Niveau demandé : approfondi. Analyse les cas limites, la sécurité, les erreurs possibles, les dépendances et les tests avant de proposer une solution complète.",
+    };
+    try {
+      const upstream = await fetch("https://api.1min.ai/openai/v1/chat/completions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + ONE_MIN_API_KEY },
+        body: JSON.stringify({
+          model: requestedModel,
+          messages: [
+            { role: "system", content: taskInstructions.code + "\n\n" + reasoningInstructions[reasoning] },
+            { role: "user", content: text },
+          ],
+          max_completion_tokens: reasoning === "high" ? 6000 : reasoning === "medium" ? 4000 : 2500,
+          store: false,
+        }),
+        signal: AbortSignal.timeout(120000),
+      });
+      const data = await upstream.json().catch(() => ({}));
+      if (!upstream.ok) {
+        console.error("1min.ai code error", upstream.status, requestedModel);
+        return json({ error: upstream.status === 429 ? "Limite ou crédits 1min.ai atteints." : "Le modèle sélectionné est indisponible ou la requête a été refusée par 1min.ai." }, upstream.status === 429 ? 429 : 502, headers);
+      }
+      const result = data?.choices?.[0]?.message?.content;
+      if (typeof result !== "string" || !result.trim()) return json({ error: "La réponse du modèle est vide." }, 502, headers);
+      return json({ result: result.trim(), model: data?.model ?? requestedModel, reasoning }, 200, headers);
+    } catch (error) {
+      console.error("1min.ai code request failed", error);
+      return json({ error: "Le service de génération de code est temporairement indisponible." }, 502, headers);
+    }
+  }
+
+  if (!canUseText) return json({ error: "Votre rôle ne permet pas d'utiliser les outils de rédaction." }, 403, headers);
+  if (!Object.hasOwn(taskInstructions, action)) return json({ error: "Fonction inconnue." }, 400, headers);
+  if (action === "chat") {
+    const messages = Array.isArray(payload.messages) ? payload.messages : [];
+    if (!messages.length || messages.length > 20) return json({ error: "Conversation invalide (20 messages maximum)." }, 400, headers);
+    const safeMessages = messages.filter((m) => ["user", "assistant"].includes(m.role) && typeof m.content === "string" && m.content.trim())
+      .map((m) => ({ role: m.role, content: m.content.trim().slice(0, 8000) }));
+    if (!safeMessages.some((m) => m.role === "user")) return json({ error: "Une question est nécessaire." }, 400, headers);
+    try {
+      const upstream = await fetch("https://api.1min.ai/openai/v1/chat/completions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${ONE_MIN_API_KEY}` },
+        body: JSON.stringify({
+          model: "gpt-4.1-mini",
+          messages: [{ role: "system", content: taskInstructions.chat }, ...safeMessages],
+          max_completion_tokens: 1200,
+          store: false,
+        }),
+        signal: AbortSignal.timeout(120000),
+      });
+      const data = await upstream.json().catch(() => ({}));
+      if (!upstream.ok) {
+        console.error("1min.ai chat error", upstream.status);
+        return json({ error: upstream.status === 429 ? "Limite ou crédits 1min.ai atteints." : "Le service IA a rencontré une erreur." }, upstream.status === 429 ? 429 : 502, headers);
+      }
+      const reply = data?.choices?.[0]?.message?.content;
+      if (typeof reply !== "string" || !reply.trim()) return json({ error: "La réponse IA est vide." }, 502, headers);
+      return json({ reply: reply.trim(), model: data?.model ?? "gpt-4.1-mini" }, 200, headers);
+    } catch (error) {
+      console.error("1min.ai chat request failed", error);
+      return json({ error: "Le service IA est temporairement indisponible." }, 502, headers);
+    }
+  }
+
+  if (!text || text.length > MAX_TEXT) return json({ error: "Le texte est obligatoire et limité à 30 000 caractères." }, 400, headers);
+  const userPrompt = action === "article"
+    ? `Sujet et éléments fournis par le rédacteur :\n${text}`
+    : `Document ou texte à traiter :\n${text}`;
+  try {
+    const upstream = await fetch("https://api.1min.ai/openai/v1/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${ONE_MIN_API_KEY}` },
+      body: JSON.stringify({
+        model: "gpt-4.1-mini",
+        messages: [{ role: "system", content: taskInstructions[action] }, { role: "user", content: userPrompt }],
+        max_completion_tokens: action === "article" || action === "summary" ? 2500 : 1800,
+        store: false,
+      }),
+      signal: AbortSignal.timeout(120000),
+    });
+    const data = await upstream.json().catch(() => ({}));
+    if (!upstream.ok) {
+      console.error("1min.ai text error", upstream.status);
+      return json({ error: upstream.status === 429 ? "Limite ou crédits 1min.ai atteints." : "Le service IA a rencontré une erreur." }, upstream.status === 429 ? 429 : 502, headers);
+    }
+    const result = data?.choices?.[0]?.message?.content;
+    if (typeof result !== "string" || !result.trim()) return json({ error: "La réponse IA est vide." }, 502, headers);
+    return json({ result: result.trim(), model: data?.model ?? "gpt-4.1-mini" }, 200, headers);
+  } catch (error) {
+    console.error("1min.ai text request failed", error);
+    return json({ error: "Le service IA est temporairement indisponible." }, 502, headers);
+  }
+});
