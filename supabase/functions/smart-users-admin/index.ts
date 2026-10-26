@@ -66,6 +66,45 @@ Deno.serve(async (req) => {
     return json({ users }, 200, headers);
   }
 
+  if (action === "add-existing") {
+    const email = typeof payload.email === "string" ? payload.email.trim().toLowerCase() : "";
+    if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) {
+      return json({ error: "Adresse e-mail invalide." }, 400, headers);
+    }
+
+    // Find the exact existing Auth account; never create a second account or change its password.
+    let matchedUser: { id: string; email?: string } | null = null;
+    for (let page = 1; page <= 100; page++) {
+      const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
+      if (error) {
+        console.error("Smart existing-user lookup failed", { message: error.message });
+        return json({ error: "Impossible de rechercher ce compte existant." }, 500, headers);
+      }
+      matchedUser = data.users.find((candidate) => (candidate.email ?? "").trim().toLowerCase() === email) ?? null;
+      if (matchedUser || data.users.length < 1000) break;
+    }
+    if (!matchedUser) {
+      return json({ error: "Aucun compte existant ne correspond exactement à cette adresse e-mail." }, 404, headers);
+    }
+
+    const { data: existingRole, error: existingRoleError } = await admin
+      .from("user_roles").select("user_id").eq("user_id", matchedUser.id).eq("role", "utilisateur_ia").maybeSingle();
+    if (existingRoleError) {
+      console.error("Smart existing-user role check failed", existingRoleError.message);
+      return json({ error: "Impossible de vérifier les droits Smart de ce compte." }, 500, headers);
+    }
+    if (existingRole) {
+      return json({ user: { id: matchedUser.id, email: matchedUser.email ?? email }, alreadyAssigned: true }, 200, headers);
+    }
+
+    const { error: roleInsertError } = await admin.from("user_roles").insert({ user_id: matchedUser.id, role: "utilisateur_ia" });
+    if (roleInsertError) {
+      console.error("Smart existing-user role assignment failed", roleInsertError.message);
+      return json({ error: "Le compte existe, mais l'accès Smart n'a pas pu être attribué." }, 500, headers);
+    }
+    return json({ user: { id: matchedUser.id, email: matchedUser.email ?? email }, alreadyAssigned: false }, 200, headers);
+  }
+
   if (action === "create") {
     const email = typeof payload.email === "string" ? payload.email.trim().toLowerCase() : "";
     const password = typeof payload.password === "string" ? payload.password : "";
