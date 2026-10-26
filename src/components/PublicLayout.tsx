@@ -1,8 +1,10 @@
+import { useEffect, useState } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
-import { Calendar, Mail, MessageSquare } from "lucide-react";
+import { Calendar, Mail, MessageSquare, Shield } from "lucide-react";
 import Sidebar from "./Sidebar";
 import PageHeader from "./PageHeader";
 import ScrollToTop from "./ScrollToTop";
+import { supabase } from "@/integrations/supabase/client";
 
 function ProfileHelpShortcuts() {
   const location = useLocation();
@@ -28,6 +30,51 @@ function ProfileHelpShortcuts() {
 }
 
 export default function PublicLayout() {
+  const [maintenanceMode, setMaintenanceMode] = useState(false);
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadMaintenanceMode = async () => {
+      const { data, error } = await supabase
+        .from("site_content")
+        .select("value")
+        .eq("key", "site_settings")
+        .maybeSingle();
+      if (!cancelled) {
+        if (error) console.error("Impossible de vérifier le mode maintenance", error);
+        if (data?.value) {
+          try {
+            const settings = JSON.parse(data.value) as { maintenanceMode?: boolean };
+            setMaintenanceMode(settings.maintenanceMode === true);
+          } catch {
+            console.error("Paramètres du site invalides : mode maintenance désactivé par sécurité");
+          }
+        }
+        setSettingsLoaded(true);
+      }
+    };
+    void loadMaintenanceMode();
+    return () => { cancelled = true; };
+  }, []);
+
+  if (!settingsLoaded) {
+    return <div className="flex min-h-screen items-center justify-center bg-slate-50 text-sm text-slate-500">Chargement du site…</div>;
+  }
+
+  if (maintenanceMode) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-slate-50 px-6 py-12 text-center">
+        <div className="max-w-xl rounded-2xl border border-slate-200 bg-white p-8 shadow-sm sm:p-12">
+          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-red-50 text-red-600"><Shield className="h-8 w-8" /></div>
+          <p className="mb-2 text-sm font-bold uppercase tracking-widest text-red-600">FO COM UES ILIAD</p>
+          <h1 className="mb-4 text-2xl font-bold text-slate-900">Site temporairement en maintenance</h1>
+          <p className="text-slate-600">Nous effectuons actuellement une intervention pour améliorer le site. Merci de revenir dans quelques instants.</p>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <div className="flex h-screen max-h-screen overflow-hidden bg-background">
       <ScrollToTop />
