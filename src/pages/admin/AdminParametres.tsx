@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Settings, Save, ArrowLeft, Bell, Shield, Users, FileText, Mail, RotateCcw, Check } from "lucide-react";
 import AdminLayout, { AdminAuthGuard } from "@/components/admin/AdminLayout";
@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const defaultSettings = {
   siteName: "FOCOM UES ILIAD",
@@ -29,14 +30,53 @@ type SettingKey = keyof Settings;
 export default function AdminParametres() {
   const navigate = useNavigate();
   const [settings, setSettings] = useState<Settings>({ ...defaultSettings });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadSettings = async () => {
+      const { data, error } = await supabase
+        .from("site_content")
+        .select("key, value")
+        .eq("key", "site_settings")
+        .maybeSingle();
+      if (cancelled) return;
+      if (error && error.code !== "PGRST116") {
+        console.error("Impossible de charger les paramètres du site", error);
+        toast.error("Impossible de charger les paramètres enregistrés");
+      } else if (data?.value) {
+        try {
+          const savedSettings = JSON.parse(data.value) as Partial<Settings>;
+          setSettings({ ...defaultSettings, ...savedSettings });
+        } catch {
+          console.error("Les paramètres enregistrés sont illisibles");
+          toast.error("Les paramètres enregistrés sont illisibles");
+        }
+      }
+      setLoading(false);
+    };
+    void loadSettings();
+    return () => { cancelled = true; };
+  }, []);
   const [saved, setSaved] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
 
-  const handleSave = () => {
-    // In production: persist to Supabase / localStorage
+  const handleSave = async () => {
+    setSaving(true);
+    const { error } = await supabase.from("site_content").upsert(
+      { key: "site_settings", value: JSON.stringify(settings), title: "Paramètres du site", subtitle: "Configuration générale" },
+      { onConflict: "key" },
+    );
+    setSaving(false);
+    if (error) {
+      console.error("Échec de l’enregistrement des paramètres", error);
+      toast.error("Enregistrement impossible. Vérifiez les droits Supabase sur site_content.");
+      return;
+    }
     setSaved(true);
     toast.success("Paramètres enregistrés avec succès");
-    setTimeout(() => setSaved(false), 3000);
+    window.setTimeout(() => setSaved(false), 3000);
   };
 
   const handleReset = () => {
@@ -47,7 +87,7 @@ export default function AdminParametres() {
     }
     setSettings({ ...defaultSettings });
     setConfirmReset(false);
-    toast.success("Paramètres réinitialisés aux valeurs par défaut");
+    toast.success("Valeurs par défaut rétablies. Cliquez sur Enregistrer pour les appliquer.");
   };
 
   const handleChange = <K extends SettingKey>(key: K, value: Settings[K]) => {
@@ -181,8 +221,8 @@ export default function AdminParametres() {
 
         {/* ── Actions ──────────────────────────────────────── */}
         <div className="mt-6 flex gap-3 flex-wrap">
-          <Button onClick={handleSave} className={`gap-2 transition-colors ${saved ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"} text-white`}>
-            {saved ? <><Check className="w-4 h-4" />Enregistré !</> : <><Save className="w-4 h-4" />Enregistrer</>}
+          <Button onClick={handleSave} disabled={loading || saving} className={`gap-2 transition-colors ${saved ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"} text-white`}>
+            {saved ? <><Check className="w-4 h-4" />Enregistré !</> : <><Save className="w-4 h-4" />{saving ? "Enregistrement…" : loading ? "Chargement…" : "Enregistrer"}</>}
           </Button>
           <Button
             variant="outline"
