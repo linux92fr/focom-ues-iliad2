@@ -38,14 +38,14 @@ export default function PublicLayout() {
     const loadMaintenanceMode = async () => {
       const { data, error } = await supabase
         .from("site_content")
-        .select("value")
+        .select("content")
         .eq("key", "site_settings")
         .maybeSingle();
       if (!cancelled) {
         if (error) console.error("Impossible de vérifier le mode maintenance", error);
-        if (data?.value) {
+        if (data?.content) {
           try {
-            const settings = JSON.parse(data.value) as { maintenanceMode?: boolean };
+            const settings = (typeof data.content === "string" ? JSON.parse(data.content) : data.content) as { maintenanceMode?: boolean };
             setMaintenanceMode(settings.maintenanceMode === true);
           } catch {
             console.error("Paramètres du site invalides : mode maintenance désactivé par sécurité");
