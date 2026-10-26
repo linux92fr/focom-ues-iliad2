@@ -5,8 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAdminAuth } from "@/contexts/AdminAuthContext";
 import { adminPath } from "@/lib/adminPath";
-
-const LOGO_IMAGE = "https://files.manuscdn.com/user_upload_by_module/session_file/310519663612648040/LldXxCbhFdcPcHwX.png";
+import logoFocom from "@/assets/logo-focom.png";
 
 export default function AdminLogin() {
   const navigate = useNavigate();
@@ -54,7 +53,7 @@ export default function AdminLogin() {
           <div className="bg-gradient-to-r from-red-600 to-red-700 px-8 py-10 text-center">
             <div className="flex justify-center mb-4">
               <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center">
-                <img src={LOGO_IMAGE} alt="FOCOM" className="w-10 h-10 object-contain" />
+                <img src={logoFocom} alt="Logo FO COM" className="w-10 h-10 object-contain" />
               </div>
             </div>
             <h1 className="text-2xl font-bold text-white">FOCOM UES ILIAD</h1>
