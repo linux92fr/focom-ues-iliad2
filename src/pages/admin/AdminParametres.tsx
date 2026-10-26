@@ -65,7 +65,7 @@ export default function AdminParametres() {
   const handleSave = async () => {
     setSaving(true);
     const { error } = await supabase.from("site_content").upsert(
-      { key: "site_settings", value: JSON.stringify(settings), title: "Paramètres du site", subtitle: "Configuration générale" },
+      { key: "site_settings", value: JSON.stringify(settings) },
       { onConflict: "key" },
     );
     setSaving(false);
