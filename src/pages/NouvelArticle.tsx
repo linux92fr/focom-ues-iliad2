@@ -97,9 +97,20 @@ export default function NouvelArticle() {
 
   const createMutation = useMutation({
     mutationFn: async ({ publish }: { publish: boolean }) => {
-      const finalImageUrl = await withTimeout(uploadArticleImage());
+      const finalImageUrl = await withTimeout(
+        uploadArticleImage(),
+        20000,
+        "Délai dépassé pendant l’envoi de l’image. Vérifiez le stockage Supabase ou réessayez sans image.",
+      );
 
-      const { data: userData } = await withTimeout(supabase.auth.getUser());
+      const { data: userData, error: authError } = await withTimeout(
+        supabase.auth.getUser(),
+        20000,
+        "Délai dépassé pendant la vérification de la session. Reconnectez-vous puis réessayez.",
+      );
+      if (authError) {
+        throw new Error(`Impossible de vérifier la session : ${authError.message}`);
+      }
 
       const { data, error } = await withTimeout(
         supabase
@@ -118,6 +129,8 @@ export default function NouvelArticle() {
           })
           .select()
           .single(),
+        20000,
+        "Délai dépassé pendant l’enregistrement de l’article. Vérifiez la connexion à Supabase puis réessayez.",
       );
       if (error) throw error;
       return data;
