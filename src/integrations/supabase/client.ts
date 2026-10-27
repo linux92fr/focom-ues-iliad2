@@ -62,6 +62,7 @@ const authMutex = createAuthMutex();
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_KEY, {
   auth: {
     storage: localStorage,
+    experimental: { passkey: true },
     persistSession: true,
     autoRefreshToken: true,
     lock: async (_name, _acquireTimeout, fn) => authMutex(fn),
