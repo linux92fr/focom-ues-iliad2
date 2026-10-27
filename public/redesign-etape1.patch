@@ -1,0 +1,318 @@
+From 6f97ae518ac66262bdecf7a8811fec5666b0f27a Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Tue, 27 Oct 2026 22:02:54 +0000
+Subject: [PATCH] =?UTF-8?q?Design=20moderne=20(=C3=A9tape=201)=20:=20token?=
+ =?UTF-8?q?s,=20polices,=20sidebar=20publique=20et=20layout=20admin?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ src/components/Sidebar.tsx           | 26 ++++----
+ src/components/admin/AdminLayout.tsx | 20 +++----
+ src/index.css                        | 90 +++++++++++++++-------------
+ tailwind.config.ts                   |  6 +-
+ 4 files changed, 76 insertions(+), 66 deletions(-)
+
+diff --git a/src/components/Sidebar.tsx b/src/components/Sidebar.tsx
+index 6e94ee1..e4e1101 100644
+--- a/src/components/Sidebar.tsx
++++ b/src/components/Sidebar.tsx
+@@ -56,15 +56,15 @@ function NavItem({ item, onNavigate }: { item: { to: string; label: string; icon
+       to={item.to}
+       end={item.end}
+       onClick={onNavigate}
+-      className={`flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors ${
+-        isActive
+-          ? "bg-secondary text-secondary-foreground"
+-          : item.highlight
+-            ? "bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground"
+-            : "text-foreground hover:bg-muted"
++      className={`relative flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-colors ${
++        item.highlight && !isActive
++          ? "bg-primary text-primary-foreground shadow-sm hover:bg-primary/90"
++          : isActive
++            ? "bg-primary/10 font-semibold text-primary before:absolute before:left-0 before:top-2 before:bottom-2 before:w-1 before:rounded-full before:bg-primary"
++            : "text-sidebar-foreground hover:bg-muted hover:text-foreground"
+       }`}
+     >
+-      <Icon className="h-5 w-5 shrink-0" />
++      <Icon className="h-[18px] w-[18px] shrink-0" strokeWidth={1.9} />
+       <span className="truncate">{item.label}</span>
+     </NavLink>
+   );
+@@ -87,8 +87,8 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
+           <div className="min-w-0">
+             <div className="font-display text-lg font-black leading-none text-primary">FOCOM</div>
+             <div className="mt-1 font-display text-base font-black leading-none text-secondary">UES ILIAD</div>
+-            <div className="mt-1 text-[9px] font-bold tracking-wider text-muted-foreground">
+-              NOTRE FORCE, VOS DROITS
++            <div className="mt-1 text-[11px] font-medium text-muted-foreground">
++              Notre force, vos droits
+             </div>
+           </div>
+         </div>
+@@ -96,18 +96,18 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
+ 
+       <nav className="flex-1 space-y-5 overflow-y-auto p-3">
+         <div className="space-y-1">
+-          <p className="px-4 pb-1 text-[10px] font-black uppercase tracking-wider text-muted-foreground">Principal</p>
++          <p className="px-3.5 pb-1 text-xs font-semibold text-muted-foreground">Principal</p>
+           {mainNavItems.map((item) => <NavItem key={item.label} item={item} onNavigate={onNavigate} />)}
+         </div>
+ 
+         <div className="space-y-1">
+-          <p className="px-4 pb-1 text-[10px] font-black uppercase tracking-wider text-muted-foreground">Agir</p>
++          <p className="px-3.5 pb-1 text-xs font-semibold text-muted-foreground">Agir</p>
+           {visibleActionItems.map((item) => <NavItem key={item.label} item={item} onNavigate={onNavigate} />)}
+           {!user && (
+             <button
+               type="button"
+               onClick={() => { setAuthOpen(true); onNavigate?.(); }}
+-              className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-foreground hover:bg-muted"
++              className="flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium text-sidebar-foreground hover:bg-muted hover:text-foreground"
+             >
+               <LogIn className="h-5 w-5 shrink-0" />
+               <span className="truncate">Se connecter</span>
+@@ -116,7 +116,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
+         </div>
+ 
+         <div className="space-y-1">
+-          <p className="px-4 pb-1 text-[10px] font-black uppercase tracking-wider text-muted-foreground">Plus</p>
++          <p className="px-3.5 pb-1 text-xs font-semibold text-muted-foreground">Plus</p>
+           {visibleSecondaryItems.map((item) => <NavItem key={item.label} item={item} onNavigate={onNavigate} />)}
+         </div>
+       </nav>
+diff --git a/src/components/admin/AdminLayout.tsx b/src/components/admin/AdminLayout.tsx
+index fd0f7c5..f591c12 100644
+--- a/src/components/admin/AdminLayout.tsx
++++ b/src/components/admin/AdminLayout.tsx
+@@ -110,9 +110,9 @@ export default function AdminLayout({ children, title, breadcrumb }: AdminLayout
+   const isActive = (item: (typeof navItems)[0]) => item.exact ? location.pathname === item.path : location.pathname.startsWith(item.path);
+ 
+   return (
+-    <div className="min-h-screen bg-slate-50 flex">
+-      <aside className={`${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"} fixed lg:sticky top-0 left-0 z-40 h-screen w-64 bg-slate-900 text-white flex flex-col transition-transform duration-300 ease-in-out`}>
+-        <div className="flex items-center gap-3 p-5 border-b border-slate-700">
++    <div className="min-h-screen bg-background flex">
++      <aside className={`${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"} fixed lg:sticky top-0 left-0 z-40 h-screen w-64 bg-accent text-accent-foreground flex flex-col transition-transform duration-300 ease-in-out`}>
++        <div className="flex items-center gap-3 p-5 border-b border-white/10">
+           <img loading="lazy" src={logoFocom} alt="Logo FO COM UES ILIAD" className="h-9 w-auto max-w-16 object-contain flex-shrink-0" />
+           <div>
+             <p className="font-bold text-sm leading-tight">FOCOM UES ILIAD</p>
+@@ -123,7 +123,7 @@ export default function AdminLayout({ children, title, breadcrumb }: AdminLayout
+           {navItems.filter((item) => !("roles" in item) || item.roles.includes(user?.role ?? "")).map((item) => {
+             const active = isActive(item);
+             return (
+-              <Link key={item.path} to={item.path} onClick={() => setSidebarOpen(false)} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${active ? "bg-red-600 text-white shadow-lg shadow-red-900/30" : "text-slate-300 hover:bg-slate-800 hover:text-white"}`}>
++              <Link key={item.path} to={item.path} onClick={() => setSidebarOpen(false)} className={`relative flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors ${active ? "bg-white/10 text-white before:absolute before:left-0 before:top-2 before:bottom-2 before:w-1 before:rounded-full before:bg-primary" : "text-slate-300 hover:bg-white/5 hover:text-white"}`}>
+                 <item.icon className="w-4 h-4 flex-shrink-0" />
+                 <span>{item.label}</span>
+                 {active && <ChevronRight className="w-3.5 h-3.5 ml-auto" />}
+@@ -131,22 +131,22 @@ export default function AdminLayout({ children, title, breadcrumb }: AdminLayout
+             );
+           })}
+         </nav>
+-        <div className="p-3 border-t border-slate-700">
+-          <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-slate-800 mb-2">
+-            <div className="w-8 h-8 rounded-full bg-red-600 flex items-center justify-center text-xs font-bold flex-shrink-0">{user?.username?.charAt(0).toUpperCase()}</div>
++        <div className="p-3 border-t border-white/10">
++          <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/5 mb-2">
++            <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-xs font-bold flex-shrink-0">{user?.username?.charAt(0).toUpperCase()}</div>
+             <div className="flex-1 min-w-0"><p className="text-sm font-semibold text-white truncate">{user?.username}</p><p className="text-[10px] text-slate-400 capitalize">{user?.role}</p></div>
+           </div>
+-          <Button variant="ghost" size="sm" onClick={handleLogout} className="w-full text-slate-400 hover:text-white hover:bg-slate-800 justify-start gap-2"><LogOut className="w-4 h-4" />Se déconnecter</Button>
++          <Button variant="ghost" size="sm" onClick={handleLogout} className="w-full text-slate-400 hover:text-white hover:bg-white/5 justify-start gap-2"><LogOut className="w-4 h-4" />Se déconnecter</Button>
+         </div>
+       </aside>
+ 
+       {sidebarOpen && <div className="fixed inset-0 bg-black/50 z-30 lg:hidden" onClick={() => setSidebarOpen(false)} />}
+ 
+       <div className="flex-1 flex flex-col min-w-0">
+-        <header className="bg-white border-b border-slate-200 px-4 sm:px-6 h-14 flex items-center justify-between sticky top-0 z-20 shadow-sm">
++        <header className="bg-background/80 backdrop-blur border-b border-border px-4 sm:px-6 h-14 flex items-center justify-between sticky top-0 z-20">
+           <div className="flex items-center gap-3">
+             <button onClick={() => setSidebarOpen(!sidebarOpen)} className="lg:hidden p-2 rounded-lg hover:bg-slate-100">{sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}</button>
+-            <div><h1 className="text-base font-bold text-slate-900">{title}</h1>{breadcrumb && <p className="text-[11px] text-slate-500 hidden sm:block">{breadcrumb.join(" / ")}</p>}</div>
++            <div><h1 className="font-display text-lg font-extrabold text-foreground">{title}</h1>{breadcrumb && <p className="text-[11px] text-slate-500 hidden sm:block">{breadcrumb.join(" / ")}</p>}</div>
+           </div>
+           <div className="flex items-center gap-2">
+             <div ref={bellRef} className="relative">
+diff --git a/src/index.css b/src/index.css
+index 33b359c..7707018 100644
+--- a/src/index.css
++++ b/src/index.css
+@@ -1,4 +1,4 @@
+-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Montserrat:wght@600;700;800;900&display=swap');
++@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Public+Sans:wght@400;500;600;700&display=swap');
+ 
+ @tailwind base;
+ @tailwind components;
+@@ -6,57 +6,53 @@
+ 
+ @layer base {
+   :root {
+-    /* FOCOM UES ILIAD palette */
+-    --background: 210 25% 98%;
+-    --foreground: 224 47% 18%;
++    /* FOCOM UES ILIAD – design moderne : encre, rouge FO #dc2626, teal #0d9488 */
++    --background: 220 23% 97%;
++    --foreground: 222 36% 11%;
+ 
+     --card: 0 0% 100%;
+-    --card-foreground: 224 47% 18%;
++    --card-foreground: 222 36% 11%;
+ 
+     --popover: 0 0% 100%;
+-    --popover-foreground: 224 47% 18%;
++    --popover-foreground: 222 36% 11%;
+ 
+-    /* FO Red */
+-    --primary: 354 92% 46%;
++    --primary: 0 72% 51%;
+     --primary-foreground: 0 0% 100%;
+ 
+-    /* Iliad Teal */
+-    --secondary: 180 70% 36%;
++    --secondary: 175 84% 32%;
+     --secondary-foreground: 0 0% 100%;
+ 
+-    --muted: 210 30% 95%;
+-    --muted-foreground: 215 16% 45%;
++    --muted: 220 18% 94%;
++    --muted-foreground: 220 10% 38%;
+ 
+-    /* Navy */
+-    --accent: 224 47% 24%;
++    /* Encre (ex-navy) */
++    --accent: 222 40% 14%;
+     --accent-foreground: 0 0% 100%;
+ 
+-    --destructive: 354 92% 46%;
++    --destructive: 0 72% 51%;
+     --destructive-foreground: 0 0% 100%;
+ 
+-    --border: 214 25% 90%;
+-    --input: 214 25% 90%;
+-    --ring: 354 92% 46%;
++    --border: 220 16% 89%;
++    --input: 220 16% 86%;
++    --ring: 175 84% 32%;
+ 
+-    --radius: 0.75rem;
++    --radius: 1rem;
+ 
+-    /* Custom tokens */
+-    --gradient-hero: linear-gradient(135deg, hsl(354 92% 46%) 0%, hsl(354 92% 36%) 100%);
+-    --gradient-teal: linear-gradient(135deg, hsl(180 70% 36%) 0%, hsl(180 70% 28%) 100%);
+-    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(210 30% 98%) 100%);
+-    --shadow-card: 0 2px 12px -2px hsla(224, 47%, 18%, 0.06);
+-    --shadow-hover: 0 8px 30px -8px hsla(224, 47%, 18%, 0.12);
+-    --shadow-hero: 0 20px 60px -20px hsla(354, 92%, 46%, 0.3);
++    --gradient-hero: linear-gradient(135deg, hsl(0 72% 51%) 0%, hsl(0 72% 40%) 100%);
++    --gradient-teal: linear-gradient(135deg, hsl(175 84% 32%) 0%, hsl(175 84% 24%) 100%);
++    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(220 23% 98%) 100%);
++    --shadow-card: 0 1px 2px hsla(222, 36%, 11%, 0.04), 0 4px 16px -6px hsla(222, 36%, 11%, 0.08);
++    --shadow-hover: 0 2px 4px hsla(222, 36%, 11%, 0.05), 0 16px 32px -12px hsla(222, 36%, 11%, 0.16);
++    --shadow-hero: 0 24px 60px -24px hsla(0, 72%, 51%, 0.35);
+ 
+-    /* Sidebar - white with red active */
+     --sidebar-background: 0 0% 100%;
+-    --sidebar-foreground: 224 30% 30%;
+-    --sidebar-primary: 180 70% 36%;
++    --sidebar-foreground: 222 20% 28%;
++    --sidebar-primary: 0 72% 51%;
+     --sidebar-primary-foreground: 0 0% 100%;
+-    --sidebar-accent: 180 70% 36%;
+-    --sidebar-accent-foreground: 0 0% 100%;
+-    --sidebar-border: 214 25% 92%;
+-    --sidebar-ring: 354 92% 46%;
++    --sidebar-accent: 220 18% 94%;
++    --sidebar-accent-foreground: 222 36% 11%;
++    --sidebar-border: 220 16% 91%;
++    --sidebar-ring: 175 84% 32%;
+   }
+ 
+   .dark {
+@@ -72,13 +68,13 @@
+     --primary: 0 72% 55%;
+     --primary-foreground: 0 0% 100%;
+ 
+-    --secondary: 217 33% 25%;
+-    --secondary-foreground: 210 40% 98%;
++    --secondary: 175 70% 38%;
++    --secondary-foreground: 0 0% 100%;
+ 
+     --muted: 217 33% 17%;
+     --muted-foreground: 215 20% 65%;
+ 
+-    --accent: 25 95% 58%;
++    --accent: 222 40% 18%;
+     --accent-foreground: 0 0% 100%;
+ 
+     --destructive: 0 62% 30%;
+@@ -86,7 +82,7 @@
+ 
+     --border: 217 33% 17%;
+     --input: 217 33% 17%;
+-    --ring: 0 72% 55%;
++    --ring: 175 70% 45%;
+ 
+     --sidebar-background: 222 47% 8%;
+     --sidebar-foreground: 210 40% 98%;
+@@ -114,7 +110,7 @@
+ 
+   body {
+     @apply bg-background text-foreground font-sans antialiased;
+-    font-family: 'Inter', system-ui, sans-serif;
++    font-family: 'Public Sans', system-ui, sans-serif;
+     width: 100%;
+     min-width: 0;
+   }
+@@ -126,10 +122,24 @@
+     max-width: 100%;
+   }
+ 
++  :focus-visible {
++    outline: 2px solid hsl(var(--ring));
++    outline-offset: 2px;
++  }
++
++  @media (prefers-reduced-motion: reduce) {
++    *, *::before, *::after {
++      animation-duration: 0.01ms !important;
++      transition-duration: 0.01ms !important;
++      scroll-behavior: auto !important;
++    }
++  }
++
+   h1, h2, h3, h4 {
+-    font-family: 'Montserrat', 'Inter', sans-serif;
++    font-family: 'Bricolage Grotesque', 'Public Sans', sans-serif;
+     font-weight: 800;
+-    letter-spacing: -0.01em;
++    letter-spacing: -0.025em;
++    text-wrap: balance;
+   }
+ }
+ 
+diff --git a/tailwind.config.ts b/tailwind.config.ts
+index bbbf0ed..b5e75cc 100644
+--- a/tailwind.config.ts
++++ b/tailwind.config.ts
+@@ -16,9 +16,9 @@ export default {
+     },
+     extend: {
+       fontFamily: {
+-        sans: ['Inter', 'system-ui', 'sans-serif'],
+-        serif: ['Montserrat', 'Inter', 'sans-serif'],
+-        display: ['Montserrat', 'Inter', 'sans-serif'],
++        sans: ['"Public Sans"', 'system-ui', 'sans-serif'],
++        serif: ['"Bricolage Grotesque"', '"Public Sans"', 'sans-serif'],
++        display: ['"Bricolage Grotesque"', '"Public Sans"', 'sans-serif'],
+       },
+       colors: {
+         border: "hsl(var(--border))",
+-- 
+2.43.0
+
