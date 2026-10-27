@@ -68,7 +68,7 @@ Deno.serve(async (req) => {
 
   if (action === "add-existing") {
     const email = typeof payload.email === "string" ? payload.email.trim().toLowerCase() : "";
-    if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return json({ error: "Adresse e-mail invalide." }, 400, headers);
     }
 
