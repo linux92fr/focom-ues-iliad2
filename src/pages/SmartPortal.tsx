@@ -2,7 +2,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import AssistantIAPage from "@/components/admin/AssistantIAPage";
-import { Bot, Loader2, LogIn, LogOut, ShieldCheck } from "lucide-react";
+import { Bot, Loader2, LogIn, LogOut, ShieldCheck, Mail } from "lucide-react";
 
 type ViewState = "checking" | "signed-out" | "denied" | "allowed";
 
@@ -11,6 +11,8 @@ export default function SmartPortal() {
   const [state, setState] = useState<ViewState>("checking");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [resetRequested, setResetRequested] = useState(false);
+  const [resetBusy, setResetBusy] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -63,6 +65,28 @@ export default function SmartPortal() {
     setBusy(false);
   };
 
+  const requestPasswordReset = async () => {
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail) {
+      setError("Saisissez votre adresse e-mail avant de demander un nouveau mot de passe.");
+      return;
+    }
+    setResetBusy(true);
+    setError("");
+    setResetRequested(false);
+    try {
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (resetError) throw resetError;
+      setResetRequested(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Impossible d’envoyer l’e-mail de réinitialisation.");
+    } finally {
+      setResetBusy(false);
+    }
+  };
+
   const logout = async () => {
     await supabase.auth.signOut();
     setState("signed-out");
@@ -87,6 +111,8 @@ export default function SmartPortal() {
         <label className="block space-y-1.5 text-sm font-medium">Mot de passe<input type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full rounded-lg border border-input bg-background px-3 py-2.5 font-normal" /></label>
         {error && <p role="alert" className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}
         <button type="submit" disabled={busy} className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 font-medium text-primary-foreground disabled:opacity-60">{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogIn className="h-4 w-4" />}Se connecter</button>
+        <button type="button" onClick={() => void requestPasswordReset()} disabled={resetBusy} className="flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm text-primary underline-offset-4 hover:underline disabled:opacity-60">{resetBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}Mot de passe oublié ?</button>
+        {resetRequested && <p role="status" className="rounded-lg bg-primary/10 p-3 text-sm">Si un compte correspond à cette adresse, un e-mail de réinitialisation a été envoyé. Vérifiez aussi vos courriers indésirables.</p>}
       </form>
       <p className="mt-5 flex items-start gap-2 text-xs text-muted-foreground"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />Cet espace est réservé aux comptes auxquels le rôle « Utilisateur IA » a été attribué.</p>
     </section>

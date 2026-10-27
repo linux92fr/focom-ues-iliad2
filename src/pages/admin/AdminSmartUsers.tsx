@@ -1,5 +1,5 @@
 import { FormEvent, useCallback, useEffect, useState } from "react";
-import { Loader2, UserPlus, RefreshCw, UserRoundX, UserRoundCheck, Users, ShieldAlert } from "lucide-react";
+import { Loader2, UserPlus, RefreshCw, UserRoundX, UserRoundCheck, Users, ShieldAlert, Mail } from "lucide-react";
 import AdminLayout, { AdminAuthGuard } from "@/components/admin/AdminLayout";
 import { useAdminAuth } from "@/contexts/AdminAuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,6 +21,7 @@ function SmartUsersContent() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [busyId, setBusyId] = useState("");
+  const [resetSendingId, setResetSendingId] = useState("");
   const [error, setError] = useState("");
 
   const invokeAdmin = async (payload: Record<string, unknown>) => {
@@ -82,6 +83,25 @@ function SmartUsersContent() {
     }
   };
 
+  const sendPasswordReset = async (account: SmartUser) => {
+    if (!account.email) {
+      toast.error("Aucune adresse e-mail n'est disponible pour ce compte.");
+      return;
+    }
+    setResetSendingId(account.id);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(account.email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
+      toast.success(`Demande de réinitialisation envoyée à ${account.email} si cette adresse peut recevoir les e-mails.`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Envoi de l’e-mail de réinitialisation impossible.");
+    } finally {
+      setResetSendingId("");
+    }
+  };
+
   const setDisabled = async (account: SmartUser, disabled: boolean) => {
     setBusyId(account.id);
     try {
@@ -113,7 +133,7 @@ function SmartUsersContent() {
     </CardContent></Card>
     <Card><CardHeader><CardTitle className="flex items-center gap-2"><Users className="h-5 w-5" />Comptes existants <Badge variant="secondary">{users.length}</Badge></CardTitle></CardHeader><CardContent>
       {error && <div role="alert" className="mb-4 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">{error}</div>}
-      {loading ? <div className="flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Chargement des comptes…</div> : users.length === 0 ? <p className="py-8 text-center text-sm text-muted-foreground">Aucun compte Smart trouvé.</p> : <div className="divide-y">{users.map(account => <div key={account.id} className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between"><div className="min-w-0"><p className="break-all font-medium">{account.email}</p><p className="mt-1 text-xs text-muted-foreground">Créé le {account.created_at ? new Date(account.created_at).toLocaleDateString("fr-FR") : "date inconnue"}</p></div><div className="flex items-center gap-3">{account.disabled ? <Badge variant="destructive">Désactivé</Badge> : <Badge variant="secondary">Actif</Badge>}{account.disabled ? <Button size="sm" variant="outline" disabled={busyId === account.id} onClick={() => void setDisabled(account, false)}>{busyId === account.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserRoundCheck className="mr-2 h-4 w-4" />}Réactiver</Button> : <Button size="sm" variant="destructive" disabled={busyId === account.id} onClick={() => void setDisabled(account, true)}>{busyId === account.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserRoundX className="mr-2 h-4 w-4" />}Désactiver</Button>}</div></div>)}</div>}
+      {loading ? <div className="flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Chargement des comptes…</div> : users.length === 0 ? <p className="py-8 text-center text-sm text-muted-foreground">Aucun compte Smart trouvé.</p> : <div className="divide-y">{users.map(account => <div key={account.id} className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between"><div className="min-w-0"><p className="break-all font-medium">{account.email}</p><p className="mt-1 text-xs text-muted-foreground">Créé le {account.created_at ? new Date(account.created_at).toLocaleDateString("fr-FR") : "date inconnue"}</p></div><div className="flex flex-wrap items-center gap-2">{account.disabled ? <Badge variant="destructive">Désactivé</Badge> : <Badge variant="secondary">Actif</Badge>}<Button size="sm" variant="outline" disabled={resetSendingId === account.id || !account.email} onClick={() => void sendPasswordReset(account)}>{resetSendingId === account.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Mail className="mr-2 h-4 w-4" />}Réinitialiser le mot de passe</Button>{account.disabled ? <Button size="sm" variant="outline" disabled={busyId === account.id} onClick={() => void setDisabled(account, false)}>{busyId === account.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserRoundCheck className="mr-2 h-4 w-4" />}Réactiver</Button> : <Button size="sm" variant="destructive" disabled={busyId === account.id} onClick={() => void setDisabled(account, true)}>{busyId === account.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserRoundX className="mr-2 h-4 w-4" />}Désactiver</Button>}</div></div>)}</div>}
     </CardContent></Card>
   </div>;
 }
