@@ -2,9 +2,10 @@ import { FormEvent, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import AssistantIAPage from "@/components/admin/AssistantIAPage";
-import { Bot, Loader2, LogIn, LogOut, ShieldCheck, Mail } from "lucide-react";
+import { Bot, Loader2, LogIn, LogOut, ShieldCheck, Fingerprint, KeyRound, Trash2, Mail } from "lucide-react";
 
 type ViewState = "checking" | "signed-out" | "denied" | "allowed";
+type Passkey = { id: string; friendly_name?: string; created_at: string; last_used_at?: string };
 
 export default function SmartPortal() {
   const navigate = useNavigate();
@@ -15,6 +16,9 @@ export default function SmartPortal() {
   const [resetBusy, setResetBusy] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [passkeys, setPasskeys] = useState<Passkey[]>([]);
+  const [passkeyBusy, setPasskeyBusy] = useState(false);
+  const [passkeyMessage, setPasskeyMessage] = useState("");
 
   const verifyAccess = async (userId: string) => {
     const { data, error: roleError } = await supabase
@@ -51,6 +55,59 @@ export default function SmartPortal() {
     });
     return () => { active = false; subscription.unsubscribe(); };
   }, []);
+
+  const signInWithPasskey = async () => {
+    setBusy(true);
+    setError("");
+    try {
+      const { data, error: passkeyError } = await supabase.auth.signInWithPasskey();
+      if (passkeyError || !data.user) throw passkeyError ?? new Error("Connexion par clé d’accès impossible.");
+      await verifyAccess(data.user.id);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Connexion par clé d’accès impossible. Vérifiez que votre appareil prend en charge les passkeys.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const loadPasskeys = async () => {
+    const { data, error: listError } = await supabase.auth.passkey.list();
+    if (listError) {
+      setPasskeyMessage("Impossible de charger les clés d’accès.");
+      return;
+    }
+    setPasskeys((data ?? []) as Passkey[]);
+  };
+
+  const registerPasskey = async () => {
+    setPasskeyBusy(true);
+    setPasskeyMessage("");
+    try {
+      const { data, error: registerError } = await supabase.auth.registerPasskey();
+      if (registerError) throw registerError;
+      setPasskeyMessage("Clé d’accès enregistrée sur cet appareil ou dans votre gestionnaire de mots de passe.");
+      await loadPasskeys();
+    } catch (e) {
+      setPasskeyMessage(e instanceof Error ? e.message : "Impossible d’enregistrer la clé d’accès.");
+    } finally {
+      setPasskeyBusy(false);
+    }
+  };
+
+  const deletePasskey = async (passkeyId: string) => {
+    setPasskeyBusy(true);
+    setPasskeyMessage("");
+    try {
+      const { error: deleteError } = await supabase.auth.passkey.delete({ passkeyId });
+      if (deleteError) throw deleteError;
+      setPasskeyMessage("Clé d’accès supprimée.");
+      await loadPasskeys();
+    } catch (e) {
+      setPasskeyMessage(e instanceof Error ? e.message : "Impossible de supprimer cette clé d’accès.");
+    } finally {
+      setPasskeyBusy(false);
+    }
+  };
 
   const login = async (event: FormEvent) => {
     event.preventDefault();
@@ -100,6 +157,16 @@ export default function SmartPortal() {
       <div className="flex items-center gap-3"><div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10"><Bot className="h-5 w-5 text-primary" /></div><div><p className="font-semibold">FO COM UES ILIAD</p><p className="text-xs text-muted-foreground">Espace IA sécurisé</p></div></div>
       <button onClick={logout} className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm hover:bg-muted"><LogOut className="h-4 w-4" />Déconnexion</button>
     </div>
+    <div className="mx-auto max-w-5xl px-4 py-5">
+      <section className="mb-6 rounded-xl border border-border bg-card p-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div><h2 className="flex items-center gap-2 font-semibold"><KeyRound className="h-5 w-5 text-primary" />Clés d’accès</h2><p className="mt-1 text-sm text-muted-foreground">Connectez-vous plus rapidement avec Windows Hello, Touch ID, votre téléphone ou une clé de sécurité.</p></div>
+          <button type="button" onClick={() => void registerPasskey()} disabled={passkeyBusy} className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground disabled:opacity-60">{passkeyBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Fingerprint className="h-4 w-4" />}Ajouter une clé d’accès</button>
+        </div>
+        {passkeyMessage && <p role="status" className="mt-3 rounded-lg bg-muted p-3 text-sm">{passkeyMessage}</p>}
+        {passkeys.length > 0 && <ul className="mt-3 divide-y divide-border">{passkeys.map((passkey) => <li key={passkey.id} className="flex items-center justify-between gap-3 py-3"><div><p className="text-sm font-medium">{passkey.friendly_name || "Clé d’accès"}</p><p className="text-xs text-muted-foreground">Ajoutée le {new Date(passkey.created_at).toLocaleDateString("fr-FR")}</p></div><button type="button" aria-label="Supprimer cette clé d’accès" title="Supprimer cette clé d’accès" disabled={passkeyBusy} onClick={() => void deletePasskey(passkey.id)} className="rounded-lg p-2 text-destructive hover:bg-destructive/10 disabled:opacity-50"><Trash2 className="h-4 w-4" /></button></li>)}</ul>}
+      </section>
+    </div>
     <AssistantIAPage />
   </div>;
 
@@ -110,7 +177,7 @@ export default function SmartPortal() {
         <label className="block space-y-1.5 text-sm font-medium">Adresse e-mail<input type="email" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)} className="w-full rounded-lg border border-input bg-background px-3 py-2.5 font-normal" placeholder="vous@exemple.fr" /></label>
         <label className="block space-y-1.5 text-sm font-medium">Mot de passe<input type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full rounded-lg border border-input bg-background px-3 py-2.5 font-normal" /></label>
         {error && <p role="alert" className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}
-        <button type="submit" disabled={busy} className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 font-medium text-primary-foreground disabled:opacity-60">{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogIn className="h-4 w-4" />}Se connecter</button>
+        <button type="submit" disabled={busy} className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 font-medium text-primary-foreground disabled:opacity-60">{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogIn className="h-4 w-4" />}Se connecter</button>\n        <button type="button" onClick={() => void signInWithPasskey()} disabled={busy} className="flex w-full items-center justify-center gap-2 rounded-lg border border-primary px-4 py-2.5 font-medium text-primary hover:bg-primary/5 disabled:opacity-60">{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Fingerprint className="h-4 w-4" />}Se connecter avec une clé d’accès</button>
         <button type="button" onClick={() => void requestPasswordReset()} disabled={resetBusy} className="flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm text-primary underline-offset-4 hover:underline disabled:opacity-60">{resetBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}Mot de passe oublié ?</button>
         {resetRequested && <p role="status" className="rounded-lg bg-primary/10 p-3 text-sm">Si un compte correspond à cette adresse, un e-mail de réinitialisation a été envoyé. Vérifiez aussi vos courriers indésirables.</p>}
       </form>
