@@ -1,13 +1,44 @@
 import { useEffect, useState } from "react";
-import type { FormEvent } from "react";
-import { Link } from "react-router-dom";
-import {
-  ArrowRight, CalendarDays, CheckCircle2, FileText, HeartHandshake,
-  Mail, Menu, MessageCircle, Newspaper, Scale, ShieldCheck, UserRoundPlus, Users, X,
-} from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Award,
+  Bell,
+  Calendar,
+  CheckCircle2,
+  ChevronRight,
+  ClipboardList,
+  Download,
+  Eye,
+  FileText,
+  FolderOpen,
+  Handshake,
+  Heart,
+  HelpCircle,
+  Lock,
+  Mail,
+  MessageSquare,
+  Newspaper,
+  PenLine,
+  Phone,
+  Scale,
+  Send,
+  Shield,
+  Sparkles,
+  Trophy,
+  UserPlus,
+  Users,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import OctobreRoseFlash from "@/components/OctobreRoseFlash";
+import OctobreRosePopup from "@/components/OctobreRosePopup";
+
+const HERO_IMAGE = "https://d2xsxph8kpxj0f.cloudfront.net/310519663612648040/CNuRjrgGqWcQ7xt7rtMbHT/hero-banner-VHxfVX6tjRfujGise9ibwf.webp";
+const SOLIDARITY_IMAGE = "https://d2xsxph8kpxj0f.cloudfront.net/310519663612648040/CNuRjrgGqWcQ7xt7rtMbHT/solidarity-icon-GxfeM5FU9pzPmnbJUShvCH.webp";
+
+const DEFAULT_HERO_TITLE = "Informer. Défendre. Agir ensemble.";
+const DEFAULT_HERO_SUBTITLE = "FO COM UES ILIAD accompagne les salariés du groupe : droits, adhésion, demandes, documents utiles et actualités sociales.";
 
 type LatestArticle = {
   id: string;
@@ -28,180 +59,324 @@ const categoryLabels: Record<string, string> = {
 };
 
 const stripHtml = (html: string) => html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
-const formatDate = (value: string | null) => value
-  ? new Date(value).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })
-  : "";
+const formatDate = (dateString: string | null) => {
+  if (!dateString) return "";
+  return new Date(dateString).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" });
+};
 
-const services = [
-  { icon: Scale, title: "Vos droits", text: "Des repères pour comprendre vos droits et agir au travail.", href: "/vos-droits", label: "Consulter vos droits" },
-  { icon: MessageCircle, title: "Être accompagné", text: "Une question ou une difficulté ? Transmettez votre demande à FO COM.", href: "/mes-reclamations", label: "Faire une demande" },
-  { icon: FileText, title: "Documents utiles", text: "Retrouvez les ressources, accords et documents mis à disposition.", href: "/documents-utiles", label: "Accéder aux documents" },
-  { icon: CalendarDays, title: "Agenda & permanences", text: "Consultez les rendez-vous et les temps forts à venir.", href: "/agenda", label: "Voir l’agenda" },
-];
+const ProgressBar = ({ label, value }: { label: string; value: number }) => (
+  <div className="space-y-1.5">
+    <div className="flex justify-between gap-3 text-sm">
+      <span className="font-medium text-slate-700">{label}</span>
+      <span className="font-semibold text-slate-500">{value}%</span>
+    </div>
+    <div className="h-3 overflow-hidden rounded-full bg-slate-100">
+      <div className="h-full rounded-full bg-teal-500" style={{ width: `${value}%` }} />
+    </div>
+  </div>
+);
 
 export default function Home() {
-  const [heroTitle, setHeroTitle] = useState("Vos droits, défendus au quotidien sur le terrain.");
-  const [heroSubtitle, setHeroSubtitle] = useState("Élus au CSE, nous accompagnons les salariés de Free, Free Mobile, Free Réseau et du groupe : questions de droit, entretiens, conditions de travail.");
-  const [articles, setArticles] = useState<LatestArticle[]>([]);
-  const [email, setEmail] = useState("");
-  const [newsletterStatus, setNewsletterStatus] = useState<"idle" | "loading" | "success" | "error" | "duplicate">("idle");
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const navigate = useNavigate();
+  const [heroTitle, setHeroTitle] = useState(DEFAULT_HERO_TITLE);
+  const [heroSubtitle, setHeroSubtitle] = useState(DEFAULT_HERO_SUBTITLE);
+  const [latestArticles, setLatestArticles] = useState<LatestArticle[]>([]);
+  const [nlEmail, setNlEmail] = useState("");
+  const [nlStatus, setNlStatus] = useState<"idle" | "loading" | "success" | "error" | "duplicate">("idle");
 
   useEffect(() => {
-    let active = true;
-    supabase.from("site_content").select("value").eq("key", "home_hero").maybeSingle().then(({ data }) => {
-      if (!active || !data?.value) return;
-      try {
-        const parsed = JSON.parse(data.value);
-        if (parsed.title) setHeroTitle(parsed.title);
-        if (parsed.subtitle) setHeroSubtitle(parsed.subtitle);
-      } catch {
-        // Le contenu configuré est facultatif : conserver les textes par défaut.
-      }
-    });
-    supabase.from("articles")
+    supabase
+      .from("site_content")
+      .select("value")
+      .eq("key", "home_hero")
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!data?.value) return;
+        try {
+          const parsed = JSON.parse(data.value);
+          if (parsed.title) setHeroTitle(parsed.title);
+          if (parsed.subtitle) setHeroSubtitle(parsed.subtitle);
+        } catch {
+          // valeurs par défaut
+        }
+      });
+
+    supabase
+      .from("articles")
       .select("id,title,slug,excerpt,content,category,published_at,created_at")
       .eq("is_published", true)
       .order("published_at", { ascending: false, nullsFirst: false })
       .limit(3)
       .then(({ data, error }) => {
-        if (active && !error && data) setArticles(data as LatestArticle[]);
+        if (!error && data) setLatestArticles(data as LatestArticle[]);
       });
-    return () => { active = false; };
   }, []);
 
-  const subscribe = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!email.trim()) return;
-    setNewsletterStatus("loading");
-    const { data, error } = await supabase.from("newsletter_subscribers")
-      .insert({ email: email.trim() })
+  const handleSubscribe = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!nlEmail) return;
+    setNlStatus("loading");
+
+    const { data, error } = await supabase
+      .from("newsletter_subscribers")
+      .insert({ email: nlEmail })
       .select("unsubscribe_token")
       .single();
+
     if (error) {
-      setNewsletterStatus(error.code === "23505" ? "duplicate" : "error");
+      setNlStatus(error.code === "23505" ? "duplicate" : "error");
       return;
     }
+
     await supabase.functions.invoke("send-welcome-email", {
-      body: { email: email.trim(), unsubscribeToken: data.unsubscribe_token },
+      body: { email: nlEmail, unsubscribeToken: data.unsubscribe_token },
     });
-    setNewsletterStatus("success");
-    setEmail("");
+
+    setNlStatus("success");
+    setNlEmail("");
   };
 
-  const navLinks = [
-    { label: "Le syndicat", href: "/le-syndicat" },
-    { label: "Actualités", href: "/actualites" },
-    { label: "Vos droits", href: "/vos-droits" },
-    { label: "Agenda", href: "/agenda" },
+  const quickActions = [
+    { icon: UserPlus, title: "Adhérer", desc: "Générer le bulletin officiel pré-rempli", href: "/adhesion", accent: "bg-red-50 text-red-600" },
+    { icon: Shield, title: "Vos droits", desc: "Comprendre vos droits au travail", href: "/vos-droits", accent: "bg-teal-50 text-teal-600" },
+    { icon: MessageSquare, title: "Mes demandes", desc: "Transmettre un bulletin ou suivre un dossier", href: "/mes-reclamations", accent: "bg-red-50 text-red-600" },
+    { icon: Calendar, title: "Agenda", desc: "Voir les événements et temps forts", href: "/agenda", accent: "bg-teal-50 text-teal-600" },
+    { icon: FolderOpen, title: "Documents utiles", desc: "Modèles, accords et ressources", href: "/documents-utiles", accent: "bg-red-50 text-red-600" },
+    { icon: Newspaper, title: "Actualités", desc: "Suivre les dernières publications", href: "/actualites", accent: "bg-teal-50 text-teal-600" },
   ];
 
-  const articlesToDisplay = articles.map((article) => ({
-    id: article.id,
-    title: article.title || "Actualité FO COM",
-    category: article.category ? categoryLabels[article.category] || article.category : "Actualité",
-    href: article.slug ? `/actualites/${article.slug}` : "/actualites",
-    date: formatDate(article.published_at || article.created_at),
-    excerpt: article.excerpt || (article.content ? stripHtml(article.content).slice(0, 150) : ""),
-  }));
+  const journeyCards = [
+    {
+      title: "Je veux adhérer",
+      description: "Un parcours simple pour remplir, signer et transmettre votre bulletin officiel.",
+      href: "/adhesion",
+      color: "from-red-600 to-red-700",
+      steps: [
+        { icon: PenLine, label: "Remplir le formulaire" },
+        { icon: Download, label: "Télécharger le PDF" },
+        { icon: Send, label: "Transmettre via Mes demandes" },
+      ],
+    },
+    {
+      title: "J’ai une question ou un dossier",
+      description: "Consultez vos droits, préparez votre demande et échangez avec FO COM.",
+      href: "/mes-reclamations",
+      color: "from-teal-600 to-cyan-700",
+      steps: [
+        { icon: Scale, label: "Comprendre mes droits" },
+        { icon: ClipboardList, label: "Créer une demande" },
+        { icon: MessageSquare, label: "Suivre les échanges" },
+      ],
+    },
+  ];
+
+  const focusCards = [
+    { icon: Handshake, title: "NAO 2026", desc: "Propositions finales Direction, position FO et refus de signature.", href: "/nao2026", label: "Négociations" },
+    { icon: Trophy, title: "Résultats CSE 2026", desc: "Retrouvez les résultats définitifs et vos élus FO COM.", href: "/elections", label: "CSE 2026" },
+    { icon: Users, title: "Le syndicat", desc: "Représentants, histoire, présence terrain et contacts FO COM.", href: "/le-syndicat", label: "FO COM" },
+  ];
+
+  const fallbackArticles = [
+    { title: "NAO 2026 UES ILIAD : propositions insuffisantes face aux attentes des salariés", category: "Négociations", href: "/nao2026", date: "" },
+    { title: "Élections CSE 2026 : FO COM 1ère force syndicale", category: "CSE", href: "/elections", date: "" },
+    { title: "Bilan CSE 2022–2026 : un mandat d’actions concrètes", category: "Bilan", href: "/bilan-mandat", date: "" },
+  ];
+
+  const articlesToDisplay = latestArticles.length > 0
+    ? latestArticles.map((article) => ({
+        title: article.title || "Actualité FO COM",
+        category: article.category ? categoryLabels[article.category] || article.category : "Actualité",
+        href: article.slug ? `/actualites/${article.slug}` : "/actualites",
+        date: formatDate(article.published_at || article.created_at),
+        excerpt: article.excerpt || (article.content ? stripHtml(article.content).slice(0, 120) : ""),
+      }))
+    : fallbackArticles;
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-slate-50 text-slate-800">
-      <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-slate-50/90 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-3.5">
-          <Link to="/" aria-label="FO COM UES Iliad, accueil" className="flex shrink-0 items-center gap-3 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600">
-            <span className="grid h-10 w-10 place-items-center rounded-full border-2 border-red-600 bg-white font-display text-sm font-extrabold text-red-600 shadow-sm">FO</span>
-            <span className="leading-tight"><span className="block font-display text-lg font-extrabold tracking-tight text-slate-950">FO COM</span><span className="block text-xs font-semibold text-slate-500">UES ILIAD</span></span>
-          </Link>
-          <nav className="hidden items-center gap-7 md:flex" aria-label="Navigation principale">
-            {navLinks.map((item) => <Link key={item.href} to={item.href} className="text-sm font-semibold text-slate-600 transition-colors hover:text-red-600">{item.label}</Link>)}
-            <Button asChild className="rounded-xl bg-red-600 font-semibold text-white shadow-sm hover:bg-red-700"><Link to="/adhesion"><UserRoundPlus className="mr-2 h-4 w-4" /> Adhérer</Link></Button>
-          </nav>
-          <button type="button" className="grid h-10 w-10 place-items-center rounded-xl border border-slate-200 bg-white text-slate-700 md:hidden" aria-label={mobileOpen ? "Fermer le menu" : "Ouvrir le menu"} aria-expanded={mobileOpen} onClick={() => setMobileOpen((open) => !open)}>
-            {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </button>
-        </div>
-        {mobileOpen && <nav className="flex flex-col gap-1 border-t border-slate-200 bg-white px-5 py-3 md:hidden" aria-label="Navigation mobile">
-          {navLinks.map((item) => <Link key={item.href} to={item.href} onClick={() => setMobileOpen(false)} className="rounded-lg px-3 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">{item.label}</Link>)}
-          <Link to="/adhesion" onClick={() => setMobileOpen(false)} className="rounded-lg px-3 py-2.5 text-sm font-bold text-red-600">Adhérer à FO COM</Link>
-        </nav>}
-      </header>
-
-      <section className="mx-auto grid max-w-6xl items-center gap-10 px-5 pb-16 pt-14 sm:pt-20 lg:grid-cols-[1.35fr_0.85fr] lg:gap-14 lg:pb-24">
-        <div>
-          <p className="mb-5 inline-flex items-center gap-2 rounded-full bg-teal-600/10 px-3.5 py-2 text-sm font-bold text-teal-800"><ShieldCheck className="h-4 w-4" /> Première organisation de l’UES Iliad</p>
-          <h1 className="max-w-3xl font-display text-4xl font-extrabold leading-[1.04] tracking-tight text-slate-950 sm:text-5xl lg:text-6xl">{heroTitle}</h1>
-          <p className="mt-6 max-w-2xl text-base leading-7 text-slate-600 sm:text-lg sm:leading-8">{heroSubtitle}</p>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Button asChild className="h-12 rounded-xl bg-red-600 px-5 font-semibold text-white shadow-sm hover:bg-red-700"><Link to="/permanences"><CalendarDays className="mr-2 h-4 w-4" /> Prendre rendez-vous</Link></Button>
-            <Button asChild variant="outline" className="h-12 rounded-xl border-slate-300 bg-white px-5 font-semibold text-slate-800 hover:border-teal-600 hover:bg-teal-50"><Link to="/vos-droits"><Scale className="mr-2 h-4 w-4" /> Consulter mes droits</Link></Button>
-          </div>
-          <div className="mt-7 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-slate-500">
-            <span className="inline-flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-teal-600" /> À vos côtés sur le terrain</span>
-            <span className="inline-flex items-center gap-2"><Users className="h-4 w-4 text-teal-600" /> Une équipe à votre écoute</span>
-          </div>
-        </div>
-        <aside className="relative overflow-hidden rounded-3xl bg-slate-950 p-7 text-white shadow-xl shadow-slate-900/15 sm:p-9">
-          <div aria-hidden="true" className="absolute -right-16 -top-16 h-52 w-52 rounded-full bg-teal-500/20 blur-3xl" />
-          <div aria-hidden="true" className="absolute -bottom-20 -left-12 h-48 w-48 rounded-full bg-red-600/20 blur-3xl" />
-          <div className="relative">
-            <div className="mb-7 flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-500/15 text-teal-300"><HeartHandshake className="h-6 w-6" /></div>
-            <p className="text-sm font-bold uppercase tracking-[0.15em] text-teal-300">FO COM UES ILIAD</p>
-            <h2 className="mt-3 font-display text-2xl font-extrabold leading-tight sm:text-3xl">Informer. Défendre. Agir ensemble.</h2>
-            <p className="mt-4 text-sm leading-6 text-slate-300">Vos élus vous accompagnent dans vos démarches, vos questions professionnelles et la défense de vos droits.</p>
-            <div className="mt-7 space-y-3">
-              <Link to="/mes-reclamations" className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.06] p-3.5 transition-colors hover:bg-white/10"><span className="flex items-center gap-3 text-sm font-semibold"><MessageCircle className="h-4 w-4 text-teal-300" /> Faire une demande</span><ArrowRight className="h-4 w-4 text-slate-400" /></Link>
-              <Link to="/le-syndicat" className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.06] p-3.5 transition-colors hover:bg-white/10"><span className="flex items-center gap-3 text-sm font-semibold"><Users className="h-4 w-4 text-teal-300" /> Rencontrer vos représentants</span><ArrowRight className="h-4 w-4 text-slate-400" /></Link>
+    <main className="mx-auto min-h-screen w-full max-w-[1500px] overflow-x-hidden bg-[#f8fafc] p-4 sm:p-6 lg:p-10">
+      <OctobreRosePopup />
+      <section className="relative mb-8 overflow-hidden rounded-[2rem] bg-[#13233A] shadow-xl shadow-slate-900/10 ring-1 ring-slate-900/5 motion-safe:animate-in motion-safe:fade-in motion-safe:duration-700">
+        <img src={HERO_IMAGE} alt="FO COM UES ILIAD" className="absolute inset-0 h-full w-full object-cover opacity-30" />
+        <div className="absolute inset-0 bg-gradient-to-br from-[#111827] via-[#18283e]/95 to-red-950/80" />
+        <div aria-hidden="true" className="pointer-events-none absolute -right-24 -top-28 h-80 w-80 rounded-full bg-[#0d9488]/20 blur-3xl" />
+        <div className="relative grid gap-10 px-5 py-10 sm:px-8 sm:py-12 lg:grid-cols-[1.25fr_0.75fr] lg:px-14 lg:py-16">
+          <div className="flex flex-col justify-center">
+            <div className="mb-5 inline-flex w-fit items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] text-white/90 backdrop-blur">
+              <Sparkles className="h-3.5 w-3.5 text-red-300" /> Notre force, vos droits
+            </div>
+            <h1 className="max-w-3xl font-display text-4xl font-extrabold leading-[1.04] tracking-tight text-white sm:text-5xl lg:text-6xl">{heroTitle}</h1>
+            <p className="mt-5 max-w-2xl text-base leading-7 text-white/80 sm:text-lg sm:leading-8">{heroSubtitle}</p>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+              <Button onClick={() => navigate("/adhesion")} className="rounded-xl bg-[#dc2626] px-6 py-3 font-semibold text-white shadow-lg shadow-red-950/20 transition-all hover:-translate-y-0.5 hover:bg-red-700"><UserPlus className="mr-2 h-4 w-4" /> Adhérer maintenant</Button>
+              <Button onClick={() => navigate("/mes-reclamations")} variant="outline" className="rounded-xl border-white/25 bg-white/10 px-6 py-3 font-semibold text-white backdrop-blur transition-all hover:bg-white/20"><MessageSquare className="mr-2 h-4 w-4" /> Faire une demande</Button>
+              <Button onClick={() => navigate("/vos-droits")} variant="outline" className="rounded-xl border-teal-300/40 bg-teal-500/10 px-6 py-3 font-semibold text-white backdrop-blur transition-all hover:bg-teal-500/20"><Shield className="mr-2 h-4 w-4" /> Mes droits</Button>
             </div>
           </div>
-        </aside>
-      </section>
 
-      <section id="services" className="border-y border-slate-200/80 bg-white py-16 sm:py-20">
-        <div className="mx-auto max-w-6xl px-5">
-          <div className="mb-9 max-w-2xl"><p className="text-sm font-extrabold uppercase tracking-[0.16em] text-red-600">Vos droits et services</p><h2 className="mt-3 font-display text-3xl font-extrabold tracking-tight text-slate-950 sm:text-4xl">Comment FO COM peut vous aider ?</h2><p className="mt-3 leading-7 text-slate-600">Accédez directement aux ressources et aux démarches utiles dans votre vie professionnelle.</p></div>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {services.map((service) => <Link key={service.href} to={service.href} className="group rounded-2xl border border-slate-200 bg-slate-50/70 p-5 transition-all duration-200 hover:-translate-y-1 hover:border-teal-300 hover:bg-white hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600">
-              <span className="mb-5 grid h-11 w-11 place-items-center rounded-xl bg-white text-teal-700 shadow-sm ring-1 ring-slate-200 transition-colors group-hover:bg-teal-600 group-hover:text-white"><service.icon className="h-5 w-5" /></span>
-              <h3 className="font-display text-lg font-extrabold text-slate-950">{service.title}</h3><p className="mt-2 min-h-[4.5rem] text-sm leading-6 text-slate-600">{service.text}</p><span className="mt-4 inline-flex items-center gap-1 text-sm font-bold text-red-600">{service.label}<ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" /></span>
-            </Link>)}
+          <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
+            {[
+              { icon: CheckCircle2, title: "FO 1ère force", text: "Merci pour votre mobilisation aux élections CSE 2026." },
+              { icon: Handshake, title: "NAO 2026", text: "FO refuse de signer des propositions insuffisantes." },
+              { icon: MessageSquare, title: "Accompagnement", text: "Une question, un dossier, une adhésion : FO COM répond présent." },
+            ].map((item) => (
+              <div key={item.title} className="rounded-2xl border border-white/10 bg-white/10 p-4 text-white shadow-lg backdrop-blur">
+                <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-white/15"><item.icon className="h-5 w-5" /></div>
+                <p className="font-bold">{item.title}</p>
+                <p className="mt-1 text-xs leading-relaxed text-white/75">{item.text}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
-      <section id="actualites" className="mx-auto max-w-6xl px-5 py-16 sm:py-20">
-        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-sm font-extrabold uppercase tracking-[0.16em] text-teal-700">À la une</p><h2 className="mt-3 font-display text-3xl font-extrabold tracking-tight text-slate-950 sm:text-4xl">Les dernières actualités</h2><p className="mt-3 text-slate-600">Les publications récentes de FO COM UES ILIAD.</p></div><Link to="/actualites" className="inline-flex w-fit items-center gap-2 text-sm font-bold text-red-600 hover:text-red-700">Toutes les actualités <ArrowRight className="h-4 w-4" /></Link></div>
-        {articlesToDisplay.length > 0 ? <div className="grid gap-5 md:grid-cols-3">
-          {articlesToDisplay.map((article, index) => <Link key={article.id} to={article.href} className={`group flex min-h-64 flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg ${index === 0 ? "md:border-t-4 md:border-t-red-600" : "md:border-t-4 md:border-t-teal-600"}`}>
-            <span className="mb-5 flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-700"><Newspaper className="h-5 w-5" /></span><p className="text-xs font-bold uppercase tracking-wide text-teal-700">{article.category}{article.date ? ` · ${article.date}` : ""}</p><h3 className="mt-3 font-display text-xl font-extrabold leading-snug text-slate-950 group-hover:text-red-600">{article.title}</h3>{article.excerpt && <p className="mt-3 line-clamp-3 text-sm leading-6 text-slate-600">{article.excerpt}</p>}<span className="mt-auto inline-flex items-center gap-1 pt-5 text-sm font-bold text-red-600">Lire l’article <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" /></span>
-          </Link>)}
-        </div> : <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center"><Newspaper className="mx-auto h-8 w-8 text-slate-400" /><p className="mt-3 font-semibold text-slate-800">Les prochaines actualités seront publiées ici.</p><Link to="/actualites" className="mt-3 inline-flex items-center gap-1 text-sm font-bold text-red-600">Consulter les actualités <ArrowRight className="h-4 w-4" /></Link></div>}
-      </section>
+      <OctobreRoseFlash />
 
-      <section id="adherer" className="px-5 pb-16">
-        <div className="relative mx-auto flex max-w-6xl flex-col items-start justify-between gap-6 overflow-hidden rounded-3xl bg-red-600 p-7 text-white sm:flex-row sm:items-center sm:p-10 lg:p-12">
-          <div aria-hidden="true" className="pointer-events-none absolute -right-10 -top-20 h-64 w-64 rounded-full border-[35px] border-white/10" />
-          <div className="relative"><p className="text-sm font-bold uppercase tracking-[0.16em] text-red-100">Ensemble, plus forts</p><h2 className="mt-2 font-display text-3xl font-extrabold tracking-tight sm:text-4xl">Rejoignez FO COM</h2><p className="mt-3 max-w-xl leading-7 text-red-50">Plus nous sommes nombreux, plus nous pouvons porter la voix des salariés et défendre leurs droits.</p></div>
-          <Button asChild className="relative h-12 shrink-0 rounded-xl bg-white px-6 font-bold text-red-700 hover:bg-red-50"><Link to="/adhesion"><UserRoundPlus className="mr-2 h-4 w-4" /> Adhérer en ligne</Link></Button>
+      <section className="mb-8 rounded-2xl border border-teal-100/80 bg-white p-5 shadow-sm shadow-slate-900/[0.03] sm:p-6">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-600"><Trophy className="h-5 w-5" /></div>
+            <div>
+              <p className="text-sm font-extrabold text-slate-900">Élections CSE 2026 : FO COM 1ère force syndicale</p>
+              <p className="mt-1 text-sm text-slate-500">Le scrutin est terminé. Retrouvez les résultats définitifs, les élus et les suites du mandat.</p>
+            </div>
+          </div>
+          <Button asChild variant="outline" className="w-full border-teal-200 text-teal-700 hover:bg-teal-50 sm:w-auto"><Link to="/elections">Voir les résultats <ChevronRight className="ml-1 h-4 w-4" /></Link></Button>
         </div>
       </section>
 
-      <section className="bg-slate-950 py-12 text-white sm:py-14">
-        <div className="mx-auto flex max-w-6xl flex-col gap-6 px-5 lg:flex-row lg:items-center lg:justify-between">
-          <div className="max-w-xl"><p className="font-display text-xl font-extrabold">Recevez les informations FO COM</p><p className="mt-2 text-sm leading-6 text-slate-300">Actualités, droits, accords et informations sociales directement par e-mail.</p></div>
-          <div className="w-full lg:max-w-lg">
-            {newsletterStatus === "success" ? <p className="flex items-center gap-2 text-sm font-semibold text-teal-300"><CheckCircle2 className="h-5 w-5" /> Votre demande d’inscription a été enregistrée.</p> : <form onSubmit={subscribe} className="flex flex-col gap-2 sm:flex-row"><Input type="email" required value={email} onChange={(event) => { setEmail(event.target.value); setNewsletterStatus("idle"); }} placeholder="votre@email.fr" aria-label="Adresse e-mail pour la newsletter" className="h-11 border-white/20 bg-white/10 text-white placeholder:text-slate-400 sm:flex-1" /><Button type="submit" disabled={newsletterStatus === "loading"} className="h-11 rounded-lg bg-red-600 font-bold text-white hover:bg-red-700">{newsletterStatus === "loading" ? "Inscription…" : "Je m’abonne"}</Button></form>}
-            {newsletterStatus === "duplicate" && <p role="status" className="mt-2 text-xs text-amber-300">Cette adresse e-mail est déjà inscrite.</p>}
-            {newsletterStatus === "error" && <p role="alert" className="mt-2 text-xs text-red-300">L’inscription a échoué. Veuillez réessayer.</p>}
+      <section className="mb-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {quickActions.map((item) => (
+          <Link key={item.title} to={item.href} className="group rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm shadow-slate-900/[0.03] transition-all duration-200 hover:-translate-y-1 hover:border-teal-200 hover:shadow-lg hover:shadow-slate-900/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-2">
+            <div className="flex items-start gap-3">
+              <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${item.accent}`}><item.icon className="h-5 w-5" /></div>
+              <div className="min-w-0"><p className="font-bold text-slate-900 group-hover:text-red-600">{item.title}</p><p className="mt-1 text-xs leading-relaxed text-slate-500">{item.desc}</p></div>
+              <ChevronRight className="ml-auto h-4 w-4 shrink-0 text-slate-300 group-hover:text-red-500" />
+            </div>
+          </Link>
+        ))}
+      </section>
+
+      <section className="mb-10 grid gap-5 lg:grid-cols-2">
+        {journeyCards.map((journey) => (
+          <Link key={journey.title} to={journey.href} className="group overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-sm shadow-slate-900/[0.03] transition-all duration-200 hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-900/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-2">
+            <div className={`h-2 bg-gradient-to-r ${journey.color}`} />
+            <div className="p-5 sm:p-6">
+              <div className="mb-4 flex items-start justify-between gap-3"><div><h2 className="text-xl font-extrabold text-slate-900 group-hover:text-red-600">{journey.title}</h2><p className="mt-1 text-sm leading-relaxed text-slate-500">{journey.description}</p></div><ChevronRight className="h-5 w-5 shrink-0 text-slate-300 group-hover:text-red-500" /></div>
+              <div className="grid gap-2 sm:grid-cols-3">
+                {journey.steps.map((step, index) => <div key={step.label} className="rounded-2xl bg-slate-50 p-3"><div className="mb-2 flex h-9 w-9 items-center justify-center rounded-xl bg-white text-slate-700 shadow-sm"><step.icon className="h-4 w-4" /></div><p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">Étape {index + 1}</p><p className="mt-1 text-xs font-semibold text-slate-700">{step.label}</p></div>)}
+              </div>
+            </div>
+          </Link>
+        ))}
+      </section>
+
+      <section className="mb-8 grid gap-5 lg:grid-cols-3">
+        {focusCards.map((card) => (
+          <Link key={card.title} to={card.href} className="group overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm shadow-slate-900/[0.03] transition-all duration-200 hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-900/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-2">
+            <div className="h-1.5 bg-gradient-to-r from-red-600 to-teal-500" />
+            <div className="p-5"><div className="mb-4 flex items-center justify-between gap-3"><div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-100 text-slate-700"><card.icon className="h-5 w-5" /></div><span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-slate-500">{card.label}</span></div><h2 className="text-lg font-extrabold text-slate-900 group-hover:text-red-600">{card.title}</h2><p className="mt-2 text-sm leading-relaxed text-slate-500">{card.desc}</p><div className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-teal-700">Accéder <ChevronRight className="h-4 w-4" /></div></div>
+          </Link>
+        ))}
+      </section>
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="space-y-6 lg:col-span-2">
+          <section className="rounded-3xl border border-slate-200/80 bg-white p-5 shadow-sm shadow-slate-900/[0.03] sm:p-6">
+            <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"><div><h2 className="text-xl font-extrabold text-slate-900">Actualités récentes</h2><p className="text-sm text-slate-500">Les dernières publications FO COM.</p></div><Link to="/actualites" className="inline-flex items-center gap-1 text-sm font-semibold text-red-600 hover:text-red-700">Voir toutes les actualités <ChevronRight className="h-4 w-4" /></Link></div>
+            <div className="space-y-3">
+              {articlesToDisplay.map((article) => (
+                <Link key={article.title} to={article.href} className="flex items-center gap-4 rounded-xl border border-slate-100 p-3 transition-colors hover:bg-slate-50">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-600"><FileText className="h-5 w-5" /></div>
+                  <div className="min-w-0 flex-1"><p className="line-clamp-2 text-sm font-bold text-slate-900">{article.title}</p>{"excerpt" in article && article.excerpt && <p className="mt-1 line-clamp-1 text-xs text-slate-500">{article.excerpt}</p>}<p className="mt-1 text-xs font-medium text-teal-600">{article.category}{article.date ? ` · ${article.date}` : ""}</p></div>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-slate-300" />
+                </Link>
+              ))}
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+            <div className="mb-5 flex items-start justify-between gap-4"><div><h2 className="text-xl font-extrabold text-slate-900">Espace salariés & adhérents</h2><p className="mt-1 text-sm text-slate-500">Des outils utiles pour agir rapidement.</p></div><Users className="h-6 w-6 text-teal-600" /></div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {[
+                { icon: ClipboardList, title: "Faire une demande", href: "/mes-reclamations" },
+                { icon: Calendar, title: "Prendre RDV", href: "/permanences" },
+                { icon: HelpCircle, title: "FAQ", href: "/faq" },
+                { icon: Mail, title: "Nous contacter", href: "/contact" },
+                { icon: Lock, title: "Espace adhérent", href: "/profil" },
+                { icon: Award, title: "Adhérer", href: "/adhesion" },
+              ].map((item) => <Link key={item.title} to={item.href} className="flex items-center gap-3 rounded-xl border border-slate-100 p-3 text-sm font-semibold text-slate-700 transition-colors hover:border-red-100 hover:bg-red-50 hover:text-red-700"><item.icon className="h-4 w-4 shrink-0" />{item.title}</Link>)}
+            </div>
+          </section>
+        </div>
+
+        <div className="space-y-6">
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+            <div className="mb-4 flex items-center justify-between gap-3"><h2 className="text-base font-extrabold text-slate-900">Nos actions concrètes</h2><Link to="/bilan-mandat" className="text-xs font-bold text-red-600">Bilan</Link></div>
+            <p className="mb-5 text-xs leading-relaxed text-slate-500">Un mandat d’actions, de présence terrain et de défense collective.</p>
+            <div className="mb-6 grid grid-cols-2 gap-3">
+              {[
+                { value: "745+", label: "Réclamations", icon: FileText },
+                { value: "164", label: "Consultations", icon: Users },
+                { value: "8", label: "Accords", icon: CheckCircle2 },
+                { value: "18", label: "Expertises", icon: Eye },
+              ].map((stat) => (
+                <div key={stat.label} className="rounded-xl bg-slate-50 p-3 text-center"><stat.icon className="mx-auto mb-2 h-4 w-4 text-teal-600" /><div className="text-3xl font-extrabold text-red-600">{stat.value}</div><p className="mt-1 text-[10px] text-slate-500">{stat.label}</p></div>
+              ))}
+            </div>
+            <div className="space-y-3">
+              <ProgressBar label="Santé / sécurité / RPS" value={92} />
+              <ProgressBar label="Pouvoir d’achat" value={85} />
+              <ProgressBar label="Conditions de travail" value={90} />
+              <ProgressBar label="Dialogue social" value={80} />
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+            <h2 className="mb-4 text-base font-extrabold text-slate-900">Nos combats, vos droits</h2>
+            <div className="space-y-4">
+              {[
+                { icon: Shield, title: "Défendre", items: ["Respect des accords", "Santé & sécurité", "RPS"] },
+                { icon: Handshake, title: "Négocier", items: ["Salaires & primes", "Astreintes", "Temps de travail"] },
+                { icon: Heart, title: "Agir ensemble", items: ["Réclamations", "Expertises", "Mobilisations"] },
+              ].map((block) => <div key={block.title}><div className="mb-2 flex items-center gap-2"><div className="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-50 text-teal-600"><block.icon className="h-4 w-4" /></div><p className="font-bold text-slate-900">{block.title}</p></div><ul className="ml-10 space-y-1 text-xs text-slate-600">{block.items.map((item) => <li key={item}>• {item}</li>)}</ul></div>)}
+            </div>
+          </section>
+
+          <div className="rounded-3xl bg-gradient-to-br from-teal-700 to-teal-800 p-6 text-white shadow-lg shadow-teal-900/10"><img loading="lazy" src={SOLIDARITY_IMAGE} alt="Solidarité" className="mb-3 h-16 w-16 rounded-xl object-cover" /><h2 className="font-bold">Notre engagement</h2><p className="mt-2 text-xs leading-relaxed text-teal-100">Transparence, écoute et action : notre priorité, c’est vous.</p></div>
+        </div>
+      </div>
+
+      <section className="relative mt-10 overflow-hidden rounded-[2rem] bg-gradient-to-br from-slate-900 via-slate-900 to-[#13233A] p-6 shadow-xl shadow-slate-900/10 sm:p-9">
+        <div className="pointer-events-none absolute inset-0 opacity-10"><div className="absolute -right-16 -top-16 h-64 w-64 rounded-full border-[40px] border-white" /><div className="absolute -left-8 -bottom-8 h-48 w-48 rounded-full border-[24px] border-white" /></div>
+        <div className="relative flex flex-col gap-5 lg:flex-row lg:items-center">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-red-600"><Bell className="h-6 w-6 text-white" /></div>
+          <div className="flex-1"><h2 className="text-lg font-bold text-white">Recevez les infos FO COM directement par email</h2><p className="mt-1 text-sm text-slate-400">NAO, droits, accords, alertes sociales et documents utiles.</p></div>
+          <div className="w-full lg:w-auto">
+            {nlStatus === "success" ? <div className="flex items-center gap-2 text-sm font-semibold text-teal-300"><CheckCircle2 className="h-5 w-5" /> Inscription confirmée !</div> : (
+              <form onSubmit={handleSubscribe} className="flex flex-col gap-2 sm:flex-row"><Input type="email" required placeholder="votre@email.fr" value={nlEmail} onChange={(e) => { setNlEmail(e.target.value); setNlStatus("idle"); }} className="w-full border-white/20 bg-white/10 text-white placeholder:text-slate-400 focus-visible:ring-red-500 sm:w-64" /><Button type="submit" disabled={nlStatus === "loading"} className="bg-red-600 font-semibold text-white hover:bg-red-700">{nlStatus === "loading" ? "..." : "Je m’abonne"}</Button></form>
+            )}
+            {nlStatus === "duplicate" && <p className="mt-2 text-xs text-amber-300">Cette adresse est déjà abonnée.</p>}
+            {nlStatus === "error" && <p className="mt-2 text-xs text-red-300">Une erreur est survenue, veuillez réessayer.</p>}
           </div>
         </div>
       </section>
 
-      <footer className="border-t border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-6xl flex-col gap-4 px-5 py-7 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between">
-          <Link to="/" className="font-display font-extrabold text-slate-900">FO COM <span className="font-medium text-slate-500">UES ILIAD</span></Link>
-          <nav className="flex flex-wrap gap-x-5 gap-y-2" aria-label="Liens de pied de page"><Link to="/mentions-legales" className="hover:text-red-600">Mentions légales</Link><Link to="/rgpd" className="hover:text-red-600">RGPD</Link><Link to="/contact" className="inline-flex items-center gap-1 hover:text-red-600"><Mail className="h-3.5 w-3.5" /> Contact</Link></nav>
-          <span className="text-xs">© 2026 FO COM UES ILIAD</span>
+      <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div className="flex items-center gap-3"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-teal-50"><HelpCircle className="h-5 w-5 text-teal-600" /></div><div><p className="text-sm font-semibold text-slate-900">Une question ?</p><p className="text-xs text-slate-500">Les élus FO COM sont à votre écoute.</p></div></div>
+          <div className="flex items-center gap-3"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-50"><Phone className="h-5 w-5 text-red-600" /></div><div><p className="text-sm font-semibold text-slate-900">01 23 45 67 89</p><p className="text-xs text-slate-500">Appel non surtaxé</p></div></div>
+          <div className="flex items-center gap-3 min-w-0"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-50"><Mail className="h-5 w-5 text-red-600" /></div><div className="min-w-0"><p className="truncate text-sm font-semibold text-slate-900">contact@focomues-iliad.fr</p><p className="text-xs text-slate-500">Nous vous répondons rapidement</p></div></div>
+        </div>
+      </section>
+
+      <footer className="mt-10 border-t border-slate-200 py-8">
+        <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
+          <p className="text-center text-xs text-slate-500 sm:text-left">© 2026 FO COM UES ILIAD – Tous droits réservés</p>
+          <div className="flex flex-wrap justify-center gap-4 text-xs text-slate-500">
+            <Link to="/mentions-legales" className="hover:text-red-600">Mentions légales</Link>
+            <Link to="/rgpd" className="hover:text-red-600">RGPD</Link>
+            <Link to="/contact" className="hover:text-red-600">Contact</Link>
+          </div>
         </div>
       </footer>
     </main>
