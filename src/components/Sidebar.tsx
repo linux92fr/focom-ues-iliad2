@@ -56,12 +56,12 @@ function NavItem({ item, onNavigate }: { item: { to: string; label: string; icon
       to={item.to}
       end={item.end}
       onClick={onNavigate}
-      className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200 ${
+      className={`flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors ${
         isActive
-          ? "bg-red-600 text-white shadow-md shadow-red-600/15"
+          ? "bg-secondary text-secondary-foreground"
           : item.highlight
-            ? "bg-red-50 text-red-700 hover:bg-red-600 hover:text-white"
-            : "text-slate-600 hover:bg-slate-100 hover:text-red-700"
+            ? "bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground"
+            : "text-foreground hover:bg-muted"
       }`}
     >
       <Icon className="h-5 w-5 shrink-0" />
@@ -81,7 +81,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
   return (
     <>
-      <div className="border-b border-slate-200 bg-gradient-to-br from-white via-white to-red-50/70 p-5">
+      <div className="border-b border-border p-5">
         <div className="flex items-center gap-3">
           <img loading="lazy" src={logoFocom} alt="FOCOM" className="h-12 w-12 object-contain" />
           <div className="min-w-0">
@@ -94,9 +94,9 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         </div>
       </div>
 
-      <nav className="flex-1 space-y-6 overflow-y-auto bg-slate-50/70 p-3">
-        <div className="space-y-1.5">
-          <p className="px-4 pb-2 text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">Principal</p>
+      <nav className="flex-1 space-y-5 overflow-y-auto p-3">
+        <div className="space-y-1">
+          <p className="px-4 pb-1 text-[10px] font-black uppercase tracking-wider text-muted-foreground">Principal</p>
           {mainNavItems.map((item) => <NavItem key={item.label} item={item} onNavigate={onNavigate} />)}
         </div>
 
@@ -121,7 +121,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         </div>
       </nav>
 
-      <div className="border-t border-slate-200 bg-white p-5">
+      <div className="border-t border-border bg-muted/30 p-5">
         <p className="text-xs italic leading-relaxed text-muted-foreground">
           Seul on va plus vite,<br />ensemble on va plus loin.
         </p>
@@ -137,7 +137,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
 const Sidebar = () => {
   return (
-    <aside className="hidden h-screen shrink-0 flex-col border-r border-slate-200 bg-white lg:flex lg:w-64">
+    <aside className="hidden h-screen shrink-0 flex-col border-r border-border bg-card lg:flex lg:w-64">
       <SidebarContent />
     </aside>
   );
