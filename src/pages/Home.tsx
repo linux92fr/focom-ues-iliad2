@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { Link } from "react-router-dom";
 import {
-  ArrowRight, CalendarDays, CheckCircle2, FileText, HeartHandshake,
+  ArrowRight, CalendarDays, CheckCircle2, ChevronRight, FileText, HeartHandshake,
   Mail, Menu, MessageCircle, Newspaper, Scale, ShieldCheck, UserRoundPlus, Users, X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
