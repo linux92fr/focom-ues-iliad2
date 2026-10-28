@@ -193,22 +193,23 @@ export default function Home() {
     : fallbackArticles;
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-slate-50 p-3 sm:p-4 lg:p-8">
+    <main className="mx-auto min-h-screen w-full max-w-[1500px] overflow-x-hidden bg-[#f8fafc] p-4 sm:p-6 lg:p-10">
       <OctobreRosePopup />
-      <section className="relative mb-6 overflow-hidden rounded-3xl bg-[#13233A] shadow-xl">
+      <section className="relative mb-8 overflow-hidden rounded-[2rem] bg-[#13233A] shadow-xl shadow-slate-900/10 ring-1 ring-slate-900/5 motion-safe:animate-in motion-safe:fade-in motion-safe:duration-700">
         <img src={HERO_IMAGE} alt="FO COM UES ILIAD" className="absolute inset-0 h-full w-full object-cover opacity-30" />
-        <div className="absolute inset-0 bg-gradient-to-br from-[#13233A] via-[#13233A]/95 to-red-950/75" />
-        <div className="relative grid gap-8 px-5 py-10 sm:px-8 lg:grid-cols-[1.15fr_0.85fr] lg:px-12 lg:py-14">
+        <div className="absolute inset-0 bg-gradient-to-br from-[#111827] via-[#18283e]/95 to-red-950/80" />
+        <div aria-hidden="true" className="pointer-events-none absolute -right-24 -top-28 h-80 w-80 rounded-full bg-[#0d9488]/20 blur-3xl" />
+        <div className="relative grid gap-10 px-5 py-10 sm:px-8 sm:py-12 lg:grid-cols-[1.25fr_0.75fr] lg:px-14 lg:py-16">
           <div className="flex flex-col justify-center">
-            <div className="mb-4 inline-flex w-fit items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-white/85 backdrop-blur">
+            <div className="mb-5 inline-flex w-fit items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] text-white/90 backdrop-blur">
               <Sparkles className="h-3.5 w-3.5 text-red-300" /> Notre force, vos droits
             </div>
-            <h1 className="max-w-3xl text-3xl font-extrabold leading-tight text-white sm:text-5xl lg:text-6xl">{heroTitle}</h1>
-            <p className="mt-4 max-w-2xl text-sm leading-relaxed text-white/85 sm:text-lg">{heroSubtitle}</p>
-            <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-              <Button onClick={() => navigate("/adhesion")} className="bg-red-600 px-6 py-3 text-white hover:bg-red-700"><UserPlus className="mr-2 h-4 w-4" /> Adhérer maintenant</Button>
-              <Button onClick={() => navigate("/mes-reclamations")} variant="outline" className="border-white/30 bg-white/10 px-6 py-3 text-white backdrop-blur hover:bg-white/20"><MessageSquare className="mr-2 h-4 w-4" /> Faire une demande</Button>
-              <Button onClick={() => navigate("/vos-droits")} variant="outline" className="border-teal-300/40 bg-teal-500/10 px-6 py-3 text-white backdrop-blur hover:bg-teal-500/20"><Shield className="mr-2 h-4 w-4" /> Mes droits</Button>
+            <h1 className="max-w-3xl font-display text-4xl font-extrabold leading-[1.04] tracking-tight text-white sm:text-5xl lg:text-6xl">{heroTitle}</h1>
+            <p className="mt-5 max-w-2xl text-base leading-7 text-white/80 sm:text-lg sm:leading-8">{heroSubtitle}</p>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+              <Button onClick={() => navigate("/adhesion")} className="rounded-xl bg-[#dc2626] px-6 py-3 font-semibold text-white shadow-lg shadow-red-950/20 transition-all hover:-translate-y-0.5 hover:bg-red-700"><UserPlus className="mr-2 h-4 w-4" /> Adhérer maintenant</Button>
+              <Button onClick={() => navigate("/mes-reclamations")} variant="outline" className="rounded-xl border-white/25 bg-white/10 px-6 py-3 font-semibold text-white backdrop-blur transition-all hover:bg-white/20"><MessageSquare className="mr-2 h-4 w-4" /> Faire une demande</Button>
+              <Button onClick={() => navigate("/vos-droits")} variant="outline" className="rounded-xl border-teal-300/40 bg-teal-500/10 px-6 py-3 font-semibold text-white backdrop-blur transition-all hover:bg-teal-500/20"><Shield className="mr-2 h-4 w-4" /> Mes droits</Button>
             </div>
           </div>
 
@@ -230,7 +231,7 @@ export default function Home() {
 
       <OctobreRoseFlash />
 
-      <section className="mb-6 rounded-2xl border border-teal-100 bg-white p-4 shadow-sm sm:p-5">
+      <section className="mb-8 rounded-2xl border border-teal-100/80 bg-white p-5 shadow-sm shadow-slate-900/[0.03] sm:p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex gap-3">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-600"><Trophy className="h-5 w-5" /></div>
@@ -243,9 +244,9 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="mb-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <section className="mb-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {quickActions.map((item) => (
-          <Link key={item.title} to={item.href} className="group rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:border-teal-200 hover:shadow-md">
+          <Link key={item.title} to={item.href} className="group rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm shadow-slate-900/[0.03] transition-all duration-200 hover:-translate-y-1 hover:border-teal-200 hover:shadow-lg hover:shadow-slate-900/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-2">
             <div className="flex items-start gap-3">
               <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${item.accent}`}><item.icon className="h-5 w-5" /></div>
               <div className="min-w-0"><p className="font-bold text-slate-900 group-hover:text-red-600">{item.title}</p><p className="mt-1 text-xs leading-relaxed text-slate-500">{item.desc}</p></div>
@@ -255,9 +256,9 @@ export default function Home() {
         ))}
       </section>
 
-      <section className="mb-8 grid gap-5 lg:grid-cols-2">
+      <section className="mb-10 grid gap-5 lg:grid-cols-2">
         {journeyCards.map((journey) => (
-          <Link key={journey.title} to={journey.href} className="group overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg">
+          <Link key={journey.title} to={journey.href} className="group overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-sm shadow-slate-900/[0.03] transition-all duration-200 hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-900/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-2">
             <div className={`h-2 bg-gradient-to-r ${journey.color}`} />
             <div className="p-5 sm:p-6">
               <div className="mb-4 flex items-start justify-between gap-3"><div><h2 className="text-xl font-extrabold text-slate-900 group-hover:text-red-600">{journey.title}</h2><p className="mt-1 text-sm leading-relaxed text-slate-500">{journey.description}</p></div><ChevronRight className="h-5 w-5 shrink-0 text-slate-300 group-hover:text-red-500" /></div>
@@ -271,7 +272,7 @@ export default function Home() {
 
       <section className="mb-8 grid gap-5 lg:grid-cols-3">
         {focusCards.map((card) => (
-          <Link key={card.title} to={card.href} className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg">
+          <Link key={card.title} to={card.href} className="group overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm shadow-slate-900/[0.03] transition-all duration-200 hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-900/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-2">
             <div className="h-1.5 bg-gradient-to-r from-red-600 to-teal-500" />
             <div className="p-5"><div className="mb-4 flex items-center justify-between gap-3"><div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-100 text-slate-700"><card.icon className="h-5 w-5" /></div><span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-slate-500">{card.label}</span></div><h2 className="text-lg font-extrabold text-slate-900 group-hover:text-red-600">{card.title}</h2><p className="mt-2 text-sm leading-relaxed text-slate-500">{card.desc}</p><div className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-teal-700">Accéder <ChevronRight className="h-4 w-4" /></div></div>
           </Link>
@@ -280,7 +281,7 @@ export default function Home() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
-          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+          <section className="rounded-3xl border border-slate-200/80 bg-white p-5 shadow-sm shadow-slate-900/[0.03] sm:p-6">
             <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"><div><h2 className="text-xl font-extrabold text-slate-900">Actualités récentes</h2><p className="text-sm text-slate-500">Les dernières publications FO COM.</p></div><Link to="/actualites" className="inline-flex items-center gap-1 text-sm font-semibold text-red-600 hover:text-red-700">Voir toutes les actualités <ChevronRight className="h-4 w-4" /></Link></div>
             <div className="space-y-3">
               {articlesToDisplay.map((article) => (
@@ -341,11 +342,11 @@ export default function Home() {
             </div>
           </section>
 
-          <div className="rounded-2xl bg-gradient-to-br from-teal-600 to-teal-700 p-6 text-white shadow-lg"><img loading="lazy" src={SOLIDARITY_IMAGE} alt="Solidarité" className="mb-3 h-16 w-16 rounded-xl object-cover" /><h2 className="font-bold">Notre engagement</h2><p className="mt-2 text-xs leading-relaxed text-teal-100">Transparence, écoute et action : notre priorité, c’est vous.</p></div>
+          <div className="rounded-3xl bg-gradient-to-br from-teal-700 to-teal-800 p-6 text-white shadow-lg shadow-teal-900/10"><img loading="lazy" src={SOLIDARITY_IMAGE} alt="Solidarité" className="mb-3 h-16 w-16 rounded-xl object-cover" /><h2 className="font-bold">Notre engagement</h2><p className="mt-2 text-xs leading-relaxed text-teal-100">Transparence, écoute et action : notre priorité, c’est vous.</p></div>
         </div>
       </div>
 
-      <section className="relative mt-8 overflow-hidden rounded-2xl bg-gradient-to-r from-slate-800 to-slate-950 p-5 shadow-lg sm:p-8">
+      <section className="relative mt-10 overflow-hidden rounded-[2rem] bg-gradient-to-br from-slate-900 via-slate-900 to-[#13233A] p-6 shadow-xl shadow-slate-900/10 sm:p-9">
         <div className="pointer-events-none absolute inset-0 opacity-10"><div className="absolute -right-16 -top-16 h-64 w-64 rounded-full border-[40px] border-white" /><div className="absolute -left-8 -bottom-8 h-48 w-48 rounded-full border-[24px] border-white" /></div>
         <div className="relative flex flex-col gap-5 lg:flex-row lg:items-center">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-red-600"><Bell className="h-6 w-6 text-white" /></div>
@@ -368,7 +369,7 @@ export default function Home() {
         </div>
       </section>
 
-      <footer className="mt-8 border-t border-slate-200 py-6">
+      <footer className="mt-10 border-t border-slate-200 py-8">
         <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
           <p className="text-center text-xs text-slate-500 sm:text-left">© 2026 FO COM UES ILIAD – Tous droits réservés</p>
           <div className="flex flex-wrap justify-center gap-4 text-xs text-slate-500">
