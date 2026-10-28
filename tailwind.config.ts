@@ -16,9 +16,9 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-        serif: ['Montserrat', 'Inter', 'sans-serif'],
-        display: ['Montserrat', 'Inter', 'sans-serif'],
+        sans: ['Public Sans', 'system-ui', 'sans-serif'],
+        serif: ['Bricolage Grotesque', 'Public Sans', 'sans-serif'],
+        display: ['Bricolage Grotesque', 'Public Sans', 'sans-serif'],
       },
       colors: {
         border: "hsl(var(--border))",
