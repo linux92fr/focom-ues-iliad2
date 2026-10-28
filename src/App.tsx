@@ -99,9 +99,9 @@ function App() {
               <BrowserRouter>
                 <AdminAuthProvider>
                   <Routes>
+                    <Route path="/" element={<Home />} />
                     <Route element={<PublicLayout />}>
-                      <Route path="/" element={<Home />} />
-                      <Route path="/le-syndicat" element={<LeSyndicat />} />
+                        <Route path="/le-syndicat" element={<LeSyndicat />} />
                       <Route path="/bilan-mandat" element={<BilanMandat />} />
                       <Route path="/vos-droits" element={<VosDroits />} />
                       <Route path="/documents-utiles" element={<DocumentsUtiles />} />
