@@ -189,3 +189,56 @@
     background: var(--gradient-card);
   }
 }
+
+
+/* Cohérence visuelle de la maquette FO COM sur toutes les pages publiques. */
+@layer components {
+  .public-page,
+  main:not([id="main-scroll-area"]) {
+    --fo-red: #dc2626;
+    --fo-teal: #0d9488;
+  }
+
+  #main-scroll-area {
+    background: #f8fafc;
+  }
+
+  #main-scroll-area > * {
+    min-width: 0;
+  }
+
+  #main-scroll-area h1 {
+    color: #0f172a;
+    letter-spacing: -0.035em;
+  }
+
+  #main-scroll-area h2 {
+    letter-spacing: -0.025em;
+  }
+
+  #main-scroll-area :is(input, textarea, select) {
+    border-radius: 0.75rem;
+  }
+
+  #main-scroll-area :is(button, a) {
+    transition-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  #main-scroll-area :is(button, a):focus-visible {
+    outline: 2px solid #0d9488;
+    outline-offset: 3px;
+  }
+
+  #main-scroll-area img {
+    max-width: 100%;
+  }
+
+  @media (max-width: 640px) {
+    #main-scroll-area {
+      scroll-padding-top: 1rem;
+    }
+    #main-scroll-area h1 {
+      overflow-wrap: anywhere;
+    }
+  }
+}
