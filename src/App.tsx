@@ -11,6 +11,7 @@ import PublicLayout from "./components/PublicLayout";
 import { ADMIN_BASE } from "./lib/adminPath";
 
 import Home from "./pages/Home";
+import Landing from "./pages/Landing";
 import NotFound from "./pages/NotFound";
 import BilanMandat from "./pages/BilanMandat";
 import LeSyndicat from "./pages/LeSyndicat";
@@ -100,7 +101,7 @@ function App() {
                 <AdminAuthProvider>
                   <Routes>
                     <Route element={<PublicLayout />}>
-                      <Route path="/" element={<Home />} />
+                      <Route path="/" element={<Landing />} />
                       <Route path="/le-syndicat" element={<LeSyndicat />} />
                       <Route path="/bilan-mandat" element={<BilanMandat />} />
                       <Route path="/vos-droits" element={<VosDroits />} />

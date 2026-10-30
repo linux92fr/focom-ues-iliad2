@@ -136,6 +136,10 @@ export default function PublicLayout() {
 
   if (maintenanceMode) return <MaintenanceScreen />;
 
+  // L'accueil de maquette possède sa propre navigation horizontale. Il est
+  // isolé par l'URL de preview et ne réutilise donc pas la barre latérale.
+  if (isMaquettePreview && location.pathname === "/") return <Outlet />;
+
   return (
     <div
       className="flex h-screen max-h-screen overflow-hidden bg-background"
