@@ -91,8 +91,12 @@ function MaintenanceScreen() {
 }
 
 export default function PublicLayout() {
+  const location = useLocation();
   const [maintenanceMode, setMaintenanceMode] = useState(false);
   const [settingsLoaded, setSettingsLoaded] = useState(false);
+  // The visual redesign is opt-in: production keeps its existing rendering
+  // unless the explicit preview query parameter is present.
+  const isMaquettePreview = new URLSearchParams(location.search).get("preview") === "maquette";
 
   useEffect(() => {
     let cancelled = false;
@@ -133,7 +137,10 @@ export default function PublicLayout() {
   if (maintenanceMode) return <MaintenanceScreen />;
 
   return (
-    <div className="flex h-screen max-h-screen overflow-hidden bg-background">
+    <div
+      className="flex h-screen max-h-screen overflow-hidden bg-background"
+      data-maquette-preview={isMaquettePreview || undefined}
+    >
       <ScrollToTop />
       <Sidebar />
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
@@ -143,6 +150,14 @@ export default function PublicLayout() {
         </main>
         <ProfileHelpShortcuts />
       </div>
+      {isMaquettePreview && (
+        <div
+          className="pointer-events-none fixed bottom-4 left-1/2 z-[110] -translate-x-1/2 rounded-full border border-teal-200 bg-slate-950 px-4 py-2 text-xs font-semibold text-white shadow-xl"
+          role="status"
+        >
+          Prévisualisation — maquette 2026 · aucune modification de production
+        </div>
+      )}
     </div>
   );
 }
