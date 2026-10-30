@@ -163,6 +163,174 @@
   }
 }
 
+/*
+ * Variante visuelle de la maquette d'accueil.
+ * Elle n'est appliquée que lorsque PublicLayout reçoit ?preview=maquette :
+ * la production conserve donc exactement son interface actuelle.
+ */
+@layer components {
+  [data-maquette-preview] {
+    --background: 210 20% 98%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --border: 214 20% 90%;
+    --muted: 210 25% 96%;
+    --muted-foreground: 215 16% 42%;
+    --primary: 0 72% 51%;
+    --secondary: 174 72% 32%;
+    --radius: 1rem;
+    background: #f8fafc;
+  }
+
+  [data-maquette-preview] :focus-visible {
+    outline: 3px solid #0d9488;
+    outline-offset: 3px;
+  }
+
+  [data-maquette-preview] aside {
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(16px);
+  }
+
+  [data-maquette-preview] header {
+    background: rgba(248, 250, 252, 0.92);
+    backdrop-filter: blur(16px);
+  }
+
+  [data-maquette-preview] h1,
+  [data-maquette-preview] h2,
+  [data-maquette-preview] h3,
+  [data-maquette-preview] h4 {
+    letter-spacing: -0.03em;
+  }
+
+  [data-maquette-preview] .rounded-3xl {
+    border-radius: 1.5rem;
+  }
+
+  [data-maquette-preview] .rounded-2xl {
+    border-radius: 1rem;
+  }
+
+  [data-maquette-preview] .shadow-sm {
+    box-shadow: 0 2px 12px -2px rgba(15, 23, 42, 0.06);
+  }
+
+  [data-maquette-preview] .bg-red-600 {
+    background-color: #dc2626;
+  }
+
+  [data-maquette-preview] .hover\\:bg-red-700:hover {
+    background-color: #b91c1c;
+  }
+
+  [data-maquette-preview] .text-teal-600,
+  [data-maquette-preview] .text-teal-700 {
+    color: #0d9488;
+  }
+
+  /* Les pages existantes conservent leurs composants et leurs données ; ces
+     règles leur donnent le même rythme que la maquette sans toucher aux flux. */
+  [data-maquette-preview] #main-scroll-area {
+    background: #f8fafc;
+    color: #172033;
+  }
+
+  [data-maquette-preview] #main-scroll-area > * {
+    width: 100%;
+    min-width: 0;
+  }
+
+  [data-maquette-preview] #main-scroll-area h1 {
+    color: #0f172a;
+    font-size: clamp(1.75rem, 3vw, 2.65rem);
+    font-weight: 800;
+    line-height: 1.12;
+    letter-spacing: -0.045em;
+  }
+
+  [data-maquette-preview] #main-scroll-area h2 {
+    color: #0f172a;
+    font-weight: 750;
+    letter-spacing: -0.03em;
+  }
+
+  [data-maquette-preview] #main-scroll-area :is(input, textarea, select) {
+    min-height: 2.75rem;
+    border-color: #dbe2ea;
+    border-radius: 0.8rem;
+    background-color: #fff;
+  }
+
+  [data-maquette-preview] #main-scroll-area textarea {
+    min-height: 7rem;
+  }
+
+  [data-maquette-preview] #main-scroll-area :is(input, textarea, select):focus {
+    border-color: #0d9488;
+    outline: 2px solid rgb(13 148 136 / 0.14);
+    outline-offset: 1px;
+  }
+
+  [data-maquette-preview] #main-scroll-area :is(button, a) {
+    transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+  }
+
+  [data-maquette-preview] #main-scroll-area :is(.rounded-xl, .rounded-2xl, .rounded-3xl)[class*="border"] {
+    border-color: #e2e8f0;
+  }
+
+  [data-maquette-preview] #main-scroll-area :is(.shadow-sm, .shadow-md) {
+    box-shadow: 0 4px 18px rgb(15 23 42 / 0.045);
+  }
+
+  [data-maquette-preview] #main-scroll-area :is(.shadow-lg, .shadow-xl) {
+    box-shadow: 0 14px 38px rgb(15 23 42 / 0.08);
+  }
+
+  [data-maquette-preview] #main-scroll-area table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  [data-maquette-preview] #main-scroll-area th {
+    color: #475569;
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.045em;
+    text-transform: uppercase;
+  }
+
+  [data-maquette-preview] aside nav a[aria-current="page"] {
+    background: #dc2626;
+    color: #fff;
+    box-shadow: 0 5px 14px rgb(220 38 38 / 0.16);
+  }
+
+  [data-maquette-preview] aside nav a:not([aria-current="page"]):hover {
+    background: #f1f5f9;
+    color: #b91c1c;
+  }
+
+  @media (max-width: 640px) {
+    [data-maquette-preview] #main-scroll-area {
+      scroll-padding-top: 1rem;
+    }
+
+    [data-maquette-preview] #main-scroll-area h1 {
+      overflow-wrap: anywhere;
+    }
+
+    [data-maquette-preview] #main-scroll-area table {
+      display: block;
+      max-width: 100%;
+      overflow-x: auto;
+    }
+  }
+}
+
 @layer utilities {
   .text-gradient {
     @apply bg-clip-text text-transparent;
