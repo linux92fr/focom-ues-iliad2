@@ -4,6 +4,7 @@ import { Calendar, Mail, MessageSquare, Shield, Wrench, RadioTower, Sparkles } f
 import Sidebar from "./Sidebar";
 import PageHeader from "./PageHeader";
 import ScrollToTop from "./ScrollToTop";
+import MobilisationBanner from "./MobilisationBanner";
 import { supabase } from "@/integrations/supabase/client";
 
 function ProfileHelpShortcuts() {
@@ -144,6 +145,7 @@ export default function PublicLayout() {
       <ScrollToTop />
       <Sidebar />
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        <MobilisationBanner />
         <PageHeader />
         <main id="main-scroll-area" className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain">
           <Outlet />

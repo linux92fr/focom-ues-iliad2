@@ -357,3 +357,27 @@
     background: var(--gradient-card);
   }
 }
+
+
+/* Bandeau de mobilisation du 5 novembre 2026 */
+@keyframes mobilisation-marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+.mobilisation-marquee-track {
+  animation: mobilisation-marquee 34s linear infinite;
+}
+
+.mobilisation-marquee-track:hover,
+a:focus-visible .mobilisation-marquee-track {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mobilisation-marquee-track {
+    animation: none;
+    width: 100%;
+    white-space: normal;
+  }
+}
