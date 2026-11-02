@@ -84,6 +84,7 @@ import AdminAgenda from "./pages/admin/AdminAgenda";
 import MesReclamations from "./pages/MesReclamations";
 import { PVSearchPage } from "@/components/PDFSearch";
 import AdminPVDepot from "./pages/admin/AdminPVDepot";
+import AdminCampaigns from "./pages/admin/AdminCampaigns";
 
 const queryClient = new QueryClient();
 
@@ -146,6 +147,7 @@ function App() {
                     <Route path={`/${ADMIN_BASE}/login`} element={<AdminLogin />} />
                     <Route path={`/${ADMIN_BASE}`} element={<AdminDashboard />} />
                     <Route path={`/${ADMIN_BASE}/actualites`} element={<AdminActualites />} />
+                    <Route path={`/${ADMIN_BASE}/campagnes`} element={<AdminCampaigns />} />
                     <Route path={`/${ADMIN_BASE}/ai`} element={<AdminAI />} />
                     <Route path={`/${ADMIN_BASE}/assistant-ia`} element={<AdminAssistantIA />} />
                     <Route path={`/${ADMIN_BASE}/autorisations`} element={<AdminAutorisations />} />
