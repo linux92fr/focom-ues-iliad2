@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Newspaper, FileText, Users, Settings,
   LogOut, Menu, X, ChevronRight, Bell, Shield, BarChart3,
-  MessageSquare, Home, Eye, Clock, ExternalLink, ClipboardList, Mail, FolderOpen, CalendarDays, Sparkles, Bot, ShieldCheck, UserCog
+  MessageSquare, Home, Eye, Clock, ExternalLink, ClipboardList, Mail, FolderOpen, CalendarDays, Sparkles, Bot, ShieldCheck, UserCog, Megaphone
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAdminAuth } from "@/contexts/AdminAuthContext";
@@ -15,6 +15,7 @@ import logoFocom from "@/assets/logo-focom.png";
 const navItems = [
   { path: adminPath(),                  label: "Tableau de bord", icon: LayoutDashboard, exact: true },
   { path: adminPath("/actualites"),   label: "Actualités",      icon: Newspaper },
+  { path: adminPath("/campagnes"),    label: "Campagnes & popups", icon: Megaphone, roles: ["admin"] },
   { path: adminPath("/ai"),            label: "Studio IA",        icon: Sparkles },
   { path: adminPath("/assistant-ia"),  label: "Assistant IA",     icon: Bot, roles: ["admin", "redacteur"] },
   { path: adminPath("/documents"),    label: "Documents",       icon: FileText },
