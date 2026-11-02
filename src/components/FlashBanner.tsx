@@ -132,7 +132,11 @@ const FlashBanner = ({
     </div>
   );
 
-  return link ? <Link to={link}>{content}</Link> : content;
+  if (!link) return content;
+  if (/^https?:\\/\\//i.test(link)) {
+    return <a href={link} target="_blank" rel="noreferrer">{content}</a>;
+  }
+  return <Link to={link}>{content}</Link>;
 };
 
 export default FlashBanner;
