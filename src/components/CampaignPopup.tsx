@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowRight, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -42,7 +42,7 @@ function rememberSeen(item: CampaignPopupRecord) {
 export default function CampaignPopup() {
   const [candidate, setCandidate] = useState<CampaignPopupRecord | null>(null);
   const [isOpen, setIsOpen] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const authenticatedRef = useRef(false);
 
   const loadPopup = useCallback(async (authenticated: boolean) => {
     const { data, error } = await supabase
@@ -73,19 +73,20 @@ export default function CampaignPopup() {
       const { data } = await supabase.auth.getSession();
       if (!mounted) return;
       const authenticated = Boolean(data.session?.user);
-      setIsAuthenticated(authenticated);
+      authenticatedRef.current = authenticated;
       await loadPopup(authenticated);
     };
     void initialise();
 
     const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
       const authenticated = Boolean(session?.user);
-      setIsAuthenticated(authenticated);
-      void loadPopup(authenticated);
+      authenticatedRef.current = authenticated;
+      // Defer the query until Supabase has finished processing the auth event.
+      window.setTimeout(() => { if (mounted) void loadPopup(authenticated); }, 0);
     });
     const channel = supabase
       .channel("public-campaign-popups")
-      .on("postgres_changes", { event: "*", schema: "public", table: "popups" }, () => void loadPopup(isAuthenticated))
+      .on("postgres_changes", { event: "*", schema: "public", table: "popups" }, () => void loadPopup(authenticatedRef.current))
       .subscribe();
 
     return () => {
@@ -93,7 +94,7 @@ export default function CampaignPopup() {
       authListener.subscription.unsubscribe();
       void supabase.removeChannel(channel);
     };
-  }, [isAuthenticated, loadPopup]);
+  }, [loadPopup]);
 
   useEffect(() => {
     if (!candidate) {
@@ -116,12 +117,12 @@ export default function CampaignPopup() {
       document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", onKeyDown);
     };
-  }, [isOpen]);
+  }, [isOpen, close]);
 
-  const close = () => {
+  const close = useCallback(() => {
     if (candidate) rememberSeen(candidate);
     setIsOpen(false);
-  };
+  }, [candidate]);
 
   if (!candidate || !isOpen) return null;
   const position = candidate.position === "top"
@@ -133,7 +134,7 @@ export default function CampaignPopup() {
   return (
     <div className={`fixed inset-0 z-[100] flex justify-center overflow-y-auto bg-slate-950/75 p-3 backdrop-blur-sm sm:p-5 ${position}`}
       role="dialog" aria-modal="true" aria-labelledby="campaign-popup-title" onClick={close}>
-      <div className="relative my-auto flex max-h-[92dvh] w-full max-w-2xl flex-col overflow-y-auto rounded-2xl bg-white shadow-2xl sm:rounded-3xl"
+      <div className={`relative ${candidate.position === "center" || !candidate.position ? "my-auto" : "my-4"} flex max-h-[92dvh] w-full max-w-2xl flex-col overflow-y-auto rounded-2xl bg-white shadow-2xl sm:rounded-3xl`}
         onClick={(event) => event.stopPropagation()}>
         <button type="button" onClick={close} aria-label="Fermer la fenêtre"
           className="absolute right-3 top-3 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-white/95 text-slate-600 shadow-lg ring-1 ring-slate-200 transition hover:text-slate-900">
