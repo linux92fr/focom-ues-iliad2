@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  AlertCircle, CalendarDays, Check, ExternalLink, Eye, Image as ImageIcon,
-  Loader2, Megaphone, Pencil, Plus, RefreshCw, Save, ShieldCheck,
-  ToggleLeft, Trash2, X,
+  AlertCircle, ExternalLink, Eye, Loader2, Megaphone, Pencil, Plus,
+  RefreshCw, Save, ShieldCheck, Trash2, X,
 } from "lucide-react";
 import AdminLayout, { AdminAuthGuard } from "@/components/admin/AdminLayout";
 import { useAdminAuth } from "@/contexts/AdminAuthContext";
