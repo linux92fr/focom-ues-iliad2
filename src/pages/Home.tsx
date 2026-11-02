@@ -31,8 +31,8 @@ import {
   Users,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import MobilisationFlash from "@/components/MobilisationFlash";
-import MobilisationPopup from "@/components/MobilisationPopup";
+import CampaignBanners from "@/components/CampaignBanners";
+import CampaignPopup from "@/components/CampaignPopup";
 
 const HERO_IMAGE = "https://d2xsxph8kpxj0f.cloudfront.net/310519663612648040/CNuRjrgGqWcQ7xt7rtMbHT/hero-banner-VHxfVX6tjRfujGise9ibwf.webp";
 const SOLIDARITY_IMAGE = "https://d2xsxph8kpxj0f.cloudfront.net/310519663612648040/CNuRjrgGqWcQ7xt7rtMbHT/solidarity-icon-GxfeM5FU9pzPmnbJUShvCH.webp";
@@ -194,7 +194,7 @@ export default function Home() {
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-[1500px] overflow-x-hidden bg-[#f8fafc] p-4 sm:p-6 lg:p-10">
-      <MobilisationPopup />
+      <CampaignPopup />
       <section className="relative mb-8 overflow-hidden rounded-[2rem] bg-[#13233A] shadow-xl shadow-slate-900/10 ring-1 ring-slate-900/5 motion-safe:animate-in motion-safe:fade-in motion-safe:duration-700">
         <img src={HERO_IMAGE} alt="FO COM UES ILIAD" className="absolute inset-0 h-full w-full object-cover opacity-30" />
         <div className="absolute inset-0 bg-gradient-to-br from-[#111827] via-[#18283e]/95 to-red-950/80" />
@@ -229,7 +229,7 @@ export default function Home() {
         </div>
       </section>
 
-      <MobilisationFlash />
+      <CampaignBanners />
 
       <section className="mb-8 rounded-2xl border border-teal-100/80 bg-white p-5 shadow-sm shadow-slate-900/[0.03] sm:p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
