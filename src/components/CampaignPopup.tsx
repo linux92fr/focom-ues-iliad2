@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowRight, X } from "lucide-react";
+import { ArrowRight, Mail, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { NewsletterSubscriptionForm } from "@/components/NewsletterSubscriptionForm";
 
 type CampaignPopupRecord = {
   id: string;
@@ -16,6 +17,7 @@ type CampaignPopupRecord = {
   show_to_anonymous: boolean;
   display_frequency: string | null;
   position: string | null;
+  newsletter_enabled: boolean;
 };
 
 const storageKey = (id: string) => `focom-campaign-popup-${id}-seen`;
@@ -47,7 +49,7 @@ export default function CampaignPopup() {
   const loadPopup = useCallback(async (authenticated: boolean) => {
     const { data, error } = await supabase
       .from("popups")
-      .select("id,title,content,button_text,button_url,image_url,start_date,end_date,is_active,show_to_authenticated,show_to_anonymous,display_frequency,position")
+      .select("id,title,content,button_text,button_url,image_url,start_date,end_date,is_active,show_to_authenticated,show_to_anonymous,display_frequency,position,newsletter_enabled")
       .eq("is_active", true)
       .order("created_at", { ascending: false });
 
@@ -78,6 +80,7 @@ export default function CampaignPopup() {
       show_to_anonymous: true,
       display_frequency: "session",
       position: "center",
+      newsletter_enabled: true,
     };
     setCandidate(eligible ?? (wasAlreadySeen(fallbackPopup) ? null : fallbackPopup));
   }, []);
@@ -179,6 +182,19 @@ export default function CampaignPopup() {
           <div className="mt-4 whitespace-pre-wrap text-sm leading-7 text-slate-600 sm:text-base">
             {candidate.content}
           </div>
+          {candidate.newsletter_enabled !== false && (
+            <section className="mt-6 rounded-2xl bg-slate-950 p-4 text-white sm:p-5" aria-label="Inscription à la newsletter">
+              <div className="mb-3 flex items-center gap-2">
+                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-red-600"><Mail className="h-5 w-5 text-white" /></span>
+                <div>
+                  <h3 className="text-base font-extrabold">Restez informés avec FO COM</h3>
+                  <p className="text-xs text-slate-300">L’essentiel de l’actualité sociale et syndicale du groupe ILIAD.</p>
+                </div>
+              </div>
+              <NewsletterSubscriptionForm />
+              <p className="mt-3 text-[11px] leading-4 text-slate-400">Inscription facultative. Vos données sont utilisées uniquement pour l’envoi de la newsletter. Désinscription possible à tout moment.</p>
+            </section>
+          )}
           <div className="mt-7 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <button type="button" onClick={close} className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50">
               Fermer
