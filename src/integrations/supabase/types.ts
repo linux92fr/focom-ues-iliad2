@@ -1860,6 +1860,7 @@ export type Database = {
           image_url: string | null
           is_active: boolean
           position: string | null
+          newsletter_enabled: boolean
           show_to_anonymous: boolean
           show_to_authenticated: boolean
           start_date: string | null
@@ -1878,6 +1879,7 @@ export type Database = {
           image_url?: string | null
           is_active?: boolean
           position?: string | null
+          newsletter_enabled?: boolean
           show_to_anonymous?: boolean
           show_to_authenticated?: boolean
           start_date?: string | null
@@ -1896,6 +1898,7 @@ export type Database = {
           image_url?: string | null
           is_active?: boolean
           position?: string | null
+          newsletter_enabled?: boolean
           show_to_anonymous?: boolean
           show_to_authenticated?: boolean
           start_date?: string | null
