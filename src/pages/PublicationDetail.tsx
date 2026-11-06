@@ -159,7 +159,7 @@ const PublicationDetail = () => {
               <img
                 src={article.image_url}
                 alt={article.title}
-                className="w-full h-64 md:h-96 object-cover rounded-xl shadow-lg"
+                className="block h-auto max-h-none w-full rounded-xl object-contain object-center shadow-lg"
               />
             </div>
           </div>

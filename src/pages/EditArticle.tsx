@@ -257,7 +257,9 @@ export default function EditArticle() {
             {previewUrl && (
               <div className="rounded-xl overflow-hidden border border-slate-200 bg-slate-50">
                 <div className="flex items-center gap-2 text-xs text-slate-500 px-3 py-2 border-b border-slate-200"><ImageIcon className="w-3.5 h-3.5" /> Aperçu image</div>
-                <img src={previewUrl} alt="Aperçu" className="w-full max-h-64 object-cover" />
+                <div className="flex max-h-[28rem] min-h-40 items-center justify-center overflow-auto bg-slate-100 p-2">
+                  <img src={previewUrl} alt="Aperçu complet de l’illustration" className="h-auto max-h-[26rem] w-auto max-w-full object-contain" />
+                </div>
               </div>
             )}
           </div>
