@@ -133,7 +133,7 @@ const FlashBanner = ({
   );
 
   if (!link) return content;
-  if (/^https?:\\/\\//i.test(link)) {
+  if (/^https?:\/\//i.test(link)) {
     return <a href={link} target="_blank" rel="noreferrer">{content}</a>;
   }
   return <Link to={link}>{content}</Link>;
