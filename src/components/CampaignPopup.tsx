@@ -64,7 +64,22 @@ export default function CampaignPopup() {
       const audience = authenticated ? item.show_to_authenticated : item.show_to_anonymous;
       return starts && ends && audience && !wasAlreadySeen(item);
     });
-    setCandidate(eligible ?? null);
+    const fallbackPopup: CampaignPopupRecord = {
+      id: "mobilisation-bilan-5-novembre-2026",
+      title: "Après le 5 novembre : continuons à faire entendre votre voix",
+      content: "La mobilisation du 5 novembre a permis de rendre visibles les attentes des salariés. Le sujet ne s’arrête pas à cette journée.\n\nPouvoir d’achat et rémunérations, NAO 2026, réorganisations successives, emploi et conditions de travail : FO COM UES ILIAD poursuit le travail pour porter ces préoccupations dans toutes les entités du groupe.\n\nVotre témoignage et vos propositions nous aideront à construire les prochaines actions et à défendre vos priorités.",
+      button_text: "Donner mon avis",
+      button_url: "https://greve.focomues-iliad.fr",
+      image_url: null,
+      start_date: null,
+      end_date: null,
+      is_active: true,
+      show_to_authenticated: true,
+      show_to_anonymous: true,
+      display_frequency: "session",
+      position: "center",
+    };
+    setCandidate(eligible ?? (wasAlreadySeen(fallbackPopup) ? null : fallbackPopup));
   }, []);
 
   const close = useCallback(() => {
