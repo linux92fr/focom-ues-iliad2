@@ -18,6 +18,7 @@ import {
   HelpCircle,
   Lock,
   Mail,
+  Megaphone,
   MessageSquare,
   Newspaper,
   PenLine,
@@ -253,6 +254,27 @@ export default function Home() {
           >
             Répondre à l’enquête <ChevronRight className="h-4 w-4" />
           </a>
+        </div>
+      </section>
+
+      <section className="relative mb-6 overflow-hidden rounded-2xl border border-red-100 bg-white shadow-sm sm:rounded-3xl">
+        <div className="absolute inset-y-0 left-0 w-1.5 bg-gradient-to-b from-red-600 to-teal-500" />
+        <div className="flex flex-col gap-4 p-5 pl-6 sm:flex-row sm:items-center sm:justify-between sm:p-6 sm:pl-7">
+          <div className="flex min-w-0 gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-red-50 text-red-600">
+              <Megaphone className="h-6 w-6" />
+            </div>
+            <div className="min-w-0">
+              <p className="mb-1 text-[11px] font-extrabold uppercase tracking-[0.14em] text-red-600">Après la mobilisation du 5 novembre</p>
+              <h2 className="text-lg font-extrabold leading-tight text-slate-900 sm:text-xl">La mobilisation a eu lieu. Faisons vivre les revendications.</h2>
+              <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-600">
+                Pouvoir d’achat, rémunérations et NAO 2026, réorganisations, emploi et conditions de travail : ces préoccupations doivent continuer à être entendues dans toutes les entités du groupe Iliad. Votre retour compte pour préparer les suites.
+              </p>
+            </div>
+          </div>
+          <Button onClick={() => window.open("https://greve.focomues-iliad.fr", "_blank", "noopener,noreferrer")} className="shrink-0 rounded-xl bg-red-600 px-5 font-bold text-white hover:bg-red-700">
+            Donner mon avis <ChevronRight className="ml-1 h-4 w-4" />
+          </Button>
         </div>
       </section>
 
