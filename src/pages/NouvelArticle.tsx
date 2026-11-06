@@ -97,9 +97,23 @@ export default function NouvelArticle() {
 
   const createMutation = useMutation({
     mutationFn: async ({ publish }: { publish: boolean }) => {
-      const finalImageUrl = await withTimeout(uploadArticleImage());
+      // L'upload d'une image peut être nettement plus long que l'enregistrement texte.
+      const finalImageUrl = await withTimeout(
+        uploadArticleImage(),
+        60000,
+        "L’envoi de l’image prend trop de temps. Réessayez avec une image plus légère ou une URL d’image.",
+      );
 
-      const { data: userData } = await withTimeout(supabase.auth.getUser());
+      // La session locale suffit ici : getUser() déclenche une vérification réseau
+      // inutile avant l'insertion et peut provoquer un délai dépassé.
+      const { data: sessionData, error: sessionError } = await withTimeout(
+        supabase.auth.getSession(),
+        15000,
+        "La vérification de votre session prend trop de temps. Reconnectez-vous puis réessayez.",
+      );
+      if (sessionError) throw sessionError;
+      const authorId = sessionData.session?.user?.id;
+      if (!authorId) throw new Error("Votre session a expiré. Reconnectez-vous avant de publier.");
 
       const { data, error } = await withTimeout(
         supabase
@@ -111,13 +125,15 @@ export default function NouvelArticle() {
             content: content.trim(),
             category,
             image_url: finalImageUrl,
-            author_id: userData?.user?.id ?? null,
+            author_id: authorId,
             is_published: publish,
             status: publish ? ("publie" as const) : ("brouillon" as const),
             published_at: publish ? new Date().toISOString() : null,
           })
           .select()
           .single(),
+        30000,
+        "L’enregistrement de l’article prend trop de temps. Vérifiez votre connexion puis réessayez.",
       );
       if (error) throw error;
       return data;
