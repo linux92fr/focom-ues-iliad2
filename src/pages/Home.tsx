@@ -36,7 +36,6 @@ import CampaignBanners from "@/components/CampaignBanners";
 import CampaignPopup from "@/components/CampaignPopup";
 
 const HERO_IMAGE = "https://d2xsxph8kpxj0f.cloudfront.net/310519663612648040/CNuRjrgGqWcQ7xt7rtMbHT/hero-banner-VHxfVX6tjRfujGise9ibwf.webp";
-const SOLIDARITY_IMAGE = "https://d2xsxph8kpxj0f.cloudfront.net/310519663612648040/CNuRjrgGqWcQ7xt7rtMbHT/solidarity-icon-GxfeM5FU9pzPmnbJUShvCH.webp";
 
 const DEFAULT_HERO_TITLE = "Informer. Défendre. Agir ensemble.";
 const DEFAULT_HERO_SUBTITLE = "FO COM UES ILIAD accompagne les salariés du groupe : droits, adhésion, demandes, documents utiles et actualités sociales.";
@@ -391,7 +390,23 @@ export default function Home() {
             </div>
           </section>
 
-          <div className="rounded-3xl bg-gradient-to-br from-teal-700 to-teal-800 p-6 text-white shadow-lg shadow-teal-900/10"><img loading="lazy" src={SOLIDARITY_IMAGE} alt="Solidarité" className="mb-3 h-16 w-16 rounded-xl object-cover" /><h2 className="font-bold">Notre engagement</h2><p className="mt-2 text-xs leading-relaxed text-teal-100">Transparence, écoute et action : notre priorité, c’est vous.</p></div>
+          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-teal-700 via-teal-800 to-[#075e59] p-6 text-white shadow-lg shadow-teal-900/10">
+            <div aria-hidden="true" className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full border-[18px] border-white/10" />
+            <div className="relative">
+              <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-white/15 bg-white/10 shadow-inner">
+                <Handshake className="h-7 w-7 text-teal-100" />
+              </div>
+              <p className="mb-2 text-[11px] font-extrabold uppercase tracking-[0.16em] text-teal-200">Solidarité</p>
+              <h2 className="text-lg font-extrabold">À vos côtés, concrètement</h2>
+              <p className="mt-2 text-sm leading-relaxed text-teal-50">Écouter chaque salarié, défendre les droits de tous et agir collectivement pour améliorer les conditions de travail.</p>
+              <div className="mt-5 space-y-2 border-t border-white/15 pt-4 text-xs font-medium text-teal-50">
+                <p className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 shrink-0 text-teal-200" /> Proximité et disponibilité</p>
+                <p className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 shrink-0 text-teal-200" /> Défense collective des droits</p>
+                <p className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 shrink-0 text-teal-200" /> Transparence, écoute et action</p>
+              </div>
+              <Link to="/le-syndicat" className="mt-5 inline-flex items-center gap-1 text-sm font-bold text-white transition hover:text-teal-200">Découvrir FO COM <ChevronRight className="h-4 w-4" /></Link>
+            </div>
+          </div>
         </div>
       </div>
 
