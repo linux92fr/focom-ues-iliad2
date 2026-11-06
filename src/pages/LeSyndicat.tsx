@@ -95,12 +95,11 @@ const representants = [
   },
   {
     nom: "Fadil KENDIRA",
-    poste: "TMRE (ex-PDEM)",
     service: "FREE RÉSEAU",
     email: "fadil@focomues-iliad.fr",
     telephone: "06.50.77.28.25",
     mandat: "Délégué syndical, Élu Titulaire CSE, Administrateur du site",
-    photo: "/candidats/fkendira.webp",
+    photo: "/candidats/fkendira.jpeg",
   },
   {
     nom: "Régis CRITON",
