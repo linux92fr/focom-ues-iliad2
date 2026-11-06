@@ -168,7 +168,9 @@ const Actualites = () => {
               {filteredArticles.map((item) => (
                 <Card key={item.id} className="group overflow-hidden hover:shadow-lg transition-all duration-300">
                   {item.image_url && (
-                    <img src={item.image_url} alt="" className="w-full h-40 object-cover" loading="lazy" />
+                    <div className="flex aspect-[16/9] w-full items-center justify-center overflow-hidden bg-slate-100">
+                      <img src={item.image_url} alt={item.title} className="h-full w-full object-contain object-center" loading="lazy" decoding="async" />
+                    </div>
                   )}
                   <CardContent className="p-6">
                     <div className="flex items-center gap-2 mb-3">
