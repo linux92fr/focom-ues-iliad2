@@ -26,6 +26,7 @@ type Popup = {
   show_to_anonymous: boolean; start_date: string | null; end_date: string | null;
   display_frequency: string | null; position: string | null; image_url: string | null;
   created_at: string;
+  newsletter_enabled: boolean;
 };
 type BannerDraft = {
   message: string; type: BannerType; link: string; start_date: string;
@@ -35,7 +36,7 @@ type PopupDraft = {
   title: string; content: string; button_text: string; button_url: string;
   image_url: string; start_date: string; end_date: string; is_active: boolean;
   show_to_authenticated: boolean; show_to_anonymous: boolean;
-  display_frequency: string; position: string;
+  display_frequency: string; position: string; newsletter_enabled: boolean;
 };
 
 const nowLocal = () => {
@@ -57,7 +58,7 @@ const emptyPopup = (): PopupDraft => ({
   title: "", content: "", button_text: "En savoir plus", button_url: "",
   image_url: "", start_date: "", end_date: "", is_active: true,
   show_to_authenticated: true, show_to_anonymous: true,
-  display_frequency: "once", position: "center",
+  display_frequency: "once", position: "center", newsletter_enabled: true,
 });
 const isInWindow = (start?: string | null, end?: string | null) => {
   const now = Date.now();
@@ -137,7 +138,7 @@ function AdminCampaignsContent() {
       start_date: dateToInput(item.start_date), end_date: dateToInput(item.end_date),
       is_active: item.is_active, show_to_authenticated: item.show_to_authenticated,
       show_to_anonymous: item.show_to_anonymous, display_frequency: item.display_frequency ?? "once",
-      position: item.position ?? "center",
+      position: item.position ?? "center", newsletter_enabled: item.newsletter_enabled !== false,
     });
     setShowPopupForm(true);
     setPreview(false);
@@ -177,7 +178,7 @@ function AdminCampaignsContent() {
       start_date: dateToIso(popupDraft.start_date), end_date: dateToIso(popupDraft.end_date),
       is_active: popupDraft.is_active, show_to_authenticated: popupDraft.show_to_authenticated,
       show_to_anonymous: popupDraft.show_to_anonymous, display_frequency: popupDraft.display_frequency,
-      position: popupDraft.position, ...(user?.supabaseUser.id ? { created_by: user.supabaseUser.id } : {}),
+      position: popupDraft.position, newsletter_enabled: popupDraft.newsletter_enabled, ...(user?.supabaseUser.id ? { created_by: user.supabaseUser.id } : {}),
     };
     const result = editingPopup
       ? await supabase.from("popups").update(payload).eq("id", editingPopup)
@@ -292,9 +293,9 @@ function AdminCampaignsContent() {
                       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2"><div><Label className={labelClass}>Texte du bouton</Label><Input value={popupDraft.button_text} onChange={(e) => setPopupDraft((d) => ({ ...d, button_text: e.target.value }))} placeholder="En savoir plus" /></div><div><Label className={labelClass}>Lien du bouton</Label><Input value={popupDraft.button_url} onChange={(e) => setPopupDraft((d) => ({ ...d, button_url: e.target.value }))} placeholder="https://…" /></div></div>
                       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2"><div><Label className={labelClass}>Début (facultatif)</Label><Input type="datetime-local" value={popupDraft.start_date} onChange={(e) => setPopupDraft((d) => ({ ...d, start_date: e.target.value }))} /></div><div><Label className={labelClass}>Fin (facultatif)</Label><Input type="datetime-local" value={popupDraft.end_date} onChange={(e) => setPopupDraft((d) => ({ ...d, end_date: e.target.value }))} /></div></div>
                       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2"><div><Label className={labelClass}>Fréquence d'affichage</Label><select className={fieldClass} value={popupDraft.display_frequency} onChange={(e) => setPopupDraft((d) => ({ ...d, display_frequency: e.target.value }))}><option value="once">Une seule fois</option><option value="session">À chaque session</option><option value="always">À chaque visite</option></select></div><div><Label className={labelClass}>Position</Label><select className={fieldClass} value={popupDraft.position} onChange={(e) => setPopupDraft((d) => ({ ...d, position: e.target.value }))}><option value="center">Centrée</option><option value="top">En haut</option><option value="bottom">En bas</option></select></div></div>
-                      <div className="space-y-2 rounded-lg bg-slate-50 p-3"><p className="text-xs font-bold uppercase tracking-wide text-slate-500">Public concerné</p><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={popupDraft.show_to_anonymous} onChange={(e) => setPopupDraft((d) => ({ ...d, show_to_anonymous: e.target.checked }))} className="h-4 w-4 accent-red-600" />Visiteurs non connectés</label><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={popupDraft.show_to_authenticated} onChange={(e) => setPopupDraft((d) => ({ ...d, show_to_authenticated: e.target.checked }))} className="h-4 w-4 accent-red-600" />Utilisateurs connectés</label><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={popupDraft.is_active} onChange={(e) => setPopupDraft((d) => ({ ...d, is_active: e.target.checked }))} className="h-4 w-4 accent-red-600" />Activer cette popup</label></div>
+                      <div className="space-y-2 rounded-lg bg-slate-50 p-3"><p className="text-xs font-bold uppercase tracking-wide text-slate-500">Public concerné</p><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={popupDraft.show_to_anonymous} onChange={(e) => setPopupDraft((d) => ({ ...d, show_to_anonymous: e.target.checked }))} className="h-4 w-4 accent-red-600" />Visiteurs non connectés</label><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={popupDraft.show_to_authenticated} onChange={(e) => setPopupDraft((d) => ({ ...d, show_to_authenticated: e.target.checked }))} className="h-4 w-4 accent-red-600" />Utilisateurs connectés</label><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={popupDraft.is_active} onChange={(e) => setPopupDraft((d) => ({ ...d, is_active: e.target.checked }))} className="h-4 w-4 accent-red-600" />Activer cette popup</label><label className="flex items-center gap-2 text-sm font-semibold text-teal-800"><input type="checkbox" checked={popupDraft.newsletter_enabled} onChange={(e) => setPopupDraft((d) => ({ ...d, newsletter_enabled: e.target.checked }))} className="h-4 w-4 accent-teal-600" />Afficher le formulaire newsletter dans cette popup</label></div>
                     </div>
-                    <div className="space-y-3"><div className="flex items-center justify-between"><Label className={labelClass}>Aperçu</Label><Button size="sm" variant="ghost" onClick={() => setPreview((v) => !v)}><Eye className="mr-1 h-4 w-4" />{preview ? "Masquer" : "Prévisualiser"}</Button></div><div className="mx-auto max-w-sm overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl"><div className="h-2 bg-gradient-to-r from-red-600 to-teal-500" />{popupDraft.image_url && <img src={popupDraft.image_url} alt="" className="max-h-40 w-full object-cover" onError={(e) => { e.currentTarget.style.display = "none"; }} />}<div className="space-y-3 p-5"><p className="text-lg font-black text-slate-900">{popupDraft.title || "Titre de la campagne"}</p><p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-600">{popupDraft.content || "Le contenu de votre popup apparaîtra ici."}</p>{popupDraft.button_text && <span className="inline-flex rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white">{popupDraft.button_text}</span>}</div></div><p className="text-xs text-slate-500">La popup sera affichée sur le site selon les dates, le public et la fréquence choisis. L'application Android pourra être raccordée à cette même source dans une étape suivante.</p></div>
+                    <div className="space-y-3"><div className="flex items-center justify-between"><Label className={labelClass}>Aperçu</Label><Button size="sm" variant="ghost" onClick={() => setPreview((v) => !v)}><Eye className="mr-1 h-4 w-4" />{preview ? "Masquer" : "Prévisualiser"}</Button></div><div className="mx-auto max-w-sm overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl"><div className="h-2 bg-gradient-to-r from-red-600 to-teal-500" />{popupDraft.image_url && <img src={popupDraft.image_url} alt="" className="max-h-40 w-full object-cover" onError={(e) => { e.currentTarget.style.display = "none"; }} />}<div className="space-y-3 p-5"><p className="text-lg font-black text-slate-900">{popupDraft.title || "Titre de la campagne"}</p><p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-600">{popupDraft.content || "Le contenu de votre popup apparaîtra ici."}</p>{popupDraft.button_text && <span className="inline-flex rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white">{popupDraft.button_text}</span>}{popupDraft.newsletter_enabled && <div className="mt-3 rounded-xl bg-slate-950 p-3 text-left text-white"><p className="font-bold">Restez informés avec FO COM</p><p className="mt-1 text-xs text-slate-300">Inscription à la newsletter</p><div className="mt-2 rounded-md bg-white px-3 py-2 text-xs text-slate-500">votre@email.fr</div><div className="mt-2 rounded-md bg-red-600 px-3 py-2 text-center text-xs font-bold">Je m’abonne</div></div>}</div></div><p className="text-xs text-slate-500">La popup sera affichée sur le site selon les dates, le public et la fréquence choisis. L'application Android pourra être raccordée à cette même source dans une étape suivante.</p></div>
                     <div className="flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-4 lg:col-span-2"><Button variant="outline" onClick={resetPopup}>Annuler</Button><Button onClick={() => void savePopup()} disabled={saving}>{saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}{editingPopup ? "Enregistrer" : "Créer la popup"}</Button></div>
                   </CardContent>
                 </Card>
