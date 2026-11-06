@@ -43,6 +43,7 @@ const secondaryNavItems = [
   { to: "/agenda", label: "Agenda", icon: Calendar },
   { to: "/documents-utiles", label: "Documents", icon: FolderOpen },
   { to: "/contact", label: "Contact", icon: Mail },
+  { to: "/newsletter", label: "Newsletter", icon: Mail, highlight: true },
   { to: adminPath(), label: "Admin", icon: Settings },
 ];
 

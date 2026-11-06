@@ -48,6 +48,7 @@ const MOBILE_NAV = [
   { to: "/agenda", label: "Agenda", icon: Calendar },
   { to: "/documents-utiles", label: "Documents", icon: FolderOpen },
   { to: "/contact", label: "Contact", icon: Mail },
+  { to: "/newsletter", label: "Newsletter", icon: Mail },
   { to: adminPath(), label: "Admin", icon: Settings },
 ];
 
@@ -185,6 +186,10 @@ export default function PageHeader() {
           </div>
 
           <div className="flex shrink-0 items-center justify-end gap-1 sm:gap-2">
+            <Link to="/newsletter" className="hidden sm:inline-flex h-9 items-center gap-2 rounded-full bg-red-600 px-3 text-xs font-bold text-white shadow-sm transition hover:bg-red-700" aria-label="S’abonner à la newsletter">
+              <Mail className="h-4 w-4" />
+              <span>Newsletter</span>
+            </Link>
             <button
               aria-label="Rechercher"
               onClick={() => setSearchOpen(true)}
