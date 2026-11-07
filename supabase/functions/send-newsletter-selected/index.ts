@@ -136,7 +136,7 @@ Deno.serve(async (req) => {
   if (!newsletterId) return json({ error: "newsletterId requis" }, 400);
   if (payload?.sendAll === true) return json({ error: "Envoi global interdit sur cette fonction." }, 400);
   if (recipientEmails.length === 0) return json({ error: "Aucun destinataire sélectionné." }, 400);
-  if (recipientEmails.length > 10) return json({ error: "Maximum 10 destinataires par envoi." }, 400);
+  if (recipientEmails.length > 20) return json({ error: "Maximum 20 destinataires par envoi." }, 400);
 
   const nlRes = await fetch(
     `${supabaseUrl}/rest/v1/newsletters?id=eq.${newsletterId}&select=*&limit=1`,
