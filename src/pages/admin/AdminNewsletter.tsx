@@ -17,7 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
-const MAX_NEWSLETTER_RECIPIENTS = 10;
+const MAX_NEWSLETTER_RECIPIENTS = 20;
 
 type Subscriber = {
   id: string; email: string; is_active: boolean;
