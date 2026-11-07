@@ -105,8 +105,8 @@ Deno.serve(async (req) => {
   if (recipientEmails.length === 0) {
     return json({ error: "Aucun destinataire sélectionné. recipientEmails est obligatoire." }, 400);
   }
-  if (recipientEmails.length > 10) {
-    return json({ error: "Maximum 10 destinataires par envoi. Faites plusieurs sélections." }, 400);
+  if (recipientEmails.length > 20) {
+    return json({ error: "Maximum 20 destinataires par envoi. Faites plusieurs sélections." }, 400);
   }
 
   const runningSendRes = await fetch(
