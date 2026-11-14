@@ -90,7 +90,7 @@ import FormationPortal from "./formation/FormationPortal";
 const queryClient = new QueryClient();
 
 function App() {
-  if (typeof window !== "undefined" && window.location.hostname === "formation.focomues-iliad.fr") {
+  if (typeof window !== "undefined" && (window.location.hostname === "formation.focomues-iliad.fr" || new URLSearchParams(window.location.search).get("formation-preview") === "1")) {
     return <FormationPortal />;
   }
 
