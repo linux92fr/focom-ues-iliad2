@@ -12,7 +12,7 @@ type RequestRow = {
   last_name: string; first_name: string; personal_address: string; postal_code: string; city: string; email: string;
   phone: string | null; job_title: string | null; company: string; work_location: string | null; department_name: string | null;
   hr_contact_name: string | null; company_address: string | null; company_postal_code: string | null; company_city: string | null;
-  local_union: string | null; union_secretary: string | null; first_level_completed: boolean; employer_notice_date: string | null;
+  local_union: string | null; union_secretary: string | null; first_level_completed: boolean; fo_member_current: boolean; employer_notice_date: string | null;
   employer_response: string | null; efo_status: string; notes: string | null;
 };
 
