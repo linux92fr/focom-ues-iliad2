@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
+import type { FormEvent, ReactNode } from "react";
 import { BrowserRouter, Link, Route, Routes, useNavigate } from "react-router-dom";
-import { Download, GraduationCap, LogOut, ShieldCheck, CalendarDays, Info, Mail, Phone, MapPin } from "lucide-react";
+import { Download, GraduationCap, LogOut, ShieldCheck, Info, Mail, Phone } from "lucide-react";
 import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -30,9 +31,8 @@ const courses: Course[] = [
 const dateFr = (value: string) => new Date(value + "T12:00:00").toLocaleDateString("fr-FR");
 const inputClass = "w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-100";
 const labelClass = "mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-600";
-const todayIso = () => new Date().toISOString().slice(0,10);
 
-function Shell({ children }: { children: React.ReactNode }) {
+function Shell({ children }: { children: ReactNode }) {
   return <div className="min-h-screen bg-slate-50 text-slate-900"><header className="border-b border-slate-200 bg-white"><div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4"><Link to="/" className="flex items-center gap-3"><div className="rounded-xl bg-red-600 p-2 text-white"><GraduationCap size={24}/></div><div><div className="font-extrabold tracking-tight">FO COM UES ILIAD</div><div className="text-xs font-semibold uppercase tracking-widest text-teal-700">Espace formation 2027</div></div></Link><Link to="/gestion" className="text-sm font-semibold text-slate-600 hover:text-red-600">Espace gestionnaire</Link></div></header><main className="mx-auto max-w-6xl px-5 py-8">{children}</main><footer className="mt-12 border-t border-slate-200 bg-white"><div className="mx-auto grid max-w-6xl gap-5 px-5 py-7 text-sm text-slate-600 md:grid-cols-3"><div><b className="text-slate-900">Secteur Formation UD75</b><p className="mt-2">secteur.formation@udfo75.net</p><p>Jean-Luc CIRODE · 06 80 65 70 96</p><p>Guy PERROSSIER · 06 30 20 52 82</p></div><div><b className="text-slate-900">CREOIF – CSE / SSCT</b><p className="mt-2">Christelle CAMBONIE</p><p>contact.c@creoif.org · 06 51 41 69 67</p></div><div><b className="text-slate-900">Union départementale FO Paris</b><p className="mt-2">33 rue Villiers de l’Isle-Adam, 75020 Paris</p><p>01 53 01 61 00 · contact@udfo75.net</p></div></div></footer></div>;
 }
 
@@ -49,7 +49,7 @@ function PublicForm() {
   });
   const set = (key: string, value: string | boolean) => setForm(old => ({...old,[key]:value}));
   const noticeDeadline = new Date(session.start + "T12:00:00"); noticeDeadline.setDate(noticeDeadline.getDate()-30);
-  const submit = async (event: React.FormEvent) => {
+  const submit = async (event: FormEvent) => {
     event.preventDefault(); setError(""); if (!form.fo_member_current) { setError("Le programme est réservé aux adhérents FO à jour de cotisation."); return; } if (Number(courseIndex) > 0 && !form.first_level_completed) { setError("Le stage FO 1er niveau / Découverte de FO doit être suivi avant cette formation."); return; } setBusy(true);
     const payload = {
       region:"IDF", departement:"75", formation_title:course.title, session_start:session.start, session_end:session.end,
