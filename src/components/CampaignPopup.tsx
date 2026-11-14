@@ -67,11 +67,11 @@ export default function CampaignPopup() {
       return starts && ends && audience && !wasAlreadySeen(item);
     });
     const fallbackPopup: CampaignPopupRecord = {
-      id: "mobilisation-bilan-5-novembre-2026",
-      title: "Après le 5 novembre : continuons à faire entendre votre voix",
-      content: "La mobilisation du 5 novembre a permis de rendre visibles les attentes des salariés. Le sujet ne s’arrête pas à cette journée.\n\nPouvoir d’achat et rémunérations, NAO 2026, réorganisations successives, emploi et conditions de travail : FO COM UES ILIAD poursuit le travail pour porter ces préoccupations dans toutes les entités du groupe.\n\nVotre témoignage et vos propositions nous aideront à construire les prochaines actions et à défendre vos priorités.",
-      button_text: "Donner mon avis",
-      button_url: "https://greve.focomues-iliad.fr",
+      id: "ouverture-permanences-fo-2026",
+      title: "Les permanences FO COM sont ouvertes !",
+      content: "FO COM UES ILIAD met en place des permanences syndicales pour être au plus près des salariés, vous écouter, répondre à vos questions et vous accompagner dans vos démarches.\\n\\nÀ Paris, retrouvez-nous les 1er et 3e mercredis de chaque mois, de 12 h à 14 h, au local FO situé au 16 rue de la Ville-l’Évêque, Paris 8e. Les rendez-vous peuvent être demandés directement depuis notre page dédiée.\\n\\nUne permanence téléphonique sera également disponible très prochainement : un numéro dédié sera opérationnel dans les prochains jours afin de faciliter les contacts. Les informations pratiques seront communiquées dès son activation.",
+      button_text: "Découvrir les permanences",
+      button_url: "/permanences",
       image_url: null,
       start_date: null,
       end_date: null,
@@ -174,7 +174,7 @@ export default function CampaignPopup() {
         {candidate.image_url && <img src={candidate.image_url} alt="" className="max-h-64 w-full object-cover" />}
         <div className="p-5 sm:p-8">
           <p className="mb-3 inline-flex rounded-full bg-red-50 px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.12em] text-red-700">
-            Après le 5 novembre 2026
+            Ouverture officielle
           </p>
           <h2 id="campaign-popup-title" className="pr-10 text-2xl font-black leading-tight text-slate-900 sm:text-3xl">
             {candidate.title}
