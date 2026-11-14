@@ -35,6 +35,7 @@ const mainNavItems = [
 const actionNavItems = [
   { to: "/adhesion", label: "Adhérer", icon: UserPlus, highlight: true },
   { to: "/mes-reclamations", label: "Mes demandes", icon: AlertCircle, authOnly: true },
+  { to: "/permanences", label: "Permanences FO", icon: Calendar, highlight: true },
   { to: "/mes-documents", label: "Mes documents", icon: Folder, authOnly: true },
   { to: "/profil", label: "Espace adhérent", icon: UserCircle },
 ];
