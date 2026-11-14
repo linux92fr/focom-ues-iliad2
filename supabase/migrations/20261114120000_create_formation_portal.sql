@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS public.formation_requests (
   local_union text,
   union_secretary text,
   first_level_completed boolean NOT NULL DEFAULT false,
+  fo_member_current boolean NOT NULL DEFAULT false,
   employer_notice_date date,
   employer_response text,
   efo_status text NOT NULL DEFAULT 'a_faire'
@@ -49,6 +50,7 @@ ON public.formation_requests FOR INSERT TO anon, authenticated
 WITH CHECK (
   status = 'nouvelle'
   AND efo_status = 'a_faire'
+  AND fo_member_current = true
   AND notes IS NULL
 );
 
