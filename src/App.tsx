@@ -85,10 +85,15 @@ import MesReclamations from "./pages/MesReclamations";
 import { PVSearchPage } from "@/components/PDFSearch";
 import AdminPVDepot from "./pages/admin/AdminPVDepot";
 import AdminCampaigns from "./pages/admin/AdminCampaigns";
+import FormationPortal from "./formation/FormationPortal";
 
 const queryClient = new QueryClient();
 
 function App() {
+  if (typeof window !== "undefined" && window.location.hostname === "formation.focomues-iliad.fr") {
+    return <FormationPortal />;
+  }
+
   return (
     <QueryClientProvider client={queryClient}>
       <ErrorBoundary>
