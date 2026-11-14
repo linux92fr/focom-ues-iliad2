@@ -69,7 +69,7 @@ export default function CampaignPopup() {
     const fallbackPopup: CampaignPopupRecord = {
       id: "ouverture-permanences-fo-2026",
       title: "Les permanences FO COM sont ouvertes !",
-      content: "FO COM UES ILIAD met en place des permanences syndicales pour être au plus près des salariés, vous écouter, répondre à vos questions et vous accompagner dans vos démarches.\\n\\nÀ Paris, retrouvez-nous les 1er et 3e mercredis de chaque mois, de 12 h à 14 h, au local FO situé au 16 rue de la Ville-l’Évêque, Paris 8e. Les rendez-vous peuvent être demandés directement depuis notre page dédiée.\\n\\nUne permanence téléphonique sera également disponible très prochainement : un numéro dédié sera opérationnel dans les prochains jours afin de faciliter les contacts. Les informations pratiques seront communiquées dès son activation.,
+      content: "FO COM UES ILIAD met en place des permanences syndicales pour être au plus près des salariés, vous écouter, répondre à vos questions et vous accompagner dans vos démarches.\\n\\nÀ Paris, retrouvez-nous les 1er et 3e mercredis de chaque mois, de 12 h à 14 h, au local FO situé au 16 rue de la Ville-l’Évêque, Paris 8e. Les rendez-vous peuvent être demandés directement depuis notre page dédiée.\\n\\nUne permanence téléphonique sera également disponible très prochainement : un numéro dédié sera opérationnel dans les prochains jours afin de faciliter les contacts. Les informations pratiques seront communiquées dès son activation.",
       button_text: "Découvrir les permanences",
       button_url: "/permanences",
       image_url: null,
