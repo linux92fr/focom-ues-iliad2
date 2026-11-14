@@ -1,0 +1,14 @@
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import AdminLayout, { AdminAuthGuard } from "@/components/admin/AdminLayout";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "sonner";
+type Demande={id:string;nom:string;prenom:string;email:string;telephone:string|null;entreprise:string|null;date_souhaitee:string;sujet:string;message:string|null;statut:string;created_at:string};
+const labels:Record<string,string>={nouvelle:"Nouvelle",a_recontacter:"À recontacter",confirmee:"Confirmée",traitee:"Traitée",annulee:"Annulée"};
+export default function AdminPermanenceDemandes(){
+ const qc=useQueryClient();
+ const {data=[],isLoading}=useQuery({queryKey:["admin-permanence-demandes"],queryFn:async()=>{const {data,error}=await(supabase as any).from("permanence_demandes").select("*").order("created_at",{ascending:false});if(error)throw error;return data as Demande[]}});
+ const update=useMutation({mutationFn:async({id,statut}:{id:string;statut:string})=>{const {error}=await(supabase as any).from("permanence_demandes").update({statut}).eq("id",id);if(error)throw error},onSuccess:()=>{toast.success("Statut mis à jour");qc.invalidateQueries({queryKey:["admin-permanence-demandes"]})},onError:()=>toast.error("Impossible de modifier le statut")});
+ return <AdminAuthGuard><AdminLayout><div className="space-y-5"><div><h1 className="text-2xl font-bold">Demandes de permanences</h1><p className="text-sm text-muted-foreground">Demandes de rendez-vous reçues depuis le site public.</p></div>{isLoading?<p>Chargement…</p>:data.length===0?<p className="rounded-xl border border-dashed p-8 text-center text-muted-foreground">Aucune demande pour le moment.</p>:<div className="space-y-3">{data.map(d=><article key={d.id} className="rounded-xl border bg-card p-4"><div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="font-bold">{d.prenom} {d.nom}</h2><p className="text-sm text-muted-foreground">{d.email}{d.telephone?" · "+d.telephone:""}</p><p className="text-sm">{d.entreprise||"Entreprise non précisée"} · {new Date(d.date_souhaitee+"T12:00:00").toLocaleDateString("fr-FR")}</p></div><Select value={d.statut} onValueChange={statut=>update.mutate({id:d.id,statut})}><SelectTrigger className="w-44"><SelectValue/></SelectTrigger><SelectContent>{Object.entries(labels).map(([v,t])=><SelectItem key={v} value={v}>{t}</SelectItem>)}</SelectContent></Select></div><div className="mt-3 border-t pt-3"><Badge variant="outline">{d.sujet}</Badge>{d.message&&<p className="mt-2 whitespace-pre-wrap text-sm">{d.message}</p>}<p className="mt-2 text-xs text-muted-foreground">Reçue le {new Date(d.created_at).toLocaleString("fr-FR")}</p></div></article>)}</div>}</div></AdminLayout></AdminAuthGuard>
+}
