@@ -10,7 +10,7 @@ const formatDate = (d: Date) => d.toLocaleDateString("fr-FR", { weekday: "long",
 const toIso = (d: Date) => [d.getFullYear(), String(d.getMonth()+1).padStart(2,"0"), String(d.getDate()).padStart(2,"0")].join("-");
 function upcomingDates() {
  const today=new Date();today.setHours(0,0,0,0);const dates:Date[]=[];
- for(let offset=0;offset<8&&dates.length<12;offset++){const month=new Date(today.getFullYear(),today.getMonth()+offset,1);let count=0;for(let day=1;day<=31;day++){const d=new Date(month.getFullYear(),month.getMonth(),day);if(d.getMonth()!==month.getMonth())break;if(d.getDay()===3&&++count%2===1&&d>=today)dates.push(d);}}
+ for(let offset=0;offset<8&&dates.length<12;offset++){const month=new Date(today.getFullYear(),today.getMonth()+offset,1);let count=0;for(let day=1;day<=31;day++){const d=new Date(month.getFullYear(),month.getMonth(),day);if(d.getMonth()!==month.getMonth())break;if(d.getDay()===3){count++;if((count===1||count===3)&&d>=today)dates.push(d);}}}
  return dates.slice(0,12);
 }
 export default function Permanences(){
