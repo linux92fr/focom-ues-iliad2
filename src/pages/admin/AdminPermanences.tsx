@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import AdminLayout, { AdminAuthGuard } from "@/components/admin/AdminLayout";
@@ -80,6 +81,7 @@ const rdvStatutVariant: Record<string, "default" | "secondary" | "destructive" |
 
 export default function AdminPermanences() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [modal, setModal] = useState<
     | { mode: "create" }
     | { mode: "edit"; item: Permanence }
