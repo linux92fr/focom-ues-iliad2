@@ -58,7 +58,7 @@ ON public.formation_requests FOR SELECT TO authenticated
 USING (EXISTS (
   SELECT 1 FROM public.user_roles ur
   WHERE ur.user_id = auth.uid()
-    AND ur.role::text IN ('admin','gestionnaire_formation')
+    AND ur.role::text = 'gestionnaire_formation'
 ));
 
 DROP POLICY IF EXISTS "Formation manager updates requests" ON public.formation_requests;
@@ -79,3 +79,8 @@ CREATE INDEX IF NOT EXISTS formation_requests_session_idx
 ON public.formation_requests (session_start, formation_title);
 CREATE INDEX IF NOT EXISTS formation_requests_created_idx
 ON public.formation_requests (created_at DESC);
+
+
+-- Accès à l'API REST : les droits SQL complètent les politiques RLS ci-dessus.
+GRANT INSERT ON TABLE public.formation_requests TO anon, authenticated;
+GRANT SELECT, UPDATE ON TABLE public.formation_requests TO authenticated;
