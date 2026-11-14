@@ -25,10 +25,10 @@ create policy "permanence_demandes_insert_public"
   );
 create policy "permanence_demandes_select_admin"
   on public.permanence_demandes for select to authenticated
-  using (exists (select 1 from public.user_roles where user_id = auth.uid() and role in ('admin','moderator')));
+  using (exists (select 1 from public.user_roles where user_id = auth.uid() and role in ('admin')));
 create policy "permanence_demandes_update_admin"
   on public.permanence_demandes for update to authenticated
-  using (exists (select 1 from public.user_roles where user_id = auth.uid() and role in ('admin','moderator')))
-  with check (exists (select 1 from public.user_roles where user_id = auth.uid() and role in ('admin','moderator')));
+  using (exists (select 1 from public.user_roles where user_id = auth.uid() and role in ('admin')))
+  with check (exists (select 1 from public.user_roles where user_id = auth.uid() and role in ('admin')));
 create index if not exists idx_permanence_demandes_date on public.permanence_demandes(date_souhaitee);
 create index if not exists idx_permanence_demandes_created on public.permanence_demandes(created_at desc);
