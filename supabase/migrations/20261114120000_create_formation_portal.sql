@@ -69,7 +69,7 @@ ON public.formation_requests FOR UPDATE TO authenticated
 USING (EXISTS (
   SELECT 1 FROM public.user_roles ur
   WHERE ur.user_id = auth.uid()
-    AND ur.role::text IN ('admin','gestionnaire_formation')
+    AND ur.role::text = 'gestionnaire_formation'
 ))
 WITH CHECK (EXISTS (
   SELECT 1 FROM public.user_roles ur
