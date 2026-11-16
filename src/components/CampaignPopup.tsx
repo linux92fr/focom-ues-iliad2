@@ -69,7 +69,7 @@ export default function CampaignPopup() {
     const fallbackPopup: CampaignPopupRecord = {
       id: "ouverture-permanences-fo-2026",
       title: "Les permanences FO COM sont ouvertes !",
-      content: "FO COM UES ILIAD met en place des permanences syndicales pour être au plus près des salariés, vous écouter, répondre à vos questions et vous accompagner dans vos démarches.\\n\\nÀ Paris, retrouvez-nous les 1er et 3e mercredis de chaque mois, de 12 h à 14 h, au local FO situé au 16 rue de la Ville-l’Évêque, Paris 8e. Les rendez-vous peuvent être demandés directement depuis notre page dédiée.\\n\\nUne permanence téléphonique sera également disponible très prochainement : un numéro dédié sera opérationnel dans les prochains jours afin de faciliter les contacts. Les informations pratiques seront communiquées dès son activation.",
+      content: "FO COM UES ILIAD met en place des permanences syndicales pour être au plus près des salariés, vous écouter, répondre à vos questions et vous accompagner dans vos démarches.\\n\\nÀ Paris, retrouvez-nous les 1er et 3e mercredis de chaque mois, de 12 h à 14 h, au local FO situé au 16 rue de la Ville-l’Évêque, Paris 8e. Les rendez-vous peuvent être demandés directement depuis notre page dédiée.\\n\\nPermanence téléphonique : appelez le 01 84 16 67 54, du lundi au vendredi, de 10 h à 16 h.",
       button_text: "Découvrir les permanences",
       button_url: "/permanences",
       image_url: null,
@@ -192,8 +192,8 @@ export default function CampaignPopup() {
                 <p className="mt-3 text-sm font-semibold text-red-700">Vous pouvez dès maintenant demander un rendez-vous depuis notre page dédiée.</p>
               </div>
               <div className="rounded-2xl border border-teal-100 bg-teal-50/80 p-4 sm:p-5">
-                <p className="font-extrabold text-teal-900">📞 Bientôt : une permanence téléphonique</p>
-                <p className="mt-2 text-teal-950">Un <strong className="font-extrabold">numéro dédié sera opérationnel dans les prochains jours</strong> afin de faciliter vos contacts avec FO COM. Les modalités pratiques seront communiquées dès son activation.</p>
+                <p className="font-extrabold text-teal-900">📞 Permanence téléphonique FO COM</p>
+                <p className="mt-2 text-teal-950">Appelez-nous au <a href="tel:+33184166754" className="font-extrabold underline underline-offset-4">01 84 16 67 54</a>, du lundi au vendredi, de 10 h à 16 h.</p>
               </div>
             </div>
           ) : (
