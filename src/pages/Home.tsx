@@ -428,7 +428,7 @@ export default function Home() {
       <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <div className="grid gap-4 sm:grid-cols-3">
           <div className="flex items-center gap-3"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-teal-50"><HelpCircle className="h-5 w-5 text-teal-600" /></div><div><p className="text-sm font-semibold text-slate-900">Une question ?</p><p className="text-xs text-slate-500">Les élus FO COM sont à votre écoute.</p></div></div>
-          <div className="flex items-center gap-3"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-50"><Phone className="h-5 w-5 text-red-600" /></div><div><p className="text-sm font-semibold text-slate-900">01 23 45 67 89</p><p className="text-xs text-slate-500">Appel non surtaxé</p></div></div>
+          <div className="flex items-center gap-3"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-50"><Phone className="h-5 w-5 text-red-600" /></div><div><a href="tel:+33184166754" className="text-sm font-semibold text-slate-900 hover:text-red-600">01 84 16 67 54</a><p className="text-xs text-slate-500">Permanence FO · lun.–ven. 10 h–16 h</p></div></div>
           <div className="flex items-center gap-3 min-w-0"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-50"><Mail className="h-5 w-5 text-red-600" /></div><div className="min-w-0"><p className="truncate text-sm font-semibold text-slate-900">contact@focomues-iliad.fr</p><p className="text-xs text-slate-500">Nous vous répondons rapidement</p></div></div>
         </div>
       </section>
