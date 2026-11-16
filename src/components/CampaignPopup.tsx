@@ -67,11 +67,11 @@ export default function CampaignPopup() {
       return starts && ends && audience && !wasAlreadySeen(item);
     });
     const fallbackPopup: CampaignPopupRecord = {
-      id: "mobilisation-bilan-5-novembre-2026",
-      title: "Après le 5 novembre : continuons à faire entendre votre voix",
-      content: "La mobilisation du 5 novembre a permis de rendre visibles les attentes des salariés. Le sujet ne s’arrête pas à cette journée.\n\nPouvoir d’achat et rémunérations, NAO 2026, réorganisations successives, emploi et conditions de travail : FO COM UES ILIAD poursuit le travail pour porter ces préoccupations dans toutes les entités du groupe.\n\nVotre témoignage et vos propositions nous aideront à construire les prochaines actions et à défendre vos priorités.",
-      button_text: "Donner mon avis",
-      button_url: "https://greve.focomues-iliad.fr",
+      id: "ouverture-permanences-fo-2026",
+      title: "Les permanences FO COM sont ouvertes !",
+      content: "FO COM UES ILIAD met en place des permanences syndicales pour être au plus près des salariés, vous écouter, répondre à vos questions et vous accompagner dans vos démarches.\\n\\nÀ Paris, retrouvez-nous les 1er et 3e mercredis de chaque mois, de 12 h à 14 h, au local FO situé au 16 rue de la Ville-l’Évêque, Paris 8e. Les rendez-vous peuvent être demandés directement depuis notre page dédiée.\\n\\nUne permanence téléphonique sera également disponible très prochainement : un numéro dédié sera opérationnel dans les prochains jours afin de faciliter les contacts. Les informations pratiques seront communiquées dès son activation.",
+      button_text: "Découvrir les permanences",
+      button_url: "/permanences",
       image_url: null,
       start_date: null,
       end_date: null,
@@ -174,14 +174,33 @@ export default function CampaignPopup() {
         {candidate.image_url && <img src={candidate.image_url} alt="" className="max-h-64 w-full object-cover" />}
         <div className="p-5 sm:p-8">
           <p className="mb-3 inline-flex rounded-full bg-red-50 px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.12em] text-red-700">
-            Après le 5 novembre 2026
+            Ouverture officielle
           </p>
           <h2 id="campaign-popup-title" className="pr-10 text-2xl font-black leading-tight text-slate-900 sm:text-3xl">
             {candidate.title}
           </h2>
-          <div className="mt-4 whitespace-pre-wrap text-sm leading-7 text-slate-600 sm:text-base">
-            {candidate.content}
-          </div>
+          {candidate.id === "ouverture-permanences-fo-2026" ? (
+            <div className="mt-5 space-y-4 text-sm leading-6 text-slate-700 sm:text-base">
+              <p>FO COM UES ILIAD met en place des <strong className="font-extrabold text-slate-950">permanences syndicales</strong> pour être au plus près des salariés, vous écouter, répondre à vos questions et vous accompagner dans vos démarches.</p>
+              <div className="rounded-2xl border border-red-100 bg-red-50/70 p-4 sm:p-5">
+                <p className="mb-3 flex items-center gap-2 font-extrabold text-red-700"><span aria-hidden="true">📍</span> Permanences à Paris</p>
+                <div className="space-y-2 text-slate-800">
+                  <p><strong className="font-extrabold">Quand ?</strong> Les 1er et 3e mercredis de chaque mois</p>
+                  <p><strong className="font-extrabold">Horaires :</strong> de 12 h à 14 h</p>
+                  <p><strong className="font-extrabold">Lieu :</strong> Local FO, 16 rue de la Ville-l’Évêque, Paris 8e</p>
+                </div>
+                <p className="mt-3 text-sm font-semibold text-red-700">Vous pouvez dès maintenant demander un rendez-vous depuis notre page dédiée.</p>
+              </div>
+              <div className="rounded-2xl border border-teal-100 bg-teal-50/80 p-4 sm:p-5">
+                <p className="font-extrabold text-teal-900">📞 Bientôt : une permanence téléphonique</p>
+                <p className="mt-2 text-teal-950">Un <strong className="font-extrabold">numéro dédié sera opérationnel dans les prochains jours</strong> afin de faciliter vos contacts avec FO COM. Les modalités pratiques seront communiquées dès son activation.</p>
+              </div>
+            </div>
+          ) : (
+            <div className="mt-4 whitespace-pre-wrap text-sm leading-7 text-slate-600 sm:text-base">
+              {candidate.content.replace(/\\\\n/g, "\\n").replace(/\\n/g, "\\n")}
+            </div>
+          )}
           {candidate.newsletter_enabled !== false && (
             <section className="mt-6 rounded-2xl bg-slate-950 p-4 text-white sm:p-5" aria-label="Inscription à la newsletter">
               <div className="mb-3 flex items-center gap-2">

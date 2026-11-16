@@ -77,6 +77,7 @@ import AdminFAQ from "./pages/admin/AdminFAQ";
 import AdminMessages from "./pages/admin/AdminMessages";
 import AdminHomeEdit from "./pages/admin/AdminHomeEdit";
 import AdminPermanences from "./pages/admin/AdminPermanences";
+import AdminPermanenceDemandes from "./pages/admin/AdminPermanenceDemandes";
 import AdminSondages from "./pages/admin/AdminSondages";
 import AdminNewsletter from "./pages/admin/AdminNewsletter";
 import AdminReclamations from "./pages/admin/AdminReclamations";
@@ -168,6 +169,7 @@ function App() {
                     <Route path={`/${ADMIN_BASE}/messages`} element={<AdminMessages />} />
                     <Route path={`/${ADMIN_BASE}/home-edit`} element={<AdminHomeEdit />} />
                     <Route path={`/${ADMIN_BASE}/permanences`} element={<AdminPermanences />} />
+                    <Route path={`/${ADMIN_BASE}/permanences-demandes`} element={<AdminPermanenceDemandes />} />
                     <Route path={`/${ADMIN_BASE}/sondages`} element={<AdminSondages />} />
                     <Route path={`/${ADMIN_BASE}/newsletter`} element={<AdminNewsletter />} />
                     <Route path={`/${ADMIN_BASE}/reclamations`} element={<AdminReclamations />} />
