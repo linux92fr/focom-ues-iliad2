@@ -108,6 +108,66 @@ export type Database = {
           },
         ]
       }
+      admin_role_permissions: {
+        Row: {
+          can_edit: boolean
+          can_view: boolean
+          id: string
+          role: string
+          section: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          can_edit?: boolean
+          can_view?: boolean
+          id?: string
+          role: string
+          section: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          can_edit?: boolean
+          can_view?: boolean
+          id?: string
+          role?: string
+          section?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      admin_user_permissions: {
+        Row: {
+          can_edit: boolean
+          can_view: boolean
+          id: string
+          section: string
+          updated_at: string
+          updated_by: string | null
+          user_id: string
+        }
+        Insert: {
+          can_edit?: boolean
+          can_view?: boolean
+          id?: string
+          section: string
+          updated_at?: string
+          updated_by?: string | null
+          user_id: string
+        }
+        Update: {
+          can_edit?: boolean
+          can_view?: boolean
+          id?: string
+          section?: string
+          updated_at?: string
+          updated_by?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       app_config: {
         Row: {
           created_at: string | null
@@ -1019,6 +1079,114 @@ export type Database = {
           },
         ]
       }
+      formation_requests: {
+        Row: {
+          city: string
+          company: string
+          company_address: string | null
+          company_city: string | null
+          company_postal_code: string | null
+          created_at: string
+          departement: string
+          department_name: string | null
+          efo_status: string
+          email: string
+          employer_notice_date: string | null
+          employer_response: string | null
+          first_level_completed: boolean
+          first_name: string
+          fo_member_current: boolean
+          formation_title: string
+          hr_contact_name: string | null
+          id: string
+          job_title: string | null
+          last_name: string
+          local_union: string | null
+          notes: string | null
+          personal_address: string
+          phone: string | null
+          postal_code: string
+          region: string
+          session_end: string
+          session_start: string
+          stage_number: string | null
+          status: string
+          training_location: string | null
+          union_secretary: string | null
+          work_location: string | null
+        }
+        Insert: {
+          city: string
+          company: string
+          company_address?: string | null
+          company_city?: string | null
+          company_postal_code?: string | null
+          created_at?: string
+          departement?: string
+          department_name?: string | null
+          efo_status?: string
+          email: string
+          employer_notice_date?: string | null
+          employer_response?: string | null
+          first_level_completed?: boolean
+          first_name: string
+          fo_member_current?: boolean
+          formation_title: string
+          hr_contact_name?: string | null
+          id?: string
+          job_title?: string | null
+          last_name: string
+          local_union?: string | null
+          notes?: string | null
+          personal_address: string
+          phone?: string | null
+          postal_code: string
+          region?: string
+          session_end: string
+          session_start: string
+          stage_number?: string | null
+          status?: string
+          training_location?: string | null
+          union_secretary?: string | null
+          work_location?: string | null
+        }
+        Update: {
+          city?: string
+          company?: string
+          company_address?: string | null
+          company_city?: string | null
+          company_postal_code?: string | null
+          created_at?: string
+          departement?: string
+          department_name?: string | null
+          efo_status?: string
+          email?: string
+          employer_notice_date?: string | null
+          employer_response?: string | null
+          first_level_completed?: boolean
+          first_name?: string
+          fo_member_current?: boolean
+          formation_title?: string
+          hr_contact_name?: string | null
+          id?: string
+          job_title?: string | null
+          last_name?: string
+          local_union?: string | null
+          notes?: string | null
+          personal_address?: string
+          phone?: string | null
+          postal_code?: string
+          region?: string
+          session_end?: string
+          session_start?: string
+          stage_number?: string | null
+          status?: string
+          training_location?: string | null
+          union_secretary?: string | null
+          work_location?: string | null
+        }
+        Relationships: []
+      }
       formation_sessions: {
         Row: {
           adresse_formation: string | null
@@ -1859,8 +2027,8 @@ export type Database = {
           id: string
           image_url: string | null
           is_active: boolean
-          position: string | null
           newsletter_enabled: boolean
+          position: string | null
           show_to_anonymous: boolean
           show_to_authenticated: boolean
           start_date: string | null
@@ -1878,8 +2046,8 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_active?: boolean
-          position?: string | null
           newsletter_enabled?: boolean
+          position?: string | null
           show_to_anonymous?: boolean
           show_to_authenticated?: boolean
           start_date?: string | null
@@ -1897,8 +2065,8 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_active?: boolean
-          position?: string | null
           newsletter_enabled?: boolean
+          position?: string | null
           show_to_anonymous?: boolean
           show_to_authenticated?: boolean
           start_date?: string | null
@@ -2608,6 +2776,36 @@ export type Database = {
           },
         ]
       }
+      upload_diagnostics: {
+        Row: {
+          created_at: string
+          detail: Json | null
+          id: string
+          session_id: string | null
+          step: string
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          detail?: Json | null
+          id?: string
+          session_id?: string | null
+          step: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          detail?: Json | null
+          id?: string
+          session_id?: string | null
+          step?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       user_documents: {
         Row: {
           created_at: string
@@ -2926,6 +3124,7 @@ export type Database = {
         | "visio"
         | "gestionnaire_documents"
         | "utilisateur_ia"
+        | "gestionnaire_formation"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2941,12 +3140,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2970,11 +3169,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2995,11 +3194,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -3020,11 +3219,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -3037,11 +3236,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -3090,6 +3289,7 @@ export const Constants = {
         "visio",
         "gestionnaire_documents",
         "utilisateur_ia",
+        "gestionnaire_formation",
       ],
     },
   },
