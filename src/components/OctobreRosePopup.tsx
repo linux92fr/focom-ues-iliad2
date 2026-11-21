@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ExternalLink, HeartPulse, Phone, ShieldCheck, X } from "lucide-react";
 
 const STORAGE_KEY = "focom-octobre-rose-2026-seen";
 
 export default function OctobreRosePopup() {
   const [open, setOpen] = useState(false);
+  const dialogRef = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
     try {
@@ -18,20 +19,11 @@ export default function OctobreRosePopup() {
   }, []);
 
   useEffect(() => {
-    if (!open) return;
+    const dialog = dialogRef.current;
+    if (!dialog) return;
 
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") close();
-    };
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    window.addEventListener("keydown", onKeyDown);
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      window.removeEventListener("keydown", onKeyDown);
-    };
+    if (open && !dialog.open) dialog.showModal();
+    if (!open && dialog.open) dialog.close();
   }, [open]);
 
   const close = () => {
@@ -46,14 +38,18 @@ export default function OctobreRosePopup() {
     }, 50);
   };
 
-  if (!open) return null;
-
   return (
-    <div
-      className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-slate-950/75 p-2 backdrop-blur-sm sm:p-4"
-      role="dialog"
-      aria-modal="true"
+    <dialog
+      ref={dialogRef}
+      className="native-modal fixed inset-0 m-0 flex h-dvh w-dvw max-h-none max-w-none items-center justify-center overflow-y-auto border-0 bg-transparent p-2 sm:p-4"
       aria-labelledby="octobre-rose-popup-title"
+      onCancel={(event) => {
+        event.preventDefault();
+        close();
+      }}
+      onClick={(event) => {
+        if (event.target === event.currentTarget) close();
+      }}
     >
       <div
         className="relative flex max-h-[90dvh] w-full max-w-2xl flex-col overflow-y-auto overscroll-contain rounded-2xl bg-white shadow-2xl sm:max-h-[calc(100dvh-2rem)] sm:rounded-3xl"
@@ -117,6 +113,6 @@ export default function OctobreRosePopup() {
           </div>
         </div>
       </div>
-    </div>
+    </dialog>
   );
 }
