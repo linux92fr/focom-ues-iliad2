@@ -45,6 +45,7 @@ export default function CampaignPopup() {
   const [candidate, setCandidate] = useState<CampaignPopupRecord | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const authenticatedRef = useRef(false);
+  const dialogRef = useRef<HTMLDialogElement>(null);
 
   // Load the third-party chat only after an explicit contact/help interaction.
   useEffect(() => {
@@ -150,20 +151,14 @@ export default function CampaignPopup() {
   }, [candidate?.id]);
 
   useEffect(() => {
-    if (!isOpen) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") close();
-    };
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    window.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      window.removeEventListener("keydown", onKeyDown);
-    };
-  }, [isOpen, close]);
+    const dialog = dialogRef.current;
+    if (!dialog) return;
 
-  if (!candidate || !isOpen) return null;
+    if (isOpen && !dialog.open) dialog.showModal();
+    if (!isOpen && dialog.open) dialog.close();
+  }, [isOpen]);
+
+  if (!candidate) return null;
   const position = candidate.position === "top"
     ? "items-start pt-5"
     : candidate.position === "bottom"
@@ -171,12 +166,17 @@ export default function CampaignPopup() {
       : "items-center";
 
   return (
-    <div
-      className={`fixed inset-0 z-[100] flex justify-center overflow-y-auto bg-slate-950/75 p-3 backdrop-blur-sm sm:p-5 ${position}`}
-      role="dialog"
-      aria-modal="true"
+    <dialog
+      ref={dialogRef}
+      className={`native-modal fixed inset-0 m-0 flex h-dvh w-dvw max-h-none max-w-none justify-center overflow-y-auto border-0 bg-transparent p-3 sm:p-5 ${position}`}
       aria-labelledby="campaign-popup-title"
-      onClick={close}
+      onCancel={(event) => {
+        event.preventDefault();
+        close();
+      }}
+      onClick={(event) => {
+        if (event.target === event.currentTarget) close();
+      }}
     >
       <div
         className={`relative ${candidate.position === "center" || !candidate.position ? "my-auto" : "my-4"} flex max-h-[92dvh] w-full max-w-2xl flex-col overflow-y-auto rounded-2xl bg-white shadow-2xl sm:rounded-3xl`}
@@ -246,6 +246,6 @@ export default function CampaignPopup() {
           </div>
         </div>
       </div>
-    </div>
+    </dialog>
   );
 }
