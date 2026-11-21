@@ -1,6 +1,7 @@
 import { Users, Target, Shield, Heart, Award, History, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import StatsAccordion from "@/components/StatsAccordion";
 import { Link } from "react-router-dom";
 import logoFocom from "@/assets/logo-focom.png";
 
@@ -52,10 +53,26 @@ const About = () => {
   ];
 
   const achievements = [
-    { number: "500+", label: "Adhérents" },
-    { number: "15+", label: "Années d'expérience" },
-    { number: "100%", label: "Indépendance" },
-    { number: "24/7", label: "À votre écoute" }
+    {
+      number: "500+",
+      label: "Adhérents",
+      description: "Une communauté de salariés réunis pour défendre leurs droits et leurs intérêts.",
+    },
+    {
+      number: "15+",
+      label: "Années d'expérience",
+      description: "Un engagement syndical construit dans la durée au sein du groupe Iliad.",
+    },
+    {
+      number: "100%",
+      label: "Indépendance",
+      description: "Notre indépendance guide nos prises de position et nos actions.",
+    },
+    {
+      number: "24/7",
+      label: "À votre écoute",
+      description: "Notre équipe est là pour vous écouter et vous orienter dans vos démarches.",
+    },
   ];
 
   return (
@@ -112,23 +129,7 @@ const About = () => {
         </div>
       </section>
 
-      {/* Stats */}
-      <section className="py-12 gradient-hero">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {achievements.map((stat, index) => (
-              <div key={index} className="text-center">
-                <div className="font-serif text-4xl md:text-5xl font-bold text-primary-foreground mb-2">
-                  {stat.number}
-                </div>
-                <div className="text-primary-foreground/80 text-sm uppercase tracking-wider">
-                  {stat.label}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      <StatsAccordion items={achievements} />
 
       {/* Values */}
       <section className="py-16 bg-background">

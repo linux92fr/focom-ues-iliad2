@@ -371,10 +371,47 @@ a:focus-visible .mobilisation-marquee-track {
   animation-play-state: paused;
 }
 
+.stats-accordion-chevron {
+  transition: rotate 0.25s ease-in-out;
+}
+
+.stats-accordion-item[open] > summary > .stats-accordion-chevron {
+  rotate: 180deg;
+}
+
+@supports (interpolate-size: allow-keywords) and selector(details::details-content) {
+  .stats-accordion-item::details-content {
+    interpolate-size: allow-keywords;
+    overflow: clip;
+    contain: layout;
+  }
+
+  .stats-accordion-item:not([open])::details-content {
+    block-size: 0;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .stats-accordion-item::details-content {
+      transition: block-size, content-visibility, display;
+      transition-duration: 0.3s;
+      transition-timing-function: ease-in-out;
+      transition-behavior: allow-discrete;
+    }
+
+    .stats-accordion-chevron {
+      transition: rotate 0.25s ease-in-out;
+    }
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .mobilisation-marquee-track {
     animation: none;
     width: 100%;
     white-space: normal;
+  }
+
+  .stats-accordion-chevron {
+    transition: none;
   }
 }
