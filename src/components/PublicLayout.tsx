@@ -124,18 +124,7 @@ export default function PublicLayout() {
     return () => { cancelled = true; };
   }, []);
 
-  if (!settingsLoaded) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-950 px-6 text-sm text-slate-300">
-        <div className="flex items-center gap-3">
-          <span className="h-2.5 w-2.5 rounded-full bg-[#139c9a] motion-safe:animate-pulse" />
-          Chargement du site…
-        </div>
-      </div>
-    );
-  }
-
-  if (maintenanceMode) return <MaintenanceScreen />;
+  if (maintenanceMode && settingsLoaded) return <MaintenanceScreen />;
 
   return (
     <div
