@@ -38,6 +38,14 @@ type NewsletterSend = {
   newsletters: { title: string; subject: string } | null;
 };
 
+type SendResult = {
+  successfulSends: number;
+  totalRecipients: number;
+  failedSends: number;
+  status?: string;
+  functionName?: string;
+};
+
 type NlForm = { title: string; subject: string; body_html: string };
 
 const emptyForm = (): NlForm => ({ title: "", subject: "", body_html: "" });
@@ -65,6 +73,44 @@ const withTimeout = async <T,>(promise: Promise<T>, timeoutMs = 15000): Promise<
   } finally {
     if (timeoutId) clearTimeout(timeoutId);
   }
+};
+
+const waitForSendCompletion = async (
+  newsletterId: string,
+  previousSendId: string | null,
+  startedAt: string,
+  timeoutMs = 60000,
+): Promise<SendResult> => {
+  const deadline = Date.now() + timeoutMs;
+
+  while (Date.now() < deadline) {
+    const { data, error } = await supabase
+      .from("newsletter_sends")
+      .select("id,status,total_recipients,successful_sends,failed_sends,error_details")
+      .eq("newsletter_id", newsletterId)
+      .gte("sent_at", startedAt)
+      .order("sent_at", { ascending: false })
+      .limit(5);
+
+    if (error) throw error;
+
+    const send = (data ?? []).find((record) => record.id !== previousSendId);
+    if (send && send.status !== "sending") {
+      if (send.status === "failed") {
+        throw new Error(send.error_details || "L’envoi a échoué côté service e-mail.");
+      }
+      return {
+        successfulSends: send.successful_sends ?? 0,
+        totalRecipients: send.total_recipients ?? 0,
+        failedSends: send.failed_sends ?? 0,
+        status: send.status,
+      };
+    }
+
+    await new Promise((resolve) => window.setTimeout(resolve, 1500));
+  }
+
+  throw new Error("L’envoi n’a pas confirmé son résultat. Vérifiez l’historique avant de réessayer.");
 };
 
 function StatusBadge({ status }: { status: string }) {
@@ -213,35 +259,53 @@ export default function AdminNewsletter() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Non connecté");
 
-      const { data, error } = await supabase.functions.invoke("send-newsletter-selected", {
-        body: { newsletterId, recipientEmails: selectedActiveEmails },
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
+      const startedAt = new Date(Date.now() - 3000).toISOString();
+      const { data: previousSend } = await supabase
+        .from("newsletter_sends")
+        .select("id")
+        .eq("newsletter_id", newsletterId)
+        .order("sent_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-      if (error) {
-        const context = (error as { context?: Response }).context;
-        if (context) {
-          let details: unknown = null;
-          try {
-            details = await context.clone().json();
-          } catch {
-            try { details = await context.text(); } catch { details = null; }
+      const invokePromise = supabase.functions.invoke("send-newsletter-selected", {
+          body: { newsletterId, recipientEmails: selectedActiveEmails },
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        }).then(async ({ data, error }) => {
+          if (error) {
+            const context = (error as { context?: Response }).context;
+            if (context) {
+              let details: unknown;
+              try {
+                details = await context.clone().json();
+              } catch {
+                try { details = await context.text(); } catch { details = null; }
+              }
+              if (typeof details === "object" && details !== null) {
+                const payload = details as { error?: string; message?: string; details?: string };
+                throw new Error(payload.error || payload.message || payload.details || error.message);
+              }
+              if (typeof details === "string" && details.trim()) throw new Error(details);
+            }
+            throw new Error(error.message);
           }
-          if (typeof details === "object" && details !== null) {
-            const payload = details as { error?: string; message?: string; details?: string };
-            throw new Error(payload.error || payload.message || payload.details || error.message);
-          }
-          if (typeof details === "string" && details.trim()) throw new Error(details);
-        }
-        throw new Error(error.message);
-      }
 
-      if (data?.error) throw new Error(data.error);
-      return data;
+          if (data?.error) throw new Error(data.error);
+          return data as SendResult;
+        });
+
+      return Promise.race([
+        invokePromise,
+        waitForSendCompletion(newsletterId, previousSend?.id ?? null, startedAt),
+      ]);
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["admin-sends"] });
-      toast.success(`Newsletter envoyée à ${data.successfulSends}/${data.totalRecipients} abonnés`);
+      if (data.failedSends > 0) {
+        toast.warning(`Envoi partiel : ${data.successfulSends}/${data.totalRecipients} abonnés`);
+      } else {
+        toast.success(`Newsletter envoyée à ${data.successfulSends}/${data.totalRecipients} abonnés`);
+      }
     },
     onError: (err: unknown) => toast.error(`Envoi impossible : ${getErrorMessage(err)}`),
     onSettled: () => setSendingId(null),
