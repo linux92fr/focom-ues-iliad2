@@ -378,3 +378,53 @@ a:focus-visible .mobilisation-marquee-track {
     white-space: normal;
   }
 }
+
+/* Native modal dialogs: animate both the dialog and its top-layer backdrop. */
+.native-modal {
+  opacity: 0;
+  transform: translateY(0.75rem) scale(0.985);
+  transition:
+    opacity 220ms ease,
+    transform 220ms ease,
+    overlay 220ms allow-discrete,
+    display 220ms allow-discrete;
+}
+
+.native-modal[open] {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.native-modal::backdrop {
+  background-color: rgb(2 6 23 / 0);
+  backdrop-filter: blur(0);
+  transition:
+    background-color 220ms ease,
+    backdrop-filter 220ms ease,
+    overlay 220ms allow-discrete,
+    display 220ms allow-discrete;
+}
+
+.native-modal[open]::backdrop {
+  background-color: rgb(2 6 23 / 75%);
+  backdrop-filter: blur(4px);
+}
+
+@starting-style {
+  .native-modal[open] {
+    opacity: 0;
+    transform: translateY(0.75rem) scale(0.985);
+  }
+
+  .native-modal[open]::backdrop {
+    background-color: rgb(2 6 23 / 0);
+    backdrop-filter: blur(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .native-modal,
+  .native-modal::backdrop {
+    transition: none;
+  }
+}
