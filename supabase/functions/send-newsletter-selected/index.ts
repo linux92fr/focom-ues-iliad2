@@ -3,6 +3,7 @@ const CORS = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
+const NEWSLETTER_BATCH_SIZE = 20;
 
 const json = (data: unknown, status = 200) =>
   new Response(JSON.stringify(data), {
@@ -99,7 +100,7 @@ Deno.serve(async (req) => {
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const resendKey = Deno.env.get("RESEND_API_KEY");
-  const siteUrl = Deno.env.get("PUBLIC_SITE_URL") ?? Deno.env.get("SITE_URL") ?? "https://beta.focomues-iliad.fr";
+  const siteUrl = Deno.env.get("PUBLIC_SITE_URL") ?? Deno.env.get("SITE_URL") ?? "https://focomues-iliad.fr";
   const fromEmail = normalizeFromEmail(
     Deno.env.get("NEWSLETTER_FROM")
       ?? Deno.env.get("CONTACT_REPLY_FROM")
@@ -127,6 +128,7 @@ Deno.serve(async (req) => {
 
   const payload = await req.json();
   const newsletterId = payload?.newsletterId;
+  const sendAll = payload?.sendAll === true;
   const recipientEmails: string[] = Array.isArray(payload?.recipientEmails)
     ? Array.from(new Set(payload.recipientEmails
         .filter((email: unknown) => typeof email === "string" && email.includes("@"))
@@ -134,9 +136,19 @@ Deno.serve(async (req) => {
     : [];
 
   if (!newsletterId) return json({ error: "newsletterId requis" }, 400);
-  if (payload?.sendAll === true) return json({ error: "Envoi global interdit sur cette fonction." }, 400);
-  if (recipientEmails.length === 0) return json({ error: "Aucun destinataire sélectionné." }, 400);
-  if (recipientEmails.length > 20) return json({ error: "Maximum 20 destinataires par envoi." }, 400);
+  if (!sendAll && recipientEmails.length === 0) return json({ error: "Aucun destinataire sélectionné." }, 400);
+  if (!sendAll && recipientEmails.length > NEWSLETTER_BATCH_SIZE) {
+    return json({ error: `Maximum ${NEWSLETTER_BATCH_SIZE} destinataires par envoi sélectionné.` }, 400);
+  }
+
+  const runningSendRes = await fetch(
+    `${supabaseUrl}/rest/v1/newsletter_sends?newsletter_id=eq.${newsletterId}&status=eq.sending&select=id&limit=1`,
+    { headers: { Authorization: `Bearer ${serviceKey}`, apikey: serviceKey } },
+  );
+  const runningSends = await runningSendRes.json();
+  if (Array.isArray(runningSends) && runningSends.length > 0) {
+    return json({ error: "Un envoi de cette newsletter est déjà en cours." }, 409);
+  }
 
   const nlRes = await fetch(
     `${supabaseUrl}/rest/v1/newsletters?id=eq.${newsletterId}&select=*&limit=1`,
@@ -146,19 +158,26 @@ Deno.serve(async (req) => {
   if (!Array.isArray(newsletters) || newsletters.length !== 1) return json({ error: "Newsletter introuvable" }, 404);
   const newsletter = newsletters[0];
 
-  const emailFilter = recipientEmails.map((email) => `"${email.replaceAll('"', '')}"`).join(",");
-  const subsRes = await fetch(
-    `${supabaseUrl}/rest/v1/newsletter_subscribers?is_active=eq.true&email=in.(${emailFilter})&select=email,unsubscribe_token`,
-    { headers: { Authorization: `Bearer ${serviceKey}`, apikey: serviceKey } },
-  );
+  const subscribersQuery = sendAll
+    ? `${supabaseUrl}/rest/v1/newsletter_subscribers?is_active=eq.true&select=email,unsubscribe_token&order=subscribed_at.asc`
+    : (() => {
+        const emailFilter = recipientEmails.map((email) => `"${email.replaceAll('"', '')}"`).join(",");
+        return `${supabaseUrl}/rest/v1/newsletter_subscribers?is_active=eq.true&email=in.(${emailFilter})&select=email,unsubscribe_token`;
+      })();
+  const subsRes = await fetch(subscribersQuery, {
+    headers: { Authorization: `Bearer ${serviceKey}`, apikey: serviceKey },
+  });
   const subscribers: Array<{ email: string; unsubscribe_token?: string | null }> = await subsRes.json();
 
-  if (subscribers.length !== recipientEmails.length) {
+  if (!sendAll && subscribers.length !== recipientEmails.length) {
     return json({
       error: "Certains destinataires sélectionnés ne sont pas actifs ou n'existent plus.",
       requestedRecipients: recipientEmails.length,
       activeRecipients: subscribers.length,
     }, 400);
+  }
+  if (subscribers.length === 0) {
+    return json({ error: "Aucun abonné actif disponible." }, 400);
   }
 
   const sendRes = await fetch(`${supabaseUrl}/rest/v1/newsletter_sends`, {
@@ -181,34 +200,54 @@ Deno.serve(async (req) => {
   const sendRecords = await sendRes.json();
   const sendId: string | undefined = Array.isArray(sendRecords) ? sendRecords[0]?.id : undefined;
 
-  const emails = subscribers.map((sub) => {
-    const unsubParam = sub.unsubscribe_token
-      ? `token=${sub.unsubscribe_token}`
-      : `email=${encodeURIComponent(sub.email)}`;
+  let successful = 0;
+  let failed = 0;
+  const failureDetails: string[] = [];
 
-    return {
-      from: fromEmail,
-      to: [sub.email],
-      subject: newsletter.subject,
-      html: wrapHtml(
-        newsletter.body_html,
-        `${siteUrl}/newsletter/unsubscribe?${unsubParam}`,
-        siteUrl,
-      ),
-    };
-  });
+  for (let offset = 0; offset < subscribers.length; offset += NEWSLETTER_BATCH_SIZE) {
+    const chunk = subscribers.slice(offset, offset + NEWSLETTER_BATCH_SIZE);
+    const emails = chunk.map((sub) => {
+      const unsubParam = sub.unsubscribe_token
+        ? `token=${sub.unsubscribe_token}`
+        : `email=${encodeURIComponent(sub.email)}`;
 
-  const batchRes = await fetch("https://api.resend.com/emails/batch", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${resendKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(emails),
-  });
+      return {
+        from: fromEmail,
+        to: [sub.email],
+        subject: newsletter.subject,
+        html: wrapHtml(
+          newsletter.body_html,
+          `${siteUrl}/newsletter/unsubscribe?${unsubParam}`,
+          siteUrl,
+        ),
+      };
+    });
 
-  const success = batchRes.ok;
-  const details = success ? null : await batchRes.text();
+    try {
+      const batchRes = await fetch("https://api.resend.com/emails/batch", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${resendKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(emails),
+      });
+
+      if (batchRes.ok) {
+        successful += chunk.length;
+      } else {
+        failed += chunk.length;
+        failureDetails.push((await batchRes.text()).slice(0, 500));
+      }
+    } catch (error) {
+      failed += chunk.length;
+      failureDetails.push(error instanceof Error ? error.message : String(error));
+    }
+  }
+
+  const success = failed === 0;
+  const partial = successful > 0 && failed > 0;
+  const details = failureDetails.length > 0 ? failureDetails.join("\n").slice(0, 2000) : null;
 
   if (sendId) {
     await fetch(`${supabaseUrl}/rest/v1/newsletter_sends?id=eq.${sendId}`, {
@@ -219,10 +258,11 @@ Deno.serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        status: success ? "completed" : "failed",
-        successful_sends: success ? subscribers.length : 0,
-        failed_sends: success ? 0 : subscribers.length,
+        status: success ? "completed" : partial ? "partial" : "failed",
+        successful_sends: successful,
+        failed_sends: failed,
         sent_at: new Date().toISOString(),
+        error_details: details,
       }),
     });
   }
@@ -233,11 +273,13 @@ Deno.serve(async (req) => {
   }
 
   return json({
-    success: true,
+    success,
+    partial,
     totalRecipients: subscribers.length,
-    successfulSends: subscribers.length,
-    failedSends: 0,
-    requestedRecipients: recipientEmails.length,
+    successfulSends: successful,
+    failedSends: failed,
+    requestedRecipients: sendAll ? subscribers.length : recipientEmails.length,
+    sendAll,
     functionName: "send-newsletter-selected",
   });
 });
