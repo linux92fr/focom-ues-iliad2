@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { adminPath } from "@/lib/adminPath";
+import { safeImageUrl } from "@/lib/safe-url";
 import { toast } from "sonner";
 import {
   Save,
@@ -75,7 +76,12 @@ export default function NouvelArticle() {
   }, [title]);
 
   const uploadArticleImage = async () => {
-    if (!imageFile) return imageUrl.trim() || null;
+    if (!imageFile) {
+      if (!imageUrl.trim()) return null;
+      const safeUrl = safeImageUrl(imageUrl);
+      if (!safeUrl) throw new Error("URL d'image non autorisée.");
+      return safeUrl;
+    }
 
     if (!imageFile.type.startsWith("image/")) {
       throw new Error("Le fichier choisi doit être une image");
@@ -156,7 +162,7 @@ export default function NouvelArticle() {
     return true;
   };
 
-  const previewUrl = imageFile ? URL.createObjectURL(imageFile) : imageUrl;
+  const previewUrl = safeImageUrl(imageFile ? URL.createObjectURL(imageFile) : imageUrl);
 
   return (
     <AdminAuthGuard>

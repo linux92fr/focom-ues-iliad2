@@ -50,6 +50,7 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import type { Tables } from "@/integrations/supabase/types";
 import { articleSchema, validateFormData } from "@/lib/validations";
+import { safeImageUrl } from "@/lib/safe-url";
 
 type Article = Tables<"articles">;
 type Category = Tables<"categories">;
@@ -314,14 +315,15 @@ const ArticlesManager = () => {
   const filteredArticles = articles.filter((article) =>
     article.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
+  const safeCoverImage = safeImageUrl(coverImage);
 
   // Preview component for form
   const FormPreview = () => (
     <div className="prose prose-sm max-w-none dark:prose-invert">
-      {coverImage && (
+      {safeCoverImage && (
         <div className="mb-4 rounded-lg overflow-hidden">
           <img loading="lazy" 
-            src={coverImage} 
+            src={safeCoverImage}
             alt={title || "Aperçu"} 
             className="w-full h-48 object-cover"
             onError={(e) => {
@@ -468,12 +470,12 @@ const ArticlesManager = () => {
                             placeholder="https://..."
                             className={formErrors.cover_image ? "border-destructive" : ""}
                           />
-                          {coverImage && (
+                          {safeCoverImage && (
                             <Button 
                               type="button" 
                               variant="outline" 
                               size="icon"
-                              onClick={() => window.open(coverImage, "_blank")}
+                              onClick={() => window.open(safeCoverImage, "_blank", "noopener,noreferrer")}
                             >
                               <ExternalLink className="h-4 w-4" />
                             </Button>
@@ -482,10 +484,10 @@ const ArticlesManager = () => {
                         {formErrors.cover_image && (
                           <p className="text-sm text-destructive">{formErrors.cover_image}</p>
                         )}
-                        {coverImage && (
+                        {safeCoverImage && (
                           <div className="relative h-32 rounded-lg overflow-hidden bg-muted">
                             <img loading="lazy" 
-                              src={coverImage} 
+                              src={safeCoverImage}
                               alt="Aperçu" 
                               className="w-full h-full object-cover"
                               onError={(e) => {

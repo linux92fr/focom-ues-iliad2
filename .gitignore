@@ -17,6 +17,7 @@ dist/
 *.patch
 debug-*.log
 __manus__/
+supabase/.temp/
 
 # TypeScript build cache
 *.tsbuildinfo

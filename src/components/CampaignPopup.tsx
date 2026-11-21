@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowRight, Mail, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { NewsletterSubscriptionForm } from "@/components/NewsletterSubscriptionForm";
+import { safeImageUrl, safeLinkUrl } from "@/lib/safe-url";
 
 type CampaignPopupRecord = {
   id: string;
@@ -159,6 +160,9 @@ export default function CampaignPopup() {
   }, [isOpen]);
 
   if (!candidate) return null;
+  const imageUrl = safeImageUrl(candidate.image_url);
+  const buttonUrl = safeLinkUrl(candidate.button_url);
+  const renderedContent = candidate.content.replace(/\\\\n/g, "\\n").replace(/\\n/g, "\n");
   const position = candidate.position === "top"
     ? "items-start pt-5"
     : candidate.position === "bottom"
@@ -191,7 +195,7 @@ export default function CampaignPopup() {
           <X className="h-5 w-5" />
         </button>
         <div className="h-2 shrink-0 bg-gradient-to-r from-red-600 via-red-500 to-teal-600" />
-        {candidate.image_url && <img src={candidate.image_url} alt="" className="max-h-64 w-full object-cover" />}
+        {imageUrl && <img src={imageUrl} alt="" className="max-h-64 w-full object-cover" />}
         <div className="p-5 sm:p-8">
           <p className="mb-3 inline-flex rounded-full bg-red-50 px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.12em] text-red-700">
             Ouverture officielle
@@ -218,7 +222,7 @@ export default function CampaignPopup() {
             </div>
           ) : (
             <div className="mt-4 whitespace-pre-wrap text-sm leading-7 text-slate-600 sm:text-base">
-              {candidate.content.replace(/\\\\n/g, "\\n").replace(/\\n/g, "\\n")}
+              {renderedContent}
             </div>
           )}
           {candidate.newsletter_enabled !== false && (
@@ -238,8 +242,8 @@ export default function CampaignPopup() {
             <button type="button" onClick={close} className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50">
               Fermer
             </button>
-            {candidate.button_url && (
-              <a href={candidate.button_url} onClick={close} className="inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-red-700">
+            {buttonUrl && (
+              <a href={buttonUrl} onClick={close} className="inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-red-700">
                 {candidate.button_text || "En savoir plus"} <ArrowRight className="h-4 w-4" />
               </a>
             )}

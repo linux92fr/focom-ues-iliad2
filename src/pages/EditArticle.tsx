@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdminAuth } from "@/contexts/AdminAuthContext";
 import { adminPath } from "@/lib/adminPath";
+import { safeImageUrl } from "@/lib/safe-url";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import {
@@ -110,7 +111,12 @@ export default function EditArticle() {
   }, [existing]);
 
   const uploadArticleImage = async () => {
-    if (!imageFile) return form.image_url.trim() || null;
+    if (!imageFile) {
+      if (!form.image_url.trim()) return null;
+      const safeUrl = safeImageUrl(form.image_url);
+      if (!safeUrl) throw new Error("URL d'image non autorisée.");
+      return safeUrl;
+    }
     if (!imageFile.type.startsWith("image/")) throw new Error("Le fichier choisi doit être une image");
 
     const path = `${new Date().getFullYear()}/${Date.now()}-${safeFileName(imageFile.name)}`;
@@ -204,7 +210,7 @@ export default function EditArticle() {
     );
   }
 
-  const previewUrl = imageFile ? URL.createObjectURL(imageFile) : form.image_url;
+  const previewUrl = safeImageUrl(imageFile ? URL.createObjectURL(imageFile) : form.image_url);
 
   return (
     <AdminAuthGuard>

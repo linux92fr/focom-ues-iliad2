@@ -3,6 +3,7 @@ import { Download, ShieldCheck, Star, Hash, Calendar, User } from "lucide-react"
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import DOMPurify from "dompurify";
+import { safeImageUrl } from "@/lib/safe-url";
 
 interface Props {
   firstName: string;
@@ -72,12 +73,11 @@ export default function CarteAdherent({
         <body>
           <div class="card">
             <div class="logo">FO COM · UES ILIAD</div>
-            <div class="avatar">${avatarUrl ? `<img src="${avatarUrl}" />` : initials}</div>
-            <div class="name">${firstName} ${lastName}</div>
-            <div class="email">${email}</div>
-            <div class="badge"><div class="dot" style="background:${status === "actif" ? "#4ade80" : "#94a3b8"}"></div>${statusLabel[status] || status}</div>
-            <div class="info">
-              ${formattedSince ? `<div class="info-row">Membre depuis ${formattedSince}</div>` : ""}
+            <div class="avatar" id="print-avatar"></div>
+            <div class="name" id="print-name"></div>
+            <div class="email" id="print-email"></div>
+            <div class="badge"><div class="dot" id="print-status-dot"></div><span id="print-status-label"></span></div>
+            <div class="info" id="print-info">
               ${accessKey ? `<div class="info-row">Clé : ${accessKey}</div>` : ""}
             </div>
             <div class="footer">SYNDICAT FO COMMUNICATIONS · UES ILIAD · ${new Date().getFullYear()}</div>
@@ -86,6 +86,44 @@ export default function CarteAdherent({
       </html>
     `, { WHOLE_DOCUMENT: true, ADD_TAGS: ["style"] }));
     win.document.close();
+
+    const printDocument = win.document;
+    const setText = (id: string, value: string) => {
+      const element = printDocument.getElementById(id);
+      if (element) element.textContent = value;
+    };
+    const avatar = printDocument.getElementById("print-avatar");
+    const safeAvatarUrl = safeImageUrl(avatarUrl);
+
+    if (avatar && safeAvatarUrl) {
+      const image = printDocument.createElement("img");
+      image.src = safeAvatarUrl;
+      image.alt = "";
+      avatar.append(image);
+    } else if (avatar) {
+      avatar.textContent = initials;
+    }
+
+    setText("print-name", `${firstName} ${lastName}`.trim() || "Adherent");
+    setText("print-email", email);
+    setText("print-status-label", statusLabel[status] || status);
+
+    const statusDot = printDocument.getElementById("print-status-dot");
+    if (statusDot) statusDot.style.background = status === "actif" ? "#4ade80" : "#94a3b8";
+
+    const info = printDocument.getElementById("print-info");
+    const addInfoRow = (text: string) => {
+      if (!info) return;
+      const row = printDocument.createElement("div");
+      row.className = "info-row";
+      row.textContent = text;
+      info.append(row);
+    };
+
+    info?.replaceChildren();
+    if (formattedSince) addInfoRow(`Membre depuis ${formattedSince}`);
+    if (accessKey) addInfoRow(`Cle : ${accessKey}`);
+
     win.focus();
     setTimeout(() => { win.print(); win.close(); }, 500);
   };
