@@ -46,6 +46,26 @@ export default function CampaignPopup() {
   const [isOpen, setIsOpen] = useState(false);
   const authenticatedRef = useRef(false);
 
+  // Load the third-party chat only after an explicit contact/help interaction.
+  useEffect(() => {
+    const onContactIntent = (event: MouseEvent) => {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      const trigger = target.closest('a[href^="mailto:"], a[href^="tel:"], [data-load-brevo="true"]');
+      if (!trigger || document.querySelector('script[data-brevo-conversations]')) return;
+
+      window.BrevoConversationsID = "6aef97f55cde61e176062a23";
+      const script = document.createElement("script");
+      script.async = true;
+      script.dataset.brevoConversations = "true";
+      script.src = "https://conversations-widget.brevo.com/brevo-conversations.js";
+      document.head.appendChild(script);
+    };
+
+    document.addEventListener("click", onContactIntent, { passive: true });
+    return () => document.removeEventListener("click", onContactIntent);
+  }, []);
+
   const loadPopup = useCallback(async (authenticated: boolean) => {
     const { data, error } = await supabase
       .from("popups")
