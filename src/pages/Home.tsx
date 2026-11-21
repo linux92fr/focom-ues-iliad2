@@ -83,6 +83,13 @@ export default function Home() {
   const [latestArticles, setLatestArticles] = useState<LatestArticle[]>([]);
   const [nlEmail, setNlEmail] = useState("");
   const [nlStatus, setNlStatus] = useState<"idle" | "loading" | "success" | "error" | "duplicate">("idle");
+  const [campaignEnabled, setCampaignEnabled] = useState(false);
+
+  useEffect(() => {
+    // The campaign popup is intentionally deferred until the initial page is interactive.
+    const timer = window.setTimeout(() => setCampaignEnabled(true), 1800);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     supabase
@@ -194,7 +201,7 @@ export default function Home() {
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-[1500px] overflow-x-hidden bg-[#f8fafc] p-4 sm:p-6 lg:p-10">
-      <CampaignPopup />
+      {campaignEnabled && <CampaignPopup />}
       <section className="relative mb-8 overflow-hidden rounded-[2rem] bg-[#13233A] shadow-xl shadow-slate-900/10 ring-1 ring-slate-900/5 motion-safe:animate-in motion-safe:fade-in motion-safe:duration-700">
         <img src={HERO_IMAGE} alt="" aria-hidden="true" fetchPriority="high" decoding="async" width="1600" height="900" className="absolute inset-0 h-full w-full object-cover opacity-30" />
         <div className="absolute inset-0 bg-gradient-to-br from-[#111827] via-[#18283e]/95 to-red-950/80" />
