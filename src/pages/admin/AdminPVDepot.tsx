@@ -3,6 +3,7 @@ import * as pdfjsLib from "pdfjs-dist";
 import PdfjsWorker from "pdfjs-dist/build/pdf.worker.min.mjs?worker";
 import { createWorker } from "tesseract.js";
 import { supabase } from "@/integrations/supabase/client";
+import { AdminAuthGuard } from "@/components/admin/AdminLayout";
 
 pdfjsLib.GlobalWorkerOptions.workerPort = new PdfjsWorker();
 import { Button } from "@/components/ui/button";
@@ -59,7 +60,7 @@ function sanitizeStorageKey(name: string): string {
     .replace(/_+/g, "_");
 }
 
-export default function AdminPVDepot() {
+function AdminPVDepotContent() {
   const [files, setFiles] = useState<StoredFile[]>([]);
   const [loading, setLoading] = useState(true);
   const [dragging, setDragging] = useState(false);
@@ -637,5 +638,13 @@ export default function AdminPVDepot() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function AdminPVDepot() {
+  return (
+    <AdminAuthGuard>
+      <AdminPVDepotContent />
+    </AdminAuthGuard>
   );
 }

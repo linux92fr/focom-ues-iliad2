@@ -396,11 +396,28 @@ function PreviewDialog({ doc, onClose }: { doc: UserDocument | null; onClose: ()
           const result = await convertToHtml({ arrayBuffer });
           if (!cancelled) setState({ kind: "html", html: DOMPurify.sanitize(result.value) });
         } else if (SHEET_TYPES.includes(doc.file_type ?? "")) {
-          const [XLSX, res] = await Promise.all([import("xlsx"), fetch(signedUrl)]);
+          const [{ default: ExcelJS }, res] = await Promise.all([import("exceljs"), fetch(signedUrl)]);
           const arrayBuffer = await res.arrayBuffer();
-          const workbook = XLSX.read(arrayBuffer, { type: "array" });
-          const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-          const html = XLSX.utils.sheet_to_html(firstSheet);
+          const workbook = new ExcelJS.Workbook();
+          await workbook.xlsx.load(arrayBuffer);
+          const firstSheet = workbook.worksheets[0];
+          const escapeCell = (value: unknown) =>
+            String(value ?? "")
+              .replace(/&/g, "&amp;")
+              .replace(/</g, "&lt;")
+              .replace(/>/g, "&gt;")
+              .replace(/"/g, "&quot;");
+          const rows = firstSheet
+            ? firstSheet.getSheetValues().slice(1).map((row) =>
+                (Array.isArray(row) ? row.slice(1) : []).map((cell) => {
+                  if (cell && typeof cell === "object" && "text" in cell) {
+                    return escapeCell((cell as { text?: unknown }).text);
+                  }
+                  return escapeCell(cell);
+                }),
+              )
+            : [];
+          const html = `<table>${rows.map((row) => `<tr>${row.map((cell) => `<td>${cell}</td>`).join("")}</tr>`).join("")}</table>`;
           if (!cancelled) setState({ kind: "html", html: DOMPurify.sanitize(html) });
         } else if (doc.file_type === "text/plain") {
           const res = await fetch(signedUrl);

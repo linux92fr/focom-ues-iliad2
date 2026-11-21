@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import { BrowserRouter, Link, Route, Routes, useNavigate } from "react-router-dom";
 import { Download, GraduationCap, LogOut, ShieldCheck, Info, Mail, Phone } from "lucide-react";
-import * as XLSX from "xlsx";
+import * as XLSX from "@/lib/xlsx-compat";
 import { supabase } from "@/integrations/supabase/client";
 
 type Session = { start: string; end: string };

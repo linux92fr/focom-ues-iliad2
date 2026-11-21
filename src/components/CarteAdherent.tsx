@@ -2,6 +2,7 @@ import { useRef } from "react";
 import { Download, ShieldCheck, Star, Hash, Calendar, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import DOMPurify from "dompurify";
 
 interface Props {
   firstName: string;
@@ -48,7 +49,7 @@ export default function CarteAdherent({
     if (!card) return;
     const win = window.open("", "_blank");
     if (!win) return;
-    win.document.write(`
+    win.document.write(DOMPurify.sanitize(`
       <!DOCTYPE html>
       <html>
         <head>
@@ -83,7 +84,7 @@ export default function CarteAdherent({
           </div>
         </body>
       </html>
-    `);
+    `, { WHOLE_DOCUMENT: true, ADD_TAGS: ["style"] }));
     win.document.close();
     win.focus();
     setTimeout(() => { win.print(); win.close(); }, 500);

@@ -21,7 +21,7 @@ type Survey = { id: string; title: string; description: string | null; is_anonym
 type SurveyOption = { id: string; option_text: string; display_order: number };
 type Question = { id: string; question_text: string; question_type: 'single_choice' | 'multiple_choice' | 'text'; display_order: number; survey_options: SurveyOption[] };
 type SurveyResponseInsert = { survey_id: string; question_id: string; user_id: string; text_response?: string; option_id?: string };
-type ResultsData = { question_id: string; option_id: string | null; count: number };
+type ResultsData = { question_id: string; option_id: string | null; count: number; participant_count?: number };
 type VoterProfile = { id: string; status: string | null };
 type ExternalForm = { first_name: string; last_name: string; email: string; code: string; codeSent: boolean };
 
@@ -80,29 +80,28 @@ const Sondages = () => {
   const { data: results = [] } = useQuery({
     queryKey: ['survey-results', showResults], enabled: !!showResults,
     queryFn: async () => {
-      const { data, error } = await supabase.from('survey_responses').select('question_id, option_id, text_response').eq('survey_id', showResults!);
+      const { data, error } = await (supabase as any).rpc('get_survey_results', {
+        p_survey_id: showResults!,
+      });
       if (error) throw error;
-      const counts: Record<string, number> = {};
-      for (const r of data ?? []) {
-        const key = `${r.question_id}__${r.option_id ?? '__text'}`;
-        counts[key] = (counts[key] ?? 0) + 1;
-      }
-      return Object.entries(counts).map(([key, count]) => {
-        const [question_id, option_id] = key.split('__');
-        return { question_id, option_id: option_id === '__text' ? null : option_id, count };
-      }) as ResultsData[];
+      return (data ?? []).map((row: {
+        question_id: string;
+        option_id: string | null;
+        total_count: number;
+        participant_count: number;
+      }) => ({
+        question_id: row.question_id,
+        option_id: row.option_id,
+        count: Number(row.total_count),
+        participant_count: Number(row.participant_count),
+      })) as ResultsData[];
     }, refetchInterval: showResults ? 10000 : false,
   });
 
-  const { data: participantCount = 0 } = useQuery({
-    queryKey: ['survey-participants', showResults], enabled: !!showResults,
-    queryFn: async () => {
-      const { data } = await supabase.from('survey_responses').select('user_id, external_participant_id').eq('survey_id', showResults!);
-      const members = new Set((data ?? []).filter((r) => r.user_id).map((r) => r.user_id)).size;
-      const externals = new Set((data ?? []).filter((r) => r.external_participant_id).map((r) => r.external_participant_id)).size;
-      return members + externals;
-    }, refetchInterval: showResults ? 10000 : false,
-  });
+  const participantCount = Math.max(
+    0,
+    ...results.map((row) => Number(row.participant_count ?? 0)),
+  );
 
   const { data: resultQuestions = [] } = useQuery({
     queryKey: ['survey-questions-results', showResults], enabled: !!showResults,
@@ -191,7 +190,6 @@ const Sondages = () => {
     toast.success('Merci pour votre participation !');
     queryClient.invalidateQueries({ queryKey: ['voted-surveys'] });
     queryClient.invalidateQueries({ queryKey: ['survey-results', surveyId] });
-    queryClient.invalidateQueries({ queryKey: ['survey-participants', surveyId] });
     setShowResults(surveyId); setActiveSurvey(null); setExternalForm(externalEmpty());
   };
 
