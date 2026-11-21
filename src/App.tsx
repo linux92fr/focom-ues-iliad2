@@ -1,6 +1,7 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { lazy, Suspense } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
@@ -10,89 +11,92 @@ import { AuthProvider } from "./hooks/useAuth";
 import PublicLayout from "./components/PublicLayout";
 import { ADMIN_BASE } from "./lib/adminPath";
 
-import Home from "./pages/Home";
-import NotFound from "./pages/NotFound";
-import BilanMandat from "./pages/BilanMandat";
-import LeSyndicat from "./pages/LeSyndicat";
-import VosDroits from "./pages/VosDroits";
-import DocumentsUtiles from "./pages/DocumentsUtiles";
-import FAQ from "./pages/FAQ";
-import Contact from "./pages/Contact";
-import MentionsLegales from "./pages/MentionsLegales";
-import RGPD from "./pages/RGPD";
-
-import Actualites from "./pages/Actualites";
-import ActualiteDetail from "./pages/ActualiteDetail";
-import NouvelArticle from "./pages/NouvelArticle";
-import EditArticle from "./pages/EditArticle";
-import Publications from "./pages/Publications";
-import PublicationDetail from "./pages/PublicationDetail";
-
-import Adhesion from "./pages/Adhesion";
-import Don from "./pages/Don";
-import DonMerci from "./pages/DonMerci";
-
-import SimulateurMobilite from "./pages/SimulateurMobilite";
-import SimulateurPrimeVariable from "./pages/SimulateurPrimeVariable";
-
-import Elections from "./pages/Elections";
-import ElectionsPremierTour from "./pages/ElectionsPremierTour";
-
-import Nao2026 from "./pages/nao2026/index";
-import FormulaireNao2026 from "./pages/nao2026/formulaire/index";
-import AccordGEPP from "./pages/AccordGEPP";
-
-import Newsletter from "./pages/Newsletter";
-import NewsletterUnsubscribe from "./pages/NewsletterUnsubscribe";
-import Notifications from "./pages/Notifications";
-
-import AI from "./pages/AI";
-import AssistantJuridique from "./pages/AssistantJuridique";
-import Legifrance from "./pages/Legifrance";
-import Judilibre from "./pages/Judilibre";
-import Permanences from "./pages/Permanences";
-import Sondages from "./pages/Sondages";
-import Agenda from "./pages/Agenda";
-import Profile from "./pages/Profile";
-import ResetPassword from "./pages/ResetPassword";
-import MesDocuments from "./pages/MesDocuments";
-
-import AdminNao2026 from "./pages/AdminNao2026";
-import AdminParticipation from "./pages/AdminParticipation";
-
-import AdminLogin from "./pages/admin/AdminLogin";
-import AdminDashboard from "./pages/admin/AdminDashboard";
-import AdminAI from "./pages/admin/AdminAI";
-import AdminAssistantIA from "./pages/admin/AdminAssistantIA";
-import SmartPortal from "./pages/SmartPortal";
-import AdminAutorisations from "./pages/admin/AdminAutorisations";
-import AdminSmartUsers from "./pages/admin/AdminSmartUsers";
-import AdminActualites from "./pages/admin/AdminActualites";
-import AdminDocuments from "./pages/admin/AdminDocuments";
-import AdminAdherents from "./pages/admin/AdminAdherents";
-import AdminParametres from "./pages/admin/AdminParametres";
-import AdminBilan from "./pages/admin/AdminBilan";
-import AdminDroits from "./pages/admin/AdminDroits";
-import AdminFAQ from "./pages/admin/AdminFAQ";
-import AdminMessages from "./pages/admin/AdminMessages";
-import AdminHomeEdit from "./pages/admin/AdminHomeEdit";
-import AdminPermanences from "./pages/admin/AdminPermanences";
-import AdminPermanenceDemandes from "./pages/admin/AdminPermanenceDemandes";
-import AdminSondages from "./pages/admin/AdminSondages";
-import AdminNewsletter from "./pages/admin/AdminNewsletter";
-import AdminReclamations from "./pages/admin/AdminReclamations";
-import AdminAgenda from "./pages/admin/AdminAgenda";
-import MesReclamations from "./pages/MesReclamations";
-import { PVSearchPage } from "@/components/PDFSearch";
-import AdminPVDepot from "./pages/admin/AdminPVDepot";
-import AdminCampaigns from "./pages/admin/AdminCampaigns";
-import FormationPortal from "./formation/FormationPortal";
+const Home = lazy(() => import("./pages/Home"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const BilanMandat = lazy(() => import("./pages/BilanMandat"));
+const LeSyndicat = lazy(() => import("./pages/LeSyndicat"));
+const VosDroits = lazy(() => import("./pages/VosDroits"));
+const DocumentsUtiles = lazy(() => import("./pages/DocumentsUtiles"));
+const FAQ = lazy(() => import("./pages/FAQ"));
+const Contact = lazy(() => import("./pages/Contact"));
+const MentionsLegales = lazy(() => import("./pages/MentionsLegales"));
+const RGPD = lazy(() => import("./pages/RGPD"));
+const Actualites = lazy(() => import("./pages/Actualites"));
+const ActualiteDetail = lazy(() => import("./pages/ActualiteDetail"));
+const NouvelArticle = lazy(() => import("./pages/NouvelArticle"));
+const EditArticle = lazy(() => import("./pages/EditArticle"));
+const Publications = lazy(() => import("./pages/Publications"));
+const PublicationDetail = lazy(() => import("./pages/PublicationDetail"));
+const Adhesion = lazy(() => import("./pages/Adhesion"));
+const Don = lazy(() => import("./pages/Don"));
+const DonMerci = lazy(() => import("./pages/DonMerci"));
+const SimulateurMobilite = lazy(() => import("./pages/SimulateurMobilite"));
+const SimulateurPrimeVariable = lazy(() => import("./pages/SimulateurPrimeVariable"));
+const Elections = lazy(() => import("./pages/Elections"));
+const ElectionsPremierTour = lazy(() => import("./pages/ElectionsPremierTour"));
+const Nao2026 = lazy(() => import("./pages/nao2026/index"));
+const FormulaireNao2026 = lazy(() => import("./pages/nao2026/formulaire/index"));
+const AccordGEPP = lazy(() => import("./pages/AccordGEPP"));
+const Newsletter = lazy(() => import("./pages/Newsletter"));
+const NewsletterUnsubscribe = lazy(() => import("./pages/NewsletterUnsubscribe"));
+const Notifications = lazy(() => import("./pages/Notifications"));
+const AI = lazy(() => import("./pages/AI"));
+const AssistantJuridique = lazy(() => import("./pages/AssistantJuridique"));
+const Legifrance = lazy(() => import("./pages/Legifrance"));
+const Judilibre = lazy(() => import("./pages/Judilibre"));
+const Permanences = lazy(() => import("./pages/Permanences"));
+const Sondages = lazy(() => import("./pages/Sondages"));
+const Agenda = lazy(() => import("./pages/Agenda"));
+const Profile = lazy(() => import("./pages/Profile"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const MesDocuments = lazy(() => import("./pages/MesDocuments"));
+const AdminNao2026 = lazy(() => import("./pages/AdminNao2026"));
+const AdminParticipation = lazy(() => import("./pages/AdminParticipation"));
+const AdminLogin = lazy(() => import("./pages/admin/AdminLogin"));
+const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
+const AdminAI = lazy(() => import("./pages/admin/AdminAI"));
+const AdminAssistantIA = lazy(() => import("./pages/admin/AdminAssistantIA"));
+const SmartPortal = lazy(() => import("./pages/SmartPortal"));
+const AdminAutorisations = lazy(() => import("./pages/admin/AdminAutorisations"));
+const AdminSmartUsers = lazy(() => import("./pages/admin/AdminSmartUsers"));
+const AdminActualites = lazy(() => import("./pages/admin/AdminActualites"));
+const AdminDocuments = lazy(() => import("./pages/admin/AdminDocuments"));
+const AdminAdherents = lazy(() => import("./pages/admin/AdminAdherents"));
+const AdminParametres = lazy(() => import("./pages/admin/AdminParametres"));
+const AdminBilan = lazy(() => import("./pages/admin/AdminBilan"));
+const AdminDroits = lazy(() => import("./pages/admin/AdminDroits"));
+const AdminFAQ = lazy(() => import("./pages/admin/AdminFAQ"));
+const AdminMessages = lazy(() => import("./pages/admin/AdminMessages"));
+const AdminHomeEdit = lazy(() => import("./pages/admin/AdminHomeEdit"));
+const AdminPermanences = lazy(() => import("./pages/admin/AdminPermanences"));
+const AdminPermanenceDemandes = lazy(() => import("./pages/admin/AdminPermanenceDemandes"));
+const AdminSondages = lazy(() => import("./pages/admin/AdminSondages"));
+const AdminNewsletter = lazy(() => import("./pages/admin/AdminNewsletter"));
+const AdminReclamations = lazy(() => import("./pages/admin/AdminReclamations"));
+const AdminAgenda = lazy(() => import("./pages/admin/AdminAgenda"));
+const MesReclamations = lazy(() => import("./pages/MesReclamations"));
+const PVSearchPage = lazy(() =>
+  import("@/components/PDFSearch").then(module => ({ default: module.PVSearchPage }))
+);
+const AdminPVDepot = lazy(() => import("./pages/admin/AdminPVDepot"));
+const AdminCampaigns = lazy(() => import("./pages/admin/AdminCampaigns"));
+const FormationPortal = lazy(() => import("./formation/FormationPortal"));
 
 const queryClient = new QueryClient();
 
+const PageLoader = () => (
+  <div className="min-h-[60vh] flex items-center justify-center" role="status" aria-label="Chargement">
+    <div className="h-9 w-9 animate-spin rounded-full border-b-2 border-primary" />
+  </div>
+);
+
 function App() {
   if (typeof window !== "undefined" && (window.location.hostname === "formation.focomues-iliad.fr" || new URLSearchParams(window.location.search).get("formation-preview") === "1")) {
-    return <FormationPortal />;
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <FormationPortal />
+      </Suspense>
+    );
   }
 
   return (
@@ -105,6 +109,7 @@ function App() {
               <Toaster />
               <BrowserRouter>
                 <AdminAuthProvider>
+                  <Suspense fallback={<PageLoader />}>
                   <Routes>
                     <Route element={<PublicLayout />}>
                       <Route path="/" element={<Home />} />
@@ -179,6 +184,7 @@ function App() {
                     <Route path="/recherche-pv" element={<PVSearchPage />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
+                  </Suspense>
                 </AdminAuthProvider>
               </BrowserRouter>
             </TooltipProvider>
