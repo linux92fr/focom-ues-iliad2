@@ -1,15 +1,36 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { Badge } from '@/components/ui/badge';
-import { Award, CheckCircle, Clock, Info, ShieldCheck, TrendingUp, Users } from 'lucide-react';
-
-import type { Candidat, Candidate, ElectionEvent, ElectionDocument, ParticipationSnapshot } from './elections.data';
-
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
-  CANDIDATS_T2_TITULAIRES,
+  ArrowDown,
+  Award,
+  CheckCircle2,
+  ChevronRight,
+  Clock3,
+  Info,
+  Landmark,
+  ShieldCheck,
+  TrendingUp,
+  Users,
+  Vote,
+} from 'lucide-react';
+
+import { PageBreadcrumb } from '@/components/PageBreadcrumb';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { supabase } from '@/integrations/supabase/client';
+
+import type {
+  Candidat,
+  Candidate,
+  ElectionDocument,
+  ElectionEvent,
+  ParticipationSnapshot,
+} from './elections.data';
+import {
   CANDIDATS_T2_SUPPLEANTS,
-  FO_TITULAIRES_CAD,
+  CANDIDATS_T2_TITULAIRES,
   FO_SUPPLEANTS_CAD,
+  FO_TITULAIRES_CAD,
   getInitials,
 } from './elections.data';
 
@@ -22,7 +43,7 @@ const T1_COLLEGES = [
     sup_votants: 1238,
     sup_taux: 58.62,
     tour: '1er tour — résultats définitifs',
-    color: 'red',
+    tone: 'red' as const,
   },
   {
     nom: 'Employés / Techniciens / Non-Cadres',
@@ -30,11 +51,13 @@ const T1_COLLEGES = [
     tit_votants: 1045,
     tit_taux: 37.67,
     sup_votants: 1043,
-    sup_taux: 37.60,
-    tour: '1er tour — 2ème tour requis',
-    color: 'amber',
+    sup_taux: 37.6,
+    tour: '1er tour — 2e tour requis',
+    tone: 'teal' as const,
   },
 ];
+
+const T2_PARTICIPATION_RESULT = 30.75;
 
 const FO_TITULAIRES_EMP_T2_VOIX = [
   { nom: "SIDIBE N'deye Yacine", voix: 313, elu: true },
@@ -84,57 +107,174 @@ const normalize = (value: string) => value
 
 const findCandidate = (candidates: Candidat[], officialName: string) => {
   const officialParts = normalize(officialName);
+
   return candidates.find((candidate) => {
-    const candidateParts = candidate.name.split(' ').map(normalize).filter((part) => part.length > 3);
+    const candidateParts = candidate.name
+      .split(' ')
+      .map(normalize)
+      .filter((part) => part.length > 3);
+
     return candidateParts.some((part) => officialParts.includes(part));
   });
 };
 
-const buildElectedList = (candidates: Candidat[], results: typeof FO_TITULAIRES_EMP_T2_VOIX) =>
-  results
-    .filter((result) => result.elu)
-    .map((result) => ({
-      ...(findCandidate(candidates, result.nom) || { name: result.nom }),
-      voix: result.voix,
-    }));
+const buildElectedList = (
+  candidates: Candidat[],
+  results: typeof FO_TITULAIRES_EMP_T2_VOIX,
+) => results
+  .filter((result) => result.elu)
+  .map((result) => ({
+    ...(findCandidate(candidates, result.nom) || { name: result.nom }),
+    voix: result.voix,
+  }));
 
-const CandidateCard = ({ candidat, index, label }: { candidat: Candidat & { voix?: number; role?: string; fonction?: string }; index: number; label: string }) => {
+type Tone = 'red' | 'teal';
+
+const toneStyles = {
+  red: {
+    accent: 'bg-red-600',
+    soft: 'bg-red-50 text-red-700 border-red-100',
+    gradient: 'from-red-500 to-red-700',
+    bar: 'bg-red-600',
+  },
+  teal: {
+    accent: 'bg-teal-600',
+    soft: 'bg-teal-50 text-teal-700 border-teal-100',
+    gradient: 'from-teal-500 to-teal-700',
+    bar: 'bg-teal-600',
+  },
+};
+
+interface CandidateCardProps {
+  candidat: Candidat & { voix?: number; role?: string; fonction?: string };
+  index: number;
+  label: string;
+  tone: Tone;
+}
+
+const CandidateCard = ({ candidat, index, label, tone }: CandidateCardProps) => {
   const [imgError, setImgError] = useState(false);
   const fonction = candidat.role || candidat.fonction;
+  const styles = toneStyles[tone];
 
   return (
-    <div className="group flex items-center gap-3 p-3 rounded-lg border border-border hover:border-green-300 bg-card hover:shadow-lg hover:-translate-y-1 hover:scale-[1.02] transition-all duration-300 cursor-default">
-      <div className="h-12 w-12 shrink-0 rounded-full overflow-hidden flex items-center justify-center shadow-sm bg-gradient-to-br from-green-500 to-green-700">
+    <article className="group flex items-center gap-3 rounded-2xl border border-slate-200/80 bg-white p-3 shadow-sm shadow-slate-900/[0.03] transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-lg hover:shadow-slate-900/[0.06]">
+      <div className={`flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br ${styles.gradient} shadow-sm`}>
         {candidat.photo && !imgError ? (
-          <img src={candidat.photo} alt={candidat.name} className="h-full w-full object-cover" onError={() => setImgError(true)} />
+          <img
+            src={candidat.photo}
+            alt=""
+            className="h-full w-full object-cover"
+            loading="lazy"
+            decoding="async"
+            onError={() => setImgError(true)}
+          />
         ) : (
-          <span className="text-white font-bold text-sm">{getInitials(candidat.name)}</span>
+          <span className="text-sm font-extrabold text-white">{getInitials(candidat.name)}</span>
         )}
       </div>
+
       <div className="min-w-0 flex-1">
-        <p className="font-semibold text-sm truncate text-foreground group-hover:text-green-700 transition-colors">
+        <p className="truncate text-sm font-extrabold text-slate-900 transition-colors group-hover:text-red-700">
           {candidat.name}
         </p>
-        <div className="flex flex-col mt-0.5">
-          {fonction && <span className="text-xs text-muted-foreground truncate font-medium">{fonction}</span>}
-          <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-            <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-muted text-muted-foreground">
-              N°{index + 1}
+        {fonction && (
+          <p className="mt-0.5 truncate text-xs font-medium text-slate-500" title={fonction}>
+            {fonction}
+          </p>
+        )}
+        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+          <span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-500">
+            N°{index + 1}
+          </span>
+          <span className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-bold ${styles.soft}`}>
+            <CheckCircle2 className="h-3 w-3" /> {label}
+          </span>
+          {typeof candidat.voix === 'number' && (
+            <span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-600">
+              {candidat.voix} voix
             </span>
-            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-700">
-              ✓ {label}
-            </span>
-            {typeof candidat.voix === 'number' && (
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-orange-100 text-orange-700">
-                {candidat.voix} voix
-              </span>
-            )}
-          </div>
+          )}
         </div>
       </div>
-    </div>
+    </article>
   );
 };
+
+const StatCard = ({
+  value,
+  label,
+  detail,
+  tone,
+}: {
+  value: string;
+  label: string;
+  detail: string;
+  tone: Tone;
+}) => (
+  <div className="rounded-2xl border border-white/10 bg-white/[0.08] p-4 backdrop-blur-sm">
+    <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/60">{label}</p>
+    <p className={`mt-2 text-3xl font-black tabular-nums ${tone === 'red' ? 'text-red-300' : 'text-teal-300'}`}>
+      {value}
+    </p>
+    <p className="mt-1 text-xs leading-relaxed text-white/70">{detail}</p>
+  </div>
+);
+
+const ParticipationBar = ({
+  label,
+  votants,
+  inscrits,
+  taux,
+  tone,
+}: {
+  label: string;
+  votants: number;
+  inscrits?: number;
+  taux: number;
+  tone: Tone;
+}) => (
+  <div className="space-y-1.5">
+    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs">
+      <span className="font-medium text-slate-500">{label}</span>
+      <span className="text-right font-bold tabular-nums text-slate-700">
+        {votants.toLocaleString('fr-FR')}
+        {inscrits ? ` / ${inscrits.toLocaleString('fr-FR')}` : ''} votants · {taux.toFixed(2)} %
+      </span>
+    </div>
+    <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+      <div
+        className={`h-full rounded-full transition-all duration-700 ${toneStyles[tone].bar}`}
+        style={{ width: `${Math.min(taux, 100)}%` }}
+      />
+    </div>
+  </div>
+);
+
+const SectionTitle = ({
+  icon: Icon,
+  eyebrow,
+  title,
+  description,
+}: {
+  icon: typeof TrendingUp;
+  eyebrow: string;
+  title: string;
+  description: string;
+}) => (
+  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <div className="flex gap-3">
+      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white text-teal-700 shadow-sm ring-1 ring-slate-200/80">
+        <Icon className="h-5 w-5" />
+      </div>
+      <div>
+        <p className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-red-600">{eyebrow}</p>
+        <h2 className="mt-1 text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">{title}</h2>
+        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-500">{description}</p>
+      </div>
+    </div>
+  </div>
+);
 
 const Elections = () => {
   const [_candidates, setCandidates] = useState<Candidate[]>([]);
@@ -164,130 +304,382 @@ const Elections = () => {
         setDocuments((documentsRes.data as ElectionDocument[]) || []);
         setParticipationData(
           ((participationRes.data as ParticipationSnapshot[]) || []).sort((a, b) => {
-            const toTs = (d: string, h: string) => {
-              if (!d || !h) return 0;
-              const parts = d.split('/');
-              if (parts.length !== 3) return 0;
-              const [day, month, year] = parts.map(Number);
-              const hMatch = h.match(/^(\d+)h(\d*)/);
-              const hour = hMatch ? parseInt(hMatch[1]) : 0;
-              const min = hMatch && hMatch[2] ? parseInt(hMatch[2]) : 0;
-              return new Date(year, month - 1, day, hour, min).getTime();
+            const toTs = (date: string, time: string) => {
+              if (!date || !time) return 0;
+              const dateParts = date.split('/');
+              if (dateParts.length !== 3) return 0;
+              const [day, month, year] = dateParts.map(Number);
+              const timeMatch = time.match(/^(\d+)h(\d*)/);
+              const hour = timeMatch ? Number.parseInt(timeMatch[1], 10) : 0;
+              const minute = timeMatch && timeMatch[2] ? Number.parseInt(timeMatch[2], 10) : 0;
+              return new Date(year, month - 1, day, hour, minute).getTime();
             };
+
             return toTs(a.date, a.heure) - toTs(b.date, b.heure);
-          })
+          }),
         );
-      } catch (err) {
-        console.error('[Elections] Fetch error:', err);
-        setError(err instanceof Error ? err.message : 'Erreur inconnue');
+      } catch (fetchError) {
+        console.error('[Elections] Fetch error:', fetchError);
+        setError(fetchError instanceof Error ? fetchError.message : 'Erreur inconnue');
       } finally {
         setLoading(false);
       }
     };
+
     fetchData();
   }, []);
 
-  const t2ParticipationData = participationData.filter((snap) => {
-    if (!snap.date) return false;
-    const parts = snap.date.split('/');
-    if (parts.length !== 3) return false;
-    const [day, month, year] = parts.map(Number);
+  const t2ParticipationData = participationData.filter((snapshot) => {
+    if (!snapshot.date) return false;
+    const dateParts = snapshot.date.split('/');
+    if (dateParts.length !== 3) return false;
+    const [day, month, year] = dateParts.map(Number);
     return new Date(year, month - 1, day) >= new Date(2026, 3, 29);
   });
   const latestT2Snap = t2ParticipationData[t2ParticipationData.length - 1] ?? null;
-
-  const elusTitulairesCad = FO_TITULAIRES_CAD.filter((c) => c.elu === true).map((c) => ({ name: c.nom, voix: c.voix }));
-  const elusSuppleantsCad = FO_SUPPLEANTS_CAD.filter((c) => c.elu === true).map((c) => ({ name: c.nom, voix: c.voix }));
+  const elusTitulairesCad = FO_TITULAIRES_CAD
+    .filter((candidate) => candidate.elu === true)
+    .map((candidate) => ({ name: candidate.nom, voix: candidate.voix }));
+  const elusSuppleantsCad = FO_SUPPLEANTS_CAD
+    .filter((candidate) => candidate.elu === true)
+    .map((candidate) => ({ name: candidate.nom, voix: candidate.voix }));
   const elusTitulairesEmp = buildElectedList(CANDIDATS_T2_TITULAIRES, FO_TITULAIRES_EMP_T2_VOIX);
   const elusSuppleantsEmp = buildElectedList(CANDIDATS_T2_SUPPLEANTS, FO_SUPPLEANTS_EMP_T2_VOIX);
 
   if (error) {
     return (
-      <div className="p-8 text-center space-y-3">
-        <p className="text-destructive font-semibold">Une erreur est survenue lors du chargement des données.</p>
-        <p className="text-muted-foreground text-sm">{error}</p>
-        <button className="text-sm underline text-muted-foreground" onClick={() => window.location.reload()}>Réessayer</button>
-      </div>
+      <main className="min-h-screen overflow-x-hidden bg-slate-50 p-3 sm:p-4 lg:p-8">
+        <div className="mx-auto w-full max-w-[1500px] space-y-5">
+          <PageBreadcrumb steps={[{ label: 'Élections CSE 2026' }]} />
+          <section className="rounded-3xl border border-red-100 bg-white p-6 text-center shadow-sm sm:p-10">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-red-50 text-red-600">
+              <Info className="h-7 w-7" />
+            </div>
+            <h1 className="mt-5 text-2xl font-extrabold text-slate-900">Les résultats ne peuvent pas être chargés</h1>
+            <p className="mt-2 text-sm text-slate-500">Une erreur est survenue lors du chargement des données.</p>
+            <p className="mt-1 text-xs text-slate-400">{error}</p>
+            <Button className="mt-6 bg-red-600 text-white hover:bg-red-700" onClick={() => window.location.reload()}>
+              Réessayer
+            </Button>
+          </section>
+        </div>
+      </main>
     );
   }
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-background p-4 lg:p-8">
-      <div className="container mx-auto max-w-5xl space-y-10">
-        <section className="space-y-4">
-          <div className="rounded-2xl overflow-hidden shadow-lg border border-border bg-card">
-            <img src="/focomues_VF.png" alt="FO COM UES Iliad — 1er syndicat de l'UES Iliad" className="w-full h-auto object-cover" />
-          </div>
-          <div className="flex flex-wrap justify-center gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-medium text-green-700"><CheckCircle className="h-3 w-3" />1er tour terminé — 21 avr. 2026</span>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-green-300 bg-green-50 px-3 py-1 text-xs font-semibold text-green-700"><CheckCircle className="h-3 w-3" />2e tour Employés terminé — 6 mai 2026</span>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-orange-300 bg-orange-50 px-3 py-1 text-xs font-bold text-orange-700">🏆 FO 1ère liste — 37,65 %</span>
+    <main className="min-h-screen overflow-x-hidden bg-slate-50 p-3 sm:p-4 lg:p-8">
+      <div className="mx-auto w-full max-w-[1500px] space-y-6">
+        <PageBreadcrumb steps={[{ label: 'Élections CSE 2026' }]} />
+
+        <section className="relative overflow-hidden rounded-[2rem] bg-[#13233A] text-white shadow-xl shadow-slate-900/10 ring-1 ring-slate-900/5">
+          <div aria-hidden="true" className="pointer-events-none absolute -right-24 -top-28 h-80 w-80 rounded-full border-[58px] border-white/[0.04]" />
+          <div aria-hidden="true" className="pointer-events-none absolute -bottom-32 -left-24 h-96 w-96 rounded-full bg-red-600/20 blur-3xl" />
+          <div aria-hidden="true" className="pointer-events-none absolute right-1/3 top-0 h-full w-56 skew-x-[-18deg] bg-gradient-to-b from-teal-400/[0.06] to-transparent" />
+
+          <div className="relative grid gap-9 px-5 py-9 sm:px-8 sm:py-11 lg:grid-cols-[1.2fr_0.8fr] lg:items-center lg:px-12 lg:py-14">
+            <div>
+              <Badge className="mb-5 border border-white/15 bg-white/10 px-3 py-1.5 text-white hover:bg-white/10">
+                <Vote className="mr-1.5 h-3.5 w-3.5 text-red-300" /> Élections CSE 2026
+              </Badge>
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-teal-300">UES Iliad · Résultats définitifs</p>
+              <h1 className="mt-3 max-w-3xl text-4xl font-extrabold leading-[1.04] tracking-tight sm:text-5xl lg:text-6xl">
+                FO COM, première force syndicale
+              </h1>
+              <p className="mt-5 max-w-2xl text-sm leading-7 text-white/75 sm:text-lg sm:leading-8">
+                Grâce à votre mobilisation, FO obtient <strong className="text-white">37,65 %</strong> des suffrages
+                titulaires et <strong className="text-white">35,29 %</strong> des suffrages suppléants au 2e tour.
+              </p>
+
+              <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                <Button asChild className="rounded-xl bg-red-600 px-5 font-bold text-white shadow-lg shadow-red-950/20 hover:bg-red-700">
+                  <a href="#participation">
+                    Voir la participation <ArrowDown className="ml-2 h-4 w-4" />
+                  </a>
+                </Button>
+                <Button asChild variant="outline" className="rounded-xl border-white/25 bg-white/10 px-5 font-semibold text-white hover:bg-white/20 hover:text-white">
+                  <a href="#elus">
+                    Découvrir les élus <ChevronRight className="ml-1 h-4 w-4" />
+                  </a>
+                </Button>
+              </div>
+
+              <p className="mt-5 flex items-start gap-2 text-xs leading-relaxed text-white/55">
+                <Clock3 className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                Scrutin clos le 6 mai 2026 à 14 h 00 — résultats proclamés à 14 h 05.
+              </p>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
+              <StatCard value="37,65 %" label="Titulaires · 2e tour" detail="Score de la liste FO COM" tone="red" />
+              <StatCard value="35,29 %" label="Suppléants · 2e tour" detail="Score de la liste FO COM" tone="teal" />
+              <StatCard
+                value={`${T2_PARTICIPATION_RESULT.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} %`}
+                label="Participation consolidée · 2e tour"
+                detail="Taux d'établissement au scrutin"
+                tone="teal"
+              />
+            </div>
           </div>
         </section>
 
+        <section className="grid gap-3 rounded-3xl border border-slate-200/80 bg-white p-4 shadow-sm sm:grid-cols-3 sm:p-5">
+          {[
+            ['1er tour terminé', '21 avril 2026', 'red'],
+            ['2e tour Employés terminé', '6 mai 2026', 'teal'],
+            ['FO, 1re liste', '37,65 % des voix', 'red'],
+          ].map(([title, detail, tone]) => (
+            <div key={title} className="flex items-center gap-3 rounded-2xl bg-slate-50 px-3 py-3">
+              <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${tone === 'red' ? 'bg-red-50 text-red-600' : 'bg-teal-50 text-teal-700'}`}>
+                <CheckCircle2 className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="text-xs font-extrabold text-slate-800">{title}</p>
+                <p className="mt-0.5 text-[11px] text-slate-500">{detail}</p>
+              </div>
+            </div>
+          ))}
+        </section>
+
         {loading ? (
-          <div className="flex justify-center py-16"><div className="w-8 h-8 border-4 border-red-600 border-t-transparent rounded-full animate-spin" /></div>
+          <section className="flex min-h-64 flex-col items-center justify-center gap-4 rounded-3xl border border-slate-200/80 bg-white p-8 text-center shadow-sm" role="status" aria-live="polite">
+            <div className="h-9 w-9 animate-spin rounded-full border-4 border-red-600 border-t-transparent" />
+            <div>
+              <p className="font-bold text-slate-800">Chargement des résultats</p>
+              <p className="mt-1 text-sm text-slate-500">Récupération de la participation et des élus…</p>
+            </div>
+          </section>
         ) : (
           <>
-            <section className="rounded-xl bg-gradient-to-r from-red-600 to-red-800 p-6 sm:p-8 text-center shadow-lg space-y-4">
-              <div className="mx-auto w-16 h-16 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-sm border border-white/30"><Award className="h-8 w-8 text-white" /></div>
-              <div className="space-y-2">
-                <h1 className="text-2xl md:text-3xl font-black text-white tracking-wide uppercase">FO COM : 1ère force syndicale !</h1>
-                <p className="text-red-100 font-medium text-sm sm:text-base max-w-2xl mx-auto">Grâce à vous, FO obtient <strong>37,65 %</strong> des suffrages titulaires et <strong>35,29 %</strong> des suffrages suppléants au 2ème tour. Scrutin clos le <strong>6 mai 2026 à 14h00</strong> — résultats proclamés à 14h05.</p>
-              </div>
-            </section>
+            <section id="participation" className="scroll-mt-6 space-y-5">
+              <SectionTitle
+                icon={TrendingUp}
+                eyebrow="Mobilisation"
+                title="La participation, tour par tour"
+                description="Les taux et volumes de votants permettent de mesurer la mobilisation dans chaque collège."
+              />
 
-            <section className="space-y-6">
-              <h2 className="text-lg font-bold text-foreground flex items-center gap-2"><TrendingUp className="h-5 w-5 text-purple-500" />Participation</h2>
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div className="rounded-xl border border-border bg-card p-5 space-y-1 shadow-sm"><div className="flex items-center gap-2 text-muted-foreground font-semibold text-sm mb-2"><Users className="h-4 w-4" />1er tour — 14–21 avr. 2026</div><p className="text-3xl font-black text-foreground">37,64 %</p><p className="text-xs text-muted-foreground">Collège employés au 1er tour</p></div>
-                <div className="rounded-xl border-2 border-red-100 bg-red-50/50 p-5 space-y-1 shadow-sm"><div className="flex items-center gap-2 text-red-700 font-semibold text-sm mb-2"><TrendingUp className="h-4 w-4" />2ème tour — 29 avr. – 6 mai 2026</div><p className="text-3xl font-black text-red-700">30,75 %</p><p className="text-xs text-red-800/70"><strong>853 votants</strong> / 2 774 inscrits — Collège Employés</p></div>
-              </div>
-
-              <div className="space-y-3">
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Détail par collège — 1er tour</h3>
-                <div className="grid sm:grid-cols-2 gap-4">
-                  {T1_COLLEGES.map((col) => (
-                    <div key={col.nom} className="rounded-xl border border-border bg-card overflow-hidden shadow-sm">
-                      <div className={`px-4 py-2.5 ${col.color === 'red' ? 'bg-red-600' : 'bg-amber-500'}`}><p className="font-bold text-white text-sm">{col.nom}</p><p className="text-xs text-white/80">{col.tour} · {col.inscrits.toLocaleString('fr-FR')} inscrits</p></div>
-                      <div className="px-4 py-3 space-y-3">
-                        {[{ label: 'Titulaires', votants: col.tit_votants, taux: col.tit_taux }, { label: 'Suppléants', votants: col.sup_votants, taux: col.sup_taux }].map((row) => (
-                          <div key={row.label} className="space-y-1"><div className="flex justify-between items-center text-xs gap-3"><span className="text-muted-foreground">{row.label}</span><span className="font-bold text-foreground tabular-nums text-right">{row.votants.toLocaleString('fr-FR')} votants · {row.taux.toFixed(2)} %</span></div><div className="h-2 rounded-full bg-muted overflow-hidden"><div className={`h-full rounded-full transition-all ${col.color === 'red' ? 'bg-red-500' : 'bg-amber-500'}`} style={{ width: `${Math.min(row.taux, 100)}%` }} /></div></div>
-                        ))}
-                      </div>
+              <div className="grid gap-4 lg:grid-cols-3">
+                <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-teal-700 via-teal-800 to-[#075e59] p-5 text-white shadow-lg shadow-teal-900/10 sm:p-6">
+                  <div aria-hidden="true" className="absolute -right-12 -top-12 h-40 w-40 rounded-full border-[32px] border-white/5" />
+                  <div className="relative">
+                    <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.14em] text-teal-200">
+                      <Clock3 className="h-4 w-4" /> 2e tour · Employés
                     </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Détail par collège — 2ème tour</h3>
-                {latestT2Snap ? (
-                  <div className="rounded-xl border border-purple-200 bg-purple-50/40 overflow-hidden">
-                    <div className="flex items-center justify-between flex-wrap gap-3 px-4 py-3 border-b border-purple-200"><div className="flex items-center gap-2 text-muted-foreground text-xs"><Clock className="h-3.5 w-3.5 shrink-0" />Relevé final : <strong className="text-foreground ml-1">{latestT2Snap.date}</strong>&nbsp;à&nbsp;<strong className="text-foreground">{latestT2Snap.heure}</strong></div><div className="rounded-full bg-purple-600 px-3 py-1 text-white text-xs font-bold">Établissement : {(latestT2Snap.taux_etablissement ?? 0).toFixed(2)} %</div></div>
-                    <div className="px-4 py-4 space-y-5">
-                      {(latestT2Snap.participation_colleges ?? []).sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0)).map((col) => {
-                        const tauxTit = col.tit_taux ?? 0;
-                        const tauxSup = col.sup_taux ?? 0;
-                        return <div key={col.nom} className="space-y-2"><div className="flex items-center justify-between flex-wrap gap-2"><p className="font-semibold text-foreground text-sm">{col.nom}</p><Badge variant="outline" className="text-xs border-purple-300 text-purple-700">Taux global : {(col.taux_college ?? 0).toFixed(2)} %</Badge></div><div className="space-y-2">{[{ label: 'Titulaires', votants: col.tit_votants ?? 0, inscrits: col.tit_inscrits ?? 0, taux: tauxTit, color: 'bg-purple-600' }, { label: 'Suppléants', votants: col.sup_votants ?? 0, inscrits: col.sup_inscrits ?? 0, taux: tauxSup, color: 'bg-purple-400' }].map((row) => <div key={row.label} className="space-y-1"><div className="flex justify-between items-center text-xs gap-3"><span className="text-muted-foreground">{row.label}</span><span className="font-bold text-purple-700 tabular-nums text-right">{row.votants} / {row.inscrits} inscrits · {row.taux.toFixed(2)} %</span></div><div className="h-2 rounded-full bg-purple-100 overflow-hidden"><div className={`h-full rounded-full ${row.color} transition-all duration-700`} style={{ width: `${Math.min(row.taux, 100)}%` }} /></div></div>)}</div></div>;
-                      })}
-                      <div className="rounded-lg border border-purple-200 bg-white/60 px-3 py-2 flex items-center gap-3 text-xs text-muted-foreground"><Info className="h-3.5 w-3.5 shrink-0 text-purple-400" /><span>Taux au 1er tour Employés : <strong className="text-foreground">37,64 %</strong> — le quorum n'est pas requis au 2ème tour.</span></div>
+                    <p className="mt-4 text-5xl font-black tabular-nums">
+                      {T2_PARTICIPATION_RESULT.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} %
+                    </p>
+                    <p className="mt-2 text-sm leading-relaxed text-teal-50/80">
+                      Taux consolidé à la clôture du scrutin, du 29 avril au 6 mai 2026.
+                    </p>
+                    <div className="mt-5 rounded-2xl border border-white/10 bg-white/10 px-3 py-2.5 text-xs text-white/75 backdrop-blur-sm">
+                      853 votants pour 2 774 inscrits
                     </div>
                   </div>
-                ) : <div className="rounded-xl border border-border bg-muted/20 px-5 py-7 text-center space-y-2"><TrendingUp className="h-7 w-7 text-muted-foreground/30 mx-auto" /><p className="text-sm text-muted-foreground">Aucune donnée disponible pour le 2ème tour.</p></div>}
+                </div>
+
+                <div className="rounded-3xl border border-slate-200/80 bg-white p-5 shadow-sm shadow-slate-900/[0.03] sm:p-6 lg:col-span-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-red-600">1er tour · 14–21 avril 2026</p>
+                      <h3 className="mt-1 text-lg font-extrabold text-slate-900">Participation par collège</h3>
+                    </div>
+                    <Users className="h-5 w-5 shrink-0 text-teal-600" />
+                  </div>
+                  <div className="mt-5 grid gap-5 sm:grid-cols-2">
+                    {T1_COLLEGES.map((college) => (
+                      <div key={college.nom} className="rounded-2xl bg-slate-50 p-4">
+                        <div className="mb-4 flex items-start gap-2">
+                          <span className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${toneStyles[college.tone].accent}`} />
+                          <div>
+                            <p className="text-sm font-extrabold leading-tight text-slate-800">{college.nom}</p>
+                            <p className="mt-1 text-[11px] leading-relaxed text-slate-500">
+                              {college.tour} · {college.inscrits.toLocaleString('fr-FR')} inscrits
+                            </p>
+                          </div>
+                        </div>
+                        <div className="space-y-3">
+                          <ParticipationBar label="Titulaires" votants={college.tit_votants} taux={college.tit_taux} tone={college.tone} />
+                          <ParticipationBar label="Suppléants" votants={college.sup_votants} taux={college.sup_taux} tone={college.tone} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-3xl border border-slate-200/80 bg-white p-5 shadow-sm shadow-slate-900/[0.03] sm:p-6">
+                <div className="flex flex-col gap-3 border-b border-slate-100 pb-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-teal-700">Dernier relevé disponible · 2e tour</p>
+                    <h3 className="mt-1 text-lg font-extrabold text-slate-900">Participation par collège</h3>
+                  </div>
+                  {latestT2Snap && (
+                    <Badge variant="outline" className="w-fit gap-1.5 border-teal-200 bg-teal-50 text-teal-700">
+                      <Clock3 className="h-3.5 w-3.5" /> {latestT2Snap.date} à {latestT2Snap.heure}
+                    </Badge>
+                  )}
+                </div>
+
+                {latestT2Snap ? (
+                  <div className="mt-5 space-y-5">
+                    {[...(latestT2Snap.participation_colleges ?? [])]
+                      .sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0))
+                      .map((college) => (
+                        <div key={college.nom} className="rounded-2xl bg-slate-50 p-4">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <p className="font-extrabold text-slate-800">{college.nom}</p>
+                            <Badge variant="outline" className="border-teal-200 bg-white text-teal-700">
+                              Taux global : {(college.taux_college ?? 0).toFixed(2)} %
+                            </Badge>
+                          </div>
+                          <div className="mt-4 space-y-3">
+                            <ParticipationBar
+                              label="Titulaires"
+                              votants={college.tit_votants ?? 0}
+                              inscrits={college.tit_inscrits}
+                              taux={college.tit_taux ?? 0}
+                              tone="red"
+                            />
+                            <ParticipationBar
+                              label="Suppléants"
+                              votants={college.sup_votants ?? 0}
+                              inscrits={college.sup_inscrits}
+                              taux={college.sup_taux ?? 0}
+                              tone="teal"
+                            />
+                          </div>
+                        </div>
+                      ))}
+
+                    <div className="flex items-start gap-3 rounded-2xl border border-teal-100 bg-teal-50/70 px-4 py-3 text-xs leading-relaxed text-teal-900/75">
+                      <Info className="mt-0.5 h-4 w-4 shrink-0 text-teal-600" />
+                      <span>
+                        Taux au 1er tour Employés : <strong className="text-teal-950">37,64 %</strong> — le quorum
+                        n'est pas requis au 2e tour.
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mt-5 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-5 py-9 text-center">
+                    <TrendingUp className="mx-auto h-7 w-7 text-slate-300" />
+                    <p className="mt-3 text-sm font-medium text-slate-500">Aucune donnée disponible pour le 2e tour.</p>
+                  </div>
+                )}
               </div>
             </section>
 
-            <section className="space-y-8">
-              <h2 className="text-lg font-bold text-foreground flex items-center gap-2"><Award className="h-5 w-5 text-emerald-600" />Élus CSE — FO COM UES ILIAD</h2>
-              {[{ title: 'Collège Cadres', tour: '1er tour', titulaires: elusTitulairesCad, suppleants: elusSuppleantsCad, color: 'red' }, { title: 'Collège Employés / Techniciens', tour: '2ème tour', titulaires: elusTitulairesEmp, suppleants: elusSuppleantsEmp, color: 'emerald' }].map((section) => (
-                <div key={section.title} className="space-y-5">
-                  <div className="flex items-center justify-between border-b border-border pb-2 gap-3"><div className="flex items-center gap-2"><span className={`h-6 w-1.5 rounded-full ${section.color === 'red' ? 'bg-red-600' : 'bg-emerald-600'} inline-block`} /><h3 className="text-xl font-bold text-foreground">{section.title}</h3></div><Badge variant="outline" className={section.color === 'red' ? 'text-red-600 border-red-200 bg-red-50' : 'text-emerald-600 border-emerald-200 bg-emerald-50'}>{section.tour}</Badge></div>
-                  <div className="space-y-3"><h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2"><span className={`h-3 w-3 rounded-full ${section.color === 'red' ? 'bg-red-600' : 'bg-emerald-600'} inline-block`} />Titulaires</h4><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{section.titulaires.map((candidat, i) => <CandidateCard key={candidat.name} candidat={{ ...candidat, role: candidat.role || 'Élu Titulaire' }} index={i} label="Élu" />)}</div></div>
-                  <div className="space-y-3"><h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2"><span className="h-3 w-3 rounded-full bg-slate-400 inline-block" />Suppléants</h4><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{section.suppleants.map((candidat, i) => <CandidateCard key={candidat.name} candidat={{ ...candidat, role: candidat.role || 'Élu Suppléant' }} index={i} label="Élu" />)}</div></div>
-                </div>
+            <section id="elus" className="scroll-mt-6 space-y-6">
+              <SectionTitle
+                icon={Award}
+                eyebrow="Représentation"
+                title="Vos élus au CSE"
+                description="Retrouvez les titulaires et suppléants FO COM désignés pour porter votre voix au quotidien."
+              />
+
+              {[
+                {
+                  title: 'Collège Cadres',
+                  tour: '1er tour',
+                  titulaires: elusTitulairesCad,
+                  suppleants: elusSuppleantsCad,
+                  tone: 'red' as const,
+                },
+                {
+                  title: 'Collège Employés / Techniciens',
+                  tour: '2e tour',
+                  titulaires: elusTitulairesEmp,
+                  suppleants: elusSuppleantsEmp,
+                  tone: 'teal' as const,
+                },
+              ].map((college) => (
+                <article key={college.title} className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-sm shadow-slate-900/[0.03]">
+                  <div className={`h-1.5 bg-gradient-to-r ${college.tone === 'red' ? 'from-red-600 to-teal-500' : 'from-teal-600 to-red-500'}`} />
+                  <div className="p-5 sm:p-6">
+                    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
+                      <div className="flex items-center gap-3">
+                        <div className={`flex h-10 w-10 items-center justify-center rounded-2xl ${toneStyles[college.tone].soft}`}>
+                          <Landmark className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <h3 className="text-xl font-extrabold text-slate-900">{college.title}</h3>
+                          <p className="mt-0.5 text-xs text-slate-500">Élus FO COM UES ILIAD</p>
+                        </div>
+                      </div>
+                      <Badge variant="outline" className={toneStyles[college.tone].soft}>
+                        {college.tour}
+                      </Badge>
+                    </div>
+
+                    <div className="mt-5 space-y-6">
+                      <div>
+                        <div className="mb-3 flex items-center gap-2">
+                          <span className={`h-2.5 w-2.5 rounded-full ${toneStyles[college.tone].accent}`} />
+                          <h4 className="text-xs font-extrabold uppercase tracking-[0.14em] text-slate-500">Titulaires</h4>
+                          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-500">
+                            {college.titulaires.length}
+                          </span>
+                        </div>
+                        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                          {college.titulaires.map((candidate, index) => (
+                            <CandidateCard
+                              key={candidate.name}
+                              candidat={{ ...candidate, role: candidate.role || 'Élu titulaire' }}
+                              index={index}
+                              label="Élu"
+                              tone={college.tone}
+                            />
+                          ))}
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="mb-3 flex items-center gap-2">
+                          <span className="h-2.5 w-2.5 rounded-full bg-slate-400" />
+                          <h4 className="text-xs font-extrabold uppercase tracking-[0.14em] text-slate-500">Suppléants</h4>
+                          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-500">
+                            {college.suppleants.length}
+                          </span>
+                        </div>
+                        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                          {college.suppleants.map((candidate, index) => (
+                            <CandidateCard
+                              key={candidate.name}
+                              candidat={{ ...candidate, role: candidate.role || 'Élu suppléant' }}
+                              index={index}
+                              label="Élu"
+                              tone={college.tone}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </article>
               ))}
-              <div className="rounded-lg border border-red-100 bg-red-50/50 p-5 text-center flex flex-col items-center gap-3"><ShieldCheck className="h-8 w-8 text-red-600" /><p className="text-sm text-foreground font-medium">Vos élus FO COM s'engagent à défendre vos droits au quotidien au sein du CSE.</p><p className="text-xs text-muted-foreground">N'hésitez pas à les contacter pour toute question, accompagnement ou démarche auprès de la direction.</p></div>
+
+              <div className="relative overflow-hidden rounded-3xl bg-[#13233A] p-6 text-white shadow-xl sm:p-8">
+                <div aria-hidden="true" className="absolute -right-16 -top-16 h-56 w-56 rounded-full bg-red-600/20 blur-3xl" />
+                <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex gap-4">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/10 text-teal-300 ring-1 ring-white/10">
+                      <ShieldCheck className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <p className="text-lg font-extrabold">Vos élus FO COM s'engagent à vos côtés.</p>
+                      <p className="mt-1 max-w-2xl text-sm leading-relaxed text-white/65">
+                        Une question, un accompagnement ou une démarche auprès de la direction ? Contactez vos
+                        représentants.
+                      </p>
+                    </div>
+                  </div>
+                  <Button asChild className="shrink-0 rounded-xl bg-red-600 font-bold text-white hover:bg-red-700">
+                    <Link to="/contact">
+                      Nous contacter <ChevronRight className="ml-1 h-4 w-4" />
+                    </Link>
+                  </Button>
+                </div>
+              </div>
             </section>
           </>
         )}
