@@ -45,39 +45,50 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    // Vérification initiale de session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session?.user) {
-        const role = await fetchUserRole(session.user.id);
-        if (role && ADMIN_ROLES.includes(role)) {
-          setUser(buildAdminUser(session.user, role));
-        }
+    let active = true;
+
+    const applyAdminAccess = async (supabaseUser: User) => {
+      const role = await fetchUserRole(supabaseUser.id);
+      if (!active) return;
+      if (role && ADMIN_ROLES.includes(role)) {
+        setUser(buildAdminUser(supabaseUser, role));
+      } else {
+        setUser(null);
       }
       setReady(true);
+    };
+
+    // Vérification initiale de session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        void applyAdminAccess(session.user);
+      } else if (active) {
+        setReady(true);
+      }
+    }).catch(() => {
+      if (active) setReady(true);
     });
 
-    // Écoute les changements — uniquement TOKEN_REFRESHED pour éviter les boucles
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         if (event === "SIGNED_OUT" || !session?.user) {
           setUser(null);
+          setReady(true);
           return;
         }
-        // TOKEN_REFRESHED = session restaurée depuis localStorage
-        if (event === "TOKEN_REFRESHED") {
-          const role = await fetchUserRole(session.user.id);
-          if (role && ADMIN_ROLES.includes(role)) {
-            setUser(buildAdminUser(session.user, role));
-          } else {
-            setUser(null);
-          }
-        }
-        // SIGNED_IN est géré directement par la fonction login()
-        // pour éviter les double-appels et les boucles
+
+        // On diffère l'appel Supabase hors du callback d'authentification
+        // pour éviter les blocages du verrou interne de supabase-js.
+        window.setTimeout(() => {
+          if (active) void applyAdminAccess(session.user);
+        }, 0);
       }
     );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const login = async (username: string, password: string): Promise<LoginResult> => {
