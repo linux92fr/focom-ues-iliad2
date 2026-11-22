@@ -465,3 +465,105 @@ a:focus-visible .mobilisation-marquee-track {
     transition: none;
   }
 }
+
+/* Shared administration surface. Page-level features keep their own layout. */
+@layer components {
+  .admin-shell {
+    --admin-navy: #13233a;
+    --admin-border: #e2e8f0;
+    color: #172033;
+  }
+
+  .admin-shell .admin-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(148 163 184 / 35%) transparent;
+  }
+
+  .admin-shell main [data-slot="card"] {
+    border-color: var(--admin-border);
+    border-radius: 1.5rem;
+    background: #fff;
+    box-shadow:
+      0 1px 2px rgb(15 23 42 / 3%),
+      0 12px 32px -24px rgb(15 23 42 / 20%);
+  }
+
+  .admin-shell main [data-slot="card-header"] {
+    padding-top: 1.15rem;
+  }
+
+  .admin-shell main :is(h2, h3) {
+    letter-spacing: -0.025em;
+    color: #0f172a;
+  }
+
+  .admin-shell main :is(input, textarea, select) {
+    border-color: #dce3ec;
+    border-radius: 0.75rem;
+    background-color: #fff;
+  }
+
+  .admin-shell main :is(input, textarea, select):focus-visible {
+    border-color: #0d9488;
+    box-shadow: 0 0 0 3px rgb(13 148 136 / 12%);
+  }
+
+  .admin-shell main [role="tablist"] {
+    width: fit-content;
+    max-width: 100%;
+    border: 1px solid var(--admin-border);
+    border-radius: 1rem;
+    background: #fff;
+    padding: 0.3rem;
+    box-shadow: 0 4px 16px -12px rgb(15 23 42 / 25%);
+  }
+
+  .admin-shell main [role="tab"][data-state="active"] {
+    border-radius: 0.75rem;
+    background: var(--admin-navy);
+    color: #fff;
+    box-shadow: 0 4px 10px -6px rgb(15 23 42 / 35%);
+  }
+
+  .admin-shell main table {
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  .admin-shell main thead {
+    background: #f8fafc;
+  }
+
+  .admin-shell main thead th {
+    color: #64748b;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.055em;
+    text-transform: uppercase;
+  }
+
+  .admin-shell main tbody tr {
+    border-color: #edf1f5;
+    transition: background-color 160ms ease;
+  }
+
+  .admin-shell main tbody tr:hover {
+    background: #f8fafc;
+  }
+
+  .admin-shell main .rounded-xl.border.bg-white {
+    border-radius: 1.15rem;
+    border-color: var(--admin-border);
+    box-shadow: 0 8px 24px -22px rgb(15 23 42 / 22%);
+  }
+
+  .admin-shell main .animate-pulse {
+    border-radius: 0.9rem;
+  }
+}
+
+body:has(.admin-shell) [role="dialog"] {
+  border-color: #e2e8f0;
+  border-radius: 1.5rem;
+  box-shadow: 0 30px 90px -30px rgb(15 23 42 / 55%);
+}
