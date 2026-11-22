@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageBreadcrumb } from "@/components/PageBreadcrumb";
+import { PortalPageHero } from "@/components/PortalPageHero";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -410,9 +412,12 @@ const Profile = () => {
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
+      <main className="flex min-h-screen items-center justify-center bg-slate-50 p-6">
+        <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm font-medium text-slate-500 shadow-sm">
+          <Loader2 className="h-5 w-5 animate-spin text-red-600" />
+          Chargement de votre espace adhérent…
+        </div>
+      </main>
     );
   }
   if (!user) return null;
@@ -428,20 +433,39 @@ const Profile = () => {
   const nextRdv = upcomingRdv[0] ?? null;
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <main className="flex-grow bg-muted/30 py-12">
-        <div className="container max-w-5xl mx-auto px-4">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-foreground">Mon Espace Adhérent</h1>
-            <p className="text-muted-foreground mt-2">
-              Gérez vos informations et consultez votre adhésion FOCOM UES Iliad
-            </p>
-          </div>
+    <main className="min-h-screen overflow-x-hidden bg-slate-50 p-3 sm:p-4 lg:p-8">
+      <div className="mx-auto w-full max-w-[1450px] space-y-6">
+        <PageBreadcrumb steps={[{ label: 'Mon espace adhérent' }]} />
 
-          <div className="grid gap-6 md:grid-cols-4">
+        <PortalPageHero
+          eyebrow="Espace adhérent"
+          title="Mon espace FO COM."
+          description="Gérez vos coordonnées, votre adhésion, vos rendez-vous et la sécurité de votre compte depuis un seul endroit."
+          icon={User}
+          badge={activeAdhesion ? 'Adhésion active' : 'Compte FO COM UES ILIAD'}
+          aside={
+            <>
+              <div className="rounded-2xl border border-white/10 bg-white/[0.08] p-4 backdrop-blur-sm">
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/55">Membre</p>
+                <p className="mt-1 truncate text-sm font-extrabold">{displayName}</p>
+                <p className="mt-1 truncate text-xs text-white/55">{user.email}</p>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-white/[0.08] p-4 backdrop-blur-sm">
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/55">Prochain rendez-vous</p>
+                <p className="mt-1 text-sm font-extrabold text-teal-200">
+                  {nextRdv
+                    ? `${new Date(nextRdv.permanence.date_permanence).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} · ${formatTime(nextRdv.permanence.heure_debut)}`
+                    : 'Aucun rendez-vous planifié'}
+                </p>
+              </div>
+            </>
+          }
+        />
+
+        <div className="grid gap-6 md:grid-cols-4">
 
             {/* ── Carte résumé latérale ──────────────────────────────────── */}
-            <Card className="md:col-span-1 h-fit">
+            <Card className="h-fit rounded-3xl border-slate-200/80 bg-white shadow-sm shadow-slate-900/[0.03] md:col-span-1">
               <CardHeader className="text-center pb-3">
                 <div className="relative w-20 h-20 mx-auto mb-3 group">
                   {avatarPreview ? (
@@ -554,9 +578,9 @@ const Profile = () => {
             </Card>
 
             {/* ── Onglets principaux ─────────────────────────────────────── */}
-            <div className="md:col-span-3">
+            <div className="md:col-span-3 [&_[data-slot=card]]:rounded-3xl [&_[data-slot=card]]:border-slate-200/80 [&_[data-slot=card]]:shadow-sm">
               <Tabs defaultValue="infos" className="space-y-4">
-                <TabsList className="grid w-full grid-cols-5 overflow-hidden">
+                <TabsList className="grid w-full grid-cols-5 overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-1 shadow-sm">
                   <TabsTrigger value="infos" className="gap-1.5 text-xs">
                     <User className="w-3.5 h-3.5" />
                     <span className="hidden sm:inline">Profil</span>
@@ -1029,7 +1053,6 @@ const Profile = () => {
           </div>
         </div>
       </main>
-    </div>
   );
 };
 

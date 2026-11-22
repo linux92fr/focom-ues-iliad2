@@ -2,6 +2,9 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { PageBreadcrumb } from "@/components/PageBreadcrumb";
+import { PortalPageHero } from "@/components/PortalPageHero";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -95,12 +98,15 @@ const statusSteps = [
   { key: "ferme", label: "Clôturée" },
 ];
 
-function getSupabaseErrorMessage(error: any) {
+function getSupabaseErrorMessage(error: unknown) {
   if (!error) return "Erreur inconnue";
-  if (error.code === "42501") return "Accès refusé par Supabase/RLS. Vérifiez les policies de la table reclamations.";
-  if (error.code === "23514") return "Une valeur du formulaire n'est pas acceptée par la base de données.";
-  if (error.code === "23503") return "Votre compte utilisateur n'est pas reconnu par la base de données.";
-  return error.message || "Erreur inconnue";
+  const supabaseError = typeof error === "object"
+    ? error as { code?: string; message?: string }
+    : null;
+  if (supabaseError?.code === "42501") return "Accès refusé par Supabase/RLS. Vérifiez les policies de la table reclamations.";
+  if (supabaseError?.code === "23514") return "Une valeur du formulaire n'est pas acceptée par la base de données.";
+  if (supabaseError?.code === "23503") return "Votre compte utilisateur n'est pas reconnu par la base de données.";
+  return supabaseError?.message || "Erreur inconnue";
 }
 
 function StatusTimeline({ status }: { status: string }) {
@@ -146,7 +152,11 @@ export default function MesReclamations() {
     setRefreshing(false);
   }, [user]);
 
-  useEffect(() => { if (!authLoading) fetchReclamations(); }, [authLoading, fetchReclamations]);
+  useEffect(() => {
+    if (authLoading) return;
+    const timer = window.setTimeout(() => { void fetchReclamations(); }, 0);
+    return () => window.clearTimeout(timer);
+  }, [authLoading, fetchReclamations]);
 
   useEffect(() => {
     if (!user) return;
@@ -159,19 +169,43 @@ export default function MesReclamations() {
   }, [user, fetchReclamations]);
 
   if (authLoading) {
-    return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="w-6 h-6 animate-spin text-slate-400" /></div>;
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-slate-50 p-6">
+        <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm font-medium text-slate-500 shadow-sm">
+          <Loader2 className="h-5 w-5 animate-spin text-red-600" />
+          Chargement de votre espace…
+        </div>
+      </main>
+    );
   }
 
   if (!user) {
     return (
-      <div className="p-6 max-w-md mx-auto mt-12 text-center">
-        <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-          <Lock className="w-8 h-8 text-slate-400" />
+      <main className="min-h-screen overflow-x-hidden bg-slate-50 p-3 sm:p-4 lg:p-8">
+        <div className="mx-auto max-w-[1000px] space-y-6">
+          <PageBreadcrumb steps={[{ label: 'Mes demandes' }]} />
+          <PortalPageHero
+            eyebrow="Espace adhérent"
+            title="Vos demandes, suivies de bout en bout."
+            description="Connectez-vous pour consulter vos échanges avec FO COM et transmettre une nouvelle demande."
+            icon={Lock}
+          />
+          <section className="rounded-3xl border border-slate-200/80 bg-white p-7 text-center shadow-sm sm:p-10">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-500">
+              <Lock className="h-7 w-7" />
+            </div>
+            <h2 className="mt-5 text-xl font-extrabold text-slate-900">Connexion requise</h2>
+            <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-slate-500">
+              Pour accéder à vos réclamations, vous devez être connecté à votre espace adhérent.
+            </p>
+            <Link to="/profil">
+              <Button className="mt-6 bg-red-600 text-white hover:bg-red-700">
+                Se connecter <ChevronRight className="ml-1 h-4 w-4" />
+              </Button>
+            </Link>
+          </section>
         </div>
-        <h2 className="text-xl font-bold text-slate-900 mb-2">Connexion requise</h2>
-        <p className="text-slate-500 text-sm mb-6">Pour accéder à vos réclamations, vous devez être connecté à votre espace adhérent.</p>
-        <Link to="/profil"><Button className="bg-red-600 hover:bg-red-700 text-white">Se connecter <ChevronRight className="w-4 h-4 ml-1" /></Button></Link>
-      </div>
+      </main>
     );
   }
 
@@ -183,89 +217,142 @@ export default function MesReclamations() {
   };
 
   return (
-    <div className="p-4 lg:p-8 max-w-4xl mx-auto">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-extrabold text-slate-900 flex items-center gap-2">
-            <FolderOpen className="w-6 h-6 text-red-600" /> Mes demandes
-          </h1>
-          <p className="text-slate-500 text-sm mt-1">Suivez vos demandes, vos bulletins transmis et vos échanges avec FO COM.</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={fetchReclamations} disabled={refreshing} className="gap-2">
-            <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} /> Actualiser
-          </Button>
-          <Button onClick={() => setCreateOpen(true)} className="bg-red-600 hover:bg-red-700 text-white gap-2">
-            <Plus className="w-4 h-4" /> Nouvelle demande
-          </Button>
-        </div>
-      </div>
+    <main className="min-h-screen overflow-x-hidden bg-slate-50 p-3 sm:p-4 lg:p-8">
+      <div className="mx-auto w-full max-w-[1400px] space-y-6">
+        <PageBreadcrumb steps={[{ label: 'Mes demandes' }]} />
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-        {[
-          { label: "Total", value: stats.total, color: "bg-slate-50 text-slate-700" },
-          { label: "Nouveaux", value: stats.nouveau, color: "bg-blue-50 text-blue-700" },
-          { label: "En cours", value: stats.en_cours, color: "bg-amber-50 text-amber-700" },
-          { label: "Résolus", value: stats.resolu, color: "bg-green-50 text-green-700" },
-        ].map(s => (
-          <div key={s.label} className={`${s.color} rounded-xl p-4 text-center border border-slate-100`}>
-            <p className="text-2xl font-extrabold">{s.value}</p>
-            <p className="text-xs font-medium mt-0.5">{s.label}</p>
-          </div>
-        ))}
-      </div>
-
-      {loading ? (
-        <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-slate-400" /></div>
-      ) : reclamations.length === 0 ? (
-        <div className="text-center py-16 text-slate-400 rounded-2xl border border-dashed border-slate-200 bg-white">
-          <FolderOpen className="w-12 h-12 mx-auto mb-3 opacity-40" />
-          <p className="font-medium">Aucune demande</p>
-          <p className="text-sm mt-1">Cliquez sur "Nouvelle demande" pour transmettre un bulletin ou contacter FO COM.</p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {reclamations.map(rec => {
-            const s = STATUS[rec.status] ?? STATUS.nouveau;
-            const p = PRIORITY[rec.priority] ?? PRIORITY.normale;
-            return (
-              <button key={rec.id} onClick={() => setSelectedRec(rec)} className="w-full text-left bg-white rounded-xl border border-slate-200 p-4 hover:border-teal-300 hover:shadow-sm transition-all">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${s.color}`}><s.Icon className="w-2.5 h-2.5" /> {s.label}</span>
-                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${p.color}`}>{p.label}</span>
-                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">{CATEGORY[rec.category]}</span>
-                    </div>
-                    <p className="font-semibold text-slate-900 text-sm truncate">{rec.title}</p>
-                    <p className="text-xs text-slate-500 mt-0.5 line-clamp-1">{rec.description}</p>
-                    <p className="text-[11px] text-slate-400 mt-2">Dernière mise à jour : {fmtDate(rec.updated_at)}</p>
-                  </div>
-                  <div className="text-right flex-shrink-0">
-                    <p className="text-xs text-slate-400">{fmtDate(rec.created_at)}</p>
-                    <p className="text-[10px] text-slate-400 mt-0.5">{ENTITY[rec.entity]}</p>
-                  </div>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      )}
-
-      <CreateReclamationDialog open={createOpen} onClose={() => setCreateOpen(false)} fallbackUserId={user.id} fallbackUserEmail={user.email ?? ""} onCreated={fetchReclamations} />
-
-      {selectedRec && (
-        <ReclamationDetailDialog
-          rec={selectedRec}
-          userId={user.id}
-          onClose={() => setSelectedRec(null)}
-          onUpdated={(updated) => {
-            setReclamations(prev => prev.map(r => r.id === updated.id ? updated : r));
-            setSelectedRec(updated);
-          }}
+        <PortalPageHero
+          eyebrow="Espace adhérent"
+          title="Vos demandes, suivies de bout en bout."
+          description="Retrouvez vos échanges avec FO COM, l'avancement de chaque dossier et les pièces que vous avez transmises."
+          icon={FolderOpen}
+          actions={
+            <>
+              <Button
+                variant="outline"
+                onClick={fetchReclamations}
+                disabled={refreshing}
+                className="rounded-xl border-white/25 bg-white/10 font-semibold text-white hover:bg-white/20 hover:text-white"
+              >
+                <RefreshCw className={`mr-2 h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} /> Actualiser
+              </Button>
+              <Button
+                onClick={() => setCreateOpen(true)}
+                className="rounded-xl bg-red-600 font-bold text-white hover:bg-red-700"
+              >
+                <Plus className="mr-2 h-4 w-4" /> Nouvelle demande
+              </Button>
+            </>
+          }
+          aside={
+            <>
+              <div className="rounded-2xl border border-white/10 bg-white/[0.08] p-4 backdrop-blur-sm">
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/55">Dossiers</p>
+                <p className="mt-1 text-3xl font-black tabular-nums text-red-300">{stats.total}</p>
+                <p className="mt-1 text-xs text-white/60">demandes enregistrées</p>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-white/[0.08] p-4 backdrop-blur-sm">
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/55">En cours</p>
+                <p className="mt-1 text-3xl font-black tabular-nums text-teal-300">{stats.en_cours}</p>
+                <p className="mt-1 text-xs text-white/60">dossiers en traitement</p>
+              </div>
+            </>
+          }
         />
-      )}
-    </div>
+
+        <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {[
+            { label: "Total", value: stats.total, color: "bg-slate-100 text-slate-700" },
+            { label: "Nouveaux", value: stats.nouveau, color: "bg-blue-50 text-blue-700" },
+            { label: "En cours", value: stats.en_cours, color: "bg-amber-50 text-amber-700" },
+            { label: "Résolus", value: stats.resolu, color: "bg-emerald-50 text-emerald-700" },
+          ].map((item) => (
+            <div key={item.label} className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm shadow-slate-900/[0.03]">
+              <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${item.color}`}>
+                <MessageSquare className="h-4 w-4" />
+              </div>
+              <p className="mt-3 text-2xl font-black tabular-nums text-slate-900">{item.value}</p>
+              <p className="mt-0.5 text-xs font-semibold text-slate-500">{item.label}</p>
+            </div>
+          ))}
+        </section>
+
+        <section className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-sm shadow-slate-900/[0.03]">
+          <div className="flex flex-col gap-2 border-b border-slate-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+            <div>
+              <p className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-red-600">Suivi des dossiers</p>
+              <h2 className="mt-1 text-xl font-extrabold text-slate-900">Vos demandes récentes</h2>
+            </div>
+            <Badge variant="outline" className="w-fit border-teal-200 bg-teal-50 text-teal-700">
+              Mise à jour en temps réel
+            </Badge>
+          </div>
+
+          <div className="p-4 sm:p-5">
+            {loading ? (
+              <div className="flex justify-center py-14">
+                <Loader2 className="h-6 w-6 animate-spin text-red-600" />
+              </div>
+            ) : reclamations.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-5 py-16 text-center text-slate-400">
+                <FolderOpen className="mx-auto mb-3 h-12 w-12 opacity-40" />
+                <p className="font-semibold text-slate-600">Aucune demande</p>
+                <p className="mt-1 text-sm">Cliquez sur « Nouvelle demande » pour transmettre un bulletin ou contacter FO COM.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {reclamations.map((rec) => {
+                  const status = STATUS[rec.status] ?? STATUS.nouveau;
+                  const priority = PRIORITY[rec.priority] ?? PRIORITY.normale;
+
+                  return (
+                    <button
+                      key={rec.id}
+                      onClick={() => setSelectedRec(rec)}
+                      className="group w-full rounded-2xl border border-slate-200/80 bg-white p-4 text-left transition-all hover:-translate-y-0.5 hover:border-teal-200 hover:shadow-lg hover:shadow-slate-900/[0.05]"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <div className="mb-1 flex flex-wrap items-center gap-2">
+                            <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${status.color}`}>
+                              <status.Icon className="h-2.5 w-2.5" /> {status.label}
+                            </span>
+                            <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${priority.color}`}>{priority.label}</span>
+                            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600">{CATEGORY[rec.category]}</span>
+                          </div>
+                          <p className="truncate text-sm font-extrabold text-slate-900 transition-colors group-hover:text-red-700">{rec.title}</p>
+                          <p className="mt-0.5 line-clamp-1 text-xs text-slate-500">{rec.description}</p>
+                          <p className="mt-2 text-[11px] text-slate-400">Dernière mise à jour : {fmtDate(rec.updated_at)}</p>
+                        </div>
+                        <div className="shrink-0 text-right">
+                          <ChevronRight className="ml-auto h-4 w-4 text-slate-300 transition-colors group-hover:text-red-500" />
+                          <p className="mt-2 text-xs text-slate-400">{fmtDate(rec.created_at)}</p>
+                          <p className="mt-0.5 text-[10px] text-slate-400">{ENTITY[rec.entity]}</p>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </section>
+
+        <CreateReclamationDialog open={createOpen} onClose={() => setCreateOpen(false)} fallbackUserId={user.id} fallbackUserEmail={user.email ?? ""} onCreated={fetchReclamations} />
+
+        {selectedRec && (
+          <ReclamationDetailDialog
+            rec={selectedRec}
+            userId={user.id}
+            onClose={() => setSelectedRec(null)}
+            onUpdated={(updated) => {
+              setReclamations((previous) => previous.map((item) => item.id === updated.id ? updated : item));
+              setSelectedRec(updated);
+            }}
+          />
+        )}
+      </div>
+    </main>
   );
 }
 
@@ -411,7 +498,10 @@ function ReclamationDetailDialog({ rec, userId, onClose, onUpdated }: { rec: Rec
     setLoading(false);
   }, [rec.id]);
 
-  useEffect(() => { loadDetail(); }, [loadDetail]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => { void loadDetail(); }, 0);
+    return () => window.clearTimeout(timer);
+  }, [loadDetail]);
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 
   useEffect(() => {

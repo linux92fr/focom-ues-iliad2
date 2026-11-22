@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { PageBreadcrumb } from "@/components/PageBreadcrumb";
+import { PortalPageHero } from "@/components/PortalPageHero";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -133,7 +135,12 @@ export default function MesDocuments() {
   }, [user]);
 
   useEffect(() => {
-    if (!authLoading) { fetchDocuments(); fetchFolders(); }
+    if (authLoading) return;
+    const timer = window.setTimeout(() => {
+      void fetchDocuments();
+      void fetchFolders();
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [authLoading, fetchDocuments, fetchFolders]);
 
   const togglePublic = async (doc: UserDocument) => {
@@ -178,140 +185,217 @@ export default function MesDocuments() {
   });
 
   if (authLoading) {
-    return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="w-6 h-6 animate-spin text-slate-400" /></div>;
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-slate-50 p-6">
+        <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm font-medium text-slate-500 shadow-sm">
+          <Loader2 className="h-5 w-5 animate-spin text-red-600" />
+          Chargement de votre bibliothèque…
+        </div>
+      </main>
+    );
   }
 
   if (!user) {
     return (
-      <div className="p-6 max-w-md mx-auto mt-12 text-center">
-        <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-          <Lock className="w-8 h-8 text-slate-400" />
+      <main className="min-h-screen overflow-x-hidden bg-slate-50 p-3 sm:p-4 lg:p-8">
+        <div className="mx-auto max-w-[1000px] space-y-6">
+          <PageBreadcrumb steps={[{ label: 'Mes documents' }]} />
+          <PortalPageHero
+            eyebrow="Espace adhérent"
+            title="Votre bibliothèque personnelle, toujours à portée de main."
+            description="Connectez-vous pour retrouver vos fichiers, vos dossiers et les documents partagés avec les adhérents."
+            icon={Lock}
+          />
+          <section className="rounded-3xl border border-slate-200/80 bg-white p-7 text-center shadow-sm sm:p-10">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-500">
+              <Lock className="h-7 w-7" />
+            </div>
+            <h2 className="mt-5 text-xl font-extrabold text-slate-900">Connexion requise</h2>
+            <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-slate-500">
+              Pour accéder à vos documents, vous devez être connecté à votre espace adhérent.
+            </p>
+            <Link to="/profil">
+              <Button className="mt-6 bg-red-600 text-white hover:bg-red-700">
+                Se connecter <ChevronRight className="ml-1 h-4 w-4" />
+              </Button>
+            </Link>
+          </section>
         </div>
-        <h2 className="text-xl font-bold text-slate-900 mb-2">Connexion requise</h2>
-        <p className="text-slate-500 text-sm mb-6">Pour accéder à vos documents, vous devez être connecté à votre espace adhérent.</p>
-        <Link to="/profil"><Button className="bg-red-600 hover:bg-red-700 text-white">Se connecter <ChevronRight className="w-4 h-4 ml-1" /></Button></Link>
-      </div>
+      </main>
     );
   }
 
+  const publicDocuments = documents.filter((document) => document.is_public).length;
+  const privateDocuments = documents.length - publicDocuments;
+
   return (
-    <div className="p-4 lg:p-8 max-w-4xl mx-auto">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-extrabold text-slate-900 flex items-center gap-2">
-            <FolderOpen className="w-6 h-6 text-red-600" /> Mes documents
-          </h1>
-          <p className="text-slate-500 text-sm mt-1">Vos fichiers personnels, privés par défaut. Rendez-en un public pour le partager avec les autres adhérents connectés.</p>
-        </div>
-        <Button onClick={() => setAddOpen(true)} className="bg-red-600 hover:bg-red-700 text-white gap-2">
-          <Plus className="w-4 h-4" /> Ajouter un document
-        </Button>
-      </div>
+    <main className="min-h-screen overflow-x-hidden bg-slate-50 p-3 sm:p-4 lg:p-8">
+      <div className="mx-auto w-full max-w-[1400px] space-y-6">
+        <PageBreadcrumb steps={[{ label: 'Mes documents' }]} />
 
-      {/* Dossiers */}
-      <div className="flex flex-wrap items-center gap-2 mb-5">
-        <button
-          type="button" onClick={() => setActiveFolder(ALL_FOLDERS)}
-          className={`text-xs font-medium px-3 py-1.5 rounded-full border transition-colors ${activeFolder === ALL_FOLDERS ? "bg-red-600 border-red-600 text-white" : "border-slate-200 text-slate-600 hover:border-slate-300"}`}
-        >
-          Tous
-        </button>
-        <button
-          type="button" onClick={() => setActiveFolder(ROOT_FOLDER)}
-          className={`text-xs font-medium px-3 py-1.5 rounded-full border transition-colors ${activeFolder === ROOT_FOLDER ? "bg-red-600 border-red-600 text-white" : "border-slate-200 text-slate-600 hover:border-slate-300"}`}
-        >
-          Sans dossier
-        </button>
-        {folders.map((folder) => (
-          <div key={folder.id} className="group relative">
-            <button
-              type="button" onClick={() => setActiveFolder(folder.id)}
-              className={`text-xs font-medium pl-3 pr-6 py-1.5 rounded-full border transition-colors flex items-center gap-1.5 ${activeFolder === folder.id ? "bg-red-600 border-red-600 text-white" : "border-slate-200 text-slate-600 hover:border-slate-300"}`}
+        <PortalPageHero
+          eyebrow="Espace adhérent"
+          title="Votre bibliothèque personnelle, toujours à portée de main."
+          description="Classez vos fichiers, gardez-les privés par défaut et choisissez ceux que vous souhaitez partager avec les autres adhérents connectés."
+          icon={FolderOpen}
+          actions={
+            <Button
+              onClick={() => setAddOpen(true)}
+              className="rounded-xl bg-red-600 font-bold text-white hover:bg-red-700"
             >
-              <Folder className="w-3 h-3" /> {folder.name}
-            </button>
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); handleDeleteFolder(folder); }}
-              aria-label={`Supprimer le dossier ${folder.name}`}
-              className={`absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity ${activeFolder === folder.id ? "text-white/80 hover:text-white" : "text-slate-400 hover:text-red-600"}`}
-            >
-              <X className="w-3 h-3" />
-            </button>
-          </div>
-        ))}
-        <button
-          type="button" onClick={() => setNewFolderOpen(true)}
-          className="text-xs font-medium px-3 py-1.5 rounded-full border border-dashed border-slate-300 text-slate-500 hover:border-teal-400 hover:text-teal-700 transition-colors flex items-center gap-1"
-        >
-          <Plus className="w-3 h-3" /> Nouveau dossier
-        </button>
-      </div>
+              <Plus className="mr-2 h-4 w-4" /> Ajouter un document
+            </Button>
+          }
+          aside={
+            <>
+              <div className="rounded-2xl border border-white/10 bg-white/[0.08] p-4 backdrop-blur-sm">
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/55">Documents</p>
+                <p className="mt-1 text-3xl font-black tabular-nums text-teal-300">{documents.length}</p>
+                <p className="mt-1 text-xs text-white/60">{folders.length} dossier{folders.length > 1 ? 's' : ''}</p>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-white/[0.08] p-4 backdrop-blur-sm">
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/55">Confidentialité</p>
+                <p className="mt-1 text-2xl font-black tabular-nums text-red-300">{privateDocuments}</p>
+                <p className="mt-1 text-xs text-white/60">privés · {publicDocuments} publics</p>
+              </div>
+            </>
+          }
+        />
 
-      {loading ? (
-        <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-slate-400" /></div>
-      ) : visibleDocuments.length === 0 ? (
-        <div className="text-center py-16 text-slate-400 rounded-2xl border border-dashed border-slate-200 bg-white">
-          <FolderOpen className="w-12 h-12 mx-auto mb-3 opacity-40" />
-          <p className="font-medium">Aucun document</p>
-          <p className="text-sm mt-1">
-            {activeFolder === ALL_FOLDERS ? 'Cliquez sur "Ajouter un document" pour envoyer votre premier fichier.' : "Aucun document dans ce dossier."}
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {visibleDocuments.map((doc) => (
-            <div key={doc.id} className="bg-white rounded-xl border border-slate-200 p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-start gap-3 flex-1 min-w-0">
-                  <FileText className="w-5 h-5 text-slate-400 flex-shrink-0 mt-0.5" />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-slate-900 text-sm truncate">{doc.title}</p>
-                    {doc.description && <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{doc.description}</p>}
-                    <p className="text-[11px] text-slate-400 mt-1.5">
-                      {doc.file_name} · {fmtSize(doc.file_size)} · {fmtDate(doc.created_at)}
-                      {doc.folder_id && activeFolder === ALL_FOLDERS && (
-                        <> · <span className="inline-flex items-center gap-0.5"><Folder className="w-3 h-3" />{folders.find((f) => f.id === doc.folder_id)?.name}</span></>
-                      )}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1 flex-shrink-0">
-                  {isPreviewable(doc.file_type) && (
-                    <Button variant="ghost" size="sm" onClick={() => setPreviewDoc(doc)} aria-label="Aperçu"><Eye className="w-4 h-4 text-slate-400 hover:text-red-600" /></Button>
-                  )}
-                  <Button variant="ghost" size="sm" onClick={() => handleDownload(doc)} aria-label="Télécharger"><Download className="w-4 h-4 text-slate-400 hover:text-red-600" /></Button>
-                  <Button variant="ghost" size="sm" onClick={() => handleDelete(doc)} aria-label="Supprimer"><Trash2 className="w-4 h-4 text-slate-400 hover:text-red-600" /></Button>
-                </div>
+        <section className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-sm shadow-slate-900/[0.03]">
+          <div className="border-b border-slate-100 px-5 py-4 sm:px-6">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-red-600">Bibliothèque</p>
+                <h2 className="mt-1 text-xl font-extrabold text-slate-900">Dossiers et fichiers</h2>
               </div>
-              <div className="flex items-center justify-between gap-3 mt-3 pt-3 border-t border-slate-100">
-                <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${doc.is_public ? "text-teal-700" : "text-slate-500"}`}>
-                  {doc.is_public ? <Globe className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
-                  {doc.is_public ? "Public — visible par les adhérents connectés" : "Privé — visible par vous seul"}
-                </span>
-                <Switch checked={doc.is_public} onCheckedChange={() => togglePublic(doc)} aria-label="Rendre public" />
-              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setNewFolderOpen(true)}
+                className="w-fit rounded-xl border-slate-200 font-semibold"
+              >
+                <Plus className="mr-1.5 h-4 w-4" /> Nouveau dossier
+              </Button>
             </div>
-          ))}
-        </div>
-      )}
 
-      <AddDocumentDialog
-        open={addOpen}
-        onClose={() => setAddOpen(false)}
-        userId={user.id}
-        folders={folders}
-        defaultFolderId={activeFolder === ALL_FOLDERS || activeFolder === ROOT_FOLDER ? null : activeFolder}
-        onCreated={fetchDocuments}
-      />
-      <NewFolderDialog
-        open={newFolderOpen}
-        onClose={() => setNewFolderOpen(false)}
-        userId={user.id}
-        onCreated={fetchFolders}
-      />
-      <PreviewDialog doc={previewDoc} onClose={() => setPreviewDoc(null)} />
-    </div>
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setActiveFolder(ALL_FOLDERS)}
+                className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${activeFolder === ALL_FOLDERS ? "border-red-600 bg-red-600 text-white" : "border-slate-200 text-slate-600 hover:border-slate-300"}`}
+              >
+                Tous
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveFolder(ROOT_FOLDER)}
+                className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${activeFolder === ROOT_FOLDER ? "border-red-600 bg-red-600 text-white" : "border-slate-200 text-slate-600 hover:border-slate-300"}`}
+              >
+                Sans dossier
+              </button>
+              {folders.map((folder) => (
+                <div key={folder.id} className="group relative">
+                  <button
+                    type="button"
+                    onClick={() => setActiveFolder(folder.id)}
+                    className={`flex items-center gap-1.5 rounded-full border py-1.5 pl-3 pr-6 text-xs font-semibold transition-colors ${activeFolder === folder.id ? "border-teal-600 bg-teal-600 text-white" : "border-slate-200 text-slate-600 hover:border-slate-300"}`}
+                  >
+                    <Folder className="h-3 w-3" /> {folder.name}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(event) => { event.stopPropagation(); handleDeleteFolder(folder); }}
+                    aria-label={`Supprimer le dossier ${folder.name}`}
+                    className={`absolute right-1 top-1/2 -translate-y-1/2 opacity-0 transition-opacity group-hover:opacity-100 ${activeFolder === folder.id ? "text-white/80 hover:text-white" : "text-slate-400 hover:text-red-600"}`}
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="p-4 sm:p-5">
+            {loading ? (
+              <div className="flex justify-center py-14">
+                <Loader2 className="h-6 w-6 animate-spin text-red-600" />
+              </div>
+            ) : visibleDocuments.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-5 py-16 text-center text-slate-400">
+                <FolderOpen className="mx-auto mb-3 h-12 w-12 opacity-40" />
+                <p className="font-semibold text-slate-600">Aucun document</p>
+                <p className="mt-1 text-sm">
+                  {activeFolder === ALL_FOLDERS ? 'Cliquez sur « Ajouter un document » pour envoyer votre premier fichier.' : "Aucun document dans ce dossier."}
+                </p>
+              </div>
+            ) : (
+              <div className="grid gap-3 xl:grid-cols-2">
+                {visibleDocuments.map((doc) => (
+                  <article key={doc.id} className="rounded-2xl border border-slate-200/80 bg-white p-4 transition-all hover:border-teal-200 hover:shadow-md hover:shadow-slate-900/[0.04]">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex min-w-0 flex-1 items-start gap-3">
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-600">
+                          <FileText className="h-5 w-5" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-extrabold text-slate-900">{doc.title}</p>
+                          {doc.description && <p className="mt-0.5 line-clamp-2 text-xs leading-relaxed text-slate-500">{doc.description}</p>}
+                          <p className="mt-1.5 text-[11px] text-slate-400">
+                            {doc.file_name} · {fmtSize(doc.file_size)} · {fmtDate(doc.created_at)}
+                            {doc.folder_id && activeFolder === ALL_FOLDERS && (
+                              <> · <span className="inline-flex items-center gap-0.5"><Folder className="h-3 w-3" />{folders.find((folder) => folder.id === doc.folder_id)?.name}</span></>
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-0.5">
+                        {isPreviewable(doc.file_type) && (
+                          <Button variant="ghost" size="sm" onClick={() => setPreviewDoc(doc)} aria-label="Aperçu">
+                            <Eye className="h-4 w-4 text-slate-400 hover:text-red-600" />
+                          </Button>
+                        )}
+                        <Button variant="ghost" size="sm" onClick={() => handleDownload(doc)} aria-label="Télécharger">
+                          <Download className="h-4 w-4 text-slate-400 hover:text-red-600" />
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => handleDelete(doc)} aria-label="Supprimer">
+                          <Trash2 className="h-4 w-4 text-slate-400 hover:text-red-600" />
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="mt-3 flex items-center justify-between gap-3 border-t border-slate-100 pt-3">
+                      <span className={`inline-flex items-center gap-1.5 text-xs font-semibold ${doc.is_public ? "text-teal-700" : "text-slate-500"}`}>
+                        {doc.is_public ? <Globe className="h-3.5 w-3.5" /> : <Lock className="h-3.5 w-3.5" />}
+                        {doc.is_public ? "Public — visible par les adhérents connectés" : "Privé — visible par vous seul"}
+                      </span>
+                      <Switch checked={doc.is_public} onCheckedChange={() => togglePublic(doc)} aria-label="Rendre public" />
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+
+        <AddDocumentDialog
+          key={`add-document-${addOpen}-${activeFolder}`}
+          open={addOpen}
+          onClose={() => setAddOpen(false)}
+          userId={user.id}
+          folders={folders}
+          defaultFolderId={activeFolder === ALL_FOLDERS || activeFolder === ROOT_FOLDER ? null : activeFolder}
+          onCreated={fetchDocuments}
+        />
+        <NewFolderDialog
+          open={newFolderOpen}
+          onClose={() => setNewFolderOpen(false)}
+          userId={user.id}
+          onCreated={fetchFolders}
+        />
+        <PreviewDialog doc={previewDoc} onClose={() => setPreviewDoc(null)} />
+      </div>
+    </main>
   );
 }
 
@@ -375,7 +459,9 @@ function PreviewDialog({ doc, onClose }: { doc: UserDocument | null; onClose: ()
   useEffect(() => {
     if (!doc) return;
     let cancelled = false;
-    setState({ kind: "loading" });
+    const loadingTimer = window.setTimeout(() => {
+      if (!cancelled) setState({ kind: "loading" });
+    }, 0);
 
     (async () => {
       const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(doc.file_path, 300);
@@ -431,7 +517,10 @@ function PreviewDialog({ doc, onClose }: { doc: UserDocument | null; onClose: ()
       }
     })();
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      window.clearTimeout(loadingTimer);
+    };
   }, [doc]);
 
   return (
@@ -482,8 +571,6 @@ function AddDocumentDialog({
   const [progress, setProgress] = useState<number | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const fileInputId = `user-document-file-${userId}`;
-
-  useEffect(() => { if (open) setFolderId(defaultFolderId); }, [open, defaultFolderId]);
 
   const clearFileInput = () => {
     if (fileRef.current) fileRef.current.value = "";

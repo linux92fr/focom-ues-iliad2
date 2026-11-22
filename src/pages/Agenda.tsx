@@ -5,7 +5,9 @@ import { fr } from "date-fns/locale";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ChevronLeft, ChevronRight, Calendar, MapPin, Clock } from "lucide-react";
+import { PageBreadcrumb } from "@/components/PageBreadcrumb";
+import { PortalPageHero } from "@/components/PortalPageHero";
+import { ChevronLeft, ChevronRight, Calendar, CalendarDays, MapPin, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
@@ -21,12 +23,12 @@ interface Event {
   is_public: boolean;
 }
 
-const eventTypeLabels: Record<string, { label: string; color: string }> = {
-  reunion: { label: "Réunion", color: "bg-blue-500" },
-  manifestation: { label: "Manifestation", color: "bg-red-500" },
-  formation: { label: "Formation", color: "bg-green-500" },
-  assemblee: { label: "Assemblée Générale", color: "bg-purple-500" },
-  autre: { label: "Autre", color: "bg-gray-500" },
+const eventTypeLabels: Record<string, { label: string; color: string; border: string }> = {
+  reunion: { label: "Réunion", color: "bg-teal-500", border: "border-teal-500" },
+  manifestation: { label: "Manifestation", color: "bg-red-500", border: "border-red-500" },
+  formation: { label: "Formation", color: "bg-emerald-500", border: "border-emerald-500" },
+  assemblee: { label: "Assemblée Générale", color: "bg-blue-500", border: "border-blue-500" },
+  autre: { label: "Autre", color: "bg-slate-500", border: "border-slate-500" },
 };
 
 const Agenda = () => {
@@ -72,27 +74,43 @@ const Agenda = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <main className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground mb-2">Agenda Syndical</h1>
-          <p className="text-muted-foreground">
-            Retrouvez tous les événements et rendez-vous de votre syndicat FOCOM
-          </p>
-        </div>
+    <main className="min-h-screen overflow-x-hidden bg-slate-50 p-3 sm:p-4 lg:p-8">
+      <div className="mx-auto w-full max-w-[1500px] space-y-6">
+        <PageBreadcrumb steps={[{ label: 'Agenda' }]} />
 
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Calendar */}
-          <Card className="lg:col-span-2">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-              <CardTitle className="text-xl font-semibold capitalize">
-                {format(currentMonth, "MMMM yyyy", { locale: fr })}
-              </CardTitle>
+        <PortalPageHero
+          eyebrow="Agenda FO COM"
+          title="Les rendez-vous de la vie syndicale."
+          description="Retrouvez les réunions, formations, mobilisations et temps forts FO COM UES ILIAD."
+          icon={CalendarDays}
+          badge={`${events.length} événement${events.length > 1 ? 's' : ''} ce mois-ci`}
+          aside={
+            <div className="rounded-2xl border border-white/10 bg-white/[0.08] p-4 backdrop-blur-sm">
+              <Calendar className="h-5 w-5 text-teal-300" />
+              <p className="mt-3 text-sm font-extrabold">Un agenda lisible</p>
+              <p className="mt-1 text-xs leading-relaxed text-white/65">
+                Sélectionnez une date pour consulter les horaires, le lieu et les détails pratiques.
+              </p>
+            </div>
+          }
+        />
+
+        <div className="grid items-start gap-6 lg:grid-cols-3">
+          <Card className="overflow-hidden rounded-3xl border-slate-200/80 bg-white shadow-sm shadow-slate-900/[0.03] lg:col-span-2">
+            <CardHeader className="flex flex-col gap-4 border-b border-slate-100 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+              <div>
+                <p className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-red-600">Calendrier</p>
+                <CardTitle className="mt-1 text-2xl font-extrabold capitalize tracking-tight text-slate-900">
+                  {format(currentMonth, "MMMM yyyy", { locale: fr })}
+                </CardTitle>
+              </div>
               <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
                   size="icon"
+                  aria-label="Mois précédent"
                   onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
+                  className="rounded-xl border-slate-200"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
@@ -100,39 +118,35 @@ const Agenda = () => {
                   variant="outline"
                   size="sm"
                   onClick={() => setCurrentMonth(new Date())}
+                  className="rounded-xl border-slate-200 font-semibold"
                 >
                   Aujourd'hui
                 </Button>
                 <Button
                   variant="outline"
                   size="icon"
+                  aria-label="Mois suivant"
                   onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
+                  className="rounded-xl border-slate-200"
                 >
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
             </CardHeader>
-            <CardContent>
-              {/* Days of week header */}
-              <div className="grid grid-cols-7 gap-1 mb-2">
+            <CardContent className="px-3 py-4 sm:px-5 sm:py-5">
+              <div className="mb-2 grid grid-cols-7 gap-1">
                 {["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"].map((day) => (
-                  <div
-                    key={day}
-                    className="text-center text-sm font-medium text-muted-foreground py-2"
-                  >
+                  <div key={day} className="py-2 text-center text-[10px] font-extrabold uppercase tracking-wide text-slate-400 sm:text-xs">
                     {day}
                   </div>
                 ))}
               </div>
 
-              {/* Calendar grid */}
               <div className="grid grid-cols-7 gap-1">
-                {/* Empty cells for padding */}
                 {Array.from({ length: paddingDays }).map((_, index) => (
                   <div key={`padding-${index}`} className="h-20 sm:h-24" />
                 ))}
 
-                {/* Days of the month */}
                 {daysInMonth.map((day) => {
                   const dayEvents = getEventsForDate(day);
                   const isToday = isSameDay(day, new Date());
@@ -141,18 +155,20 @@ const Agenda = () => {
                   return (
                     <button
                       key={day.toString()}
+                      type="button"
+                      aria-label={`${format(day, "d MMMM yyyy", { locale: fr })}, ${dayEvents.length} événement${dayEvents.length > 1 ? 's' : ''}`}
                       onClick={() => setSelectedDate(day)}
                       className={cn(
-                        "h-20 sm:h-24 p-1 border rounded-lg text-left transition-colors hover:bg-accent/50",
-                        isToday && "border-primary",
-                        isSelected && "bg-accent",
-                        !isSameMonth(day, currentMonth) && "text-muted-foreground"
+                        "h-20 rounded-xl border border-slate-100 bg-white p-1 text-left transition-colors hover:border-teal-200 hover:bg-teal-50/40 sm:h-24 sm:p-1.5",
+                        isToday && "border-red-200 bg-red-50/40",
+                        isSelected && "border-teal-500 bg-teal-50 ring-2 ring-teal-100",
+                        !isSameMonth(day, currentMonth) && "text-muted-foreground opacity-60"
                       )}
                     >
                       <span
                         className={cn(
-                          "text-sm font-medium",
-                          isToday && "bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center"
+                          "flex h-6 w-6 items-center justify-center text-xs font-bold text-slate-700 sm:text-sm",
+                          isToday && "rounded-full bg-red-600 text-white"
                         )}
                       >
                         {format(day, "d")}
@@ -162,15 +178,15 @@ const Agenda = () => {
                           <div
                             key={event.id}
                             className={cn(
-                              "text-xs px-1 py-0.5 rounded truncate text-white",
-                              eventTypeLabels[event.event_type || "autre"]?.color || "bg-gray-500"
+                              "truncate rounded px-1 py-0.5 text-[9px] font-semibold text-white sm:text-[10px]",
+                              eventTypeLabels[event.event_type || "autre"]?.color || "bg-slate-500"
                             )}
                           >
                             {event.title}
                           </div>
                         ))}
                         {dayEvents.length > 2 && (
-                          <div className="text-xs text-muted-foreground px-1">
+                          <div className="px-1 text-[9px] text-slate-400 sm:text-[10px]">
                             +{dayEvents.length - 2} autres
                           </div>
                         )}
@@ -182,58 +198,56 @@ const Agenda = () => {
             </CardContent>
           </Card>
 
-          {/* Event details sidebar */}
-          <div className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Calendar className="h-5 w-5" />
+          <div className="space-y-5 lg:sticky lg:top-20">
+            <Card className="overflow-hidden rounded-3xl border-slate-200/80 bg-white shadow-sm shadow-slate-900/[0.03]">
+              <CardHeader className="border-b border-slate-100 bg-slate-50/70 px-5 py-4">
+                <CardTitle className="flex items-center gap-2 text-lg font-extrabold text-slate-900">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-teal-50 text-teal-700">
+                    <Calendar className="h-4 w-4" />
+                  </div>
                   {selectedDate
                     ? format(selectedDate, "EEEE d MMMM", { locale: fr })
                     : "Sélectionnez une date"}
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-5">
                 {isLoading ? (
-                  <p className="text-muted-foreground text-sm">Chargement...</p>
+                  <p className="text-sm text-slate-500">Chargement…</p>
                 ) : selectedDate ? (
                   selectedDateEvents.length > 0 ? (
                     <div className="space-y-4">
                       {selectedDateEvents.map((event) => (
                         <div
                           key={event.id}
-                          className="border-l-4 pl-4 py-2"
-                          style={{
-                            borderColor: eventTypeLabels[event.event_type || "autre"]?.color.replace("bg-", "") || "#6b7280",
-                          }}
+                          className={cn(
+                            "border-l-4 py-1 pl-4",
+                            eventTypeLabels[event.event_type || "autre"]?.border || "border-slate-500"
+                          )}
                         >
-                          <div className="flex items-start justify-between gap-2 mb-1">
-                            <h4 className="font-medium text-foreground">{event.title}</h4>
-                            <Badge variant="secondary" className="text-xs shrink-0">
+                          <div className="mb-1 flex items-start justify-between gap-2">
+                            <h3 className="font-extrabold text-slate-900">{event.title}</h3>
+                            <Badge variant="outline" className="shrink-0 border-slate-200 text-xs text-slate-600">
                               {eventTypeLabels[event.event_type || "autre"]?.label || "Autre"}
                             </Badge>
                           </div>
-                          
+
                           {event.description && (
-                            <p className="text-sm text-muted-foreground mb-2">
-                              {event.description}
-                            </p>
+                            <p className="mb-2 text-sm leading-relaxed text-slate-500">{event.description}</p>
                           )}
-                          
+
                           <div className="space-y-1">
                             {!event.all_day && (
-                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                <Clock className="h-3.5 w-3.5" />
+                              <div className="flex items-center gap-2 text-sm text-slate-500">
+                                <Clock className="h-3.5 w-3.5 text-red-500" />
                                 <span>
                                   {formatTime(event.start_date)}
                                   {event.end_date && ` - ${formatTime(event.end_date)}`}
                                 </span>
                               </div>
                             )}
-                            
                             {event.location && (
-                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                <MapPin className="h-3.5 w-3.5" />
+                              <div className="flex items-center gap-2 text-sm text-slate-500">
+                                <MapPin className="h-3.5 w-3.5 text-teal-600" />
                                 <span>{event.location}</span>
                               </div>
                             )}
@@ -242,29 +256,24 @@ const Agenda = () => {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-muted-foreground text-sm">
-                      Aucun événement prévu ce jour.
-                    </p>
+                    <p className="text-sm text-slate-500">Aucun événement prévu ce jour.</p>
                   )
                 ) : (
-                  <p className="text-muted-foreground text-sm">
-                    Cliquez sur une date pour voir les événements.
-                  </p>
+                  <p className="text-sm leading-relaxed text-slate-500">Cliquez sur une date pour voir les événements.</p>
                 )}
               </CardContent>
             </Card>
 
-            {/* Legend */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Légende</CardTitle>
+            <Card className="rounded-3xl border-slate-200/80 bg-white shadow-sm shadow-slate-900/[0.03]">
+              <CardHeader className="px-5 pb-3 pt-5">
+                <CardTitle className="text-lg font-extrabold text-slate-900">Légende</CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
+              <CardContent className="px-5 pb-5">
+                <div className="space-y-2.5">
                   {Object.entries(eventTypeLabels).map(([key, { label, color }]) => (
-                    <div key={key} className="flex items-center gap-2">
-                      <div className={cn("w-3 h-3 rounded", color)} />
-                      <span className="text-sm text-muted-foreground">{label}</span>
+                    <div key={key} className="flex items-center gap-2.5">
+                      <div className={cn("h-2.5 w-2.5 rounded-full", color)} />
+                      <span className="text-sm text-slate-500">{label}</span>
                     </div>
                   ))}
                 </div>
@@ -272,8 +281,8 @@ const Agenda = () => {
             </Card>
           </div>
         </div>
-      </main>
-    </div>
+      </div>
+    </main>
   );
 };
 
