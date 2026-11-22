@@ -12,6 +12,18 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AUTH_REQUEST_TIMEOUT_MS = 12000;
+
+const authTimeout = <T,>(promise: Promise<T>) =>
+  Promise.race([
+    promise,
+    new Promise<never>((_, reject) => {
+      window.setTimeout(
+        () => reject(new Error("La connexion prend trop de temps. Vérifiez votre réseau puis réessayez.")),
+        AUTH_REQUEST_TIMEOUT_MS,
+      );
+    }),
+  ]);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -19,21 +31,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const applySession = (nextSession: Session | null) => {
+      setSession(nextSession);
+      setUser(nextSession?.user ?? null);
+      setLoading(false);
+    };
+
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
+        applySession(session);
       }
     );
 
     // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
+      applySession(session);
+    }).catch(() => setLoading(false));
 
     return () => subscription.unsubscribe();
   }, []);
@@ -53,11 +67,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    return { error: error as Error | null };
+    try {
+      const { data, error } = await authTimeout(supabase.auth.signInWithPassword({
+        email,
+        password,
+      }));
+      if (error) return { error: error as Error };
+      if (data.session) {
+        setSession(data.session);
+        setUser(data.session.user);
+        setLoading(false);
+      }
+      return { error: null };
+    } catch (error) {
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
+        setSession(data.session);
+        setUser(data.session.user);
+        setLoading(false);
+        return { error: null };
+      }
+      return { error: error as Error };
+    }
   };
 
   const signOut = async () => {

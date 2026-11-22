@@ -109,25 +109,32 @@ const AuthModal = ({ open, onOpenChange }: AuthModalProps) => {
     e.preventDefault();
     setLoading(true);
 
-    const { error } = await signIn(loginEmail, loginPassword);
-
-    if (error) {
+    try {
+      const { error } = await signIn(loginEmail, loginPassword);
+      if (!error) {
+        toast({
+          title: "Bienvenue !",
+          description: "Vous êtes maintenant connecté.",
+        });
+        onOpenChange(false);
+        setLoginEmail("");
+        setLoginPassword("");
+        return;
+      }
       toast({
         title: "Erreur de connexion",
         description: error.message,
         variant: "destructive",
       });
-    } else {
+    } catch (error) {
       toast({
-        title: "Bienvenue !",
-        description: "Vous êtes maintenant connecté.",
+        title: "Erreur de connexion",
+        description: error instanceof Error ? error.message : "Une erreur est survenue.",
+        variant: "destructive",
       });
-      onOpenChange(false);
-      setLoginEmail("");
-      setLoginPassword("");
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   const handleGenerateSignupPassword = () => {
