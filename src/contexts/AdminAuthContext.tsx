@@ -21,15 +21,40 @@ interface AdminAuthContextType {
 const AdminAuthContext = createContext<AdminAuthContextType | null>(null);
 
 const ADMIN_ROLES = ["admin", "secretaire", "representant", "redacteur", "tresorier", "gestionnaire_documents"];
+const ADMIN_AUTH_TIMEOUT_MS = 12000;
+
+const withTimeout = async <T,>(
+  promise: Promise<T>,
+  timeoutMs = ADMIN_AUTH_TIMEOUT_MS,
+  message = "La connexion prend trop de temps. Vérifiez votre réseau puis réessayez.",
+) => {
+  let timeoutId: ReturnType<typeof window.setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timeoutId = window.setTimeout(() => reject(new Error(message)), timeoutMs);
+  });
+
+  try {
+    return await Promise.race([promise, timeout]);
+  } finally {
+    if (timeoutId) window.clearTimeout(timeoutId);
+  }
+};
 
 async function fetchUserRole(userId: string): Promise<string | null> {
-  const { data, error } = await supabase
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", userId)
-    .limit(1);
-  if (error || !data || data.length === 0) return null;
-  return data[0].role as string;
+  try {
+    const { data, error } = await withTimeout(
+      supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .limit(1)
+        .then((result) => result),
+    );
+    if (error || !data || data.length === 0) return null;
+    return data[0].role as string;
+  } catch {
+    return null;
+  }
 }
 
 function buildAdminUser(supabaseUser: User, role: string): AdminUser {
@@ -46,28 +71,38 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let active = true;
+    const failSafe = window.setTimeout(() => {
+      if (active) setReady(true);
+    }, ADMIN_AUTH_TIMEOUT_MS);
 
     const applyAdminAccess = async (supabaseUser: User) => {
-      const role = await fetchUserRole(supabaseUser.id);
-      if (!active) return;
-      if (role && ADMIN_ROLES.includes(role)) {
-        setUser(buildAdminUser(supabaseUser, role));
-      } else {
-        setUser(null);
+      try {
+        const role = await fetchUserRole(supabaseUser.id);
+        if (!active) return;
+        if (role && ADMIN_ROLES.includes(role)) {
+          setUser(buildAdminUser(supabaseUser, role));
+        } else {
+          setUser(null);
+        }
+      } finally {
+        if (active) setReady(true);
       }
-      setReady(true);
     };
 
     // Vérification initiale de session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        void applyAdminAccess(session.user);
-      } else if (active) {
-        setReady(true);
-      }
-    }).catch(() => {
-      if (active) setReady(true);
-    });
+    withTimeout(supabase.auth.getSession())
+      .then(({ data: { session } }) => {
+        if (!active) return;
+        if (session?.user) {
+          void applyAdminAccess(session.user);
+        } else {
+          setReady(true);
+        }
+      })
+      .catch(() => {
+        if (active) setReady(true);
+      })
+      .finally(() => window.clearTimeout(failSafe));
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
@@ -87,6 +122,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
 
     return () => {
       active = false;
+      window.clearTimeout(failSafe);
       subscription.unsubscribe();
     };
   }, []);
@@ -96,17 +132,24 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
       ? username
       : `${username}@focomues-iliad.fr`;
 
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error || !data.user) return { ok: false, reason: "invalid_credentials" };
+    try {
+      const { data, error } = await withTimeout(
+        supabase.auth.signInWithPassword({ email, password }),
+      );
+      if (error || !data.user) return { ok: false, reason: "invalid_credentials" };
 
-    const role = await fetchUserRole(data.user.id);
-    if (!role || !ADMIN_ROLES.includes(role)) {
-      await supabase.auth.signOut();
-      return { ok: false, reason: "no_admin_role" };
+      const role = await fetchUserRole(data.user.id);
+      if (!role || !ADMIN_ROLES.includes(role)) {
+        await supabase.auth.signOut();
+        return { ok: false, reason: "no_admin_role" };
+      }
+
+      setUser(buildAdminUser(data.user, role));
+      setReady(true);
+      return { ok: true };
+    } catch {
+      return { ok: false, reason: "invalid_credentials" };
     }
-
-    setUser(buildAdminUser(data.user, role));
-    return { ok: true };
   };
 
   const logout = async () => {
