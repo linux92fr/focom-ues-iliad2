@@ -13,17 +13,24 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const AUTH_REQUEST_TIMEOUT_MS = 12000;
+const AUTH_SESSION_RECOVERY_TIMEOUT_MS = 2500;
 
-const authTimeout = <T,>(promise: Promise<T>) =>
-  Promise.race([
-    promise,
-    new Promise<never>((_, reject) => {
-      window.setTimeout(
-        () => reject(new Error("La connexion prend trop de temps. Vérifiez votre réseau puis réessayez.")),
-        AUTH_REQUEST_TIMEOUT_MS,
-      );
-    }),
-  ]);
+const authTimeout = async <T,>(
+  promise: Promise<T>,
+  timeoutMs = AUTH_REQUEST_TIMEOUT_MS,
+  message = "La connexion prend trop de temps. Vérifiez votre réseau puis réessayez.",
+) => {
+  let timeoutId: ReturnType<typeof window.setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timeoutId = window.setTimeout(() => reject(new Error(message)), timeoutMs);
+  });
+
+  try {
+    return await Promise.race([promise, timeout]);
+  } finally {
+    if (timeoutId) window.clearTimeout(timeoutId);
+  }
+};
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -31,11 +38,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let active = true;
     const applySession = (nextSession: Session | null) => {
+      if (!active) return;
       setSession(nextSession);
       setUser(nextSession?.user ?? null);
       setLoading(false);
     };
+
+    // Le spinner global ne doit jamais dépendre d'un verrou Supabase bloqué.
+    const failSafe = window.setTimeout(() => {
+      if (active) setLoading(false);
+    }, 8000);
 
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -47,23 +61,33 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       applySession(session);
-    }).catch(() => setLoading(false));
+    }).catch(() => {
+      if (active) setLoading(false);
+    }).finally(() => window.clearTimeout(failSafe));
 
-    return () => subscription.unsubscribe();
+    return () => {
+      active = false;
+      window.clearTimeout(failSafe);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signUp = async (email: string, password: string, displayName?: string) => {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: window.location.origin,
-        data: {
-          display_name: displayName,
+    try {
+      const { error } = await authTimeout(supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: window.location.origin,
+          data: {
+            display_name: displayName,
+          },
         },
-      },
-    });
-    return { error: error as Error | null };
+      }), AUTH_REQUEST_TIMEOUT_MS, "L'inscription prend trop de temps. Vérifiez votre réseau puis réessayez.");
+      return { error: error as Error | null };
+    } catch (error) {
+      return { error: error as Error };
+    }
   };
 
   const signIn = async (email: string, password: string) => {
@@ -80,12 +104,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
       return { error: null };
     } catch (error) {
-      const { data } = await supabase.auth.getSession();
-      if (data.session) {
-        setSession(data.session);
-        setUser(data.session.user);
-        setLoading(false);
-        return { error: null };
+      try {
+        const { data } = await authTimeout(
+          supabase.auth.getSession(),
+          AUTH_SESSION_RECOVERY_TIMEOUT_MS,
+          "La session n'a pas pu être vérifiée.",
+        );
+        if (data.session) {
+          setSession(data.session);
+          setUser(data.session.user);
+          setLoading(false);
+          return { error: null };
+        }
+      } catch {
+        // La session reste incertaine : on rend la main à l'interface au lieu de bloquer le spinner.
       }
       return { error: error as Error };
     }

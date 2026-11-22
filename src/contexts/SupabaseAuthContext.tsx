@@ -13,6 +13,20 @@ interface SupabaseAuthContextType {
 }
 
 const SupabaseAuthContext = createContext<SupabaseAuthContextType | null>(null);
+const AUTH_ROLE_TIMEOUT_MS = 8000;
+
+const withTimeout = async <T,>(promise: Promise<T>, timeoutMs = AUTH_ROLE_TIMEOUT_MS) => {
+  let timeoutId: ReturnType<typeof window.setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timeoutId = window.setTimeout(() => reject(new Error("Délai d'authentification dépassé")), timeoutMs);
+  });
+
+  try {
+    return await Promise.race([promise, timeout]);
+  } finally {
+    if (timeoutId) window.clearTimeout(timeoutId);
+  }
+};
 
 export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
@@ -21,10 +35,13 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
 
   const fetchUserRoles = async (userId: string) => {
     try {
-      const { data, error } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", userId);
+      const { data, error } = await withTimeout(
+        supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", userId)
+          .then((result) => result),
+      );
       if (error) throw error;
       setUserRoles(data?.map((r) => r.role) || []);
     } catch {
@@ -33,25 +50,39 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      if (session?.user) {
-        fetchUserRoles(session.user.id).finally(() => setLoading(false));
-      } else {
+    let active = true;
+    const failSafe = window.setTimeout(() => {
+      if (active) setLoading(false);
+    }, AUTH_ROLE_TIMEOUT_MS);
+
+    withTimeout(supabase.auth.getSession())
+      .then(({ data: { session } }) => {
+        if (!active) return;
+        setSession(session);
         setLoading(false);
-      }
-    });
+        if (session?.user) void fetchUserRoles(session.user.id);
+      })
+      .catch(() => {
+        if (active) setLoading(false);
+      })
+      .finally(() => window.clearTimeout(failSafe));
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!active) return;
       setSession(session);
+      setLoading(false);
       if (session?.user) {
-        fetchUserRoles(session.user.id);
+        void fetchUserRoles(session.user.id);
       } else {
         setUserRoles([]);
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      active = false;
+      window.clearTimeout(failSafe);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const hasRole = (role: string) => userRoles.includes(role);

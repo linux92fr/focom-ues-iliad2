@@ -153,31 +153,42 @@ const AuthModal = ({ open, onOpenChange }: AuthModalProps) => {
     setSignupPasswordError(null);
     setLoading(true);
 
-    const { error } = await signUp(signupEmail, signupPassword, signupName);
+    try {
+      const { error } = await signUp(signupEmail, signupPassword, signupName);
 
-    if (error) {
+      if (error) {
+        toast({
+          title: "Erreur d'inscription",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Inscription réussie !",
+          description: "Vérifiez votre email pour confirmer votre compte.",
+        });
+        onOpenChange(false);
+        setSignupEmail("");
+        setSignupPassword("");
+        setSignupName("");
+      }
+    } catch (error) {
       toast({
         title: "Erreur d'inscription",
-        description: error.message,
+        description: error instanceof Error ? error.message : "Une erreur est survenue.",
         variant: "destructive",
       });
-    } else {
-      toast({
-        title: "Inscription réussie !",
-        description: "Vérifiez votre email pour confirmer votre compte.",
-      });
-      onOpenChange(false);
-      setSignupEmail("");
-      setSignupPassword("");
-      setSignupName("");
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent
+        className="rounded-2xl border-slate-200 bg-white shadow-2xl sm:max-w-md"
+        overlayClassName="bg-slate-950/55 backdrop-blur-md"
+      >
         <DialogHeader>
           <DialogTitle className="text-2xl font-serif">Espace Adhérent</DialogTitle>
           <DialogDescription>
@@ -227,9 +238,12 @@ const AuthModal = ({ open, onOpenChange }: AuthModalProps) => {
                 </div>
               </div>
 
-              <Button type="submit" className="w-full" disabled={loading}>
+              <Button type="submit" className="w-full gap-2" disabled={loading} aria-busy={loading}>
                 {loading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Connexion…
+                  </>
                 ) : (
                   "Se connecter"
                 )}
@@ -245,7 +259,7 @@ const AuthModal = ({ open, onOpenChange }: AuthModalProps) => {
                     onClick={handlePasskeyLogin}
                   >
                     {passkeyLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Fingerprint className="h-4 w-4" />}
-                    Se connecter avec un passkey
+                    {passkeyLoading ? "Vérification du passkey…" : "Se connecter avec un passkey"}
                   </Button>
                   <p className="text-xs text-muted-foreground text-center -mt-2">
                     Saisissez votre email ci-dessus, puis utilisez votre empreinte, Face ID ou clé de sécurité
@@ -334,9 +348,12 @@ const AuthModal = ({ open, onOpenChange }: AuthModalProps) => {
                 )}
               </div>
 
-              <Button type="submit" className="w-full" disabled={loading}>
+              <Button type="submit" className="w-full gap-2" disabled={loading} aria-busy={loading}>
                 {loading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Inscription…
+                  </>
                 ) : (
                   "Créer un compte"
                 )}
