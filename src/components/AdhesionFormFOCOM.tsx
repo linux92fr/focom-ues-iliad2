@@ -52,6 +52,11 @@ const EMPTY: FormData = {
   sepa_iban: "", sepa_bic: "", sepa_a: "", sepa_le: "",
 };
 
+const createInitialForm = (): FormData => {
+  const today = new Date().toISOString().split("T")[0];
+  return { ...EMPTY, date_sign: today, sepa_le: today };
+};
+
 const getInvokeErrorMessage = async (fnError: unknown) => {
   const fallback = fnError instanceof Error ? fnError.message : "Erreur Edge Function";
   const context = (fnError as { context?: Response } | null)?.context;
@@ -87,7 +92,7 @@ function SignatureCanvas({ onSignature }: { onSignature: (b64: string | null) =>
   const ref = useRef<HTMLCanvasElement>(null);
   const drawing = useRef(false);
   const hasContent = useRef(false);
-  const [, forceRender] = useState(0);
+  const [isEmpty, setIsEmpty] = useState(true);
 
   const getPos = (e: MouseEvent | TouchEvent, c: HTMLCanvasElement) => {
     const r = c.getBoundingClientRect();
@@ -113,7 +118,7 @@ function SignatureCanvas({ onSignature }: { onSignature: (b64: string | null) =>
     ctx.lineTo(p.x, p.y); ctx.stroke();
     if (!hasContent.current) {
       hasContent.current = true;
-      forceRender((value) => value + 1);
+      setIsEmpty(false);
     }
     onSignature(c.toDataURL("image/png"));
   }, [onSignature]);
@@ -148,7 +153,7 @@ function SignatureCanvas({ onSignature }: { onSignature: (b64: string | null) =>
       <div className="relative border-2 border-dashed border-border rounded-lg overflow-hidden bg-muted/20 hover:border-primary/40 transition-colors">
         <canvas ref={ref} width={560} height={100}
           className="w-full cursor-crosshair touch-none block" style={{ height: 100 }} />
-        {!hasContent.current && (
+        {isEmpty && (
           <span className="absolute inset-0 flex items-center justify-center text-muted-foreground text-sm pointer-events-none select-none">
             Signez ici (souris ou doigt)
           </span>
@@ -159,7 +164,7 @@ function SignatureCanvas({ onSignature }: { onSignature: (b64: string | null) =>
           const c = ref.current; if (!c) return;
           c.getContext("2d")!.clearRect(0, 0, c.width, c.height);
           hasContent.current = false;
-          forceRender((value) => value + 1);
+          setIsEmpty(true);
           onSignature(null);
         }}
         className="text-xs text-muted-foreground hover:text-destructive transition-colors">
@@ -179,7 +184,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 export default function AdhesionFormFOCOM() {
-  const [form, setForm] = useState<FormData>(EMPTY);
+  const [form, setForm] = useState<FormData>(createInitialForm);
   const [signature, setSignature] = useState<string | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [errMsg, setErrMsg] = useState("");
@@ -187,12 +192,6 @@ export default function AdhesionFormFOCOM() {
 
   const set = <K extends keyof FormData>(k: K, v: FormData[K]) =>
     setForm((p) => ({ ...p, [k]: v }));
-
-  useEffect(() => {
-    const today = new Date().toISOString().split("T")[0];
-    set("date_sign", today);
-    set("sepa_le", today);
-  }, []);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -231,21 +230,23 @@ export default function AdhesionFormFOCOM() {
   };
 
   return (
-    <Card className="border-2 border-primary/20 shadow-lg">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <PenLine className="w-5 h-5 text-primary" />
+    <Card className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-xl shadow-slate-900/[0.04]">
+      <CardHeader className="border-b border-slate-100 bg-slate-50/70 px-5 py-5 sm:px-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <CardTitle className="flex items-center gap-2 text-xl font-extrabold tracking-tight text-slate-900">
+            <PenLine className="h-5 w-5 text-red-600" />
             Formulaire d'adhésion en ligne
           </CardTitle>
-          <Badge variant="secondary" className="text-xs">PDF généré automatiquement</Badge>
+          <Badge variant="outline" className="w-fit border-teal-200 bg-teal-50 text-xs text-teal-700">
+            PDF généré automatiquement
+          </Badge>
         </div>
-        <p className="text-xs text-muted-foreground mt-1">
+        <p className="mt-1 text-sm leading-relaxed text-slate-500">
           Remplissez et signez — le bulletin FOCOM pré-rempli sera téléchargé.
         </p>
       </CardHeader>
 
-      <CardContent>
+      <CardContent className="px-5 py-5 sm:px-6">
         <form onSubmit={handleSubmit}>
           <Accordion type="multiple" value={open} onValueChange={setOpen} className="space-y-2">
             <AccordionItem value="identite" className="border rounded-lg px-4">
@@ -451,7 +452,7 @@ export default function AdhesionFormFOCOM() {
                 ? <><Loader2 className="w-4 h-4 animate-spin" />Génération du bulletin officiel…</>
                 : <><Download className="w-4 h-4" />Générer et télécharger le PDF</>}
             </Button>
-            <Button type="button" variant="outline" size="sm" onClick={() => { setForm(EMPTY); setSignature(null); setStatus("idle"); setOpen(["identite"]); }}>Réinitialiser</Button>
+            <Button type="button" variant="outline" size="sm" onClick={() => { setForm(createInitialForm()); setSignature(null); setStatus("idle"); setOpen(["identite"]); }}>Réinitialiser</Button>
           </div>
           {status === "loading" && (
             <p className="mt-2 text-center text-xs text-muted-foreground">
