@@ -134,7 +134,7 @@ function documentVersionKey(document) {
     .update(`${document.file_path}:${document.updated_at || ""}:${document.file_size || 0}`)
     .digest("hex")
     .slice(0, 24);
-  return `doc:${document.id}:${version}`;
+  return `doc-${document.id}-${version}`;
 }
 
 function encodeStoragePath(filePath) {
@@ -301,7 +301,7 @@ app.post("/api/onlyoffice/callback", async (request, response) => {
     const callback = verifyCallbackToken(request.body?.token);
     const status = Number(callback.status);
     const externalDocumentKey = String(callback.key || request.body?.key || "");
-    const match = externalDocumentKey.match(/^doc:([0-9a-f-]{36}):/i);
+    const match = externalDocumentKey.match(/^doc-([0-9a-f-]{36})-/i);
     if (!match) throw new HttpError(400, "Clé de document invalide.");
 
     if (status === 2 || status === 6) {
