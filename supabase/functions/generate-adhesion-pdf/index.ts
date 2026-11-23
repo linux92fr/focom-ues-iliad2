@@ -1,4 +1,9 @@
-import { PDFDocument, PDFRef, StandardFonts, rgb } from "pdf-lib";
+import {
+  PDFDocument,
+  PDFRef,
+  StandardFonts,
+  rgb,
+} from "npm:pdf-lib@1.17.1";
 
 const DEFAULT_PDF_PATH = "/bulletin-adhesion.pdf";
 
