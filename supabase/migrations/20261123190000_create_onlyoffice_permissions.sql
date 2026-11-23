@@ -85,9 +85,9 @@ BEGIN
     auth.uid(),
     CASE WHEN TG_TABLE_NAME = 'onlyoffice_role_permissions' THEN 'role' ELSE 'user' END,
     CASE WHEN TG_OP = 'DELETE' THEN
-      CASE WHEN TG_TABLE_NAME = 'onlyoffice_role_permissions' THEN OLD.role ELSE OLD.user_id::text END
+      COALESCE(to_jsonb(OLD)->>'role', to_jsonb(OLD)->>'user_id')
     ELSE
-      CASE WHEN TG_TABLE_NAME = 'onlyoffice_role_permissions' THEN NEW.role ELSE NEW.user_id::text END
+      COALESCE(to_jsonb(NEW)->>'role', to_jsonb(NEW)->>'user_id')
     END,
     lower(TG_OP),
     CASE WHEN TG_OP IN ('UPDATE', 'DELETE') THEN to_jsonb(OLD) ELSE NULL END,
