@@ -8,10 +8,21 @@ import {
 } from "npm:pdf-lib@1.17.1";
 
 const DEFAULT_PDF_PATH = "/bulletin-adhesion.pdf";
+const CONTACT_EMAIL = "contact@focomues-iliad.fr";
+const ALLOWED_ORIGINS = new Set([
+  "https://focomues-iliad.fr",
+  "https://www.focomues-iliad.fr",
+  "http://localhost:8080",
+  "http://127.0.0.1:8080",
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+]);
 
 function corsHeaders(origin: string | null): Record<string, string> {
   return {
-    "Access-Control-Allow-Origin": origin || "*",
+    "Access-Control-Allow-Origin": origin && ALLOWED_ORIGINS.has(origin)
+      ? origin
+      : "https://focomues-iliad.fr",
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
   };
@@ -26,6 +37,19 @@ function json(data: unknown, status: number, headers: Record<string, string>) {
 
 function clean(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function escapeHtml(value: string) {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function isValidEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
 function postalCode(value: unknown) {
@@ -341,24 +365,88 @@ async function addSignature(pdfDoc: PDFDocument, signatureBase64: string | undef
   });
 }
 
+async function sendEmail({
+  to,
+  subject,
+  html,
+  replyTo,
+  filename,
+  pdfBase64,
+}: {
+  to: string;
+  subject: string;
+  html: string;
+  replyTo: string;
+  filename: string;
+  pdfBase64: string;
+}) {
+  const resendKey = Deno.env.get("RESEND_API_KEY");
+  const fromEmail = Deno.env.get("ADHESION_FROM_EMAIL") || CONTACT_EMAIL;
+  if (!resendKey) throw new Error("Configuration e-mail indisponible.");
+
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${resendKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from: `FO COM UES ILIAD <${fromEmail}>`,
+      to: [to],
+      reply_to: replyTo,
+      subject,
+      html,
+      attachments: [{
+        filename,
+        content: pdfBase64,
+      }],
+    }),
+  });
+
+  if (!response.ok) {
+    const details = await response.text();
+    console.error("Adhesion email delivery failed", response.status, details);
+    throw new Error("L'e-mail n'a pas pu être envoyé.");
+  }
+}
+
 Deno.serve(async (req) => {
   const origin = req.headers.get("origin");
   const headers = corsHeaders(origin);
 
   if (req.method === "OPTIONS") return new Response("ok", { headers });
   if (req.method !== "POST") return json({ error: "Méthode non autorisée" }, 405, headers);
+  if (!origin || !ALLOWED_ORIGINS.has(origin)) {
+    return json({ error: "Origine non autorisée" }, 403, headers);
+  }
 
   try {
-    const payload = await req.json();
+    const payload = await req.json() as Record<string, unknown>;
+    const deliveryMode = clean(payload.delivery_mode) || "download";
+    const memberEmail = clean(payload.mail_pers).toLowerCase();
+    const sendMemberCopy = payload.send_copy_to_member === true;
+
+    if (deliveryMode === "email") {
+      if (payload.email_consent !== true) {
+        return json({ error: "Consentement e-mail requis" }, 400, headers);
+      }
+      if (!isValidEmail(memberEmail)) {
+        return json({ error: "Adresse e-mail adhérent invalide" }, 400, headers);
+      }
+    }
+
+    const pdfPayload = deliveryMode === "email"
+      ? { ...payload, sepa: false }
+      : payload;
     const officialPdfBytes = await fetchOfficialPdf(req);
     const pdfDoc = await PDFDocument.load(officialPdfBytes, { ignoreEncryption: true, updateMetadata: false });
 
-    const formResult = await tryFillPdfForm(pdfDoc, payload);
+    const formResult = await tryFillPdfForm(pdfDoc, pdfPayload);
     const checkedBoxMarks = formResult.filled
       ? collectCheckBoxMarks(pdfDoc, pdfDoc.getForm(), formResult.checkedBoxes)
       : [];
     if (!formResult.filled) {
-      await drawFallback(pdfDoc, payload);
+      await drawFallback(pdfDoc, pdfPayload);
     }
 
     try {
@@ -367,7 +455,7 @@ Deno.serve(async (req) => {
       console.warn("Mise a jour des apparences PDF partielle", error);
     }
     drawCheckBoxMarks(pdfDoc, checkedBoxMarks);
-    await addSignature(pdfDoc, clean(payload.signature_base64) || undefined);
+    await addSignature(pdfDoc, clean(pdfPayload.signature_base64) || undefined);
 
     if (formResult.filled) {
       // Flattening this QuarkXPress form corrupts cross-reference entries
@@ -379,10 +467,67 @@ Deno.serve(async (req) => {
 
     const pdfBytes = await pdfDoc.save({ useObjectStreams: true, addDefaultPage: false });
     const base64 = uint8ToBase64(pdfBytes);
+    const filename = `bulletin-adhesion-focom-${fileSafeName(payload)}.pdf`;
+
+    if (deliveryMode === "email") {
+      const memberName = escapeHtml(fullName(payload) || "Un adhérent");
+      const memberEmailHtml = escapeHtml(memberEmail);
+      const contactHtml = `
+        <div style="font-family:Arial,sans-serif;line-height:1.6;color:#0f172a;max-width:640px;margin:0 auto;padding:24px;">
+          <h2 style="color:#dc2626;margin:0 0 16px;">Nouveau bulletin d'adhésion</h2>
+          <p><strong>${memberName}</strong> vous a transmis son bulletin d'adhésion.</p>
+          <p><strong>Adresse de réponse :</strong> ${memberEmailHtml}</p>
+          <p>Le bulletin joint ne contient pas les éventuelles coordonnées bancaires SEPA. Le mandat bancaire doit être transmis séparément par un canal sécurisé.</p>
+        </div>
+      `;
+      await sendEmail({
+        to: CONTACT_EMAIL,
+        subject: `Adhésion FO COM - ${memberName}`,
+        html: contactHtml,
+        replyTo: memberEmail,
+        filename,
+        pdfBase64: base64,
+      });
+
+      let memberCopySent = false;
+      let memberCopyError = false;
+      if (sendMemberCopy) {
+        const copyHtml = `
+          <div style="font-family:Arial,sans-serif;line-height:1.6;color:#0f172a;max-width:640px;margin:0 auto;padding:24px;">
+            <h2 style="color:#dc2626;margin:0 0 16px;">Votre bulletin d'adhésion</h2>
+            <p>Bonjour ${memberName},</p>
+            <p>Voici une copie de votre bulletin d'adhésion, transmis à FO COM UES ILIAD.</p>
+            <p>Les éventuelles coordonnées bancaires SEPA ne sont pas incluses dans cet e-mail et doivent être transmises par un canal sécurisé.</p>
+          </div>
+        `;
+        try {
+          await sendEmail({
+            to: memberEmail,
+            subject: "Copie de votre bulletin d'adhésion FO COM",
+            html: copyHtml,
+            replyTo: CONTACT_EMAIL,
+            filename,
+            pdfBase64: base64,
+          });
+          memberCopySent = true;
+        } catch (error) {
+          memberCopyError = true;
+          console.error("Adhesion member copy delivery failed", error);
+        }
+      }
+
+      return json({
+        email_sent: true,
+        member_copy_sent: memberCopySent,
+        member_copy_error: memberCopyError,
+        filename,
+        filled_form_fields: formResult.filled,
+      }, 200, headers);
+    }
 
     return json({
       pdf: base64,
-      filename: `bulletin-adhesion-focom-${fileSafeName(payload)}.pdf`,
+      filename,
       filled_form_fields: formResult.filled,
       fields_detected: formResult.fields,
     }, 200, headers);

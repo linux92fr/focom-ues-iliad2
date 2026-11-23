@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Accordion, AccordionContent, AccordionItem, AccordionTrigger,
 } from "@/components/ui/accordion";
@@ -187,6 +188,10 @@ export default function AdhesionFormFOCOM() {
   const [form, setForm] = useState<FormData>(createInitialForm);
   const [signature, setSignature] = useState<string | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [deliveryMode, setDeliveryMode] = useState<"download" | "email">("download");
+  const [sendMemberCopy, setSendMemberCopy] = useState(false);
+  const [emailConsent, setEmailConsent] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
   const [errMsg, setErrMsg] = useState("");
   const [open, setOpen] = useState<string[]>(["identite"]);
 
@@ -199,27 +204,55 @@ export default function AdhesionFormFOCOM() {
     setErrMsg("");
 
     try {
+      const memberEmail = form.mail_pers.trim();
+      if (deliveryMode === "email") {
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(memberEmail)) {
+          throw new Error("Renseignez une adresse e-mail valide avant l'envoi.");
+        }
+        if (!emailConsent) {
+          throw new Error("Confirmez la transmission de votre bulletin par e-mail.");
+        }
+      }
+
       const { data, error } = await supabase.functions.invoke(
         "generate-adhesion-pdf",
         {
-          body: { ...form, signature_base64: signature ?? undefined },
+          body: {
+            ...form,
+            signature_base64: signature ?? undefined,
+            delivery_mode: deliveryMode,
+            send_copy_to_member: deliveryMode === "email" && sendMemberCopy,
+            email_consent: deliveryMode === "email" && emailConsent,
+          },
         },
       );
 
       if (error) throw new Error(await getInvokeErrorMessage(error));
       if (data?.error) throw new Error(data.error);
-      if (!data?.pdf) throw new Error("La fonction n'a pas retourné de PDF.");
 
-      const binaryStr = atob(data.pdf);
-      const bytes = new Uint8Array(binaryStr.length);
-      for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
-      const blob = new Blob([bytes], { type: "application/pdf" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = data.filename || "bulletin-adhesion-focom.pdf";
-      a.click();
-      URL.revokeObjectURL(url);
+      if (deliveryMode === "download") {
+        if (!data?.pdf) throw new Error("La fonction n'a pas retourné de PDF.");
+        const binaryStr = atob(data.pdf);
+        const bytes = new Uint8Array(binaryStr.length);
+        for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
+        const blob = new Blob([bytes], { type: "application/pdf" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = data.filename || "bulletin-adhesion-focom.pdf";
+        a.click();
+        URL.revokeObjectURL(url);
+        setSuccessMessage("Bulletin PDF généré et téléchargé avec succès.");
+      } else {
+        if (!data?.email_sent) throw new Error("L'envoi de l'e-mail n'a pas été confirmé.");
+        setSuccessMessage(
+          data.member_copy_error
+            ? "Bulletin transmis au syndicat, mais la copie n'a pas pu être envoyée à votre adresse."
+            : data.member_copy_sent
+            ? "Bulletin transmis au syndicat. Une copie a également été envoyée à votre adresse e-mail."
+            : "Bulletin transmis au syndicat par e-mail.",
+        );
+      }
 
       setStatus("success");
       setTimeout(() => setStatus("idle"), 12000);
@@ -242,7 +275,7 @@ export default function AdhesionFormFOCOM() {
           </Badge>
         </div>
         <p className="mt-1 text-sm leading-relaxed text-slate-500">
-          Remplissez et signez — le bulletin FOCOM pré-rempli sera téléchargé.
+          Remplissez et signez — choisissez ensuite de télécharger votre bulletin ou de le transmettre par e-mail.
         </p>
       </CardHeader>
 
@@ -381,6 +414,55 @@ export default function AdhesionFormFOCOM() {
                     <Pill label="✗ Je ne désire pas" checked={form.prelevement === "non"} onClick={() => set("prelevement", "non")} />
                   </div>
                 </div>
+                <div className="rounded-lg border bg-muted/20 p-3 space-y-3">
+                  <div>
+                    <Label className="text-xs text-muted-foreground mb-1.5 block">Après validation</Label>
+                    <div className="flex flex-wrap gap-2">
+                      <Pill
+                        label="Télécharger le bulletin"
+                        checked={deliveryMode === "download"}
+                        onClick={() => setDeliveryMode("download")}
+                      />
+                      <Pill
+                        label="Envoyer par e-mail"
+                        checked={deliveryMode === "email"}
+                        onClick={() => setDeliveryMode("email")}
+                      />
+                    </div>
+                  </div>
+                  {deliveryMode === "email" && (
+                    <div className="space-y-3 text-xs text-muted-foreground">
+                      <p>
+                        Le bulletin sera envoyé à <strong>contact@focomues-iliad.fr</strong>.
+                      </p>
+                      <label className="flex items-start gap-2">
+                        <Checkbox
+                          checked={sendMemberCopy}
+                          onCheckedChange={(checked) => setSendMemberCopy(checked === true)}
+                          className="mt-0.5"
+                        />
+                        <span>Recevoir également une copie à {form.mail_pers || "mon adresse e-mail"}.</span>
+                      </label>
+                      {form.sepa && (
+                        <Alert className="border-amber-200 bg-amber-50 py-2 text-amber-900">
+                          <AlertDescription>
+                            Votre IBAN et votre BIC ne seront pas envoyés par e-mail. Le mandat SEPA devra être transmis séparément par un canal sécurisé.
+                          </AlertDescription>
+                        </Alert>
+                      )}
+                      <label className="flex items-start gap-2">
+                        <Checkbox
+                          checked={emailConsent}
+                          onCheckedChange={(checked) => setEmailConsent(checked === true)}
+                          className="mt-0.5"
+                        />
+                        <span>
+                          J'accepte que mon bulletin soit transmis par e-mail au syndicat et, si coché, à mon adresse personnelle. Je comprends que la messagerie n'est pas un canal chiffré de bout en bout.
+                        </span>
+                      </label>
+                    </div>
+                  )}
+                </div>
                 <div>
                   <Label className="text-xs text-muted-foreground mb-1.5 block">Signature *</Label>
                   <SignatureCanvas onSignature={setSignature} />
@@ -434,13 +516,19 @@ export default function AdhesionFormFOCOM() {
               <AlertDescription>
                 <div className="space-y-3">
                   <div>
-                    <p className="font-semibold">Bulletin PDF généré et téléchargé avec succès.</p>
-                    <p className="mt-1 text-sm">Vérifiez le document téléchargé, puis envoyez-le à votre section FO COM par email ou via la messagerie du site.</p>
+                    <p className="font-semibold">{successMessage}</p>
+                    <p className="mt-1 text-sm">
+                      {deliveryMode === "email"
+                        ? "Pour un mandat SEPA, transmettez les coordonnées bancaires par un canal sécurisé."
+                        : form.sepa
+                          ? "Le PDF comprend vos coordonnées bancaires. Transmettez-le uniquement par un canal sécurisé."
+                          : "Vérifiez le document téléchargé, puis envoyez-le à votre section FO COM par e-mail ou via la messagerie du site."}
+                    </p>
                   </div>
-                  <div className="flex flex-col gap-2 sm:flex-row">
+                  {deliveryMode === "download" && !form.sepa && <div className="flex flex-col gap-2 sm:flex-row">
                     <Button asChild size="sm" variant="outline" className="border-green-300 bg-white text-green-800 hover:bg-green-100"><Link to="/contact"><Mail className="mr-2 h-4 w-4" />Envoyer via Contact</Link></Button>
                     <Button asChild size="sm" variant="outline" className="border-green-300 bg-white text-green-800 hover:bg-green-100"><Link to="/mes-reclamations"><MessageSquare className="mr-2 h-4 w-4" />Transmettre via messagerie</Link></Button>
-                  </div>
+                  </div>}
                 </div>
               </AlertDescription>
             </Alert>
@@ -450,9 +538,11 @@ export default function AdhesionFormFOCOM() {
             <Button type="submit" disabled={status === "loading"} className="flex-1 gap-2">
               {status === "loading"
                 ? <><Loader2 className="w-4 h-4 animate-spin" />Génération du bulletin officiel…</>
-                : <><Download className="w-4 h-4" />Générer et télécharger le PDF</>}
+                : deliveryMode === "email"
+                  ? <><Mail className="w-4 h-4" />Générer et envoyer par e-mail</>
+                  : <><Download className="w-4 h-4" />Générer et télécharger le PDF</>}
             </Button>
-            <Button type="button" variant="outline" size="sm" onClick={() => { setForm(createInitialForm()); setSignature(null); setStatus("idle"); setOpen(["identite"]); }}>Réinitialiser</Button>
+            <Button type="button" variant="outline" size="sm" onClick={() => { setForm(createInitialForm()); setSignature(null); setDeliveryMode("download"); setSendMemberCopy(false); setEmailConsent(false); setSuccessMessage(""); setStatus("idle"); setOpen(["identite"]); }}>Réinitialiser</Button>
           </div>
           {status === "loading" && (
             <p className="mt-2 text-center text-xs text-muted-foreground">

@@ -74,10 +74,10 @@ export default function RGPD() {
               <div>
                 <h4 className="font-semibold text-slate-900 mb-1">Formulaire d’adhésion</h4>
                 <p>
-                  Données collectées : civilité, nom, prénom, adresse, téléphone, email, entreprise, statut professionnel, signature et informations nécessaires au bulletin d’adhésion officiel.
+                  Données collectées : civilité, nom, prénom, adresse, téléphone, email, entreprise, statut professionnel, signature, choix de transmission et informations nécessaires au bulletin d’adhésion officiel.
                 </p>
                 <p className="mt-1">
-                  Finalité : générer un bulletin PDF officiel pré-rempli, permettre son téléchargement puis sa transmission au syndicat via la messagerie du site ou par email.
+                  Finalité : générer un bulletin PDF officiel pré-rempli, permettre son téléchargement ou sa transmission par email au syndicat et, sur demande, à l’adhérent. Les coordonnées bancaires SEPA ne sont jamais incluses dans le bulletin envoyé par email.
                 </p>
               </div>
 
@@ -131,6 +131,7 @@ export default function RGPD() {
               <li><strong>Données d’adhésion :</strong> durée de l’adhésion puis archivage selon les obligations légales applicables.</li>
               <li><strong>Compte adhérent :</strong> tant que le compte est actif ou jusqu’à demande de suppression.</li>
               <li><strong>Messages / demandes :</strong> durée nécessaire au traitement et au suivi du dossier.</li>
+              <li><strong>Courriels d’adhésion :</strong> durée nécessaire au traitement de l’adhésion, puis conservation selon les obligations applicables.</li>
               <li><strong>Newsletter :</strong> jusqu’à désinscription.</li>
               <li><strong>Cookies et données techniques :</strong> durée strictement nécessaire au fonctionnement et à la sécurité.</li>
             </ul>
@@ -145,7 +146,7 @@ export default function RGPD() {
               <ul className="list-disc list-inside space-y-1 ml-2">
                 <li>Aux représentants FO COM habilités.</li>
                 <li>Aux administrateurs autorisés du site.</li>
-                <li>Aux prestataires techniques strictement nécessaires au fonctionnement du service, notamment Supabase.</li>
+                <li>Aux prestataires techniques strictement nécessaires au fonctionnement du service, notamment Supabase et le service d’envoi de courriels Resend.</li>
               </ul>
               <p>Vos données ne sont jamais vendues ou transmises à des tiers à des fins commerciales.</p>
             </div>

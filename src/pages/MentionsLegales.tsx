@@ -83,10 +83,10 @@ const MentionsLegales = () => {
                   <strong>Génération du bulletin :</strong> le formulaire d'adhésion permet de générer un bulletin PDF officiel pré-rempli à partir des informations saisies par l'utilisateur.
                 </p>
                 <p>
-                  <strong>Transmission :</strong> le bulletin peut être téléchargé puis transmis à FO COM via la messagerie du site ou par email.
+                  <strong>Transmission :</strong> le bulletin peut être téléchargé ou envoyé par email à FO COM, avec une copie facultative à l’adresse personnelle indiquée par l’adhérent.
                 </p>
                 <p>
-                  <strong>Données bancaires :</strong> si l'utilisateur opte pour le prélèvement, les coordonnées nécessaires sont intégrées au bulletin PDF officiel transmis au syndicat.
+                  <strong>Données bancaires :</strong> si l'utilisateur opte pour le prélèvement, les coordonnées nécessaires sont intégrées uniquement au bulletin PDF destiné à une transmission sécurisée. Elles sont exclues des emails générés par le site.
                 </p>
                 <p>
                   Pour plus d'informations, consultez notre <Link to="/rgpd" className="text-primary hover:underline">Politique de Protection des Données</Link>.
