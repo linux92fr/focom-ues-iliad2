@@ -20,7 +20,7 @@ export default function ResetPassword() {
   const [saving, setSaving] = useState(false);
   const [showNext, setShowNext] = useState(false);
   const [email, setEmail] = useState("");
-  const [timeoutUncertain, setTimeoutUncertain] = useState<string | null>(null);
+  const [timeoutUncertain, setTimeoutUncertain] = useState(false);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -81,7 +81,7 @@ export default function ResetPassword() {
     } catch (err) {
       console.error("Échec de la définition du mot de passe:", err);
       if (err instanceof DOMException && err.name === "TimeoutError") {
-        setTimeoutUncertain(submittedPassword);
+        setTimeoutUncertain(true);
       } else {
         toast.error(err instanceof Error ? err.message : "Impossible de définir le mot de passe");
       }
@@ -199,9 +199,8 @@ export default function ResetPassword() {
                   <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5" />
                   <div className="text-sm space-y-1">
                     <p className="font-medium">La réponse a mis trop de temps à arriver, mais le mot de passe a peut-être quand même été enregistré.</p>
-                    <p>Essayez de vous connecter directement avec le mot de passe que vous venez de saisir :</p>
-                    <p className="font-mono font-semibold select-all break-all bg-white/70 rounded px-2 py-1">{timeoutUncertain}</p>
-                    <p>Si la connexion échoue, réessayez de définir votre mot de passe ci-dessus.</p>
+                    <p>Le changement a peut-être été enregistré malgré l'absence de réponse.</p>
+                    <p>Essayez de vous connecter dans un nouvel onglet. Si la connexion échoue, demandez un nouveau lien de réinitialisation.</p>
                   </div>
                 </div>
               )}
