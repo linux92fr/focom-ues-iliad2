@@ -84,6 +84,48 @@ function supabaseHeaders(token, extra = {}) {
   };
 }
 
+async function serviceRoleRows(table, query) {
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${query}`, {
+    headers: {
+      apikey: SUPABASE_SERVICE_ROLE_KEY,
+      authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+    },
+  });
+  if (!response.ok) throw new HttpError(503, "Impossible de charger les autorisations ONLYOFFICE.");
+  const rows = await response.json();
+  if (!Array.isArray(rows)) throw new HttpError(503, "Réponse d'autorisations ONLYOFFICE invalide.");
+  return rows;
+}
+
+async function resolveOnlyOfficePermissions(userId) {
+  const [roleRows, userRows, assignedRoles] = await Promise.all([
+    serviceRoleRows("onlyoffice_role_permissions", "select=role,can_view,can_edit,can_download,can_print,can_comment,can_review"),
+    serviceRoleRows("onlyoffice_user_permissions", `select=can_view,can_edit,can_download,can_print,can_comment,can_review&user_id=eq.${encodeURIComponent(userId)}`),
+    serviceRoleRows("user_roles", `select=role&user_id=eq.${encodeURIComponent(userId)}`),
+  ]);
+
+  const roles = assignedRoles.map((row) => row.role);
+  if (roles.includes("admin")) {
+    return { can_view: true, can_edit: true, can_download: true, can_print: true, can_comment: true, can_review: true };
+  }
+
+  const rolePermissions = roleRows.filter((row) => roles.includes(row.role));
+  const fields = ["can_view", "can_edit", "can_download", "can_print", "can_comment", "can_review"];
+  const resolved = Object.fromEntries(fields.map((field) => [
+    field,
+    rolePermissions.some((row) => row[field] === true),
+  ]));
+  const override = userRows[0];
+  if (override) {
+    for (const field of fields) {
+      if (typeof override[field] === "boolean") resolved[field] = override[field];
+    }
+  }
+  if (resolved.can_edit) resolved.can_view = true;
+  if (!resolved.can_view) resolved.can_edit = false;
+  return resolved;
+}
+
 async function requireEditorUser(request) {
   const token = bearerToken(request);
   const userResponse = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
@@ -95,19 +137,9 @@ async function requireEditorUser(request) {
   if (!userResponse.ok) throw new HttpError(401, "Session Supabase invalide.");
 
   const user = await userResponse.json();
-  const roleResponse = await fetch(`${SUPABASE_URL}/rest/v1/rpc/has_any_role`, {
-    method: "POST",
-    headers: supabaseHeaders(token, { "content-type": "application/json" }),
-    body: JSON.stringify({
-      _user_id: user.id,
-      _roles: ALLOWED_ROLES,
-    }),
-  });
-  if (!roleResponse.ok) throw new HttpError(403, "Vérification des autorisations impossible.");
-  const allowed = await roleResponse.json();
-  if (allowed !== true) throw new HttpError(403, "Vous n'êtes pas autorisé à modifier ce document.");
-
-  return { token, user };
+  const permissions = await resolveOnlyOfficePermissions(user.id);
+  if (!permissions.can_view) throw new HttpError(403, "Vous n'êtes pas autorisé à consulter ce document.");
+  return { token, user, permissions };
 }
 
 async function loadDocument(documentId, token) {
@@ -238,9 +270,12 @@ app.get("/api/onlyoffice/health", async (_request, response) => {
 
 app.post("/api/onlyoffice/config", async (request, response, next) => {
   try {
-    const { token, user } = await requireEditorUser(request);
+    const { token, user, permissions } = await requireEditorUser(request);
     const documentId = String(request.body?.documentId || "").trim();
     const mode = request.body?.mode === "view" ? "view" : "edit";
+    if (mode === "edit" && !permissions.can_edit) {
+      throw new HttpError(403, "Vous disposez uniquement d'un accès en lecture.");
+    }
     if (!/^[0-9a-f-]{36}$/i.test(documentId)) {
       throw new HttpError(400, "Identifiant de document invalide.");
     }
@@ -257,11 +292,11 @@ app.post("/api/onlyoffice/config", async (request, response, next) => {
         title: document.file_name,
         url: await createSignedSourceUrl(document.file_path),
         permissions: {
-          edit: mode === "edit",
-          download: true,
-          print: true,
-          comment: mode === "edit",
-          review: mode === "edit",
+          edit: mode === "edit" && permissions.can_edit,
+          download: permissions.can_download,
+          print: permissions.can_print,
+          comment: mode === "edit" && permissions.can_comment,
+          review: mode === "edit" && permissions.can_review,
         },
       },
       documentType,
