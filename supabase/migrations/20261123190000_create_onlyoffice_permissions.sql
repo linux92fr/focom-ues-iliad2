@@ -41,6 +41,20 @@ ALTER TABLE public.onlyoffice_role_permissions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.onlyoffice_user_permissions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.onlyoffice_permission_audit ENABLE ROW LEVEL SECURITY;
 
+-- Les ACL par défaut du projet accordent des droits larges à anon sur les nouvelles tables.
+-- On retire explicitement tout accès anonyme et on accorde uniquement le nécessaire à authenticated.
+REVOKE ALL ON TABLE
+  public.onlyoffice_role_permissions,
+  public.onlyoffice_user_permissions,
+  public.onlyoffice_permission_audit
+FROM PUBLIC, anon, authenticated;
+
+GRANT SELECT, INSERT, UPDATE, DELETE
+ON TABLE public.onlyoffice_role_permissions, public.onlyoffice_user_permissions
+TO authenticated;
+GRANT SELECT ON TABLE public.onlyoffice_permission_audit TO authenticated;
+
+
 DROP POLICY IF EXISTS "Admins manage ONLYOFFICE role permissions" ON public.onlyoffice_role_permissions;
 CREATE POLICY "Admins manage ONLYOFFICE role permissions"
 ON public.onlyoffice_role_permissions FOR ALL TO authenticated
@@ -80,7 +94,10 @@ BEGIN
   );
   RETURN CASE WHEN TG_OP = 'DELETE' THEN OLD ELSE NEW END;
 END;
-$$;
+$;
+
+-- La fonction SECURITY DEFINER n'est appelée que par les triggers ; elle ne doit pas être exposée comme RPC.
+REVOKE ALL ON FUNCTION public.audit_onlyoffice_permission_change() FROM PUBLIC, anon, authenticated;
 
 DROP TRIGGER IF EXISTS audit_onlyoffice_role_permissions ON public.onlyoffice_role_permissions;
 CREATE TRIGGER audit_onlyoffice_role_permissions
