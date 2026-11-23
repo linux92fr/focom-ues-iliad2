@@ -94,7 +94,7 @@ BEGIN
   );
   RETURN CASE WHEN TG_OP = 'DELETE' THEN OLD ELSE NEW END;
 END;
-$;
+$$;
 
 -- La fonction SECURITY DEFINER n'est appelée que par les triggers ; elle ne doit pas être exposée comme RPC.
 REVOKE ALL ON FUNCTION public.audit_onlyoffice_permission_change() FROM PUBLIC, anon, authenticated;
