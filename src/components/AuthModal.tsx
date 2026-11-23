@@ -26,6 +26,8 @@ const AuthModal = ({ open, onOpenChange }: AuthModalProps) => {
   const { signIn, signUp } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [resetBusy, setResetBusy] = useState(false);
+  const [resetRequested, setResetRequested] = useState(false);
 
   // Login form
   const [loginEmail, setLoginEmail] = useState("");
@@ -134,6 +136,36 @@ const AuthModal = ({ open, onOpenChange }: AuthModalProps) => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handlePasswordReset = async () => {
+    const email = loginEmail.trim();
+    if (!email) {
+      toast({
+        title: "Adresse e-mail requise",
+        description: "Saisissez votre adresse e-mail dans le champ de connexion.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setResetBusy(true);
+    setResetRequested(false);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
+      setResetRequested(true);
+    } catch (error) {
+      toast({
+        title: "Demande impossible",
+        description: error instanceof Error ? error.message : "Une erreur est survenue. Réessayez.",
+        variant: "destructive",
+      });
+    } finally {
+      setResetBusy(false);
     }
   };
 
@@ -248,6 +280,25 @@ const AuthModal = ({ open, onOpenChange }: AuthModalProps) => {
                   "Se connecter"
                 )}
               </Button>
+
+              <div className="flex flex-col items-center gap-2">
+                <Button
+                  type="button"
+                  variant="link"
+                  size="sm"
+                  className="h-auto py-1"
+                  onClick={handlePasswordReset}
+                  disabled={resetBusy || loading || passkeyLoading}
+                >
+                  {resetBusy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Mot de passe oublié ?
+                </Button>
+                {resetRequested && (
+                  <p role="status" className="rounded-lg bg-primary/10 p-3 text-center text-sm text-muted-foreground">
+                    Si un compte correspond à cette adresse, un e-mail de réinitialisation a été envoyé. Vérifiez aussi vos courriers indésirables.
+                  </p>
+                )}
+              </div>
 
               {browserSupportsWebAuthn() && (
                 <>
