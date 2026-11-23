@@ -50,6 +50,153 @@ const sections = [
 const emptyAccess = (): Access => ({ can_view: false, can_edit: false });
 const memberName = (m: Member) => [m.first_name, m.last_name].filter(Boolean).join(" ") || m.display_name || m.email || m.id;
 
+
+type OnlyOfficePermission = {
+  can_view: boolean | null;
+  can_edit: boolean | null;
+  can_download: boolean | null;
+  can_print: boolean | null;
+  can_comment: boolean | null;
+  can_review: boolean | null;
+};
+type OnlyOfficeField = keyof OnlyOfficePermission;
+const onlyOfficeFields: { id: OnlyOfficeField; label: string; help: string }[] = [
+  { id: "can_view", label: "Consulter", help: "Ouvrir et lire les documents" },
+  { id: "can_edit", label: "Modifier", help: "Modifier le contenu des documents" },
+  { id: "can_download", label: "Télécharger", help: "Télécharger une copie du document" },
+  { id: "can_print", label: "Imprimer", help: "Imprimer les documents" },
+  { id: "can_comment", label: "Commenter", help: "Ajouter des commentaires" },
+  { id: "can_review", label: "Réviser", help: "Utiliser le suivi des modifications" },
+];
+const onlyOfficeRoleNames = roles.filter((r) => r.id !== "public");
+const emptyOnlyOfficePermissions = (nullable = false): OnlyOfficePermission => ({
+  can_view: nullable ? null : false,
+  can_edit: nullable ? null : false,
+  can_download: nullable ? null : false,
+  can_print: nullable ? null : false,
+  can_comment: nullable ? null : false,
+  can_review: nullable ? null : false,
+});
+
+function OnlyOfficePermissionsPanel() {
+  const queryClient = useQueryClient();
+  const db = supabase as any;
+  const [role, setRole] = useState("representant");
+  const [userId, setUserId] = useState("");
+  const [roleDraft, setRoleDraft] = useState<OnlyOfficePermission>(emptyOnlyOfficePermissions());
+  const [userDraft, setUserDraft] = useState<OnlyOfficePermission>(emptyOnlyOfficePermissions(true));
+  const [saving, setSaving] = useState(false);
+
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["onlyoffice-admin-permissions"],
+    queryFn: async () => {
+      const [roleResult, userResult, rolesResult] = await Promise.all([
+        db.from("onlyoffice_role_permissions").select("*"),
+        db.from("onlyoffice_user_permissions").select("*"),
+        db.from("user_roles").select("user_id,role"),
+      ]);
+      for (const result of [roleResult, userResult, rolesResult]) if (result.error) throw result.error;
+      const users = new Map<string, string[]>();
+      (rolesResult.data || []).forEach((entry: { user_id: string; role: string }) => {
+        users.set(entry.user_id, [...(users.get(entry.user_id) || []), entry.role]);
+      });
+      return {
+        roleRows: (roleResult.data || []) as (OnlyOfficePermission & { role: string })[],
+        userRows: (userResult.data || []) as (OnlyOfficePermission & { user_id: string })[],
+        users: Array.from(users, ([id, userRoles]) => ({ id, roles: userRoles })),
+      };
+    },
+  });
+
+  useEffect(() => {
+    const row = data?.roleRows.find((entry) => entry.role === role);
+    setRoleDraft(row ? { ...row } : emptyOnlyOfficePermissions());
+  }, [data, role]);
+
+  useEffect(() => {
+    const row = data?.userRows.find((entry) => entry.user_id === userId);
+    setUserDraft(row ? { ...row } : emptyOnlyOfficePermissions(true));
+  }, [data, userId]);
+
+  const saveRolePermissions = async () => {
+    setSaving(true);
+    try {
+      const payload = { role, ...roleDraft, updated_at: new Date().toISOString() };
+      const { error: saveError } = await db.from("onlyoffice_role_permissions").upsert(payload, { onConflict: "role" });
+      if (saveError) throw saveError;
+      await queryClient.invalidateQueries({ queryKey: ["onlyoffice-admin-permissions"] });
+      toast.success("Droits ONLYOFFICE du rôle enregistrés.");
+    } catch (e) {
+      console.error(e);
+      toast.error("Enregistrement impossible. Vérifiez que la migration ONLYOFFICE est appliquée.");
+    } finally { setSaving(false); }
+  };
+
+  const saveUserPermissions = async () => {
+    if (!userId) return;
+    setSaving(true);
+    try {
+      const payload = { user_id: userId, ...userDraft, updated_at: new Date().toISOString() };
+      const { error: saveError } = await db.from("onlyoffice_user_permissions").upsert(payload, { onConflict: "user_id" });
+      if (saveError) throw saveError;
+      await queryClient.invalidateQueries({ queryKey: ["onlyoffice-admin-permissions"] });
+      toast.success("Droits ONLYOFFICE individuels enregistrés.");
+    } catch (e) {
+      console.error(e);
+      toast.error("Enregistrement impossible. Vérifiez que la migration ONLYOFFICE est appliquée.");
+    } finally { setSaving(false); }
+  };
+
+  const resetUserPermissions = async () => {
+    if (!userId || !window.confirm("Supprimer les exceptions individuelles et rétablir les droits hérités du rôle ?")) return;
+    const { error: deleteError } = await db.from("onlyoffice_user_permissions").delete().eq("user_id", userId);
+    if (deleteError) { toast.error("Impossible de réinitialiser les droits individuels."); return; }
+    await queryClient.invalidateQueries({ queryKey: ["onlyoffice-admin-permissions"] });
+    toast.success("Les droits du rôle seront de nouveau appliqués.");
+  };
+
+  const updateRoleField = (field: OnlyOfficeField, checked: boolean) => {
+    setRoleDraft((current) => {
+      const next = { ...current, [field]: checked };
+      if (field === "can_view" && !checked) next.can_edit = false;
+      if (field === "can_edit" && checked) next.can_view = true;
+      return next;
+    });
+  };
+
+  const updateUserField = (field: OnlyOfficeField, value: string) => {
+    setUserDraft((current) => {
+      const parsed = value === "inherit" ? null : value === "allow";
+      const next = { ...current, [field]: parsed };
+      if (field === "can_view" && parsed === false) next.can_edit = false;
+      if (field === "can_edit" && parsed === true) next.can_view = true;
+      return next;
+    });
+  };
+
+  return <div className="space-y-5">
+    <div><h3 className="text-lg font-semibold text-slate-900">Autorisations ONLYOFFICE</h3><p className="text-sm text-slate-500 mt-1">Ces droits sont appliqués par l’API ONLYOFFICE. Une exception individuelle peut autoriser, refuser ou hériter du droit défini pour les rôles de la personne.</p></div>
+    {error && <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">Impossible de charger les droits ONLYOFFICE. Vérifiez que la migration Supabase correspondante est déployée.</div>}
+    <Tabs defaultValue="oo-roles" className="space-y-4">
+      <TabsList><TabsTrigger value="oo-roles">Par rôle</TabsTrigger><TabsTrigger value="oo-users">Par utilisateur</TabsTrigger></TabsList>
+      <TabsContent value="oo-roles">
+        <Card><CardHeader><CardTitle className="text-base">Droits par rôle</CardTitle></CardHeader><CardContent className="space-y-4">
+          <div className="max-w-sm space-y-2"><Label>Rôle</Label><Select value={role} onValueChange={setRole}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{onlyOfficeRoleNames.map((item) => <SelectItem key={item.id} value={item.id}>{item.label}</SelectItem>)}</SelectContent></Select></div>
+          {isLoading ? <div className="py-8 flex justify-center"><Loader2 className="animate-spin" /></div> : <div className="divide-y rounded-lg border">{onlyOfficeFields.map((field) => <label key={field.id} className="flex items-center justify-between gap-4 p-4 cursor-pointer"><span><span className="block font-medium text-sm">{field.label}</span><span className="block text-xs text-slate-500 mt-1">{field.help}</span></span><Checkbox checked={roleDraft[field.id] === true} onCheckedChange={(value) => updateRoleField(field.id, value === true)} /></label>)}</div>}
+          <div className="flex justify-end"><Button onClick={saveRolePermissions} disabled={saving || isLoading}><Save className="w-4 h-4 mr-2" />Enregistrer le rôle</Button></div>
+        </CardContent></Card>
+      </TabsContent>
+      <TabsContent value="oo-users">
+        <Card><CardHeader><CardTitle className="text-base">Droits personnalisés par utilisateur</CardTitle></CardHeader><CardContent className="space-y-4">
+          <div className="max-w-xl space-y-2"><Label>Utilisateur</Label><Select value={userId} onValueChange={setUserId}><SelectTrigger><SelectValue placeholder="Sélectionner un utilisateur" /></SelectTrigger><SelectContent>{(data?.users || []).map((entry) => <SelectItem key={entry.id} value={entry.id}>{entry.id} — {entry.roles.join(", ")}</SelectItem>)}</SelectContent></Select></div>
+          {!userId ? <p className="text-sm text-slate-500 py-6">Sélectionnez un utilisateur pour définir ses exceptions.</p> : <div className="space-y-3"><p className="text-xs text-slate-500">« Hériter du rôle » conserve le comportement normal. Les choix « Autoriser » et « Refuser » remplacent les droits agrégés de ses rôles.</p><div className="divide-y rounded-lg border">{onlyOfficeFields.map((field) => <div key={field.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4"><span><span className="block font-medium text-sm">{field.label}</span><span className="block text-xs text-slate-500 mt-1">{field.help}</span></span><Select value={userDraft[field.id] === null ? "inherit" : userDraft[field.id] ? "allow" : "deny"} onValueChange={(value) => updateUserField(field.id, value)}><SelectTrigger className="w-full sm:w-48"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="inherit">Hériter du rôle</SelectItem><SelectItem value="allow">Autoriser</SelectItem><SelectItem value="deny">Refuser</SelectItem></SelectContent></Select></div>)}</div></div>}
+          <div className="flex flex-wrap justify-end gap-2"><Button variant="outline" onClick={resetUserPermissions} disabled={!userId || saving}><RotateCcw className="w-4 h-4 mr-2" />Réinitialiser</Button><Button onClick={saveUserPermissions} disabled={!userId || saving || isLoading}><Save className="w-4 h-4 mr-2" />Enregistrer cet utilisateur</Button></div>
+        </CardContent></Card>
+      </TabsContent>
+    </Tabs>
+  </div>;
+}
+
 function AdminOnlyNotice() {
   return <div className="max-w-xl mx-auto mt-16"><Card><CardContent className="p-8 text-center"><LockKeyhole className="w-10 h-10 text-red-600 mx-auto mb-3" /><h2 className="font-bold text-lg">Accès réservé aux administrateurs</h2><p className="text-sm text-slate-500 mt-2">Seuls les administrateurs peuvent consulter ou modifier les autorisations.</p></CardContent></Card></div>;
 }
@@ -182,7 +329,7 @@ function PermissionsContent() {
     <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 flex gap-3 mb-6"><Info className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" /><p className="text-sm text-amber-900">Cette page enregistre la matrice de permissions. Les contrôles d'accès existants ne sont pas automatiquement remplacés : chaque module devra être raccordé à ces permissions pour que les cases configurées imposent réellement les accès.</p></div>
     {error && <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">Impossible de charger les autorisations. Appliquez la migration Supabase avant utilisation.</div>}
     <Tabs defaultValue="roles" className="space-y-4">
-      <TabsList><TabsTrigger value="roles">Par rôle</TabsTrigger><TabsTrigger value="members">Par adhérent</TabsTrigger></TabsList>
+      <TabsList><TabsTrigger value="roles">Par rôle</TabsTrigger><TabsTrigger value="members">Par adhérent</TabsTrigger><TabsTrigger value="onlyoffice">ONLYOFFICE</TabsTrigger></TabsList>
       <TabsContent value="roles" className="space-y-4">
         <Card><CardHeader><CardTitle className="text-base">Autorisations par rôle</CardTitle></CardHeader><CardContent className="space-y-4">
           <div className="max-w-sm space-y-2"><Label>Rôle à configurer</Label><Select value={selectedRole} onValueChange={setSelectedRole}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{roles.map((r) => <SelectItem key={r.id} value={r.id}>{r.label}</SelectItem>)}</SelectContent></Select></div>
@@ -190,6 +337,7 @@ function PermissionsContent() {
           <div className="flex justify-end"><Button onClick={saveRole} disabled={saving || isLoading} className="bg-red-600 hover:bg-red-700 text-white"><Save className="w-4 h-4 mr-2" />Enregistrer ce rôle</Button></div>
         </CardContent></Card>
       </TabsContent>
+      <TabsContent value="onlyoffice" className="space-y-4"><OnlyOfficePermissionsPanel /></TabsContent>
       <TabsContent value="members" className="space-y-4">
         <Card><CardHeader><CardTitle className="text-base flex items-center gap-2"><Users className="w-5 h-5" />Exceptions individuelles</CardTitle></CardHeader><CardContent className="space-y-4">
           <div className="grid md:grid-cols-2 gap-4">
