@@ -136,14 +136,46 @@ function OnlyOfficePermissionsPanel() {
     if (!userId) return;
     setSaving(true);
     try {
-      const payload = { user_id: userId, ...userDraft, updated_at: new Date().toISOString() };
-      const { error: saveError } = await db.from("onlyoffice_user_permissions").upsert(payload, { onConflict: "user_id" });
+      // Construire un instantané explicite des six choix affichés, sans propager
+      // d'autres propriétés éventuellement présentes dans l'état du formulaire.
+      const expected: OnlyOfficePermission = {
+        can_view: userDraft.can_view,
+        can_edit: userDraft.can_edit,
+        can_download: userDraft.can_download,
+        can_print: userDraft.can_print,
+        can_comment: userDraft.can_comment,
+        can_review: userDraft.can_review,
+      };
+      if (expected.can_edit === true && expected.can_view !== true) {
+        throw new Error("La modification nécessite également le droit de consultation.");
+      }
+
+      const payload = { user_id: userId, ...expected, updated_at: new Date().toISOString() };
+      const { error: saveError } = await db
+        .from("onlyoffice_user_permissions")
+        .upsert(payload, { onConflict: "user_id" });
       if (saveError) throw saveError;
+
+      // Relire la ligne enregistrée avant d'annoncer le succès à l'administrateur.
+      const { data: saved, error: readError } = await db
+        .from("onlyoffice_user_permissions")
+        .select("user_id,can_view,can_edit,can_download,can_print,can_comment,can_review")
+        .eq("user_id", userId)
+        .single();
+      if (readError) throw readError;
+
+      const fields: OnlyOfficeField[] = ["can_view", "can_edit", "can_download", "can_print", "can_comment", "can_review"];
+      const mismatches = fields.filter((field) => saved[field] !== expected[field]);
+      if (mismatches.length) {
+        throw new Error(`Les droits suivants n'ont pas été enregistrés comme demandé : ${mismatches.join(", ")}.`);
+      }
+
+      setUserDraft(expected);
       await queryClient.invalidateQueries({ queryKey: ["onlyoffice-admin-permissions"] });
-      toast.success("Droits ONLYOFFICE individuels enregistrés.");
+      toast.success("Droits ONLYOFFICE enregistrés et vérifiés.");
     } catch (e) {
-      console.error(e);
-      toast.error("Enregistrement impossible. Vérifiez que la migration ONLYOFFICE est appliquée.");
+      console.error("Erreur de sauvegarde des droits ONLYOFFICE", e);
+      toast.error(e instanceof Error ? e.message : "Enregistrement impossible. Vérifiez la migration Supabase.");
     } finally { setSaving(false); }
   };
 
