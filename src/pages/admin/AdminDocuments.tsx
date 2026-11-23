@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { FileText, Search, Filter, FolderOpen, Download, Plus, Eye, Trash2, Edit, X, Save, Upload, Loader2, Archive, ArchiveRestore, ExternalLink } from "lucide-react";
+import { FileText, FilePenLine, Search, Filter, FolderOpen, Download, Plus, Eye, Trash2, Edit, X, Save, Upload, Loader2, Archive, ArchiveRestore, ExternalLink } from "lucide-react";
 import AdminLayout, { AdminAuthGuard } from "@/components/admin/AdminLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import OnlyOfficeEditor from "@/components/onlyoffice/OnlyOfficeEditor";
 
 type Category = { id: string; name: string };
 type Doc = {
@@ -31,6 +32,7 @@ type ModalMode = "add" | "edit" | "view";
 type FormState = { title: string; description: string; category_id: string; file: File | null };
 
 const BUCKET = "documents";
+const ONLYOFFICE_EXTENSIONS = new Set(["doc", "docx", "odt", "rtf", "txt", "xls", "xlsx", "ods", "csv", "ppt", "pptx", "odp", "pdf"]);
 const NO_CATEGORY = "none";
 const emptyForm = (): FormState => ({ title: "", description: "", category_id: NO_CATEGORY, file: null });
 const formatSize = (bytes?: number | null) => !bytes ? "—" : bytes < 1024 * 1024 ? `${Math.round(bytes / 1024)} Ko` : `${(bytes / 1024 / 1024).toFixed(1)} Mo`;
@@ -45,6 +47,7 @@ export default function AdminDocuments() {
   const [selectedCategory, setSelectedCategory] = useState("Toutes");
   const [showArchived, setShowArchived] = useState(false);
   const [modal, setModal] = useState<{ mode: ModalMode; item?: Doc } | null>(null);
+  const [onlyOfficeDoc, setOnlyOfficeDoc] = useState<Doc | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm());
 
   const loadData = async () => {
@@ -63,6 +66,7 @@ export default function AdminDocuments() {
     setLoading(false);
   };
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { loadData(); }, []);
 
   const categoryNames = useMemo(() => ["Toutes", ...categories.map((c) => c.name)], [categories]);
@@ -181,6 +185,10 @@ export default function AdminDocuments() {
     window.open(data.url as string, "_blank", "noopener,noreferrer");
   };
 
+  const canOpenInOnlyOffice = (doc: Doc) =>
+    doc.storage_provider === "supabase" &&
+    ONLYOFFICE_EXTENSIONS.has((doc.file_name.split(".").pop() || "").toLowerCase());
+
   const getIcon = (type?: string | null) => {
     const t = (type || "").toLowerCase();
     if (t.includes("pdf")) return <FileText className="w-5 h-5 text-red-500" />;
@@ -190,6 +198,13 @@ export default function AdminDocuments() {
 
   return (
     <AdminAuthGuard>
+      {onlyOfficeDoc && (
+        <OnlyOfficeEditor
+          documentId={onlyOfficeDoc.id}
+          title={onlyOfficeDoc.title}
+          onClose={() => setOnlyOfficeDoc(null)}
+        />
+      )}
       <AdminLayout title="Documents" breadcrumb={["Administration", "Documents"]}>
         {modal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setModal(null)}>
@@ -207,6 +222,9 @@ export default function AdminDocuments() {
                     <div className="flex justify-between text-sm"><span className="text-slate-500">Taille</span><span>{formatSize(modal.item.file_size)}</span></div>
                     <div className="flex justify-between text-sm"><span className="text-slate-500">Date</span><span>{formatDate(modal.item.created_at)}</span></div>
                     <Button onClick={() => handleDownload(modal.item!)} className="w-full mt-2 bg-teal-600 hover:bg-teal-700 text-white gap-2"><Download className="w-4 h-4" />Télécharger</Button>
+                    {canOpenInOnlyOffice(modal.item) && (
+                      <Button onClick={() => setOnlyOfficeDoc(modal.item!)} className="w-full gap-2 bg-[#13233A] text-white hover:bg-[#1c3557]"><FilePenLine className="w-4 h-4" />Modifier dans ONLYOFFICE</Button>
+                    )}
                     {modal.item.storage_provider === "kdrive" && (
                       <Button onClick={() => handleOpenInKdrive(modal.item!)} variant="outline" className="w-full gap-2"><ExternalLink className="w-4 h-4" />Ouvrir dans kDrive (édition OnlyOffice)</Button>
                     )}
