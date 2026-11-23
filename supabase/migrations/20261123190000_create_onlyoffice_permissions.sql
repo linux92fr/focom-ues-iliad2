@@ -53,6 +53,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE
 ON TABLE public.onlyoffice_role_permissions, public.onlyoffice_user_permissions
 TO authenticated;
 GRANT SELECT ON TABLE public.onlyoffice_permission_audit TO authenticated;
+REVOKE ALL ON SEQUENCE public.onlyoffice_permission_audit_id_seq FROM PUBLIC, anon, authenticated;
 
 
 DROP POLICY IF EXISTS "Admins manage ONLYOFFICE role permissions" ON public.onlyoffice_role_permissions;
