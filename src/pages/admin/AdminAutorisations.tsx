@@ -90,28 +90,20 @@ function OnlyOfficePermissionsPanel() {
   const { data, isLoading, error } = useQuery({
     queryKey: ["onlyoffice-admin-permissions"],
     queryFn: async () => {
-      const [roleResult, userResult, rolesResult, profilesResult] = await Promise.all([
+      const [roleResult, userResult, rolesResult] = await Promise.all([
         db.from("onlyoffice_role_permissions").select("*"),
         db.from("onlyoffice_user_permissions").select("*"),
         db.from("user_roles").select("user_id,role"),
-        db.from("profiles").select("id,email,first_name,last_name,display_name"),
       ]);
-      for (const result of [roleResult, userResult, rolesResult, profilesResult]) if (result.error) throw result.error;
+      for (const result of [roleResult, userResult, rolesResult]) if (result.error) throw result.error;
       const users = new Map<string, string[]>();
       (rolesResult.data || []).forEach((entry: { user_id: string; role: string }) => {
         users.set(entry.user_id, [...(users.get(entry.user_id) || []), entry.role]);
       });
-      const profiles = new Map<string, { email?: string | null; first_name?: string | null; last_name?: string | null; display_name?: string | null }>(
-        (profilesResult.data || []).map((profile: { id: string; email?: string | null; first_name?: string | null; last_name?: string | null; display_name?: string | null }) => [profile.id, profile])
-      );
       return {
         roleRows: (roleResult.data || []) as (OnlyOfficePermission & { role: string })[],
         userRows: (userResult.data || []) as (OnlyOfficePermission & { user_id: string })[],
-        users: Array.from(users, ([id, userRoles]) => {
-          const profile = profiles.get(id);
-          const name = [profile?.first_name, profile?.last_name].filter(Boolean).join(" ") || profile?.display_name || profile?.email || null;
-          return { id, name, email: profile?.email || null, roles: userRoles };
-        }),
+        users: Array.from(users, ([id, userRoles]) => ({ id, roles: userRoles })),
       };
     },
   });
@@ -196,7 +188,7 @@ function OnlyOfficePermissionsPanel() {
       </TabsContent>
       <TabsContent value="oo-users">
         <Card><CardHeader><CardTitle className="text-base">Droits personnalisés par utilisateur</CardTitle></CardHeader><CardContent className="space-y-4">
-          <div className="max-w-xl space-y-2"><Label>Utilisateur</Label><Select value={userId} onValueChange={setUserId}><SelectTrigger><SelectValue placeholder="Sélectionner un utilisateur" /></SelectTrigger><SelectContent>{(data?.users || []).map((entry) => <SelectItem key={entry.id} value={entry.id}>{entry.name || entry.email || entry.id}{entry.name && entry.email ? ` — ${entry.email}` : ""} — {entry.roles.join(", ")}</SelectItem>)}</SelectContent></Select></div>
+          <div className="max-w-xl space-y-2"><Label>Utilisateur</Label><Select value={userId} onValueChange={setUserId}><SelectTrigger><SelectValue placeholder="Sélectionner un utilisateur" /></SelectTrigger><SelectContent>{(data?.users || []).map((entry) => <SelectItem key={entry.id} value={entry.id}>{entry.id} — {entry.roles.join(", ")}</SelectItem>)}</SelectContent></Select></div>
           {!userId ? <p className="text-sm text-slate-500 py-6">Sélectionnez un utilisateur pour définir ses exceptions.</p> : <div className="space-y-3"><p className="text-xs text-slate-500">« Hériter du rôle » conserve le comportement normal. Les choix « Autoriser » et « Refuser » remplacent les droits agrégés de ses rôles.</p><div className="divide-y rounded-lg border">{onlyOfficeFields.map((field) => <div key={field.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4"><span><span className="block font-medium text-sm">{field.label}</span><span className="block text-xs text-slate-500 mt-1">{field.help}</span></span><Select value={userDraft[field.id] === null ? "inherit" : userDraft[field.id] ? "allow" : "deny"} onValueChange={(value) => updateUserField(field.id, value)}><SelectTrigger className="w-full sm:w-48"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="inherit">Hériter du rôle</SelectItem><SelectItem value="allow">Autoriser</SelectItem><SelectItem value="deny">Refuser</SelectItem></SelectContent></Select></div>)}</div></div>}
           <div className="flex flex-wrap justify-end gap-2"><Button variant="outline" onClick={resetUserPermissions} disabled={!userId || saving}><RotateCcw className="w-4 h-4 mr-2" />Réinitialiser</Button><Button onClick={saveUserPermissions} disabled={!userId || saving || isLoading}><Save className="w-4 h-4 mr-2" />Enregistrer cet utilisateur</Button></div>
         </CardContent></Card>
