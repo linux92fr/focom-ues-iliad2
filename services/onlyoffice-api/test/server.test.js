@@ -36,9 +36,13 @@ globalThis.fetch = async (input, init = {}) => {
       user_metadata: { display_name: "Admin FO COM" },
     });
   }
-  if (url === "https://project.supabase.co/rest/v1/rpc/has_any_role") {
-    return jsonResponse(true);
+  if (url.includes("/rest/v1/onlyoffice_role_permissions?")) {
+    return jsonResponse([
+      { role: "admin", can_view: true, can_edit: true, can_download: true, can_print: true, can_comment: true, can_review: true },
+    ]);
   }
+  if (url.includes("/rest/v1/onlyoffice_user_permissions?")) return jsonResponse([]);
+  if (url.includes("/rest/v1/user_roles?")) return jsonResponse([{ role: "admin" }]);
   if (url.startsWith("https://project.supabase.co/rest/v1/documents?id=eq.")) {
     if (method === "PATCH") {
       updates.push(JSON.parse(String(init.body || "{}")));
@@ -102,6 +106,8 @@ test("config endpoint returns a signed ONLYOFFICE configuration", async () => {
   );
   assert.equal(signed.document.fileType, "docx");
   assert.equal(signed.documentType, "word");
+  assert.equal(signed.document.permissions.edit, true);
+  assert.equal(signed.document.permissions.download, true);
   assert.equal(signed.document.url.includes("source-token"), true);
   assert.equal(
     signed.editorConfig.callbackUrl,
@@ -112,7 +118,7 @@ test("config endpoint returns a signed ONLYOFFICE configuration", async () => {
 
 test("callback token is verified and the edited file is saved", async () => {
   const callbackPayload = {
-    key: `doc:${documentRow.id}:version`,
+    key: `doc-${documentRow.id}-version`,
     status: 2,
     url: "https://docs.test/cache/document.docx",
   };
