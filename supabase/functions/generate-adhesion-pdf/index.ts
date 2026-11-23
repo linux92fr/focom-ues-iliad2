@@ -1,3 +1,5 @@
+// The Supabase dashboard editor deploys index.ts without the repository deno.json.
+// deno-lint-ignore no-import-prefix
 import {
   PDFDocument,
   PDFRef,
