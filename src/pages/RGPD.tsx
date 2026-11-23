@@ -1,215 +1,282 @@
-import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Shield, FileText, AlertCircle, CheckCircle2, Eye, Database, Lock, UserCheck } from "lucide-react";
+import { Link } from "react-router-dom";
+import {
+  CalendarDays,
+  CheckCircle2,
+  Clock,
+  Cookie,
+  Database,
+  FileText,
+  Lock,
+  Mail,
+  RefreshCw,
+  ShieldCheck,
+  UserCheck,
+  Users,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { LegalSection } from "@/components/LegalSection";
+import { PageBreadcrumb } from "@/components/PageBreadcrumb";
+import { PortalPageHero } from "@/components/PortalPageHero";
 
-const LOGO_IMAGE = "https://files.manuscdn.com/user_upload_by_module/session_file/310519663612648040/LldXxCbhFdcPcHwX.png";
+const sections = [
+  { id: "introduction", number: "01", label: "Introduction", icon: FileText },
+  { id: "responsable", number: "02", label: "Responsable du traitement", icon: UserCheck },
+  { id: "donnees", number: "03", label: "Données et finalités", icon: Database },
+  { id: "bases-legales", number: "04", label: "Bases légales", icon: CheckCircle2 },
+  { id: "conservation", number: "05", label: "Durées de conservation", icon: Clock },
+  { id: "destinataires", number: "06", label: "Destinataires", icon: Users },
+  { id: "securite", number: "07", label: "Sécurité", icon: Lock },
+  { id: "droits", number: "08", label: "Vos droits", icon: ShieldCheck },
+  { id: "cookies", number: "09", label: "Cookies", icon: Cookie },
+  { id: "modifications", number: "10", label: "Modifications", icon: RefreshCw },
+];
+
+const rights = [
+  "Droit d’accès",
+  "Droit de rectification",
+  "Droit à l’effacement",
+  "Droit à la limitation",
+  "Droit à la portabilité",
+  "Droit d’opposition",
+];
 
 export default function RGPD() {
-  const navigate = useNavigate();
-
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
-        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-3">
-              <button onClick={() => navigate("/")} className="p-2 rounded-lg hover:bg-slate-100" aria-label="Retour accueil">
-                <ArrowLeft className="w-5 h-5" />
-              </button>
-              <img loading="lazy" src={LOGO_IMAGE} alt="FO COM" className="h-12 w-12 object-contain" />
-              <div className="hidden sm:block">
-                <h1 className="text-lg font-bold text-slate-900 leading-tight">FOCOM UES ILIAD</h1>
-                <p className="text-[11px] text-slate-500 font-medium tracking-wide uppercase">Politique de confidentialité</p>
-              </div>
+    <main className="min-h-screen overflow-x-hidden bg-slate-50 p-3 sm:p-4 lg:p-8">
+      <div className="mx-auto w-full max-w-[1500px] space-y-6">
+        <PageBreadcrumb steps={[{ label: "Politique RGPD" }]} />
+
+        <PortalPageHero
+          eyebrow="RGPD · Confidentialité"
+          title="Politique de protection des données"
+          description="Comprenez quelles données FO COM UES ILIAD utilise, pourquoi elles sont collectées et comment exercer vos droits."
+          icon={ShieldCheck}
+          badge="Dernière mise à jour · 23 novembre 2026"
+          actions={
+            <>
+              <Button asChild className="bg-red-600 text-white hover:bg-red-700">
+                <a href="mailto:contact@focomues-iliad.fr">
+                  <Mail className="mr-2 h-4 w-4" />
+                  Exercer mes droits
+                </a>
+              </Button>
+              <Button asChild variant="outline" className="border-white/30 bg-white/10 text-white hover:bg-white/20">
+                <Link to="/mentions-legales">
+                  <FileText className="mr-2 h-4 w-4" />
+                  Mentions légales
+                </Link>
+              </Button>
+            </>
+          }
+          aside={
+            <div className="rounded-2xl border border-white/10 bg-white/[0.08] p-4 backdrop-blur-sm">
+              <Lock className="h-5 w-5 text-teal-300" />
+              <p className="mt-3 text-sm font-extrabold">Vos données restent sous contrôle</p>
+              <p className="mt-1 text-xs leading-relaxed text-white/65">
+                Principe de minimisation, accès limité et canaux séparés pour les données bancaires.
+              </p>
             </div>
-          </div>
-        </div>
-      </header>
+          }
+        />
 
-      <main className="max-w-4xl mx-auto p-4 lg:p-8">
-        <section className="bg-gradient-to-r from-teal-600 to-teal-700 rounded-2xl p-8 sm:p-12 mb-8 text-white">
-          <div className="flex items-center gap-3 mb-4">
-            <Shield className="w-10 h-10" />
-            <h2 className="text-2xl sm:text-4xl font-extrabold">Politique de Protection des Données</h2>
-          </div>
-          <p className="text-teal-100 text-base sm:text-lg">
-            Protection de vos données personnelles conformément au RGPD.
-          </p>
-        </section>
-
-        <div className="bg-white rounded-xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-8">
-          <section>
-            <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
-              <FileText className="w-5 h-5 text-teal-600" /> 1. Introduction
-            </h3>
-            <div className="text-sm text-slate-600 space-y-2">
+        <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+          <div className="space-y-5">
+            <LegalSection id="introduction" number="01" title="Introduction" icon={FileText}>
               <p>
                 FO COM UES ILIAD accorde une grande importance à la protection des données personnelles de ses adhérents et des utilisateurs du site.
               </p>
               <p>
-                Cette politique vous informe de manière claire sur la collecte, l’utilisation, la conservation et la protection de vos données personnelles, conformément au Règlement Général sur la Protection des Données et à la loi Informatique et Libertés.
+                Cette politique décrit la collecte, l’utilisation, la conservation et la protection de vos données conformément au Règlement général sur la protection des données et à la loi Informatique et Libertés.
               </p>
-            </div>
-          </section>
+            </LegalSection>
 
-          <section>
-            <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
-              <UserCheck className="w-5 h-5 text-teal-600" /> 2. Responsable du traitement
-            </h3>
-            <div className="text-sm text-slate-600 space-y-1">
-              <p>Le responsable du traitement est :</p>
-              <ul className="list-disc list-inside space-y-1 ml-2">
-                <li><strong>FOCOM UES ILIAD</strong></li>
-                <li>8 rue de la Ville l'Évêque, 75008 Paris</li>
-                <li>Téléphone : 01 87 15 43 11</li>
-                <li>Email : contact@focomues-iliad.fr</li>
+            <LegalSection id="responsable" number="02" title="Responsable du traitement" icon={UserCheck}>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <p className="font-extrabold text-slate-900">FOCOM UES ILIAD</p>
+                <p className="mt-2">8 rue de la Ville l’Évêque, 75008 Paris</p>
+                <p className="mt-1">Téléphone : <a className="font-semibold text-slate-900 hover:text-red-600" href="tel:+33187154311">01 87 15 43 11</a></p>
+                <p className="mt-1">E-mail : <a className="font-semibold text-slate-900 hover:text-red-600" href="mailto:contact@focomues-iliad.fr">contact@focomues-iliad.fr</a></p>
+              </div>
+            </LegalSection>
+
+            <LegalSection id="donnees" number="03" title="Données collectées et finalités" icon={Database}>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-2xl border border-slate-200 p-4">
+                  <p className="font-extrabold text-slate-900">Formulaire d’adhésion</p>
+                  <p className="mt-2 text-xs leading-relaxed">
+                    Civilité, identité, coordonnées, entreprise, statut professionnel, signature et choix de transmission.
+                  </p>
+                  <p className="mt-2 text-xs leading-relaxed">
+                    Finalité : générer le bulletin, le transmettre au syndicat et, sur demande, envoyer une copie à l’adhérent.
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-slate-200 p-4">
+                  <p className="font-extrabold text-slate-900">Messagerie et demandes</p>
+                  <p className="mt-2 text-xs leading-relaxed">
+                    Identité, adresse e-mail, contenu du message et pièces jointes éventuelles, afin de répondre aux demandes et de suivre les dossiers.
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-slate-200 p-4">
+                  <p className="font-extrabold text-slate-900">Compte adhérent</p>
+                  <p className="mt-2 text-xs leading-relaxed">
+                    Adresse e-mail, mot de passe chiffré, profil, carte adhérent, notifications et données nécessaires à l’espace personnel.
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-slate-200 p-4">
+                  <p className="font-extrabold text-slate-900">Newsletter et sécurité</p>
+                  <p className="mt-2 text-xs leading-relaxed">
+                    Adresse e-mail pour les informations syndicales, et données techniques nécessaires au fonctionnement et à la sécurité du site.
+                  </p>
+                </div>
+              </div>
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-900">
+                <Lock className="mb-2 h-5 w-5" />
+                <p className="font-bold">Coordonnées bancaires SEPA</p>
+                <p className="mt-1 text-xs leading-relaxed">
+                  Elles ne sont pas incluses dans le bulletin envoyé par e-mail. Le mandat SEPA doit être transmis séparément par un canal sécurisé.
+                </p>
+              </div>
+            </LegalSection>
+
+            <LegalSection id="bases-legales" number="04" title="Bases légales du traitement" icon={CheckCircle2}>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {[
+                  "Votre consentement pour la newsletter, les formulaires et certaines communications.",
+                  "L’exécution de l’adhésion syndicale et la gestion du lien adhérent.",
+                  "L’intérêt légitime du syndicat pour informer, défendre et accompagner les salariés.",
+                  "Le respect des obligations légales applicables aux organisations syndicales.",
+                ].map((item) => (
+                  <div key={item} className="flex gap-3 rounded-2xl border border-slate-200 p-4">
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-teal-600" />
+                    <p className="text-xs leading-relaxed">{item}</p>
+                  </div>
+                ))}
+              </div>
+            </LegalSection>
+
+            <LegalSection id="conservation" number="05" title="Durées de conservation" icon={Clock}>
+              <div className="divide-y divide-slate-100">
+                {[
+                  ["Données d’adhésion", "Durée de l’adhésion, puis archivage selon les obligations légales applicables."],
+                  ["Compte adhérent", "Pendant l’activité du compte ou jusqu’à sa suppression."],
+                  ["Messages et demandes", "Durée nécessaire au traitement et au suivi du dossier."],
+                  ["Courriels d’adhésion", "Durée nécessaire au traitement, puis conservation selon les obligations applicables."],
+                  ["Newsletter", "Jusqu’à votre désinscription."],
+                  ["Cookies et données techniques", "Durée strictement nécessaire au fonctionnement et à la sécurité."],
+                ].map(([title, text]) => (
+                  <div key={title} className="grid gap-1 py-3 sm:grid-cols-[190px_1fr] sm:gap-4">
+                    <p className="font-bold text-slate-900">{title}</p>
+                    <p className="text-xs leading-relaxed">{text}</p>
+                  </div>
+                ))}
+              </div>
+            </LegalSection>
+
+            <LegalSection id="destinataires" number="06" title="Destinataires des données" icon={Users}>
+              <p>Vos données sont accessibles uniquement :</p>
+              <ul className="space-y-2">
+                {[
+                  "aux représentants FO COM habilités ;",
+                  "aux administrateurs autorisés du site ;",
+                  "aux prestataires techniques strictement nécessaires, notamment Supabase et Resend pour l’envoi des courriels.",
+                ].map((item) => (
+                  <li key={item} className="flex gap-3 rounded-2xl bg-slate-50 px-4 py-3 text-xs">
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-teal-600" />
+                    {item}
+                  </li>
+                ))}
               </ul>
-            </div>
-          </section>
+              <p>Vos données ne sont jamais vendues ni transmises à des tiers à des fins commerciales.</p>
+            </LegalSection>
 
-          <section>
-            <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
-              <Database className="w-5 h-5 text-teal-600" /> 3. Données collectées et finalités
-            </h3>
-            <div className="text-sm text-slate-600 space-y-4">
-              <div>
-                <h4 className="font-semibold text-slate-900 mb-1">Formulaire d’adhésion</h4>
-                <p>
-                  Données collectées : civilité, nom, prénom, adresse, téléphone, email, entreprise, statut professionnel, signature, choix de transmission et informations nécessaires au bulletin d’adhésion officiel.
+            <LegalSection id="securite" number="07" title="Sécurité des données" icon={Lock}>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {[
+                  "Connexions sécurisées en HTTPS.",
+                  "Mots de passe chiffrés.",
+                  "Accès restreint aux données personnelles.",
+                  "Gestion des rôles administrateurs.",
+                  "Stockage sécurisé des pièces jointes et documents.",
+                  "Exclusion des coordonnées bancaires des e-mails générés par le site.",
+                ].map((item) => (
+                  <div key={item} className="flex gap-3 rounded-2xl border border-slate-200 p-4 text-xs">
+                    <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-teal-600" />
+                    {item}
+                  </div>
+                ))}
+              </div>
+            </LegalSection>
+
+            <LegalSection id="droits" number="08" title="Vos droits" icon={ShieldCheck}>
+              <p>Conformément au RGPD, vous pouvez exercer les droits suivants :</p>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {rights.map((right) => (
+                  <div key={right} className="rounded-xl bg-slate-50 px-4 py-3 text-xs font-semibold text-slate-700">
+                    {right}
+                  </div>
+                ))}
+              </div>
+              <div className="rounded-2xl border border-teal-200 bg-teal-50 p-4 text-teal-900">
+                <Mail className="mb-2 h-5 w-5" />
+                <p className="font-bold">Exercer vos droits</p>
+                <p className="mt-1 text-xs leading-relaxed">
+                  Écrivez à <a className="font-extrabold underline underline-offset-2" href="mailto:contact@focomues-iliad.fr">contact@focomues-iliad.fr</a>.
                 </p>
-                <p className="mt-1">
-                  Finalité : générer un bulletin PDF officiel pré-rempli, permettre son téléchargement ou sa transmission par email au syndicat et, sur demande, à l’adhérent. Les coordonnées bancaires SEPA ne sont jamais incluses dans le bulletin envoyé par email.
+                <p className="mt-2 text-xs leading-relaxed">
+                  Vous pouvez également adresser une réclamation à la <a className="font-extrabold underline underline-offset-2" href="https://www.cnil.fr" target="_blank" rel="noopener noreferrer">CNIL</a>.
                 </p>
               </div>
+            </LegalSection>
 
-              <div>
-                <h4 className="font-semibold text-slate-900 mb-1">Messagerie / demandes</h4>
-                <p>
-                  Données collectées : identité du demandeur, email, contenu du message, pièces jointes éventuelles. Finalité : répondre aux demandes, suivre les dossiers et accompagner les salariés.
-                </p>
-              </div>
+            <LegalSection id="cookies" number="09" title="Cookies" icon={Cookie}>
+              <p>
+                Le site utilise principalement des cookies nécessaires à son fonctionnement, à l’authentification et à la sécurité.
+              </p>
+              <p>
+                Aucun cookie marketing n’est utilisé. Les cookies analytiques éventuels ne sont déposés qu’en cas de consentement.
+              </p>
+            </LegalSection>
 
-              <div>
-                <h4 className="font-semibold text-slate-900 mb-1">Compte adhérent</h4>
-                <p>
-                  Données collectées : email, mot de passe chiffré, profil adhérent, carte adhérent, notifications et données nécessaires à l’accès à l’espace personnel.
-                </p>
-              </div>
-
-              <div>
-                <h4 className="font-semibold text-slate-900 mb-1">Newsletter</h4>
-                <p>
-                  Données collectées : adresse email. Finalité : envoi d’informations syndicales, actualités, alertes sociales et documents utiles. Désinscription possible à tout moment.
-                </p>
-              </div>
-
-              <div>
-                <h4 className="font-semibold text-slate-900 mb-1">Navigation et sécurité</h4>
-                <p>
-                  Données techniques : journaux de connexion, données de session, cookies nécessaires, informations utiles à la sécurité du site et au bon fonctionnement de l’authentification.
-                </p>
-              </div>
-            </div>
-          </section>
-
-          <section>
-            <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5 text-teal-600" /> 4. Base légale du traitement
-            </h3>
-            <ul className="list-disc list-inside space-y-2 text-sm text-slate-600 ml-2">
-              <li>Votre consentement pour la newsletter, les formulaires et certaines communications.</li>
-              <li>L’exécution de l’adhésion syndicale et la gestion du lien adhérent.</li>
-              <li>L’intérêt légitime du syndicat pour informer, défendre et accompagner les salariés.</li>
-              <li>Le respect des obligations légales applicables aux organisations syndicales.</li>
-            </ul>
-          </section>
-
-          <section>
-            <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
-              <Database className="w-5 h-5 text-teal-600" /> 5. Durées de conservation
-            </h3>
-            <ul className="list-disc list-inside space-y-2 text-sm text-slate-600 ml-2">
-              <li><strong>Données d’adhésion :</strong> durée de l’adhésion puis archivage selon les obligations légales applicables.</li>
-              <li><strong>Compte adhérent :</strong> tant que le compte est actif ou jusqu’à demande de suppression.</li>
-              <li><strong>Messages / demandes :</strong> durée nécessaire au traitement et au suivi du dossier.</li>
-              <li><strong>Courriels d’adhésion :</strong> durée nécessaire au traitement de l’adhésion, puis conservation selon les obligations applicables.</li>
-              <li><strong>Newsletter :</strong> jusqu’à désinscription.</li>
-              <li><strong>Cookies et données techniques :</strong> durée strictement nécessaire au fonctionnement et à la sécurité.</li>
-            </ul>
-          </section>
-
-          <section>
-            <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
-              <UserCheck className="w-5 h-5 text-teal-600" /> 6. Destinataires des données
-            </h3>
-            <div className="text-sm text-slate-600 space-y-2">
-              <p>Vos données sont destinées uniquement :</p>
-              <ul className="list-disc list-inside space-y-1 ml-2">
-                <li>Aux représentants FO COM habilités.</li>
-                <li>Aux administrateurs autorisés du site.</li>
-                <li>Aux prestataires techniques strictement nécessaires au fonctionnement du service, notamment Supabase et le service d’envoi de courriels Resend.</li>
-              </ul>
-              <p>Vos données ne sont jamais vendues ou transmises à des tiers à des fins commerciales.</p>
-            </div>
-          </section>
-
-          <section>
-            <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
-              <Lock className="w-5 h-5 text-teal-600" /> 7. Sécurité des données
-            </h3>
-            <ul className="list-disc list-inside space-y-2 text-sm text-slate-600 ml-2">
-              <li>Connexions sécurisées en HTTPS.</li>
-              <li>Mots de passe chiffrés.</li>
-              <li>Accès restreint aux données personnelles.</li>
-              <li>Gestion des rôles administrateurs.</li>
-              <li>Stockage sécurisé des pièces jointes et documents.</li>
-            </ul>
-          </section>
-
-          <section>
-            <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
-              <Shield className="w-5 h-5 text-teal-600" /> 8. Vos droits
-            </h3>
-            <div className="text-sm text-slate-600 space-y-2">
-              <p>Conformément au RGPD, vous disposez des droits suivants :</p>
-              <ul className="list-disc list-inside space-y-1 ml-2">
-                <li>Droit d’accès.</li>
-                <li>Droit de rectification.</li>
-                <li>Droit à l’effacement.</li>
-                <li>Droit à la limitation du traitement.</li>
-                <li>Droit à la portabilité.</li>
-                <li>Droit d’opposition.</li>
-              </ul>
-              <p>Pour exercer vos droits : <strong>contact@focomues-iliad.fr</strong></p>
-              <p>Vous pouvez également introduire une réclamation auprès de la CNIL : <a href="https://www.cnil.fr" target="_blank" rel="noopener noreferrer" className="text-teal-600 hover:text-teal-700 underline">www.cnil.fr</a></p>
-            </div>
-          </section>
-
-          <section>
-            <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
-              <Eye className="w-5 h-5 text-teal-600" /> 9. Cookies
-            </h3>
-            <div className="text-sm text-slate-600 space-y-2">
-              <p>Le site utilise principalement des cookies nécessaires au fonctionnement de l’application, à l’authentification et à la sécurité.</p>
-              <p>Aucun cookie marketing n’est utilisé. Les cookies analytiques éventuels ne sont déposés qu’en cas de consentement.</p>
-            </div>
-          </section>
-
-          <section>
-            <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
-              <FileText className="w-5 h-5 text-teal-600" /> 10. Modification de la politique
-            </h3>
-            <p className="text-sm text-slate-600">FOCOM UES ILIAD peut modifier cette politique afin de l’adapter aux évolutions légales, techniques ou organisationnelles.</p>
-          </section>
-        </div>
-
-        <div className="mt-6 bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="text-sm font-semibold text-amber-800">Dernière mise à jour</p>
-            <p className="text-xs text-amber-700 mt-1">Cette politique de confidentialité a été mise à jour le 21 mai 2026.</p>
+            <LegalSection id="modifications" number="10" title="Modification de la politique" icon={RefreshCw}>
+              <p>
+                FO COM UES ILIAD peut modifier cette politique afin de l’adapter aux évolutions légales, techniques ou organisationnelles.
+              </p>
+            </LegalSection>
           </div>
+
+          <aside className="space-y-4 lg:sticky lg:top-6">
+            <Card className="rounded-3xl border-slate-200/80 bg-white shadow-sm">
+              <CardContent className="p-5">
+                <p className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-red-600">Sommaire</p>
+                <nav className="mt-4 space-y-1" aria-label="Sommaire de la politique RGPD">
+                  {sections.map(({ id, number, label }) => (
+                    <a
+                      key={id}
+                      href={`#${id}`}
+                      className="flex items-center gap-3 rounded-xl px-3 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-red-600"
+                    >
+                      <span className="w-5 text-[10px] font-extrabold text-slate-400">{number}</span>
+                      {label}
+                    </a>
+                  ))}
+                </nav>
+              </CardContent>
+            </Card>
+
+            <Card className="rounded-3xl border-slate-200/80 bg-[#13233A] text-white shadow-sm">
+              <CardContent className="p-5">
+                <CalendarDays className="h-5 w-5 text-teal-300" />
+                <p className="mt-3 text-sm font-extrabold">Dernière mise à jour</p>
+                <p className="mt-1 text-xs text-white/65">23 novembre 2026</p>
+                <Link to="/mentions-legales" className="mt-4 inline-flex text-xs font-bold text-teal-200 hover:text-white">
+                  Consulter les mentions légales
+                </Link>
+              </CardContent>
+            </Card>
+          </aside>
         </div>
-      </main>
-    </div>
+      </div>
+    </main>
   );
 }
