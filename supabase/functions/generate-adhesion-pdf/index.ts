@@ -1,4 +1,4 @@
-import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import { PDFDocument, PDFRef, StandardFonts, rgb } from "pdf-lib";
 
 const DEFAULT_PDF_PATH = "/bulletin-adhesion.pdf";
 
@@ -19,6 +19,10 @@ function json(data: unknown, status: number, headers: Record<string, string>) {
 
 function clean(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function postalCode(value: unknown) {
+  return clean(value).replace(/\s/g, "").slice(0, 5);
 }
 
 function formatDateFr(value: unknown) {
@@ -76,11 +80,18 @@ async function fetchOfficialPdf(req: Request) {
   return new Uint8Array(await response.arrayBuffer());
 }
 
-function setFirstAvailableTextField(form: ReturnType<PDFDocument["getForm"]>, names: string[], value: string) {
+function setFirstAvailableTextField(
+  form: ReturnType<PDFDocument["getForm"]>,
+  names: string[],
+  value: string,
+  options: { combed?: boolean } = {},
+) {
   if (!value) return false;
   for (const name of names) {
     try {
-      form.getTextField(name).setText(value);
+      const field = form.getTextField(name);
+      if (options.combed && !field.isCombed()) field.enableCombing();
+      field.setText(value);
       return true;
     } catch {
       // champ absent dans le PDF officiel
@@ -89,46 +100,148 @@ function setFirstAvailableTextField(form: ReturnType<PDFDocument["getForm"]>, na
   return false;
 }
 
-function checkFirstAvailableBox(form: ReturnType<PDFDocument["getForm"]>, names: string[]) {
+function checkFirstAvailableBox(
+  form: ReturnType<PDFDocument["getForm"]>,
+  names: string[],
+) {
   for (const name of names) {
     try {
       form.getCheckBox(name).check();
-      return true;
+      return name;
     } catch {
       // champ absent dans le PDF officiel
     }
   }
-  return false;
+  return null;
+}
+
+type CheckBoxMark = {
+  pageIndex: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
+function collectCheckBoxMarks(
+  pdfDoc: PDFDocument,
+  form: ReturnType<PDFDocument["getForm"]>,
+  fieldNames: string[],
+) {
+  const pages = pdfDoc.getPages();
+  const marks: CheckBoxMark[] = [];
+
+  for (const fieldName of fieldNames) {
+    for (const widget of form.getCheckBox(fieldName).acroField.getWidgets()) {
+      const pageIndex = pages.findIndex((page) => {
+        const annotations = page.node.Annots();
+        if (!annotations) return false;
+
+        for (let index = 0; index < annotations.size(); index++) {
+          const value = annotations.get(index);
+          const annotation =
+            value instanceof PDFRef ? pdfDoc.context.lookup(value) : value;
+          if (annotation === widget.dict) return true;
+        }
+        return false;
+      });
+      const rect = widget.getRectangle();
+      if (pageIndex >= 0) {
+        marks.push({
+          pageIndex,
+          x: rect.x,
+          y: rect.y,
+          width: rect.width,
+          height: rect.height,
+        });
+      }
+    }
+  }
+
+  return marks;
+}
+
+function drawCheckBoxMarks(pdfDoc: PDFDocument, marks: CheckBoxMark[]) {
+  const pages = pdfDoc.getPages();
+
+  // The official PDF uses embedded symbol fonts that some viewers omit.
+  // Vector marks keep checked boxes visible in every PDF renderer.
+  for (const mark of marks) {
+    const page = pages[mark.pageIndex];
+    const thickness = Math.max(
+      1,
+      Math.min(mark.width, mark.height) * 0.13,
+    );
+    const start = {
+      x: mark.x + mark.width * 0.18,
+      y: mark.y + mark.height * 0.48,
+    };
+    const elbow = {
+      x: mark.x + mark.width * 0.42,
+      y: mark.y + mark.height * 0.18,
+    };
+    const end = {
+      x: mark.x + mark.width * 0.82,
+      y: mark.y + mark.height * 0.82,
+    };
+
+    page.drawLine({
+      start,
+      end: elbow,
+      thickness,
+      color: rgb(0, 0, 0),
+    });
+    page.drawLine({
+      start: elbow,
+      end,
+      thickness,
+      color: rgb(0, 0, 0),
+    });
+  }
 }
 
 function tryFillPdfForm(pdfDoc: PDFDocument, payload: Record<string, unknown>) {
   const form = pdfDoc.getForm();
   const fields = form.getFields();
-  if (fields.length === 0) return { filled: false, fields: [] as string[] };
+  if (fields.length === 0) {
+    return { filled: false, fields: [] as string[], checkedBoxes: [] as string[] };
+  }
 
   const fieldNames = fields.map((field) => field.getName());
-  const civ = clean(payload.civilite);
-  const statut = clean(payload.statut);
-  const categorie = clean(payload.categorie);
-  const prelevement = clean(payload.prelevement);
+  const civ = clean(payload.civilite).toLowerCase();
+  const statut = clean(payload.statut).toLowerCase();
+  const categorie = clean(payload.categorie).toLowerCase();
+  const prelevement = clean(payload.prelevement).toLowerCase();
+  const tempPartiel = clean(payload.tempPartiel);
+  const checkedBoxes: string[] = [];
 
   setFirstAvailableTextField(form, ["nom", "Nom", "NOM", "last_name", "lastname"], clean(payload.nom));
   setFirstAvailableTextField(form, ["prenom", "Prénom", "Prenom", "PRENOM", "first_name", "firstname"], clean(payload.prenom));
   setFirstAvailableTextField(form, ["nom_prenom", "NomPrénom", "Nom et prénom", "adherent", "Adhérent"], fullName(payload));
   setFirstAvailableTextField(form, ["entreprise", "Entreprise", "etablissement", "Établissement", "Etablissement"], clean(payload.entreprise));
   setFirstAvailableTextField(form, ["nss", "NSS", "securite_sociale", "Sécurité sociale", "N° sécurité sociale"], clean(payload.nss));
-  setFirstAvailableTextField(form, ["classe", "Classe"], clean(payload.classe));
-  setFirstAvailableTextField(form, ["niveau", "Niveau"], clean(payload.niveau));
+  setFirstAvailableTextField(form, ["text_8kqdx", "classe", "Classe"], clean(payload.classe));
+  setFirstAvailableTextField(form, ["text_9vfss", "niveau", "Niveau"], clean(payload.niveau));
   setFirstAvailableTextField(form, ["profession", "Profession"], clean(payload.profession));
   setFirstAvailableTextField(form, ["adresse_pers", "Adresse personnelle", "adresse", "Adresse"], clean(payload.adresse_pers));
   setFirstAvailableTextField(form, ["adresse_pers2", "Adresse personnelle 2", "adresse2", "Adresse 2"], clean(payload.adresse_pers2));
-  setFirstAvailableTextField(form, ["cp_pers", "Code postal", "CP", "code_postal"], clean(payload.cp_pers));
+  setFirstAvailableTextField(
+    form,
+    ["cp_pers", "Code postal", "CP", "code_postal"],
+    postalCode(payload.cp_pers),
+    { combed: true },
+  );
   setFirstAvailableTextField(form, ["commune_pers", "Commune", "ville", "Ville"], clean(payload.commune_pers));
   setFirstAvailableTextField(form, ["tel_fixe", "Téléphone fixe", "Telephone fixe", "telephone"], clean(payload.tel_fixe));
   setFirstAvailableTextField(form, ["portable", "Mobile", "mobile", "tel_mobile", "Téléphone portable"], clean(payload.portable));
   setFirstAvailableTextField(form, ["mail_pers", "Email", "email", "mail", "Courriel"], clean(payload.mail_pers));
   setFirstAvailableTextField(form, ["adresse_pro", "Adresse professionnelle", "adresse professionnelle"], clean(payload.adresse_pro));
-  setFirstAvailableTextField(form, ["cp_pro", "CP professionnel", "Code postal professionnel"], clean(payload.cp_pro));
+  setFirstAvailableTextField(
+    form,
+    ["cp_pro", "CP professionnel", "Code postal professionnel"],
+    postalCode(payload.cp_pro),
+    { combed: true },
+  );
   setFirstAvailableTextField(form, ["commune_pro", "Commune professionnelle", "Ville professionnelle"], clean(payload.commune_pro));
   setFirstAvailableTextField(form, ["tel_bureau", "Téléphone bureau", "Telephone bureau"], clean(payload.tel_bureau));
   setFirstAvailableTextField(form, ["mail_pro", "Email professionnel", "email professionnel"], clean(payload.mail_pro));
@@ -136,12 +249,18 @@ function tryFillPdfForm(pdfDoc: PDFDocument, payload: Record<string, unknown>) {
   setFirstAvailableTextField(form, ["lieu_debut", "Lieu", "Fait à", "fait_a"], clean(payload.lieu_debut));
   setFirstAvailableTextField(form, ["date_sign", "Date signature", "Fait le", "fait_le"], formatDateFr(payload.date_sign));
 
-  if (civ === "mme") checkFirstAvailableBox(form, ["mme", "Mme", "Madame", "civilite_mme"]);
-  if (civ === "mr") checkFirstAvailableBox(form, ["mr", "M", "Monsieur", "civilite_mr"]);
-  if (statut) checkFirstAvailableBox(form, [statut, `statut_${statut}`]);
-  if (categorie) checkFirstAvailableBox(form, [categorie, `categorie_${categorie}`]);
-  if (prelevement === "oui") checkFirstAvailableBox(form, ["prelevement_oui", "prelevement oui", "oui"]);
-  if (prelevement === "non") checkFirstAvailableBox(form, ["prelevement_non", "prelevement non", "non"]);
+  const checkBox = (names: string[]) => {
+    const checkedName = checkFirstAvailableBox(form, names);
+    if (checkedName) checkedBoxes.push(checkedName);
+  };
+
+  if (civ === "mme") checkBox(["mme", "Mme", "Madame", "civilite_mme"]);
+  if (civ === "mr") checkBox(["mr", "M", "Monsieur", "civilite_mr"]);
+  if (statut) checkBox([statut, `statut_${statut}`]);
+  if (categorie) checkBox([categorie, `categorie_${categorie}`]);
+  if (tempPartiel) checkBox([tempPartiel]);
+  if (prelevement === "oui") checkBox(["prelevement_oui", "prelevement oui", "oui"]);
+  if (prelevement === "non") checkBox(["prelevement_non", "prelevement non", "non"]);
 
   if (payload.sepa) {
     setFirstAvailableTextField(form, ["sepa_nom", "Nom débiteur", "debiteur_nom"], clean(payload.sepa_nom) || fullName(payload));
@@ -155,7 +274,7 @@ function tryFillPdfForm(pdfDoc: PDFDocument, payload: Record<string, unknown>) {
     setFirstAvailableTextField(form, ["sepa_le", "Date mandat", "date_mandat"], formatDateFr(payload.sepa_le));
   }
 
-  return { filled: true, fields: fieldNames };
+  return { filled: true, fields: fieldNames, checkedBoxes };
 }
 
 async function drawFallback(pdfDoc: PDFDocument, payload: Record<string, unknown>) {
@@ -228,16 +347,27 @@ Deno.serve(async (req) => {
     const pdfDoc = await PDFDocument.load(officialPdfBytes, { ignoreEncryption: true, updateMetadata: false });
 
     const formResult = await tryFillPdfForm(pdfDoc, payload);
+    const checkedBoxMarks = formResult.filled
+      ? collectCheckBoxMarks(pdfDoc, pdfDoc.getForm(), formResult.checkedBoxes)
+      : [];
     if (!formResult.filled) {
       await drawFallback(pdfDoc, payload);
     }
 
+    try {
+      pdfDoc.getForm().updateFieldAppearances();
+    } catch (error) {
+      console.warn("Mise a jour des apparences PDF partielle", error);
+    }
+    drawCheckBoxMarks(pdfDoc, checkedBoxMarks);
     await addSignature(pdfDoc, clean(payload.signature_base64) || undefined);
 
-    try {
-      pdfDoc.getForm().flatten();
-    } catch {
-      // PDF non formulaire ou champs non compatibles
+    if (formResult.filled) {
+      // Flattening this QuarkXPress form corrupts cross-reference entries
+      // with pdf-lib. Read-only fields keep the document stable instead.
+      for (const field of pdfDoc.getForm().getFields()) {
+        field.enableReadOnly();
+      }
     }
 
     const pdfBytes = await pdfDoc.save({ useObjectStreams: true, addDefaultPage: false });
