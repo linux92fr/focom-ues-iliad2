@@ -133,7 +133,10 @@ Deno.serve(async (req) => {
         components: [
           {
             type: "body",
-            parameters: [{ type: "text", text: title }, { type: "text", text: url }],
+            parameters: [
+              { type: "text", parameter_name: "title", text: title },
+              { type: "text", parameter_name: "url", text: url },
+            ],
           },
         ],
       },

@@ -24,8 +24,18 @@ Chaque tentative est journalisée dans la table `whatsapp_notifications`.
    `whatsapp_business_messaging` et générer un **token permanent**.
 3. **Modèles de message (templates)** : hors fenêtre de 24 h, Meta exige un modèle
    approuvé. Créer dans Business Manager (WhatsApp → Message Templates) par ex.
-   `nouvelle_actualite` et `nouvel_evenement` avec 2 paramètres texte
-   (`{{1}}` = titre, `{{2}}` = URL), langue `fr`, puis attendre l'approbation.
+   `nouvelle_actualite` et `nouvel_evenement`, langue `fr`, catégorie UTILITY,
+   avec 2 **variables nommées** dans le corps :
+   `{{title}}` = titre, `{{url}}` = lien. Exemple de corps :
+   `Nouvelle actualité FO COM : {{title}} — à lire ici : {{url}}`.
+   Règles de format des variables (sinon rejet immédiat « pas au bon format ») :
+   - **un seul style par template** : nommé (`{{title}}`) OU numéroté (`{{1}}`), jamais mélangé ;
+   - nom en **minuscules + tirets bas uniquement**, entre **doubles accolades**, **sans espace** à l'intérieur ;
+   - variables numérotées sans trou (1, 2, 3…) ; nommées : chaque nom unique ;
+   - **valeur d'exemple obligatoire** pour chaque variable à la création ;
+   - le corps ne doit ni commencer ni finir par une variable, et deux variables
+     ne doivent pas être collées (`{{a}}{{b}}` est rejeté).
+   La fonction envoie les paramètres nommés (`parameter_name: "title"` / `"url"`).
    Pour les tests, le modèle `hello_world` est pré-approuvé (1 paramètre).
    **Catégorie obligatoire : UTILITY (« Utilitaire »)** — jamais MARKETING.
    Meta arrête les messages marketing sur la Cloud API le 13/10/2027 ; les messages
