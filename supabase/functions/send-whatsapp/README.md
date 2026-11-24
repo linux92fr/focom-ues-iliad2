@@ -27,6 +27,11 @@ Chaque tentative est journalisée dans la table `whatsapp_notifications`.
    `nouvelle_actualite` et `nouvel_evenement` avec 2 paramètres texte
    (`{{1}}` = titre, `{{2}}` = URL), langue `fr`, puis attendre l'approbation.
    Pour les tests, le modèle `hello_world` est pré-approuvé (1 paramètre).
+   **Catégorie obligatoire : UTILITY (« Utilitaire »)** — jamais MARKETING.
+   Meta arrête les messages marketing sur la Cloud API le 13/10/2027 ; les messages
+   utility/service (nos notifications) restent supportés indéfiniment. Un contenu
+   promotionnel ferait reclasser le template en marketing et l'envoi échouerait
+   après le sunset (voire avant, en cas de reclassification).
 4. **Secrets Supabase** (dashboard → Project Settings → Edge Functions → Secrets,
    ou `supabase secrets set`) :
    - `WHATSAPP_ACCESS_TOKEN` = token du System User
@@ -40,6 +45,8 @@ Chaque tentative est journalisée dans la table `whatsapp_notifications`.
 ## Garde-fous
 
 - Appel réservé aux rôles `admin, secretaire, representant, redacteur` (vérifié via JWT).
-- Envoi par **modèle approuvé** uniquement (contrainte Meta hors fenêtre 24 h).
+- Envoi par **modèle approuvé de catégorie UTILITY** uniquement (contrainte Meta
+  hors fenêtre 24 h ; les templates MARKETING ne sont plus supportés sur la Cloud
+  API à partir du 13/10/2027).
 - Numéros au format E.164 stockés dans `notification_preferences.whatsapp_number`.
 - Les envois échoués sont tracés dans `whatsapp_notifications` (réponse Graph incluse).
