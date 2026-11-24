@@ -52,16 +52,12 @@ CREATE POLICY "notification_preferences_update_own"
   USING (user_id = auth.uid())
   WITH CHECK (user_id = auth.uid());
 
--- Accès complet pour les admins/modérateurs
+-- Accès complet pour les admins
 DROP POLICY IF EXISTS "notification_preferences_admin" ON public.notification_preferences;
 CREATE POLICY "notification_preferences_admin"
   ON public.notification_preferences FOR ALL
   USING (
-    EXISTS (
-      SELECT 1 FROM public.user_roles
-      WHERE user_id = auth.uid()
-      AND role IN ('admin', 'moderator')
-    )
+    public.has_any_role(auth.uid(), ARRAY['admin']::public.user_role[])
   );
 
 -- Index
