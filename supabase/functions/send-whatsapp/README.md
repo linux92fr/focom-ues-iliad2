@@ -49,7 +49,7 @@ Chaque tentative est journalisée dans la table `whatsapp_notifications`.
    - `WHATSAPP_API_VERSION` = `v22.0` (optionnel, défaut v22.0)
    - `WHATSAPP_TEMPLATE_ARTICLE` = `nouvelle_actualite` (optionnel)
    - `WHATSAPP_TEMPLATE_EVENT` = `nouvel_evenement` (optionnel)
-   - `PUBLIC_SITE_URL` = URL publique du site (ex. `https://beta.focomues-iliad.fr`)
+   - `PUBLIC_SITE_URL` = URL publique du site (`https://focomues-iliad.fr`)
 5. **Déploiement** : `supabase functions deploy send-whatsapp`
 
 ## Garde-fous
