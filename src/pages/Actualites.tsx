@@ -13,6 +13,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Calendar, Search, ArrowRight, Loader2, Newspaper, Mail, Megaphone, Trophy } from "lucide-react";
+import { ShareWhatsAppButton } from "@/components/ShareWhatsAppButton";
+import { buildArticleShareText } from "@/lib/whatsapp";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Article = Tables<"articles">;
@@ -190,12 +192,22 @@ const Actualites = () => {
                     <p className="text-muted-foreground text-sm line-clamp-3 mb-4">
                       {getExcerpt(item)}...
                     </p>
-                    <Link to={`/actualites/${item.slug}`}>
-                      <Button variant="link" className="p-0 h-auto text-primary font-medium group-hover:gap-3 transition-all">
-                        Lire la suite
-                        <ArrowRight className="h-4 w-4 ml-1" />
-                      </Button>
-                    </Link>
+                    <div className="flex items-center gap-2">
+                      <Link to={`/actualites/${item.slug}`}>
+                        <Button variant="link" className="p-0 h-auto text-primary font-medium group-hover:gap-3 transition-all">
+                          Lire la suite
+                          <ArrowRight className="h-4 w-4 ml-1" />
+                        </Button>
+                      </Link>
+                      <ShareWhatsAppButton
+                        size="icon"
+                        className="ml-auto shrink-0"
+                        text={buildArticleShareText(
+                          { title: item.title, excerpt: item.excerpt },
+                          `${window.location.origin}/actualites/${item.slug}`
+                        )}
+                      />
+                    </div>
                   </CardContent>
                 </Card>
               ))}

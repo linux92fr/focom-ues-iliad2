@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
+import { isValidWhatsAppNumber, normalizeWhatsAppNumber } from "@/lib/whatsapp";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,7 +31,11 @@ const Settings = () => {
     emailNotifications: true,
     newsAlerts: true,
     eventReminders: true,
+    whatsappNotifications: false,
+    whatsappNumber: "",
   });
+
+  type BooleanPreferenceKey = "emailNotifications" | "newsAlerts" | "eventReminders" | "whatsappNotifications";
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -37,9 +43,70 @@ const Settings = () => {
     }
   }, [user, authLoading, navigate]);
 
-  const handlePreferenceChange = (key: keyof typeof preferences) => {
-    setPreferences((prev) => ({ ...prev, [key]: !prev[key] }));
+  useEffect(() => {
+    if (!user) return;
+    const loadPreferences = async () => {
+      const { data, error } = await supabase
+        .from("notification_preferences")
+        .select("*")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (!error && data) {
+        setPreferences((prev) => ({
+          ...prev,
+          newsAlerts: data.notify_articles,
+          eventReminders: data.notify_actions,
+          whatsappNotifications: data.notify_whatsapp,
+          whatsappNumber: data.whatsapp_number || "",
+        }));
+      }
+    };
+    loadPreferences();
+  }, [user]);
+
+  const savePreferences = async (next: typeof preferences) => {
+    if (!user) return;
+    const rawNumber = next.whatsappNumber.trim();
+    const numberValid = rawNumber === "" || isValidWhatsAppNumber(rawNumber);
+    const { error } = await supabase.from("notification_preferences").upsert({
+      user_id: user.id,
+      notify_articles: next.newsAlerts,
+      notify_actions: next.eventReminders,
+      notify_whatsapp: next.whatsappNotifications,
+      whatsapp_number:
+        next.whatsappNotifications && numberValid && rawNumber !== ""
+          ? normalizeWhatsAppNumber(rawNumber)
+          : null,
+    });
+    if (error) {
+      toast.error("Erreur lors de l'enregistrement des préférences");
+      return;
+    }
+    if (next.whatsappNotifications && !numberValid) {
+      toast.error("Numéro WhatsApp invalide (format international, ex. +33612345678)");
+      return;
+    }
+    if (next.whatsappNotifications && rawNumber === "") {
+      toast.info("Renseignez votre numéro WhatsApp pour recevoir les notifications");
+      return;
+    }
     toast.success("Préférences mises à jour");
+  };
+
+  const handlePreferenceChange = (key: BooleanPreferenceKey) => {
+    setPreferences((prev) => {
+      const next = { ...prev, [key]: !prev[key] };
+      void savePreferences(next);
+      return next;
+    });
+  };
+
+  const handleWhatsAppNumberChange = (value: string) => {
+    setPreferences((prev) => ({ ...prev, whatsappNumber: value }));
+  };
+
+  const handleWhatsAppNumberBlur = () => {
+    void savePreferences(preferences);
   };
 
   const handleSignOut = async () => {
@@ -129,7 +196,7 @@ const Settings = () => {
                   <div className="space-y-0.5">
                     <Label htmlFor="eventReminders">Rappels d'événements</Label>
                     <p className="text-sm text-muted-foreground">
-                      Recevoir des rappels avant les événements
+                      Recevoir des rappels avant les événements de l'agenda
                     </p>
                   </div>
                   <Switch
@@ -138,6 +205,40 @@ const Settings = () => {
                     onCheckedChange={() => handlePreferenceChange("eventReminders")}
                   />
                 </div>
+
+                <Separator />
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="whatsappNotifications">Notifications WhatsApp</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Recevoir les actualités et l'agenda par WhatsApp
+                    </p>
+                  </div>
+                  <Switch
+                    id="whatsappNotifications"
+                    checked={preferences.whatsappNotifications}
+                    onCheckedChange={() => handlePreferenceChange("whatsappNotifications")}
+                  />
+                </div>
+
+                {preferences.whatsappNotifications && (
+                  <div className="space-y-0.5">
+                    <Label htmlFor="whatsappNumber">Numéro WhatsApp</Label>
+                    <Input
+                      id="whatsappNumber"
+                      type="tel"
+                      inputMode="tel"
+                      placeholder="+33612345678"
+                      value={preferences.whatsappNumber}
+                      onChange={(e) => handleWhatsAppNumberChange(e.target.value)}
+                      onBlur={handleWhatsAppNumberBlur}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Format international requis, ex. +33612345678
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
 

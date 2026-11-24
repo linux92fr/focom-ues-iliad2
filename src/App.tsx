@@ -48,6 +48,7 @@ const Permanences = lazy(() => import("./pages/Permanences"));
 const Sondages = lazy(() => import("./pages/Sondages"));
 const Agenda = lazy(() => import("./pages/Agenda"));
 const Profile = lazy(() => import("./pages/Profile"));
+const SettingsPage = lazy(() => import("./pages/Settings"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const MesDocuments = lazy(() => import("./pages/MesDocuments"));
 const AdminNao2026 = lazy(() => import("./pages/AdminNao2026"));
@@ -146,6 +147,7 @@ function App() {
                       <Route path="/sondages" element={<Sondages />} />
                       <Route path="/agenda" element={<Agenda />} />
                       <Route path="/profil" element={<Profile />} />
+                      <Route path="/parametres" element={<SettingsPage />} />
                       <Route path="/mes-documents" element={<MesDocuments />} />
                       <Route path="/reset-password" element={<ResetPassword />} />
                       <Route path="/auth" element={<Navigate to="/" replace />} />
