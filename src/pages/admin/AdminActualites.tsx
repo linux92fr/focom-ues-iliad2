@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { toast } from "sonner";
-import { Newspaper, Plus, Search, Filter, Trash2, Edit2, Eye, EyeOff } from "lucide-react";
+import { Newspaper, Plus, Search, Filter, Trash2, Edit2, Eye, EyeOff, Send } from "lucide-react";
 import { adminPath } from "@/lib/adminPath";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -65,6 +65,22 @@ export default function AdminActualites() {
       toast.success("Article supprimé");
     },
     onError: () => toast.error("Erreur lors de la suppression"),
+  });
+
+  const notifyWhatsAppMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { data, error } = await supabase.functions.invoke("send-whatsapp", {
+        body: { kind: "article", id },
+      });
+      if (error) throw error;
+      return data as { sent?: number; failed?: number; total?: number } | null;
+    },
+    onSuccess: (data) => {
+      toast.success(
+        `WhatsApp : ${data?.sent ?? 0} envoyé(s), ${data?.failed ?? 0} échec(s) sur ${data?.total ?? 0} abonné(s)`
+      );
+    },
+    onError: () => toast.error("Erreur lors de la notification WhatsApp"),
   });
 
   const handleDelete = (id: string) => {
@@ -192,6 +208,16 @@ export default function AdminActualites() {
                           <Eye className="w-4 h-4" />
                         )}
                       </button>
+                      {article.is_published && (
+                        <button
+                          onClick={() => notifyWhatsAppMutation.mutate(article.id)}
+                          disabled={notifyWhatsAppMutation.isPending}
+                          className="p-1.5 rounded-lg hover:bg-green-50 text-slate-400 hover:text-green-600 transition-colors disabled:opacity-50"
+                          title="Notifier les abonnés WhatsApp"
+                        >
+                          <Send className="w-4 h-4" />
+                        </button>
+                      )}
                       <Link
                         to={`/admin/actualites/${article.id}/editer`}
                         className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
