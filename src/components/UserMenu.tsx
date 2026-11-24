@@ -64,6 +64,11 @@ const UserMenu = () => {
           <span>Mes notifications</span>
         </DropdownMenuItem>
 
+        <DropdownMenuItem onClick={() => navigate("/parametres")}>
+          <Settings className="mr-2 h-4 w-4" />
+          <span>Paramètres</span>
+        </DropdownMenuItem>
+
         <DropdownMenuItem onClick={() => navigate("/profil")}>
           <Lock className="mr-2 h-4 w-4" />
           <span>Changer mon mot de passe</span>

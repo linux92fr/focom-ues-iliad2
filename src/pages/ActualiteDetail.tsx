@@ -8,6 +8,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { PageBreadcrumb } from "@/components/PageBreadcrumb";
 import { ArrowLeft, Calendar, Loader2, Share2 } from "lucide-react";
 import { toast } from "sonner";
+import { ShareWhatsAppButton } from "@/components/ShareWhatsAppButton";
+import { buildArticleShareText } from "@/lib/whatsapp";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Article = Tables<"articles">;
@@ -152,12 +154,21 @@ const ActualiteDetail = () => {
                 dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(article.content || "") }}
               />
 
-              <div className="mt-8 pt-8 border-t flex items-center justify-between">
+              <div className="mt-8 pt-8 border-t flex items-center justify-between gap-2">
                 <span className="text-muted-foreground text-sm">Partagez cette actualité</span>
-                <Button variant="outline" size="sm" onClick={handleShare}>
-                  <Share2 className="h-4 w-4 mr-2" />
-                  Partager
-                </Button>
+                <div className="flex items-center gap-2">
+                  <ShareWhatsAppButton
+                    label="WhatsApp"
+                    text={buildArticleShareText(
+                      { title: article.title, excerpt: article.excerpt },
+                      window.location.href
+                    )}
+                  />
+                  <Button variant="outline" size="sm" onClick={handleShare}>
+                    <Share2 className="h-4 w-4 mr-2" />
+                    Partager
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>

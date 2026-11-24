@@ -10,6 +10,8 @@ import { PortalPageHero } from "@/components/PortalPageHero";
 import { ChevronLeft, ChevronRight, Calendar, CalendarDays, MapPin, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { ShareWhatsAppButton } from "@/components/ShareWhatsAppButton";
+import { buildEventShareText } from "@/lib/whatsapp";
 
 interface Event {
   id: string;
@@ -251,6 +253,14 @@ const Agenda = () => {
                                 <span>{event.location}</span>
                               </div>
                             )}
+                          </div>
+
+                          <div className="mt-3">
+                            <ShareWhatsAppButton
+                              size="sm"
+                              label="WhatsApp"
+                              text={buildEventShareText(event, `${window.location.origin}/agenda`)}
+                            />
                           </div>
                         </div>
                       ))}
