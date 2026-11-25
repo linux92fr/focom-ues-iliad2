@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675" role="img" aria-labelledby="title desc">
+<title id="title">Newsletter Branche Télécom n°6 — novembre 2026</title>
+<desc id="desc">Illustration éditoriale FO COM sur les salaires conventionnels des télécommunications et la formation professionnelle.</desc>
+<defs>
+ <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#13233a"/><stop offset="1" stop-color="#263f5d"/></linearGradient>
+ <linearGradient id="red" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#e33b30"/><stop offset="1" stop-color="#a9161e"/></linearGradient>
+</defs>
+<rect width="1200" height="675" fill="url(#bg)"/>
+<circle cx="1020" cy="110" r="210" fill="#fff" opacity=".045"/><circle cx="1100" cy="580" r="260" fill="#e33b30" opacity=".13"/>
+<path d="M0 520 C240 430 400 650 650 540 S980 440 1200 520 V675 H0Z" fill="#0b1728" opacity=".45"/>
+<g transform="translate(90 86)">
+ <rect width="150" height="48" rx="8" fill="url(#red)"/><text x="75" y="32" font-family="Arial,sans-serif" font-size="26" font-weight="700" fill="#fff" text-anchor="middle">FO COM</text>
+ <text x="0" y="112" fill="#f4f6f8" font-family="Arial,sans-serif" font-size="22" font-weight="700" letter-spacing="4">BRANCHE TÉLÉCOM</text>
+ <text x="0" y="205" fill="#fff" font-family="Arial,sans-serif" font-size="62" font-weight="800">NEWSLETTER N°6</text>
+ <text x="0" y="258" fill="#ff6258" font-family="Arial,sans-serif" font-size="34" font-weight="700">NOVEMBRE 2026</text>
+ <rect x="0" y="300" width="470" height="5" rx="2.5" fill="#e33b30"/>
+ <text x="0" y="358" fill="#fff" font-family="Arial,sans-serif" font-size="30" font-weight="700">MINIMA DE SALAIRES</text>
+ <text x="0" y="402" fill="#d9e1ea" font-family="Arial,sans-serif" font-size="24">2000 € brut mensuel revendiqués</text>
+ <text x="0" y="470" fill="#fff" font-family="Arial,sans-serif" font-size="25" font-weight="700">FORMATION PRO • SFR</text>
+ <text x="0" y="510" fill="#d9e1ea" font-family="Arial,sans-serif" font-size="21">Les salariés au cœur des priorités</text>
+</g>
+<g transform="translate(780 170)">
+ <circle cx="145" cy="125" r="116" fill="#fff" opacity=".08" stroke="#fff" stroke-opacity=".25" stroke-width="3"/>
+ <path d="M145 35 L145 215 M55 125 H235" stroke="#fff" stroke-opacity=".16" stroke-width="3"/>
+ <rect x="95" y="76" width="100" height="98" rx="10" fill="#fff"/>
+ <path d="M110 100 H180 M110 119 H165 M110 138 H176" stroke="#13233a" stroke-width="7" stroke-linecap="round"/>
+ <path d="M117 174 L117 193 L137 181" fill="#fff"/>
+ <path d="M245 65 Q280 100 245 135 M267 42 Q324 100 267 158" fill="none" stroke="#ff6258" stroke-width="9" stroke-linecap="round"/>
+ <path d="M45 195 Q10 160 45 125 M23 218 Q-34 160 23 102" fill="none" stroke="#ff6258" stroke-width="9" stroke-linecap="round"/>
+ <g transform="translate(60 280)">
+  <rect x="0" y="0" width="180" height="118" rx="16" fill="#fff" opacity=".1" stroke="#fff" stroke-opacity=".25"/>
+  <circle cx="54" cy="42" r="19" fill="#ff6258"/>
+  <path d="M25 91 Q54 48 83 91" fill="#ff6258"/>
+  <path d="M105 35 H155 M105 57 H155 M105 79 H145" stroke="#fff" stroke-width="7" stroke-linecap="round"/>
+ </g>
+</g>
+<text x="1090" y="640" text-anchor="end" fill="#d9e1ea" opacity=".7" font-family="Arial,sans-serif" font-size="16">FOCOMUES-ILIAD.FR</text>
+</svg>
