@@ -65,7 +65,7 @@ Deno.serve(async (req) => {
   const accessToken = Deno.env.get("WHATSAPP_ACCESS_TOKEN");
   const phoneNumberId = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID");
   const apiVersion = Deno.env.get("WHATSAPP_API_VERSION") ?? "v22.0";
-  const siteUrl = (Deno.env.get("PUBLIC_SITE_URL") ?? Deno.env.get("SITE_URL") ?? "https://beta.focomues-iliad.fr").replace(/\/+$/, "");
+  const siteUrl = (Deno.env.get("PUBLIC_SITE_URL") ?? Deno.env.get("SITE_URL") ?? "https://focomues-iliad.fr").replace(/\/+$/, "");
   const templateByKind: Record<string, string> = {
     article: Deno.env.get("WHATSAPP_TEMPLATE_ARTICLE") ?? "nouvelle_actualite",
     event: Deno.env.get("WHATSAPP_TEMPLATE_EVENT") ?? "nouvel_evenement",
@@ -133,7 +133,10 @@ Deno.serve(async (req) => {
         components: [
           {
             type: "body",
-            parameters: [{ type: "text", text: title }, { type: "text", text: url }],
+            parameters: [
+              { type: "text", parameter_name: "title", text: title },
+              { type: "text", parameter_name: "url", text: url },
+            ],
           },
         ],
       },
