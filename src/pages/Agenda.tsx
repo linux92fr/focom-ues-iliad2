@@ -47,7 +47,7 @@ const Agenda = () => {
         .from("events")
         .select("*")
         .gte("start_date", format(start, "yyyy-MM-dd"))
-        .lte("start_date", format(end, "yyyy-MM-dd"))
+        .lt("start_date", format(addMonths(start, 1), "yyyy-MM-dd"))
         .eq("is_public", true)
         .order("start_date", { ascending: true });
 
