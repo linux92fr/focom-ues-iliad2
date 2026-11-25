@@ -1,38 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675" role="img" aria-labelledby="title desc">
-<title id="title">Newsletter Branche Télécom n°6 — novembre 2026</title>
-<desc id="desc">Illustration éditoriale FO COM sur les salaires conventionnels des télécommunications et la formation professionnelle.</desc>
-<defs>
- <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#13233a"/><stop offset="1" stop-color="#263f5d"/></linearGradient>
- <linearGradient id="red" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#e33b30"/><stop offset="1" stop-color="#a9161e"/></linearGradient>
-</defs>
-<rect width="1200" height="675" fill="url(#bg)"/>
-<circle cx="1020" cy="110" r="210" fill="#fff" opacity=".045"/><circle cx="1100" cy="580" r="260" fill="#e33b30" opacity=".13"/>
-<path d="M0 520 C240 430 400 650 650 540 S980 440 1200 520 V675 H0Z" fill="#0b1728" opacity=".45"/>
-<g transform="translate(90 86)">
- <rect width="150" height="48" rx="8" fill="url(#red)"/><text x="75" y="32" font-family="Arial,sans-serif" font-size="26" font-weight="700" fill="#fff" text-anchor="middle">FO COM</text>
- <text x="0" y="112" fill="#f4f6f8" font-family="Arial,sans-serif" font-size="22" font-weight="700" letter-spacing="4">BRANCHE TÉLÉCOM</text>
- <text x="0" y="205" fill="#fff" font-family="Arial,sans-serif" font-size="62" font-weight="800">NEWSLETTER N°6</text>
- <text x="0" y="258" fill="#ff6258" font-family="Arial,sans-serif" font-size="34" font-weight="700">NOVEMBRE 2026</text>
- <rect x="0" y="300" width="470" height="5" rx="2.5" fill="#e33b30"/>
- <text x="0" y="358" fill="#fff" font-family="Arial,sans-serif" font-size="30" font-weight="700">MINIMA DE SALAIRES</text>
- <text x="0" y="402" fill="#d9e1ea" font-family="Arial,sans-serif" font-size="24">2000 € brut mensuel revendiqués</text>
- <text x="0" y="470" fill="#fff" font-family="Arial,sans-serif" font-size="25" font-weight="700">FORMATION PRO • SFR</text>
- <text x="0" y="510" fill="#d9e1ea" font-family="Arial,sans-serif" font-size="21">Les salariés au cœur des priorités</text>
-</g>
-<g transform="translate(780 170)">
- <circle cx="145" cy="125" r="116" fill="#fff" opacity=".08" stroke="#fff" stroke-opacity=".25" stroke-width="3"/>
- <path d="M145 35 L145 215 M55 125 H235" stroke="#fff" stroke-opacity=".16" stroke-width="3"/>
- <rect x="95" y="76" width="100" height="98" rx="10" fill="#fff"/>
- <path d="M110 100 H180 M110 119 H165 M110 138 H176" stroke="#13233a" stroke-width="7" stroke-linecap="round"/>
- <path d="M117 174 L117 193 L137 181" fill="#fff"/>
- <path d="M245 65 Q280 100 245 135 M267 42 Q324 100 267 158" fill="none" stroke="#ff6258" stroke-width="9" stroke-linecap="round"/>
- <path d="M45 195 Q10 160 45 125 M23 218 Q-34 160 23 102" fill="none" stroke="#ff6258" stroke-width="9" stroke-linecap="round"/>
- <g transform="translate(60 280)">
-  <rect x="0" y="0" width="180" height="118" rx="16" fill="#fff" opacity=".1" stroke="#fff" stroke-opacity=".25"/>
-  <circle cx="54" cy="42" r="19" fill="#ff6258"/>
-  <path d="M25 91 Q54 48 83 91" fill="#ff6258"/>
-  <path d="M105 35 H155 M105 57 H155 M105 79 H145" stroke="#fff" stroke-width="7" stroke-linecap="round"/>
- </g>
-</g>
-<text x="1090" y="640" text-anchor="end" fill="#d9e1ea" opacity=".7" font-family="Arial,sans-serif" font-size="16">FOCOMUES-ILIAD.FR</text>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1200" height="675" viewBox="0 0 1200 675" role="img" aria-labelledby="title desc">
+<title id="title">Newsletter Branche Télécom n°6 — novembre 2026</title><desc id="desc">Newsletter FO Com sur les minima de salaires et la formation professionnelle.</desc>
+<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#13233a"/><stop offset="1" stop-color="#263f5d"/></linearGradient></defs>
+<rect width="1200" height="675" fill="url(#bg)"/><circle cx="1020" cy="110" r="210" fill="#fff" opacity=".045"/><circle cx="1100" cy="580" r="260" fill="#e33b30" opacity=".13"/><path d="M0 520 C240 430 400 650 650 540 S980 440 1200 520 V675 H0Z" fill="#0b1728" opacity=".45"/>
+<g transform="translate(90 54)"><image xlink:href="data:image/png;base64,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" x="0" y="0" width="112" height="112" preserveAspectRatio="xMidYMid meet"/>
+<text x="0" y="150" fill="#f4f6f8" font-family="Arial,sans-serif" font-size="22" font-weight="700" letter-spacing="4">BRANCHE TÉLÉCOM</text><text x="0" y="235" fill="#fff" font-family="Arial,sans-serif" font-size="62" font-weight="800">NEWSLETTER N°6</text><text x="0" y="288" fill="#ff6258" font-family="Arial,sans-serif" font-size="34" font-weight="700">NOVEMBRE 2026</text><rect x="0" y="330" width="470" height="5" rx="2.5" fill="#e33b30"/><text x="0" y="388" fill="#fff" font-family="Arial,sans-serif" font-size="30" font-weight="700">MINIMA DE SALAIRES</text><text x="0" y="432" fill="#d9e1ea" font-family="Arial,sans-serif" font-size="24">2000 € brut mensuel revendiqués</text><text x="0" y="500" fill="#fff" font-family="Arial,sans-serif" font-size="25" font-weight="700">FORMATION PRO • SFR</text><text x="0" y="540" fill="#d9e1ea" font-family="Arial,sans-serif" font-size="21">Les salariés au cœur des priorités</text></g>
+<g transform="translate(780 170)"><circle cx="145" cy="125" r="116" fill="#fff" opacity=".08" stroke="#fff" stroke-opacity=".25" stroke-width="3"/><path d="M145 35 L145 215 M55 125 H235" stroke="#fff" stroke-opacity=".16" stroke-width="3"/><rect x="95" y="76" width="100" height="98" rx="10" fill="#fff"/><path d="M110 100 H180 M110 119 H165 M110 138 H176" stroke="#13233a" stroke-width="7" stroke-linecap="round"/><path d="M117 174 L117 193 L137 181" fill="#fff"/><path d="M245 65 Q280 100 245 135 M267 42 Q324 100 267 158" fill="none" stroke="#ff6258" stroke-width="9" stroke-linecap="round"/><path d="M45 195 Q10 160 45 125 M23 218 Q-34 160 23 102" fill="none" stroke="#ff6258" stroke-width="9" stroke-linecap="round"/><g transform="translate(60 280)"><rect x="0" y="0" width="180" height="118" rx="16" fill="#fff" opacity=".1" stroke="#fff" stroke-opacity=".25"/><circle cx="54" cy="42" r="19" fill="#ff6258"/><path d="M25 91 Q54 48 83 91" fill="#ff6258"/><path d="M105 35 H155 M105 57 H155 M105 79 H145" stroke="#fff" stroke-width="7" stroke-linecap="round"/></g></g>
+<text x="1090" y="640" text-anchor="end" fill="#d9e1ea" opacity=".7" font-family="Arial,sans-serif" font-size="16">FOCOMUES-ILIAD.FR</text></svg>
