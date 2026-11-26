@@ -623,7 +623,7 @@ body:has(.admin-shell) [role="dialog"] {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .avent-float, .avent-glow, .avent-pop, .avent-shake, .avent-sparkle, .avent-snow, .avent-bulb { animation: none; }
+  .avent-float, .avent-glow, .avent-pop, .avent-shake, .avent-sparkle, .avent-snow, .avent-bulb, .avent-bauble { animation: none; }
 }
 /* ---------- Avent : neige et guirlande ---------- */
 @keyframes snow-fall-avent {
@@ -637,6 +637,12 @@ body:has(.admin-shell) [role="dialog"] {
   background: #ffffff;
   animation: snow-fall-avent linear infinite;
 }
+
+@keyframes bauble-sway-avent {
+  0%, 100% { transform: rotate(-2deg); }
+  50% { transform: rotate(2deg); }
+}
+.avent-bauble { transform-origin: 50% 0; animation: bauble-sway-avent 4.5s ease-in-out infinite; }
 
 @keyframes bulb-twinkle-avent {
   0%, 100% { opacity: 0.6; }

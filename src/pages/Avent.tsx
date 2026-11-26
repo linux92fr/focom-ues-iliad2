@@ -356,6 +356,7 @@ const AVENT_THEMES: AventTheme[] = [
       "--av-halo1": "rgba(212,162,78,0.15)",
       "--av-halo2": "rgba(179,64,47,0.15)",
       "--av-halo3": "rgba(138,90,46,0.15)",
+      "--av-thread": "rgba(212,162,78,0.6)",
       "--av-logo-glow": "rgba(212,162,78,0.35)",
       "--av-paper": "#f6ead3",
       "--av-paper2": "#fbf3e0",
@@ -402,6 +403,7 @@ const AVENT_THEMES: AventTheme[] = [
       "--av-halo1": "rgba(111,182,221,0.15)",
       "--av-halo2": "rgba(79,140,190,0.15)",
       "--av-halo3": "rgba(58,110,160,0.15)",
+      "--av-thread": "rgba(151,205,235,0.6)",
       "--av-logo-glow": "rgba(151,205,235,0.35)",
       "--av-paper": "#eff7fc",
       "--av-paper2": "#f9fcfe",
@@ -448,6 +450,7 @@ const AVENT_THEMES: AventTheme[] = [
       "--av-halo1": "rgba(212,162,78,0.15)",
       "--av-halo2": "rgba(179,64,47,0.15)",
       "--av-halo3": "rgba(74,120,60,0.15)",
+      "--av-thread": "rgba(212,162,78,0.6)",
       "--av-logo-glow": "rgba(212,162,78,0.35)",
       "--av-paper": "#f7f4e8",
       "--av-paper2": "#fdfbf2",
@@ -494,6 +497,7 @@ const AVENT_THEMES: AventTheme[] = [
       "--av-halo1": "rgba(159,125,238,0.15)",
       "--av-halo2": "rgba(139,63,191,0.15)",
       "--av-halo3": "rgba(110,70,180,0.15)",
+      "--av-thread": "rgba(159,125,238,0.6)",
       "--av-logo-glow": "rgba(205,180,245,0.35)",
       "--av-paper": "#f5f0fe",
       "--av-paper2": "#fcf9ff",
@@ -1028,50 +1032,61 @@ export default function Avent() {
                 onClick={() => handleCaseClick(dayNumber)}
                 title={isLocked ? "Ouvre le " + dayNumber + " décembre" : "Jour " + dayNumber}
                 className={
-                  "relative aspect-square rounded-xl overflow-hidden select-none transition-transform duration-150 " +
-                  (isLocked ? "cursor-not-allowed" : "cursor-pointer hover:scale-105 active:scale-95") +
-                  (shakeDay === dayNumber ? " avent-shake" : "") +
-                  (isToday ? " avent-glow ring-2 ring-[var(--av-accent)]" : "")
+                  "relative aspect-square select-none " +
+                  (isLocked ? "cursor-not-allowed" : "cursor-pointer") +
+                  (shakeDay === dayNumber ? " avent-shake" : "")
                 }
               >
-                {/* Papier cadeau */}
                 <span
-                  className={
-                    "absolute inset-0 " +
-                    (isRed
-                      ? "bg-gradient-to-br from-[var(--av-gift1)] to-[var(--av-gift1-deep)]"
-                      : "bg-gradient-to-br from-[var(--av-gift2)] to-[var(--av-gift2-deep)]")
-                  }
-                />
-                <span className={"absolute left-1/2 top-0 bottom-0 w-2 -translate-x-1/2 " + (isRed ? "bg-[var(--av-ribbon1)]" : "bg-[var(--av-ribbon2)]")} />
-                <span className={"absolute top-1/2 left-0 right-0 h-2 -translate-y-1/2 " + (isRed ? "bg-[var(--av-ribbon1)]" : "bg-[var(--av-ribbon2)]")} />
-                <span
-                  className={
-                    "relative text-lg font-extrabold drop-shadow " +
-                    (isRed ? "text-[var(--av-gift1-ink)]" : "text-[var(--av-gift2-ink)]")
-                  }
+                  className="avent-bauble relative flex h-full flex-col items-center"
+                  style={{ animationDelay: (dayNumber % 5) * 0.9 + "s" }}
                 >
-                  {dayNumber}
-                </span>
-
-                {/* Case jouée */}
-                {isPlayed && (
+                  {/* Fil de suspension */}
+                  <span className="h-[9%] w-[2px] bg-[var(--av-thread)]" />
+                  {/* Attache dorée */}
+                  <span className="-mt-px h-[6%] w-[20%] rounded-t-[4px] rounded-b-sm bg-[var(--av-accent2)]" />
+                  {/* Boule */}
                   <span
                     className={
-                      "absolute top-1 right-1 w-4 h-4 rounded-full text-[9px] font-bold flex items-center justify-center " +
-                      (isCorrect ? "bg-emerald-500 text-white" : "bg-[var(--av-card-border)] text-[var(--av-accent)]")
+                      "relative -mt-[2px] flex aspect-square w-[78%] items-center justify-center overflow-hidden rounded-full shadow-md transition-transform duration-150 " +
+                      (isRed
+                        ? "bg-gradient-to-br from-[var(--av-gift1)] to-[var(--av-gift1-deep)]"
+                        : "bg-gradient-to-br from-[var(--av-gift2)] to-[var(--av-gift2-deep)]") +
+                      (isLocked ? "" : "hover:scale-105 active:scale-95") +
+                      (isToday ? " avent-glow ring-2 ring-[var(--av-accent)]" : "")
                     }
                   >
-                    {"\u2713"}
-                  </span>
-                )}
+                    {/* Reflet */}
+                    <span className="absolute left-[16%] top-[12%] h-[24%] w-[24%] rounded-full bg-white/25 blur-[2px]" />
+                    <span
+                      className={
+                        "relative text-lg font-extrabold drop-shadow " +
+                        (isRed ? "text-[var(--av-gift1-ink)]" : "text-[var(--av-gift2-ink)]")
+                      }
+                    >
+                      {dayNumber}
+                    </span>
 
-                {/* Verrou */}
-                {isLocked && (
-                  <span className="absolute inset-0 bg-[var(--av-lock)] flex items-center justify-center">
-                    <Lock className="w-4 h-4 text-[var(--av-lock-icon)]" />
+                    {/* Case jouée */}
+                    {isPlayed && (
+                      <span
+                        className={
+                          "absolute top-1 right-1 w-4 h-4 rounded-full text-[9px] font-bold flex items-center justify-center " +
+                          (isCorrect ? "bg-emerald-500 text-white" : "bg-[var(--av-card-border)] text-[var(--av-accent)]")
+                        }
+                      >
+                        {"\u2713"}
+                      </span>
+                    )}
+
+                    {/* Verrou */}
+                    {isLocked && (
+                      <span className="absolute inset-0 bg-[var(--av-lock)] flex items-center justify-center">
+                        <Lock className="w-4 h-4 text-[var(--av-lock-icon)]" />
+                      </span>
+                    )}
                   </span>
-                )}
+                </span>
               </button>
             );
           })}
