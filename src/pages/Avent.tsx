@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { X, Lock, Sparkles, Flame, Trophy, Mail } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 // ---------------------------------------------------------------------------
 // Calendrier de l'Avent FO COM UES Iliad — décembre 2026
 // Un quiz par jour (code du travail et syndicalisme) + une surprise.
-// Progression mémorisée en localStorage : aucun compte requis.
+// Progression enregistrée côté serveur via un identifiant anonyme : aucun compte requis.
 // Chaque case se déverrouille le jour venu (heure de Paris) ; les jours
 // passés restent ouverts pour permettre le rattrapage.
 // ---------------------------------------------------------------------------
@@ -318,6 +319,23 @@ const ADVENT_DAYS: AdventDay[] = [
 ];
 
 const STORAGE_KEY = "avent_focom_2026";
+const PLAYER_ID_KEY = "avent_player_id";
+
+function loadPlayerId(): string {
+  try {
+    const existing = localStorage.getItem(PLAYER_ID_KEY);
+    if (existing && existing.length >= 8) return existing;
+    const fresh =
+      typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+        ? crypto.randomUUID()
+        : "p-" + Math.random().toString(36).slice(2) + "-" + Date.now().toString(36);
+    localStorage.setItem(PLAYER_ID_KEY, fresh);
+    return fresh;
+  } catch {
+    // stockage indisponible : identifiant de session en mémoire
+    return "anon-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2);
+  }
+}
 const ADVENT_DEADLINE = new Date("2026-12-01T00:00:00+01:00").getTime();
 const AVENT_FUNCTION_URL = (import.meta.env.VITE_SUPABASE_URL ?? "") + "/functions/v1/avent-reminder";
 
@@ -569,6 +587,34 @@ function Snowfall() {
 
 export default function Avent() {
   const [played, setPlayed] = useState<PlayedMap>(() => loadProgress());
+  const [playerId] = useState<string>(() => loadPlayerId());
+  const [serverToday, setServerToday] = useState<number | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    supabase
+      .rpc("avent_state", { p_player_id: playerId })
+      .then((res) => {
+        const data = res.data;
+        if (cancelled || res.error || !data || typeof data.today !== "number") return;
+        setServerToday(data.today);
+        const remote = data.played;
+        if (remote && typeof remote === "object" && !Array.isArray(remote)) {
+          setPlayed(remote as PlayedMap);
+          try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(remote));
+          } catch {
+            // cache local indisponible
+          }
+        }
+      })
+      .catch(() => {
+        // hors ligne : repli sur l horloge locale du navigateur
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [playerId]);
   const [openDay, setOpenDay] = useState<number | null>(null);
   const [shakeDay, setShakeDay] = useState<number | null>(null);
   const [reminderEmail, setReminderEmail] = useState("");
@@ -639,34 +685,58 @@ export default function Avent() {
     return () => clearInterval(timer);
   }, []);
 
-  const unlocked = unlockedDayCount();
+  const unlocked = serverToday !== null ? Math.min(24, serverToday) : unlockedDayCount();
   const score = scoreOf(played);
   const bestRun = bestRunOf(played);
   const playedCount = Object.keys(played).length;
   const beforeStart = unlocked === 0;
 
   const onResult = (day: number, correct: boolean) => {
-    setPlayed((prev) => {
-      if (String(day) in prev) return prev;
-      const next = { ...prev, [String(day)]: correct };
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-      } catch {
-        // progression conservée en mémoire seulement
-      }
-      return next;
-    });
+    const applyLocal = () => {
+      setPlayed((prev) => {
+        if (String(day) in prev) return prev;
+        const next = { ...prev, [String(day)]: correct };
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+        } catch {
+          // progression conservée en mémoire seulement
+        }
+        return next;
+      });
+    };
+    // Enregistrement côté serveur : seule l'heure du serveur fait foi
+    supabase
+      .rpc("avent_play", { p_player_id: playerId, p_day: day, p_correct: correct })
+      .then((res) => {
+        const data = res.data;
+        if (res.error || !data || data.ok !== true) {
+          applyLocal();
+          return;
+        }
+        setPlayed((prev) => {
+          const next = { ...prev, [String(day)]: data.correct === true };
+          try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+          } catch {
+            // progression conservée en mémoire seulement
+          }
+          return next;
+        });
+      })
+      .catch(applyLocal);
   };
 
   const resetProgress = () => {
-    if (window.confirm("Effacer votre progression du calendrier de l'Avent ?")) {
+    if (!window.confirm("Effacer votre progression du calendrier de l'Avent ?")) return;
+    const wipe = () => {
       try {
         localStorage.removeItem(STORAGE_KEY);
       } catch {
         // rien à faire
       }
       setPlayed({});
-    }
+    };
+    supabase.rpc("avent_reset", { p_player_id: playerId }).then(wipe).catch(wipe);
   };
 
   const handleCaseClick = (day: number) => {
@@ -901,7 +971,7 @@ export default function Avent() {
 
         {/* Pied de page */}
         <p className="mt-8 text-center text-[11px] text-[var(--av-faint)]">
-          Progression enregistrée dans votre navigateur — aucun compte requis. Le jour 24 vaut double.
+          Progression enregistrée côté serveur (joueur anonyme) — aucun compte requis. Le jour 24 vaut double.
         </p>
         <div className="mt-2 text-center">
           <button
