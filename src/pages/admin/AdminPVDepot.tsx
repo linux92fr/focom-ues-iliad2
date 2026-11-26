@@ -98,6 +98,27 @@ async function fetchIndexedMap(): Promise<Record<string, number>> {
   return map;
 }
 
+// Fichiers posés à la racine du bucket dont une copie identique existe dans les
+// dossiers typés. Vérifié le 26/11/2026 par nom normalisé (suffixes de hachage
+// ignorés), empreinte du texte indexé et similarité trigram (> 0,9 uniquement).
+const ROOT_DUPLICATES: { path: string; twin: string }[] = [
+  { path: "2021_03_11_Accord_temps_de_travail_1d07703add.pdf", twin: "Accord/2021_03_11_Accord_temps_de_travail_1d07703add.pdf" },
+  { path: "2022_9_02_accord_dialogue_social_UES_Iliad_80e633537c.pdf", twin: "Accord/2022_9_02_accord_dialogue_social_UES_Iliad.pdf" },
+  { path: "20220802_Avenant_accord_temps_de_travail_8085fd3e87.pdf", twin: "Accord/20220802_Avenant_accord_temps_de_travail_8085fd3e87.pdf" },
+  { path: "20230408_UES_Iliad_Proces_verbal_de_desaccord_NAO_b415d26cb5.pdf", twin: "Accord/20230408_UES_Iliad_Proces_verbal_de_desaccord_NAO_b415d26cb5.pdf" },
+  { path: "20230911_UES_Iliad_Accord_temps_de_travail_avenant_2_681a3683b9.pdf", twin: "Accord/20230911_UES_Iliad_Accord_temps_de_travail_avenant_2_681a3683b9.pdf" },
+  { path: "2024_06_26_Accord_NAO_UES_ILIAD_5dffd9c1eb.pdf", twin: "Accord/2024_06_26_Accord_NAO_UES_ILIAD.pdf" },
+  { path: "2023_UES_Iliad_Accord_Handicap_c25feb352a.pdf", twin: "Accord/Accord_Handicap_2023_UES_ILIAD.pdf" },
+  { path: "2022_UES_Iliad_Accord_NAO_b938269135.pdf", twin: "Accord/2022_Accord_NAO_UES_ILIAD.pdf" },
+  { path: "Accord_GPEC_a26d310717.pdf", twin: "Accord/Accord_GPEC.pdf" },
+  { path: "Accord_Groupe_Iliad_-_Egalite_professionnelle_et_qualite_de_vie_au_travail.pdf", twin: "Accord/Accord_Groupe_Iliad_-_Egalite_professionnelle_et_qualite_de_vie_au_travail.pdf" },
+  { path: "Accord_Regime_des_Inventions_de_Salaries_2017_12_19_5cf94d8a30.pdf", twin: "Accord/Accord_Regime_des_Inventions_de_Salaries_2017_12_19.pdf" },
+  { path: "Charte_Teletravail_Formulaire_Adhesion_0353d1e75f.pdf", twin: "Accord/Charte_Teletravail_Formulaire_Adhesion_0353d1e75f.pdf" },
+  { path: "Charte_teletravail_0a6b0cd370.pdf", twin: "Accord/CHARTE_SUR_LE_TELETRAVAIL_UESILIAD.pdf" },
+  { path: "VF_signee_28_05_2025_Projet_Accord_NAO_UES_ILIAD_2025_31464150d3_3aecdb8036.pdf", twin: "Accord/VF_signee_28_05_2025_Projet_Accord_NAO_UES_ILIAD_20253.pdf" },
+  { path: "PV_REUNION_ORDINIARE_CSE_DU_24_FEVRIER_2022.pdf", twin: "CSE/2022/2022_02_24_Proces_Verbal_CSE_Iliad_316073f819.pdf" },
+];
+
 function AdminPVDepotContent() {
   const [files, setFiles] = useState<StoredFile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -107,6 +128,7 @@ function AdminPVDepotContent() {
   const [selectedYear, setSelectedYear] = useState(String(CURRENT_YEAR));
   const [currentFolder, setCurrentFolder] = useState<string | null>(null);
   const [cleaningOrphans, setCleaningOrphans] = useState(false);
+  const [purgingDuplicates, setPurgingDuplicates] = useState(false);
 
   React.useEffect(() => {
     loadFiles();
@@ -421,6 +443,27 @@ function AdminPVDepotContent() {
     }
   };
 
+  const purgeRootDuplicates = async () => {
+    if (!confirm(`Supprimer les ${ROOT_DUPLICATES.length} doublons de la racine ?\n\nUne copie identique existe déjà dans les dossiers typés (Accord/, CSE/...). Fichiers et index seront supprimés.`)) return;
+    setPurgingDuplicates(true);
+    let deleted = 0;
+    try {
+      const paths = ROOT_DUPLICATES.map((d) => d.path);
+      const { error: removeError } = await supabase.storage.from("pv-documents").remove(paths);
+      if (removeError) throw removeError;
+      for (const path of paths) {
+        await supabase.from("pv_documents").delete().eq("filename", path);
+        deleted++;
+      }
+      toast.success(`${deleted} doublon(s) racine supprimé(s) — fichiers et index nettoyés.`);
+      await loadFiles();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erreur pendant la purge des doublons");
+    } finally {
+      setPurgingDuplicates(false);
+    }
+  };
+
   const deleteFile = async (filePath: string) => {
     if (!confirm(`Supprimer ce fichier et ses données d'indexation ?`)) return;
     await supabase.storage.from("pv-documents").remove([filePath]);
@@ -569,6 +612,17 @@ function AdminPVDepotContent() {
                 Tout ré-indexer ({nonIndexed.length})
               </Button>
             )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={purgeRootDuplicates}
+              disabled={purgingDuplicates || loading}
+              className="text-xs text-red-700 border-red-300 hover:bg-red-50"
+              title="Supprime les fichiers de la racine du bucket dont une copie identique existe déjà dans les dossiers typés (analyse du 26/11/2026)"
+            >
+              {purgingDuplicates ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Trash2 className="w-3 h-3 mr-1" />}
+              Purger les doublons racine ({ROOT_DUPLICATES.length})
+            </Button>
             <Button
               variant="outline"
               size="sm"
