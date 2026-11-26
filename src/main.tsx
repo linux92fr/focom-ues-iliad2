@@ -1,6 +1,7 @@
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
+import "./lib/external";
 
 // Diagnostic temporaire et opt-in : ajouter ?perf-debug=1 à l'URL.
 // Les tâches longues (> 50 ms) sont alors signalées dans la console,
