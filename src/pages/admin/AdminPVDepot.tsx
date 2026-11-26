@@ -67,6 +67,27 @@ function letterDensity(text: string): number {
   return (text.match(/[A-Za-zÀ-ÿ]/g) ?? []).length / text.length;
 }
 
+type OcrConfig = { deg: number; binarize: boolean };
+
+// Mots-outils français les plus courants : un OCR réussi en reconnaît
+// forcément une bonne partie, un OCR perdu n'en produit presque jamais.
+// Les accents sont retirés avant comparaison (l'OCR les omet souvent).
+const FRENCH_STOPWORDS = [
+  "le", "la", "les", "de", "des", "du", "et", "en", "est", "un", "une",
+  "pour", "dans", "par", "sur", "que", "qui", "au", "aux", "pas", "plus",
+  "avec", "ont", "ete", "nous", "vous", "cette", "sont", "leur", "mais",
+  "etre", "ainsi", "dont", "chez", "sans", "sous", "entre", "apres", "avant",
+];
+
+function stripAccents(s: string): string {
+  return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+function frenchHits(text: string): number {
+  const set = new Set(stripAccents(text.toLowerCase()).split(/[^a-z]+/));
+  return FRENCH_STOPWORDS.filter((w) => set.has(w)).length;
+}
+
 // Comptage des sections indexées par fichier.
 // L'API Supabase plafonne les réponses à 1000 lignes : la requête directe sur
 // pv_documents ne renvoie qu'une fraction des 10 000+ sections. On passe par
@@ -227,16 +248,88 @@ function AdminPVDepotContent() {
     return pages.join("\n").trim();
   };
 
+  // Nettoie l'image rendue pour l'OCR : niveaux de gris puis étirement de
+  // contraste (fonds gris de fax), ou binarisation par seuil d'Otsu.
+  const enhanceCanvas = (
+    ctx: CanvasRenderingContext2D,
+    width: number,
+    height: number,
+    binarize: boolean
+  ) => {
+    const img = ctx.getImageData(0, 0, width, height);
+    const d = img.data;
+    const total = width * height;
+    const hist = new Array(256).fill(0);
+    for (let i = 0; i < d.length; i += 4) {
+      const g = (d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114) | 0;
+      d[i] = d[i + 1] = d[i + 2] = g;
+      hist[g]++;
+    }
+    if (binarize) {
+      let sum = 0;
+      for (let v = 0; v < 256; v++) sum += v * hist[v];
+      let sumB = 0;
+      let wB = 0;
+      let best = -1;
+      let threshold = 128;
+      for (let v = 0; v < 256; v++) {
+        wB += hist[v];
+        if (wB === 0) continue;
+        const wF = total - wB;
+        if (wF === 0) break;
+        sumB += v * hist[v];
+        const mB = sumB / wB;
+        const mF = (sum - sumB) / wF;
+        const between = wB * wF * (mB - mF) * (mB - mF);
+        if (between > best) { best = between; threshold = v; }
+      }
+      for (let i = 0; i < d.length; i += 4) {
+        d[i] = d[i + 1] = d[i + 2] = d[i] <= threshold ? 0 : 255;
+      }
+    } else {
+      let lo = 0;
+      let hi = 255;
+      let acc = 0;
+      for (let v = 0; v < 256; v++) { acc += hist[v]; if (acc >= total * 0.02) { lo = v; break; } }
+      acc = 0;
+      for (let v = 0; v < 256; v++) { acc += hist[v]; if (acc >= total * 0.98) { hi = v; break; } }
+      const range = Math.max(1, hi - lo);
+      for (let i = 0; i < d.length; i += 4) {
+        const g = Math.max(0, Math.min(255, ((d[i] - lo) * 255) / range));
+        d[i] = d[i + 1] = d[i + 2] = g;
+      }
+    }
+    ctx.putImageData(img, 0, 0);
+  };
+
+  // Rend la page en visant ~2400 px de large (≈ 290 DPI pour un A4) au lieu
+  // d'un agrandissement fixe x2, nettoie l'image, puis la pivote si besoin
+  // (les scans insérés de côté ou à l'envers sont ainsi reconnus).
   const ocrPage = async (
     worker: Awaited<ReturnType<typeof createWorker>>,
-    page: pdfjsLib.PDFPageProxy
+    page: pdfjsLib.PDFPageProxy,
+    cfg: OcrConfig
   ): Promise<string> => {
-    const viewport = page.getViewport({ scale: 2 });
-    const canvas = document.createElement("canvas");
-    canvas.width = viewport.width;
-    canvas.height = viewport.height;
-    const ctx = canvas.getContext("2d")!;
-    await page.render({ canvasContext: ctx as any, viewport }).promise;
+    const base = page.getViewport({ scale: 1 });
+    const scale = Math.min(4, Math.max(2, 2400 / base.width));
+    const viewport = page.getViewport({ scale });
+    const src = document.createElement("canvas");
+    src.width = viewport.width;
+    src.height = viewport.height;
+    const sctx = src.getContext("2d")!;
+    await page.render({ canvasContext: sctx as any, viewport }).promise;
+    enhanceCanvas(sctx, src.width, src.height, cfg.binarize);
+    let canvas = src;
+    if (cfg.deg) {
+      const rotated = document.createElement("canvas");
+      rotated.width = cfg.deg % 180 === 0 ? src.width : src.height;
+      rotated.height = cfg.deg % 180 === 0 ? src.height : src.width;
+      const rctx = rotated.getContext("2d")!;
+      rctx.translate(rotated.width / 2, rotated.height / 2);
+      rctx.rotate((cfg.deg * Math.PI) / 180);
+      rctx.drawImage(src, -src.width / 2, -src.height / 2);
+      canvas = rotated;
+    }
     const { data } = await worker.recognize(canvas);
     return data.text;
   };
@@ -268,19 +361,47 @@ function AdminPVDepotContent() {
         },
       });
 
+      // Calibrage sur la première page : on teste 4 orientations x 2
+      // traitements d'image et on garde la combinaison qui produit le texte
+      // le plus vraisemblable. Sortie immédiate si la lecture est nette.
+      const configs: OcrConfig[] = [
+        { deg: 0, binarize: false },
+        { deg: 0, binarize: true },
+        { deg: 90, binarize: false },
+        { deg: 90, binarize: true },
+        { deg: 180, binarize: false },
+        { deg: 180, binarize: true },
+        { deg: 270, binarize: false },
+        { deg: 270, binarize: true },
+      ];
+      const score = (t: string): number => frenchHits(t) * Math.log10(Math.max(10, t.length));
+      let best = configs[0];
+      let bestScore = -1;
+      const page1 = await pdf.getPage(1);
+      for (let c = 0; c < configs.length; c++) {
+        const cfg = configs[c];
+        onProgress(`Calibrage OCR ${c + 1}/${configs.length} (orientation ${cfg.deg}°${cfg.binarize ? ", binaire" : ""})...`);
+        const sample = await ocrPage(worker, page1, cfg);
+        const s = score(sample);
+        if (s > bestScore) { bestScore = s; best = cfg; }
+        if (c === 0 && frenchHits(sample) >= 15 && sample.length >= 300) break;
+      }
+      console.log(`[OCR] calibrage retenu : orientation ${best.deg}°, binarisation=${best.binarize}, score=${bestScore.toFixed(1)}`);
+
       const texts: string[] = [];
       for (let i = 1; i <= pdf.numPages; i++) {
         onProgress(`OCR page ${i}/${pdf.numPages}...`);
         const page = await pdf.getPage(i);
-        texts.push(await ocrPage(worker, page));
+        texts.push(await ocrPage(worker, page, best));
       }
 
       const text = texts.join("\n").trim();
       const ocrDensity = letterDensity(text);
-      console.log(`[OCR] texte extrait : ${text.length} caractères, densité de lettres ${(ocrDensity * 100).toFixed(0)} %`);
+      const hits = frenchHits(text);
+      console.log(`[OCR] texte extrait : ${text.length} caractères, densité de lettres ${(ocrDensity * 100).toFixed(0)} %, mots-outils reconnus ${hits}`);
       if (text.length < 50) throw new Error(`OCR échoué — seulement ${text.length} caractères reconnus`);
-      if (ocrDensity < 0.3) {
-        throw new Error("OCR illisible — le document est probablement une image de trop mauvaise qualité pour être indexé");
+      if (ocrDensity < 0.3 || hits < 6) {
+        throw new Error("OCR illisible — le document est probablement une image de trop mauvaise qualité pour être indexé. Rescannez-le en 300 DPI ou fournissez un PDF contenant déjà le texte.");
       }
       return { text, usedOcr: true };
     } finally {
