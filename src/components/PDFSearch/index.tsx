@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, AlertCircle, FileText, Mic, Download, Lock } from "lucide-react";
+import { Loader2, FileText, Download, Lock, X, SearchX } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import AuthModal from "@/components/AuthModal";
 import logoFocom from "@/assets/logo-focom.png";
@@ -36,6 +35,25 @@ const TYPE_STYLES: Record<string, string> = {
   Autre: "bg-slate-100 text-slate-600",
 };
 
+/* Couleur de la puce de filtre active (un jeu par type). */
+const TYPE_CHIP_ACTIVE: Record<string, string> = {
+  Tous: "bg-[#13233a] text-white",
+  CSE: "bg-blue-600 text-white",
+  CSSCT: "bg-amber-500 text-white",
+  NAO: "bg-purple-600 text-white",
+  Accord: "bg-emerald-600 text-white",
+  Autre: "bg-slate-500 text-white",
+};
+
+/* Couleur de l'accent latéral des cartes de résultats. */
+const TYPE_ACCENT: Record<string, string> = {
+  CSE: "#2563eb",
+  CSSCT: "#f59e0b",
+  NAO: "#9333ea",
+  Accord: "#059669",
+  Autre: "#94a3b8",
+};
+
 function TypeChips({
   value,
   onChange,
@@ -56,10 +74,10 @@ function TypeChips({
             onPick?.(t);
           }}
           className={
-            "px-2.5 py-1 rounded-full text-xs font-medium transition-colors " +
+            "px-3 py-1 rounded-full text-xs font-medium transition-all " +
             (value === t
-              ? "bg-slate-800 text-white"
-              : "bg-slate-100 text-slate-600 hover:bg-slate-200")
+              ? (TYPE_CHIP_ACTIVE[t] ?? "bg-slate-800 text-white") + " shadow-sm"
+              : "bg-white text-slate-600 border border-slate-200 hover:border-slate-400 hover:text-slate-900")
           }
         >
           {t}
@@ -174,6 +192,8 @@ export function PVSearchPage() {
   const [typeFilter, setTypeFilter] = useState("Tous");
   const [accessCode, setAccessCode] = useState(() => localStorage.getItem("pv_access_code") ?? "");
   const [codeInput, setCodeInput] = useState("");
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [docCount, setDocCount] = useState<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -185,6 +205,44 @@ export function PVSearchPage() {
     });
     return () => subscription.unsubscribe();
   }, []);
+
+  // Nombre de documents indexés, affiché sur l'accueil (best effort).
+  useEffect(() => {
+    supabase
+      .rpc("pv_document_chunk_counts")
+      .then((res) => {
+        const data = (res as { data?: unknown }).data;
+        if (Array.isArray(data)) setDocCount(data.length);
+      })
+      .catch(() => {});
+  }, []);
+
+  // Raccourci clavier « / » pour focaliser la barre de recherche.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const typing =
+        !!target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable);
+      if (e.key === "/" && !typing) {
+        e.preventDefault();
+        inputRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  const toggleExpanded = (filename: string) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(filename)) next.delete(filename);
+      else next.add(filename);
+      return next;
+    });
+  };
 
   const downloadFile = async (filename: string) => {
     if (isAuthenticated) {
@@ -245,6 +303,7 @@ export function PVSearchPage() {
       const data = await resp.json();
       if (!resp.ok) throw new Error(data.error ?? "Erreur serveur");
       setResults(data.results ?? []);
+      setExpanded(new Set());
     } catch {
       const words = getSearchWords(term);
       const fallbackResults = new Map<string, SearchResult>();
@@ -295,17 +354,12 @@ export function PVSearchPage() {
       }
 
       setResults(Array.from(fallbackResults.values()).slice(0, 15));
+    setExpanded(new Set());
     }
 
     setSubmitted(term);
     setIsSearching(false);
     setSearched(true);
-  };
-
-  const handleLucky = async () => {
-    const q = query.trim();
-    if (!q) return;
-    await handleSearch(q);
   };
 
   const grouped = results.reduce((acc: Record<string, SearchResult[]>, r) => {
@@ -314,19 +368,36 @@ export function PVSearchPage() {
   }, {});
 
   const hasPvResults = results.length > 0;
-  const showResults = searched && submitted;
+  const showResults = !!submitted && (searched || isSearching);
 
   if (!showResults) {
     return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center pb-20">
+      <div className="relative min-h-screen bg-[#f6f8fb] flex flex-col items-center justify-center pb-20 overflow-hidden">
+        <AuthModal open={authModalOpen} onOpenChange={setAuthModalOpen} />
+
+        {/* Halos de marque */}
+        <div className="pointer-events-none absolute -top-48 -left-40 w-[34rem] h-[34rem] rounded-full bg-[#dc2626]/15 blur-3xl" aria-hidden="true" />
+        <div className="pointer-events-none absolute -bottom-52 -right-36 w-[36rem] h-[36rem] rounded-full bg-[#0d9488]/15 blur-3xl" aria-hidden="true" />
+
         {/* Logo */}
-        <div className="mb-6">
-          <BrandLogo className="w-48 h-48 object-contain drop-shadow-lg" />
+        <div className="relative mb-5">
+          <BrandLogo className="w-44 h-44 object-contain drop-shadow-xl" />
         </div>
 
+        {/* Titre */}
+        <h1 className="relative text-3xl md:text-4xl text-[#0f172a] text-center px-4 tracking-tight">
+          Rechercher dans les <span className="text-[#dc2626]">PV</span> et{" "}
+          <span className="text-[#0d9488]">accords</span>
+        </h1>
+        <p className="relative mt-2 text-sm md:text-base text-slate-500 text-center px-4 max-w-xl">
+          {docCount !== null
+            ? docCount + " documents indexés · PV et accords de l'UES Iliad"
+            : "Moteur de recherche des PV et accords de l'UES Iliad"}
+        </p>
+
         {/* Barre de recherche */}
-        <div className="w-full max-w-[584px] px-4">
-          <div className="flex items-center gap-3 border border-slate-300 rounded-full px-5 py-3 shadow-sm hover:shadow-md transition-shadow bg-white focus-within:shadow-md focus-within:border-slate-400">
+        <div className="relative w-full max-w-[656px] px-4 mt-7">
+          <div className="flex items-center gap-2 border border-slate-200 rounded-full pl-5 pr-1.5 py-1.5 shadow-lg shadow-slate-900/5 transition-all bg-white focus-within:shadow-xl focus-within:shadow-red-600/10 focus-within:border-red-300">
             <svg viewBox="0 0 24 24" className="w-5 h-5 text-slate-400 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
@@ -337,45 +408,51 @@ export function PVSearchPage() {
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSearch()}
               placeholder="Rechercher dans les PV FO COM..."
-              className="flex-1 outline-none text-slate-800 placeholder-slate-400 bg-transparent text-base"
+              className="flex-1 min-w-0 outline-none text-slate-800 placeholder-slate-400 bg-transparent text-base py-2"
               autoFocus
+              aria-label="Rechercher dans les PV FO COM"
             />
-            <button
-              className="text-blue-500 hover:text-blue-700 transition-colors shrink-0"
-              title="Recherche vocale"
-              tabIndex={-1}
-            >
-              <Mic className="w-5 h-5" />
-            </button>
-          </div>
-
-          {/* Boutons */}
-          <div className="flex gap-3 justify-center mt-7">
+            {query && (
+              <button
+                onClick={() => {
+                  setQuery("");
+                  inputRef.current?.focus();
+                }}
+                className="p-1.5 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors shrink-0"
+                title="Effacer"
+                aria-label="Effacer la recherche"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
             <button
               onClick={() => handleSearch()}
               disabled={isSearching || !query.trim()}
-              className="px-5 py-2 bg-[#f8f9fa] text-slate-700 text-sm rounded border border-transparent hover:border-slate-300 hover:shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+              className="shrink-0 flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold text-white bg-gradient-to-br from-[#e11d48] to-[#b91c1c] shadow-md shadow-red-600/25 hover:brightness-110 hover:shadow-lg hover:shadow-red-600/30 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isSearching ? (
-                <span className="flex items-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Recherche…
-                </span>
-              ) : (
-                "Recherche FO COM"
-              )}
-            </button>
-            <button
-              onClick={handleLucky}
-              disabled={isSearching || !query.trim()}
-              className="px-5 py-2 bg-[#f8f9fa] text-slate-700 text-sm rounded border border-transparent hover:border-slate-300 hover:shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-            >
-              J'ai de la chance
+              {isSearching && <Loader2 className="w-4 h-4 animate-spin" />}
+              {isSearching ? "Recherche…" : "Rechercher"}
             </button>
           </div>
 
+          {/* Exemples de recherches */}
+          <div className="flex flex-wrap justify-center gap-2 mt-4">
+            {["NAO salaires", "CSSCT sécurité", "télétravail", "élections CSE", "accord intéressement"].map((ex) => (
+              <button
+                key={ex}
+                onClick={() => {
+                  setQuery(ex);
+                  inputRef.current?.focus();
+                }}
+                className="text-xs px-2.5 py-1 bg-white text-slate-600 rounded-full border border-slate-200 hover:border-red-300 hover:text-red-700 transition-colors shadow-sm"
+              >
+                {ex}
+              </button>
+            ))}
+          </div>
+
           {/* Filtre par type de document */}
-          <div className="mt-5">
+          <div className="mt-5 flex justify-center">
             <TypeChips value={typeFilter} onChange={setTypeFilter} />
           </div>
 
@@ -383,11 +460,12 @@ export function PVSearchPage() {
           {!isAuthenticated && (
             <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
               {accessCode ? (
-                <span className="text-xs text-slate-500">
+                <span className="inline-flex items-center gap-1.5 text-xs text-slate-600 bg-white border border-slate-200 rounded-full px-3 py-1.5 shadow-sm">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" aria-hidden="true" />
                   Accès ouvert avec un code partagé.
                   <button
                     onClick={closeAccess}
-                    className="ml-2 underline text-slate-400 hover:text-slate-600"
+                    className="ml-1 underline text-slate-400 hover:text-red-700 transition-colors"
                   >
                     Fermer l'accès
                   </button>
@@ -402,11 +480,11 @@ export function PVSearchPage() {
                       if (e.key === "Enter") openAccess(codeInput);
                     }}
                     placeholder="Code d'accès partagé"
-                    className="w-48 px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-300"
+                    className="w-48 px-3.5 py-1.5 text-sm border border-slate-200 rounded-full bg-white focus:outline-none focus:ring-2 focus:ring-red-200 focus:border-red-300 transition-colors"
                   />
                   <button
                     onClick={() => openAccess(codeInput)}
-                    className="px-3 py-1.5 text-sm bg-slate-800 text-white rounded-lg hover:bg-slate-700 transition-colors"
+                    className="px-3.5 py-1.5 text-sm text-white bg-[#13233a] rounded-full hover:bg-[#1a2f4d] transition-colors shadow-sm"
                   >
                     Ouvrir l'accès
                   </button>
@@ -442,20 +520,6 @@ export function PVSearchPage() {
                   <li>• Sans compte : ouvrez l'accès avec le code partagé fourni par la FO COM</li>
                 </ul>
               </div>
-              <div>
-                <p className="font-medium text-slate-700 mb-1">Exemples de recherches</p>
-                <div className="flex flex-wrap gap-2 mt-1">
-                  {["NAO salaires", "CSSCT sécurité", "télétravail", "élections CSE", "accord intéressement"].map((ex) => (
-                    <button
-                      key={ex}
-                      onClick={() => { setQuery(ex); inputRef.current?.focus(); }}
-                      className="text-xs px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded text-slate-600 transition-colors"
-                    >
-                      {ex}
-                    </button>
-                  ))}
-                </div>
-              </div>
             </div>
           </details>
         </div>
@@ -470,16 +534,16 @@ export function PVSearchPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="min-h-screen bg-[#f6f8fb] flex flex-col">
       <AuthModal open={authModalOpen} onOpenChange={setAuthModalOpen} />
       {/* Header compact post-recherche */}
-      <div className="pt-4 pb-3 border-b border-slate-200 shadow-sm px-6 flex items-center gap-4">
-        <a href="/recherche" className="flex items-center shrink-0">
-          <BrandLogo className="w-10 h-10 object-contain" />
+      <div className="sticky top-0 z-10 bg-white/90 backdrop-blur border-b border-slate-200 shadow-sm px-4 md:px-6 py-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+        <a href="/recherche" className="flex items-center shrink-0 order-1">
+          <BrandLogo className="w-9 h-9 object-contain" />
         </a>
 
-        <div className="flex-1 max-w-2xl">
-          <div className="flex items-center gap-2 border border-slate-300 rounded-full px-4 py-2 shadow-sm hover:shadow-md transition-shadow bg-white focus-within:shadow-md">
+        <div className="flex-1 min-w-0 order-3 md:order-2 basis-full md:basis-auto max-w-2xl">
+          <div className="flex items-center gap-2 border border-slate-200 rounded-full px-4 py-1.5 shadow-sm transition-all bg-white focus-within:border-red-300 focus-within:shadow-md">
             <svg viewBox="0 0 24 24" className="w-4 h-4 text-slate-400 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
@@ -489,13 +553,21 @@ export function PVSearchPage() {
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSearch()}
               placeholder="Rechercher dans les PV FO COM..."
-              className="flex-1 outline-none text-slate-800 placeholder-slate-400 bg-transparent"
+              className="flex-1 min-w-0 outline-none text-slate-800 placeholder-slate-400 bg-transparent text-sm"
+              aria-label="Rechercher dans les PV FO COM"
             />
-            {isSearching && <Loader2 className="w-4 h-4 animate-spin text-slate-400 shrink-0" />}
+            <button
+              onClick={() => handleSearch()}
+              disabled={isSearching || !query.trim()}
+              className="shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold text-white bg-gradient-to-br from-[#e11d48] to-[#b91c1c] hover:brightness-110 disabled:opacity-40 transition-all"
+            >
+              {isSearching && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              Rechercher
+            </button>
           </div>
         </div>
 
-        <div className="shrink-0">
+        <div className="shrink-0 order-2 md:order-3">
           <TypeChips
             value={typeFilter}
             onChange={setTypeFilter}
@@ -507,26 +579,27 @@ export function PVSearchPage() {
       </div>
 
       {/* Résultats */}
-      <div className="flex-1 px-6 py-6 max-w-3xl ml-16 space-y-8">
+      <div className="flex-1 px-4 md:px-6 py-6 max-w-3xl w-full mx-auto space-y-8">
         <section>
           <div className="flex items-center gap-2 mb-4">
-            <FileText className="w-4 h-4 text-slate-400" />
-            <h2 className="text-sm font-semibold text-slate-600 uppercase tracking-wide">
+            <FileText className="w-4 h-4 text-red-600" />
+            <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wide">
               PV CSE / CSSCT — UES Iliad
             </h2>
           </div>
 
           {hasPvResults ? (
-            <div className="space-y-6">
-              <div className="flex items-center justify-between -mt-2">
-                <p className="text-xs text-slate-400">
-                  {results.length} résultat{results.length > 1 ? "s" : ""} pour « {submitted} »
+            <div className={"space-y-5 transition-opacity " + (isSearching ? "opacity-50 pointer-events-none" : "")}>
+              <div className="flex flex-wrap items-center justify-between gap-2 -mt-2">
+                <p className="text-xs text-slate-500">
+                  <strong className="text-slate-700">{results.length}</strong> passage{results.length > 1 ? "s" : ""} dans{" "}
+                  <strong className="text-slate-700">{Object.keys(grouped).length}</strong> document{Object.keys(grouped).length > 1 ? "s" : ""} pour « {submitted} »
                   {typeFilter !== "Tous" ? ` · type ${typeFilter}` : ""}
                 </p>
                 {!isAuthenticated && !accessCode && (
                   <button
                     onClick={() => setAuthModalOpen(true)}
-                    className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-800 hover:underline"
+                    className="flex items-center gap-1.5 text-xs text-red-700 hover:text-red-900 hover:underline"
                   >
                     <Lock className="w-3 h-3" />
                     Connectez-vous pour voir les noms et télécharger les PDF
@@ -535,42 +608,54 @@ export function PVSearchPage() {
               </div>
               {Object.entries(grouped).map(([filename, fileResults]) => {
                 const docLabel = filename.replace(/\.pdf$/i, "").replace(/[_/-]/g, " ");
+                const docType = docTypeOf(filename);
+                const isOpen = expanded.has(filename);
+                const shown = isOpen ? fileResults : fileResults.slice(0, 3);
+                const bestSim = fileResults.reduce((a, b) => (b.similarity > a.similarity ? b : a)).similarity;
                 return (
-                  <div key={filename} className="border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                  <article
+                    key={filename}
+                    className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+                    style={{ borderLeft: "4px solid " + (TYPE_ACCENT[docType] ?? TYPE_ACCENT.Autre) }}
+                  >
                     {/* En-tête document */}
-                    <div className="flex items-center justify-between gap-2 px-4 py-2.5 bg-slate-50 border-b border-slate-200">
+                    <div className="flex items-center justify-between gap-2 px-4 py-2.5 bg-slate-50/80 border-b border-slate-200">
                       <div className="flex items-center gap-2 min-w-0">
-                        <FileText className="w-4 h-4 text-slate-400 shrink-0" />
                         <span
-                          className={"shrink-0 px-1.5 py-0.5 rounded text-[10px] font-semibold " + (TYPE_STYLES[docTypeOf(filename)] ?? TYPE_STYLES.Autre)}
+                          className={"shrink-0 px-1.5 py-0.5 rounded text-[10px] font-semibold " + (TYPE_STYLES[docType] ?? TYPE_STYLES.Autre)}
                         >
-                          {docTypeOf(filename)}
+                          {docType}
                         </span>
-                        <span className="text-xs font-medium text-slate-600 truncate" title={filename}>
+                        <span className="text-xs font-medium text-slate-700 truncate" title={filename}>
                           {docLabel}
                         </span>
                       </div>
-                      {isAuthenticated || accessCode ? (
-                        <button
-                          onClick={() => downloadFile(filename)}
-                          className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 hover:underline shrink-0"
-                        >
-                          <Download className="w-3 h-3" />
-                          Télécharger le PDF
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => setAuthModalOpen(true)}
-                          className="flex items-center gap-1 text-xs text-slate-400 hover:text-blue-600 transition-colors shrink-0"
-                        >
-                          <Lock className="w-3 h-3" />
-                          Connexion pour télécharger
-                        </button>
-                      )}
+                      <div className="flex items-center gap-2.5 shrink-0">
+                        <span className="hidden sm:inline-block text-[10px] text-slate-400" title="Pertinence de la meilleure correspondance">
+                          {Math.round(Math.min(1, bestSim) * 100)} %
+                        </span>
+                        {isAuthenticated || accessCode ? (
+                          <button
+                            onClick={() => downloadFile(filename)}
+                            className="flex items-center gap-1 text-xs font-medium text-red-700 hover:text-red-900 hover:underline"
+                          >
+                            <Download className="w-3 h-3" />
+                            Télécharger le PDF
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => setAuthModalOpen(true)}
+                            className="flex items-center gap-1 text-xs text-slate-400 hover:text-red-700 transition-colors"
+                          >
+                            <Lock className="w-3 h-3" />
+                            Connexion pour télécharger
+                          </button>
+                        )}
+                      </div>
                     </div>
                     {/* Extraits */}
                     <div className="divide-y divide-slate-100">
-                      {fileResults.slice(0, 3).map((result, i) => {
+                      {shown.map((result, i) => {
                         const snippet = extractSnippet(result.content, submitted);
                         const displayText = isAuthenticated || accessCode ? snippet : maskProperNouns(snippet);
                         return (
@@ -582,17 +667,65 @@ export function PVSearchPage() {
                         );
                       })}
                     </div>
-                  </div>
+                    {fileResults.length > 3 && (
+                      <button
+                        onClick={() => toggleExpanded(filename)}
+                        className="w-full px-4 py-2 text-xs font-medium text-red-700 bg-slate-50/60 hover:bg-slate-100 border-t border-slate-200 transition-colors"
+                      >
+                        {isOpen ? "Réduire les extraits" : "Voir les " + (fileResults.length - 3) + " autres extraits"}
+                      </button>
+                    )}
+                  </article>
                 );
               })}
             </div>
+          ) : isSearching ? (
+            <div className="space-y-5" aria-hidden="true">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="bg-white border border-slate-200 rounded-2xl overflow-hidden animate-pulse">
+                  <div className="h-10 bg-slate-100 border-b border-slate-100" />
+                  <div className="px-4 py-3 space-y-2">
+                    <div className="h-3 bg-slate-100 rounded w-full" />
+                    <div className="h-3 bg-slate-100 rounded w-5/6" />
+                    <div className="h-3 bg-slate-100 rounded w-2/3" />
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : (
-            <Alert className="max-w-lg">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                Aucun PV trouvé pour <strong>« {submitted} »</strong>. Essayez d'autres termes, changez de filtre de type, ou vérifiez que des PV ont bien été indexés.
-              </AlertDescription>
-            </Alert>
+            <div className="bg-white border border-slate-200 rounded-2xl shadow-sm px-6 py-10 flex flex-col items-center text-center max-w-xl">
+              <SearchX className="w-10 h-10 text-slate-300" aria-hidden="true" />
+              <p className="mt-3 text-sm text-slate-600">
+                Aucun résultat pour <strong>« {submitted} »</strong>
+                {typeFilter !== "Tous" ? " dans les documents de type " + typeFilter : ""}.
+              </p>
+              <p className="mt-1 text-xs text-slate-400">Vérifiez l'orthographe, essayez des termes plus généraux ou changez de filtre de type.</p>
+              <div className="mt-5 flex flex-wrap justify-center gap-2">
+                {typeFilter !== "Tous" && (
+                  <button
+                    onClick={() => {
+                      setTypeFilter("Tous");
+                      handleSearch(submitted, "Tous");
+                    }}
+                    className="px-3.5 py-1.5 text-xs font-medium text-white bg-[#13233a] rounded-full hover:bg-[#1a2f4d] transition-colors"
+                  >
+                    Relancer sur tous les types
+                  </button>
+                )}
+                {["télétravail", "salaires", "élections"].map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => {
+                      setQuery(s);
+                      handleSearch(s, typeFilter);
+                    }}
+                    className="px-3.5 py-1.5 text-xs bg-white text-slate-600 rounded-full border border-slate-200 hover:border-red-300 hover:text-red-700 transition-colors"
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
           )}
         </section>
       </div>
