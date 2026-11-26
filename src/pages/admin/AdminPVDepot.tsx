@@ -27,7 +27,7 @@ import { toast } from "sonner";
 
 const EDGE_FUNCTION_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/embed-pv`;
 
-const TYPES = ["CSE", "CSSCT", "NAO", "Accord", "Autre"];
+const TYPES = ["CSE", "CSSCT", "NAO", "Accord", "Reglement", "Charte", "Note", "Autre"];
 const CURRENT_YEAR = new Date().getFullYear();
 const YEARS = Array.from({ length: CURRENT_YEAR - 2018 + 1 }, (_, i) => String(CURRENT_YEAR - i));
 
@@ -58,6 +58,12 @@ function sanitizeStorageKey(name: string): string {
     .replace(/[̀-ͯ]/g, "")
     .replace(/[^a-zA-Z0-9._-]/g, "_")
     .replace(/_+/g, "_");
+}
+
+// Densité de lettres du texte extrait : détecte les textes natifs illisibles (glyphes vides, symboles).
+function letterDensity(text: string): number {
+  if (!text.length) return 0;
+  return (text.match(/[A-Za-zÀ-ÿ]/g) ?? []).length / text.length;
 }
 
 function AdminPVDepotContent() {
@@ -191,10 +197,15 @@ function AdminPVDepotContent() {
   ): Promise<{ text: string; usedOcr: boolean }> => {
     onProgress("Extraction du texte...");
     const native = await extractNativeText(arrayBuffer);
-    console.log(`[PDF] texte natif extrait : ${native.length} caractères`);
-    if (native.length >= 100) return { text: native, usedOcr: false };
+    const density = letterDensity(native);
+    console.log(`[PDF] texte natif extrait : ${native.length} caractères, densité de lettres ${(density * 100).toFixed(0)} %`);
+    if (native.length >= 100 && density >= 0.5) return { text: native, usedOcr: false };
 
-    onProgress("PDF scanné — chargement de l'OCR...");
+    if (native.length >= 100) {
+      onProgress(`Texte natif illisible (${(density * 100).toFixed(0)} % de lettres) — passage à l'OCR...`);
+    } else {
+      onProgress("PDF scanné — chargement de l'OCR...");
+    }
     const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer.slice(0)) }).promise;
 
     let worker: Awaited<ReturnType<typeof createWorker>> | null = null;
@@ -215,8 +226,12 @@ function AdminPVDepotContent() {
       }
 
       const text = texts.join("\n").trim();
-      console.log(`[OCR] texte extrait : ${text.length} caractères`);
+      const ocrDensity = letterDensity(text);
+      console.log(`[OCR] texte extrait : ${text.length} caractères, densité de lettres ${(ocrDensity * 100).toFixed(0)} %`);
       if (text.length < 50) throw new Error(`OCR échoué — seulement ${text.length} caractères reconnus`);
+      if (ocrDensity < 0.3) {
+        throw new Error("OCR illisible — le document est probablement une image de trop mauvaise qualité pour être indexé");
+      }
       return { text, usedOcr: true };
     } finally {
       await worker?.terminate();

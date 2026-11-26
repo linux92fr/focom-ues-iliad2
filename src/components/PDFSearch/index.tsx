@@ -7,6 +7,68 @@ import logoFocom from "@/assets/logo-focom.png";
 
 const EDGE_FUNCTION_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/embed-pv`;
 
+const EMBLEM_URL = "/embleme-epure-logo2.jpg";
+
+function BrandLogo({ className }: { className?: string }) {
+  const [failed, setFailed] = useState(false);
+  return (
+    <img
+      src={failed ? logoFocom : EMBLEM_URL}
+      alt="FO COM UES ILIAD"
+      className={className}
+      onError={() => setFailed(true)}
+    />
+  );
+}
+
+const DOC_TYPES = ["Tous", "CSE", "CSSCT", "NAO", "Accord", "Autre"];
+
+function docTypeOf(filename: string): string {
+  const folder = filename.split("/")[0];
+  return DOC_TYPES.includes(folder) ? folder : "Autre";
+}
+
+const TYPE_STYLES: Record<string, string> = {
+  CSE: "bg-blue-100 text-blue-800",
+  CSSCT: "bg-amber-100 text-amber-800",
+  NAO: "bg-purple-100 text-purple-800",
+  Accord: "bg-green-100 text-green-800",
+  Autre: "bg-slate-100 text-slate-600",
+};
+
+function TypeChips({
+  value,
+  onChange,
+  onPick,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  onPick?: (v: string) => void;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      <span className="text-xs text-slate-400 mr-1">Type :</span>
+      {DOC_TYPES.map((t) => (
+        <button
+          key={t}
+          onClick={() => {
+            onChange(t);
+            onPick?.(t);
+          }}
+          className={
+            "px-2.5 py-1 rounded-full text-xs font-medium transition-colors " +
+            (value === t
+              ? "bg-slate-800 text-white"
+              : "bg-slate-100 text-slate-600 hover:bg-slate-200")
+          }
+        >
+          {t}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 interface SearchResult {
   filename: string;
   original_filename?: string;
@@ -109,6 +171,7 @@ export function PVSearchPage() {
   const [searched, setSearched] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [typeFilter, setTypeFilter] = useState("Tous");
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -129,9 +192,10 @@ export function PVSearchPage() {
     window.open(data.signedUrl, "_blank");
   };
 
-  const handleSearch = async (q?: string) => {
+  const handleSearch = async (q?: string, type?: string) => {
     const term = (q ?? query).trim();
     if (!term) return;
+    const activeType = (type ?? typeFilter) === "Tous" ? null : (type ?? typeFilter);
 
     if (!isAuthenticated) {
       setAuthModalOpen(true);
@@ -146,7 +210,7 @@ export function PVSearchPage() {
       const resp = await fetch(`${EDGE_FUNCTION_URL}/search`, {
         method: "POST",
         headers: { ...authHeader, "Content-Type": "application/json" },
-        body: JSON.stringify({ query: term, match_count: 15 }),
+        body: JSON.stringify({ query: term, match_count: 15, type: activeType }),
       });
       const data = await resp.json();
       if (!resp.ok) throw new Error(data.error ?? "Erreur serveur");
@@ -156,11 +220,12 @@ export function PVSearchPage() {
       const fallbackResults = new Map<string, SearchResult>();
 
       if (words.length > 1) {
-        const { data: phraseData } = await supabase
+        let phraseQuery = supabase
           .from("pv_documents")
           .select("filename, original_filename, content, chunk_index")
-          .ilike("content", `%${term}%`)
-          .limit(15);
+          .ilike("content", `%${term}%`);
+        if (activeType) phraseQuery = phraseQuery.like("filename", `${activeType}/%`);
+        const { data: phraseData } = await phraseQuery.limit(15);
 
         for (const row of phraseData ?? []) {
           const key = `${row.filename ?? ""}:${row.chunk_index ?? 0}`;
@@ -180,6 +245,9 @@ export function PVSearchPage() {
 
       for (const word of words) {
         keywordQuery = keywordQuery.ilike("content", `%${word}%`);
+      }
+      if (activeType) {
+        keywordQuery = keywordQuery.like("filename", `${activeType}/%`);
       }
 
       const { data: keywordData } = await keywordQuery.limit(15);
@@ -222,18 +290,8 @@ export function PVSearchPage() {
     return (
       <div className="min-h-screen bg-white flex flex-col items-center justify-center pb-20">
         {/* Logo */}
-        <div className="mb-6 relative">
-          <img
-            src={logoFocom}
-            alt="FO COM UES ILIAD"
-            className="w-48 h-48 object-contain drop-shadow-lg"
-          />
-          <div className="absolute -right-4 -bottom-2 bg-white rounded-full p-1 shadow-md">
-            <svg viewBox="0 0 24 24" className="w-12 h-12 text-slate-400" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
-          </div>
+        <div className="mb-6">
+          <BrandLogo className="w-48 h-48 object-contain drop-shadow-lg" />
         </div>
 
         {/* Barre de recherche */}
@@ -285,6 +343,11 @@ export function PVSearchPage() {
               J'ai de la chance
             </button>
           </div>
+
+          {/* Filtre par type de document */}
+          <div className="mt-5">
+            <TypeChips value={typeFilter} onChange={setTypeFilter} />
+          </div>
         </div>
 
         {/* Guide pratique */}
@@ -306,8 +369,10 @@ export function PVSearchPage() {
                 <p className="font-medium text-slate-700 mb-1">Astuces</p>
                 <ul className="space-y-1 text-slate-500">
                   <li>• Utilisez des mots précis plutôt que des phrases complètes</li>
-                  <li>• Les accents sont pris en compte (<span className="italic">réunion</span> ≠ <span className="italic">reunion</span>)</li>
+                  <li>• Les accents sont ignorés : <span className="italic">reunion</span> retrouve bien <span className="italic">réunion</span></li>
                   <li>• Plusieurs mots = l'association exacte est prioritaire, puis les mots sont recherchés ensemble</li>
+                  <li>• Les petites fautes de frappe sont tolérées si aucun résultat exact n'est trouvé</li>
+                  <li>• Filtrez par type (CSE, CSSCT, NAO, Accord) pour cibler un genre de document</li>
                 </ul>
               </div>
               <div>
@@ -343,7 +408,7 @@ export function PVSearchPage() {
       {/* Header compact post-recherche */}
       <div className="pt-4 pb-3 border-b border-slate-200 shadow-sm px-6 flex items-center gap-4">
         <a href="/recherche" className="flex items-center shrink-0">
-          <img src={logoFocom} alt="FO COM" className="w-10 h-10 object-contain" />
+          <BrandLogo className="w-10 h-10 object-contain" />
         </a>
 
         <div className="flex-1 max-w-2xl">
@@ -362,6 +427,16 @@ export function PVSearchPage() {
             {isSearching && <Loader2 className="w-4 h-4 animate-spin text-slate-400 shrink-0" />}
           </div>
         </div>
+
+        <div className="shrink-0">
+          <TypeChips
+            value={typeFilter}
+            onChange={setTypeFilter}
+            onPick={(t) => {
+              if (submitted) handleSearch(submitted, t);
+            }}
+          />
+        </div>
       </div>
 
       {/* Résultats */}
@@ -379,6 +454,7 @@ export function PVSearchPage() {
               <div className="flex items-center justify-between -mt-2">
                 <p className="text-xs text-slate-400">
                   {results.length} résultat{results.length > 1 ? "s" : ""} pour « {submitted} »
+                  {typeFilter !== "Tous" ? ` · type ${typeFilter}` : ""}
                 </p>
                 {!isAuthenticated && (
                   <button
@@ -398,6 +474,11 @@ export function PVSearchPage() {
                     <div className="flex items-center justify-between gap-2 px-4 py-2.5 bg-slate-50 border-b border-slate-200">
                       <div className="flex items-center gap-2 min-w-0">
                         <FileText className="w-4 h-4 text-slate-400 shrink-0" />
+                        <span
+                          className={"shrink-0 px-1.5 py-0.5 rounded text-[10px] font-semibold " + (TYPE_STYLES[docTypeOf(filename)] ?? TYPE_STYLES.Autre)}
+                        >
+                          {docTypeOf(filename)}
+                        </span>
                         <span className="text-xs font-medium text-slate-600 truncate" title={filename}>
                           {docLabel}
                         </span>
@@ -442,7 +523,7 @@ export function PVSearchPage() {
             <Alert className="max-w-lg">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                Aucun PV trouvé pour <strong>« {submitted} »</strong>. Essayez d'autres termes ou vérifiez que des PV ont bien été indexés.
+                Aucun PV trouvé pour <strong>« {submitted} »</strong>. Essayez d'autres termes, changez de filtre de type, ou vérifiez que des PV ont bien été indexés.
               </AlertDescription>
             </Alert>
           )}
