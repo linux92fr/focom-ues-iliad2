@@ -295,6 +295,7 @@ const AuthModal = ({ open, onOpenChange }: AuthModalProps) => {
                     Utilisez votre empreinte, Face ID ou clé de sécurité
                   </p>
                 </>
+                )
               )}
             </form>
           </TabsContent>
