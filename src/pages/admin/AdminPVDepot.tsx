@@ -66,6 +66,38 @@ function letterDensity(text: string): number {
   return (text.match(/[A-Za-zÀ-ÿ]/g) ?? []).length / text.length;
 }
 
+// Comptage des sections indexées par fichier.
+// L'API Supabase plafonne les réponses à 1000 lignes : la requête directe sur
+// pv_documents ne renvoie qu'une fraction des 10 000+ sections. On passe par
+// une RPC d'agrégation (1 ligne par fichier), avec repli paginé si besoin.
+async function fetchIndexedMap(): Promise<Record<string, number>> {
+  const map: Record<string, number> = {};
+  const { data: rpcData, error: rpcError } = await supabase.rpc("pv_document_chunk_counts");
+  if (!rpcError && Array.isArray(rpcData)) {
+    for (const row of rpcData as { filename: string; chunks: number }[]) {
+      map[row.filename] = row.chunks;
+    }
+    return map;
+  }
+  if (rpcError) {
+    console.warn("[INDEX] RPC pv_document_chunk_counts indisponible, repli paginé", rpcError);
+  }
+  let from = 0;
+  for (;;) {
+    const { data } = await supabase
+      .from("pv_documents")
+      .select("filename, chunk_index")
+      .range(from, from + 999);
+    const rows = (data ?? []) as { filename: string }[];
+    for (const row of rows) {
+      map[row.filename] = (map[row.filename] ?? 0) + 1;
+    }
+    if (rows.length < 1000) break;
+    from += 1000;
+  }
+  return map;
+}
+
 function AdminPVDepotContent() {
   const [files, setFiles] = useState<StoredFile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -85,14 +117,7 @@ function AdminPVDepotContent() {
     try {
       // Liste récursive depuis la racine
       const allFiles: StoredFile[] = [];
-      const { data: indexedData } = await supabase
-        .from("pv_documents")
-        .select("filename, chunk_index");
-
-      const indexedMap: Record<string, number> = {};
-      (indexedData ?? []).forEach((row) => {
-        indexedMap[row.filename] = (indexedMap[row.filename] ?? 0) + 1;
-      });
+      const indexedMap = await fetchIndexedMap();
 
       // Lister tous les types (dossiers racine)
       const { data: rootItems } = await supabase.storage
@@ -369,8 +394,8 @@ function AdminPVDepotContent() {
       }
 
       // 2. Récupère tous les filenames distincts dans pv_documents
-      const { data: dbRows } = await supabase.from("pv_documents").select("filename");
-      const dbFilenames = [...new Set((dbRows ?? []).map((r) => r.filename))];
+      const indexedMap = await fetchIndexedMap();
+      const dbFilenames = Object.keys(indexedMap);
 
       // 3. Identifie les orphelins (dans DB mais pas en storage)
       const orphans = dbFilenames.filter((f) => !storagePaths.has(f));
