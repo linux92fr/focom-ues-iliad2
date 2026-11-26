@@ -4,7 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, x-access-code",
 };
 
 const supabase = createClient(
@@ -34,6 +34,28 @@ async function isElevated(userId: string | null) {
   if (!userId) return false;
   const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId);
   return (data ?? []).some((r) => ELEVATED_ROLES.includes(r.role as string));
+}
+
+async function sha256Hex(value: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+// Code d'accès partagé : valide si son sha256 correspond à la valeur stockée
+// dans public.pv_access (table protégée par RLS, lue uniquement avec la clé
+// service depuis cette edge function).
+async function isValidAccessCode(header: string | null): Promise<boolean> {
+  const code = (header ?? "").trim();
+  if (!code || code.length > 200) return false;
+  const { data } = await supabase.from("pv_access").select("code_hash").eq("id", 1).maybeSingle();
+  const stored = typeof data?.code_hash === "string" ? data.code_hash.trim().toLowerCase() : "";
+  if (!stored) return false;
+  const hashed = (await sha256Hex(code)).toLowerCase();
+  let diff = 0;
+  for (let i = 0; i < Math.max(hashed.length, stored.length); i++) {
+    diff |= (hashed.charCodeAt(i) ?? 0) ^ (stored.charCodeAt(i) ?? 0);
+  }
+  return diff === 0;
 }
 
 function extractTextFromPdfBytes(bytes: Uint8Array): string {
@@ -127,7 +149,9 @@ Deno.serve(async (req) => {
   try {
     if (url.pathname.endsWith("/search")) {
       const searchUser = await getCaller(req.headers.get("Authorization") ?? "");
-      if (!searchUser) return json({ error: "Connexion requise pour rechercher dans les PV" }, 401);
+      if (!searchUser && !(await isValidAccessCode(req.headers.get("x-access-code")))) {
+        return json({ error: "Connexion ou code d'accès requis pour rechercher dans les PV" }, 401);
+      }
 
       const body = await req.json();
       const normalizedQuery = normalizeSearchQuery(typeof body?.query === "string" ? body.query : "");
@@ -178,6 +202,23 @@ Deno.serve(async (req) => {
       }
 
       return json({ results: Array.from(resultsByChunk.values()).slice(0, matchCount) });
+    }
+
+    if (url.pathname.endsWith("/download")) {
+      const dlUser = await getCaller(req.headers.get("Authorization") ?? "");
+      if (!dlUser && !(await isValidAccessCode(req.headers.get("x-access-code")))) {
+        return json({ error: "Connexion ou code d'accès requis" }, 401);
+      }
+      const dlBody = await req.json();
+      const filename = typeof dlBody?.filename === "string" ? dlBody.filename : "";
+      if (!filename || filename.length > 500 || !/^[A-Za-z0-9._/-]+$/.test(filename)) {
+        return json({ error: "Chemin de fichier invalide" }, 400);
+      }
+      const { data: urlData, error: urlError } = await supabase.storage
+        .from("pv-documents")
+        .createSignedUrl(filename, 120);
+      if (urlError || !urlData?.signedUrl) return json({ error: "Lien de téléchargement indisponible" }, 500);
+      return json({ url: urlData.signedUrl });
     }
 
     const authUser = await getCaller(req.headers.get("Authorization") ?? "");
