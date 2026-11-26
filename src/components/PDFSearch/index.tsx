@@ -7,7 +7,7 @@ import logoFocom from "@/assets/logo-focom.png";
 
 const EDGE_FUNCTION_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/embed-pv`;
 
-const EMBLEM_URL = "/embleme-epure-logo2.jpg";
+const EMBLEM_URL = "/embleme-epure_logo2.png";
 
 function BrandLogo({ className }: { className?: string }) {
   const [failed, setFailed] = useState(false);
