@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 // Un quiz par jour (code du travail et syndicalisme) + une surprise.
 // Progression enregistrée côté serveur via un identifiant anonyme : aucun compte requis.
 // Pseudo optionnel pour le classement et les lots, modéré côté serveur (bannissement possible).
+// Email de contact optionnel (remise des lots uniquement) : finalité unique, aucun autre envoi.
 // Chaque case se déverrouille le jour venu (heure de Paris) ; les jours
 // passés restent ouverts pour permettre le rattrapage.
 // ---------------------------------------------------------------------------
@@ -595,6 +596,10 @@ export default function Avent() {
   const [pseudoMsg, setPseudoMsg] = useState<string | null>(null);
   const [banned, setBanned] = useState(false);
   const [pseudoBusy, setPseudoBusy] = useState(false);
+  const [contactEmail, setContactEmail] = useState("");
+  const [contactSaved, setContactSaved] = useState<string | null>(null);
+  const [contactMsg, setContactMsg] = useState<string | null>(null);
+  const [contactBusy, setContactBusy] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -608,6 +613,10 @@ export default function Avent() {
         if (typeof data.pseudo === "string" && data.pseudo.length > 0) {
           setSavedPseudo(data.pseudo);
           setPseudoInput(data.pseudo);
+        }
+        if (typeof data.contact === "string" && data.contact.length > 0) {
+          setContactSaved(data.contact);
+          setContactEmail(data.contact);
         }
         const remote = data.played;
         if (remote && typeof remote === "object" && !Array.isArray(remote)) {
@@ -787,6 +796,39 @@ export default function Avent() {
       })
       .catch(() => setPseudoMsg("Impossible d'enregistrer le pseudo pour le moment, réessayez plus tard."))
       .finally(() => setPseudoBusy(false));
+  };
+
+  const saveContact = () => {
+    const trimmed = contactEmail.trim();
+    setContactBusy(true);
+    setContactMsg(null);
+    supabase
+      .rpc("avent_set_contact", { p_player_id: playerId, p_email: trimmed })
+      .then((res) => {
+        const data = res.data;
+        if (res.error || !data || data.ok !== true) {
+          const err = data && data.error;
+          if (err === "banned") {
+            setBanned(true);
+            setContactMsg("Vous avez été exclu du jeu.");
+          } else if (err === "no_pseudo") {
+            setContactMsg("Choisissez d'abord un pseudo.");
+          } else {
+            setContactMsg("Adresse email invalide.");
+          }
+          return;
+        }
+        if (data.email === null) {
+          setContactSaved(null);
+          setContactMsg("Email de contact retiré.");
+        } else {
+          setContactSaved(data.email as string);
+          setContactEmail(data.email as string);
+          setContactMsg("Email enregistré : il servira uniquement à vous remettre votre lot si vous gagnez.");
+        }
+      })
+      .catch(() => setContactMsg("Impossible d'enregistrer l'email pour le moment, réessayez plus tard."))
+      .finally(() => setContactBusy(false));
   };
 
   const handleCaseClick = (day: number) => {
@@ -979,6 +1021,39 @@ export default function Avent() {
               >
                 {pseudoBusy ? "Enregistrement…" : savedPseudo ? "Modifier" : "Valider"}
               </button>
+            </div>
+          )}
+          {savedPseudo && !banned && (
+            <div className="mt-3">
+              <p className="text-[11px] text-[var(--av-muted2)] leading-relaxed">
+                Email de contact (optionnel) : si vous figurez parmi les gagnants, il servira uniquement à vous remettre votre lot. Aucun autre envoi, adresse supprimée après la remise des lots.
+              </p>
+              <div className="mt-2 flex flex-col sm:flex-row gap-2">
+                <input
+                  type="email"
+                  value={contactEmail}
+                  onChange={(e) => {
+                    setContactEmail(e.target.value);
+                    setContactMsg(null);
+                  }}
+                  placeholder="votre@email.fr"
+                  aria-label="Email de contact pour les lots"
+                  className="flex-1 min-w-0 text-sm rounded-xl bg-[var(--av-paper)] text-[var(--av-dark-ink)] placeholder-[var(--av-faint)] px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--av-accent)]"
+                />
+                <button
+                  type="button"
+                  disabled={contactBusy}
+                  onClick={saveContact}
+                  className="shrink-0 text-sm font-semibold text-[var(--av-dark-ink)] bg-gradient-to-r from-[var(--av-accent)] to-[var(--av-accent2)] rounded-xl px-4 py-2 hover:brightness-110 transition-all disabled:opacity-50"
+                >
+                  {contactBusy ? "Enregistrement…" : contactSaved ? "Modifier" : "Enregistrer"}
+                </button>
+              </div>
+              {contactMsg && (
+                <p className="mt-2 text-xs text-[var(--av-accent)] leading-relaxed" role="status">
+                  {contactMsg}
+                </p>
+              )}
             </div>
           )}
           <p className="mt-2 text-[11px] text-[var(--av-faint2)] leading-relaxed">
