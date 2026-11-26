@@ -609,7 +609,7 @@ function AdminPVDepotContent() {
                 className="text-xs"
               >
                 <RefreshCw className="w-3 h-3 mr-1" />
-                Tout ré-indexer ({nonIndexed.length})
+                {`Tout ré-indexer (${nonIndexed.length})`}
               </Button>
             )}
             <Button
@@ -621,7 +621,7 @@ function AdminPVDepotContent() {
               title="Supprime les fichiers de la racine du bucket dont une copie identique existe déjà dans les dossiers typés (analyse du 26/11/2026)"
             >
               {purgingDuplicates ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Trash2 className="w-3 h-3 mr-1" />}
-              Purger les doublons racine ({ROOT_DUPLICATES.length})
+              {`Purger les doublons racine (${ROOT_DUPLICATES.length})`}
             </Button>
             <Button
               variant="outline"
