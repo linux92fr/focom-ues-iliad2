@@ -35,6 +35,7 @@ export default function SmartPortal() {
   const [resetRequested, setResetRequested] = useState(false);
   const [resetBusy, setResetBusy] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [method, setMethod] = useState<"password" | "passkey">("password");
   const [error, setError] = useState("");
   const [passkeys, setPasskeys] = useState<Passkey[]>([]);
   const [passkeyBusy, setPasskeyBusy] = useState(false);
@@ -145,6 +146,10 @@ export default function SmartPortal() {
 
   const login = async (event: FormEvent) => {
     event.preventDefault();
+    if (method === "passkey") {
+      await signInWithPasskey();
+      return;
+    }
     setBusy(true); setError("");
     try {
       const { data, error: loginError } = await withAuthTimeout(
@@ -214,11 +219,15 @@ export default function SmartPortal() {
     <section className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-sm sm:p-8">
       <div className="mb-6 flex flex-col items-center text-center"><div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10"><Bot className="h-7 w-7 text-primary" /></div><h1 className="text-2xl font-bold">Espace IA</h1><p className="mt-2 text-sm text-muted-foreground">Connectez-vous avec le compte qui vous a été attribué.</p></div>
       <form onSubmit={login} className="space-y-4">
+        <div className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1 text-sm font-medium">
+          <button type="button" onClick={() => setMethod("password")} aria-pressed={method === "password"} className={`flex items-center justify-center gap-2 rounded-md px-3 py-2 transition-colors ${method === "password" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}><KeyRound className="h-4 w-4" />Mot de passe</button>
+          <button type="button" onClick={() => setMethod("passkey")} aria-pressed={method === "passkey"} className={`flex items-center justify-center gap-2 rounded-md px-3 py-2 transition-colors ${method === "passkey" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}><Fingerprint className="h-4 w-4" />Clé d’accès</button>
+        </div>
         <label className="block space-y-1.5 text-sm font-medium">Adresse e-mail<input type="email" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)} className="w-full rounded-lg border border-input bg-background px-3 py-2.5 font-normal" placeholder="vous@exemple.fr" /></label>
-        <label className="block space-y-1.5 text-sm font-medium">Mot de passe<input type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full rounded-lg border border-input bg-background px-3 py-2.5 font-normal" /></label>
+        {method === "password" && (<label className="block space-y-1.5 text-sm font-medium">Mot de passe<input type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full rounded-lg border border-input bg-background px-3 py-2.5 font-normal" /></label>)}
         {error && <p role="alert" className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}
-        <button type="submit" disabled={busy} className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 font-medium text-primary-foreground disabled:opacity-60">{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogIn className="h-4 w-4" />}Se connecter</button>\n        <button type="button" onClick={() => void signInWithPasskey()} disabled={busy} className="flex w-full items-center justify-center gap-2 rounded-lg border border-primary px-4 py-2.5 font-medium text-primary hover:bg-primary/5 disabled:opacity-60">{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Fingerprint className="h-4 w-4" />}Se connecter avec une clé d’accès</button>
-        <button type="button" onClick={() => void requestPasswordReset()} disabled={resetBusy} className="flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm text-primary underline-offset-4 hover:underline disabled:opacity-60">{resetBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}Mot de passe oublié ?</button>
+        <button type="submit" disabled={busy} className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 font-medium text-primary-foreground disabled:opacity-60">{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : method === "password" ? <LogIn className="h-4 w-4" /> : <Fingerprint className="h-4 w-4" />}{method === "password" ? "Se connecter" : "Se connecter avec une clé d’accès"}</button>
+        {method === "password" && (<button type="button" onClick={() => void requestPasswordReset()} disabled={resetBusy} className="flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm text-primary underline-offset-4 hover:underline disabled:opacity-60">{resetBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}Mot de passe oublié ?</button>)}
         {resetRequested && <p role="status" className="rounded-lg bg-primary/10 p-3 text-sm">Si un compte correspond à cette adresse, un e-mail de réinitialisation a été envoyé. Vérifiez aussi vos courriers indésirables.</p>}
       </form>
       <p className="mt-5 flex items-start gap-2 text-xs text-muted-foreground"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />Cet espace est réservé aux comptes auxquels le rôle « Utilisateur IA » a été attribué.</p>

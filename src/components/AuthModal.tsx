@@ -38,6 +38,7 @@ const AuthModal = ({ open, onOpenChange }: AuthModalProps) => {
   const [signupPasswordError, setSignupPasswordError] = useState<string | null>(null);
   const [showSignupPassword, setShowSignupPassword] = useState(false);
   const [passkeyLoading, setPasskeyLoading] = useState(false);
+  const [loginMethod, setLoginMethod] = useState<"password" | "passkey">("password");
 
   const handlePasskeyLogin = async () => {
     const email = loginEmail.trim();
@@ -107,6 +108,10 @@ const AuthModal = ({ open, onOpenChange }: AuthModalProps) => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loginMethod === "passkey") {
+      await handlePasskeyLogin();
+      return;
+    }
     setLoading(true);
 
     try {
@@ -203,6 +208,28 @@ const AuthModal = ({ open, onOpenChange }: AuthModalProps) => {
           </TabsList>
 
           <TabsContent value="login" className="space-y-4 pt-4">
+            <div className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1 text-sm font-medium">
+              <button
+                type="button"
+                onClick={() => setLoginMethod("password")}
+                aria-pressed={loginMethod === "password"}
+                className={`flex items-center justify-center gap-2 rounded-md px-3 py-2 transition-colors ${loginMethod === "password" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                <Lock className="h-4 w-4" />
+                Mot de passe
+              </button>
+              <button
+                type="button"
+                onClick={() => setLoginMethod("passkey")}
+                disabled={!browserSupportsWebAuthn()}
+                title={browserSupportsWebAuthn() ? "Se connecter avec un passkey" : "Passkeys non supportées par ce navigateur"}
+                aria-pressed={loginMethod === "passkey"}
+                className={`flex items-center justify-center gap-2 rounded-md px-3 py-2 transition-colors disabled:opacity-50 ${loginMethod === "passkey" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                <Fingerprint className="h-4 w-4" />
+                Passkey
+              </button>
+            </div>
             <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="login-email">Email</Label>
@@ -221,35 +248,38 @@ const AuthModal = ({ open, onOpenChange }: AuthModalProps) => {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="login-password">Mot de passe</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="login-password"
-                    type="password"
-                    autoComplete="current-password"
-                    placeholder="••••••••"
-                    value={loginPassword}
-                    onChange={(e) => setLoginPassword(e.target.value)}
-                    className="pl-10"
-                    required
-                  />
+              {loginMethod === "password" && (
+                <div className="space-y-2">
+                  <Label htmlFor="login-password">Mot de passe</Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="login-password"
+                      type="password"
+                      autoComplete="current-password"
+                      placeholder="••••••••"
+                      value={loginPassword}
+                      onChange={(e) => setLoginPassword(e.target.value)}
+                      className="pl-10"
+                      required
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
 
-              <Button type="submit" className="w-full gap-2" disabled={loading} aria-busy={loading}>
-                {loading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Connexion…
-                  </>
-                ) : (
-                  "Se connecter"
-                )}
-              </Button>
-
-              {browserSupportsWebAuthn() && (
+              {loginMethod === "password" ? (
+                <Button type="submit" className="w-full gap-2" disabled={loading} aria-busy={loading}>
+                  {loading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Connexion…
+                    </>
+                  ) : (
+                    "Se connecter"
+                  )}
+                </Button>
+              ) : (
+                browserSupportsWebAuthn() && (
                 <>
                   <Button
                     type="button"
@@ -262,7 +292,7 @@ const AuthModal = ({ open, onOpenChange }: AuthModalProps) => {
                     {passkeyLoading ? "Vérification du passkey…" : "Se connecter avec un passkey"}
                   </Button>
                   <p className="text-xs text-muted-foreground text-center -mt-2">
-                    Saisissez votre email ci-dessus, puis utilisez votre empreinte, Face ID ou clé de sécurité
+                    Utilisez votre empreinte, Face ID ou clé de sécurité
                   </p>
                 </>
               )}
