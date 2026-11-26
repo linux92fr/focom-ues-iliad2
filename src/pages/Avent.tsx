@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 // Progression enregistrée côté serveur via un identifiant anonyme : aucun compte requis.
 // Pseudo optionnel pour le classement et les lots, modéré côté serveur (bannissement possible).
 // Email de contact optionnel (remise des lots uniquement) : finalité unique, aucun autre envoi.
+// Compte à rebours de 45 secondes par question ; à zéro, la case se referme sans rien enregistrer.
 // Chaque case se déverrouille le jour venu (heure de Paris) ; les jours
 // passés restent ouverts pour permettre le rattrapage.
 // ---------------------------------------------------------------------------
@@ -1170,6 +1171,8 @@ export default function Avent() {
   );
 }
 
+const QUESTION_SECONDS = 45;
+
 function DayModal({
   day,
   data,
@@ -1184,10 +1187,21 @@ function DayModal({
   onResult: (day: number, correct: boolean) => void;
 }) {
   const [picked, setPicked] = useState<number | null>(null);
+  const [secondsLeft, setSecondsLeft] = useState(QUESTION_SECONDS);
   const alreadyPlayed = playedCorrect !== undefined;
   const answered = picked !== null;
   const correct = answered && picked === data.quiz.answer;
   const points = day === 24 ? 20 : 10;
+
+  useEffect(() => {
+    if (alreadyPlayed || answered || secondsLeft <= 0) return;
+    const t = setTimeout(() => setSecondsLeft((sec) => Math.max(0, sec - 1)), 1000);
+    return () => clearTimeout(t);
+  }, [secondsLeft, alreadyPlayed, answered]);
+
+  useEffect(() => {
+    if (secondsLeft === 0 && !alreadyPlayed && !answered) onClose();
+  }, [secondsLeft, alreadyPlayed, answered]);
 
   const handlePick = (index: number) => {
     if (answered) return;
@@ -1216,7 +1230,33 @@ function DayModal({
             </p>
           )}
 
-          <h2 className="text-lg font-bold leading-snug">{data.quiz.question}</h2>
+          <div className="flex items-start gap-3">
+            <h2 className="text-lg font-bold leading-snug flex-1">{data.quiz.question}</h2>
+            {!alreadyPlayed && !answered && (
+              <span
+                className="relative shrink-0 w-12 h-12"
+                role="timer"
+                aria-label={secondsLeft + " secondes restantes"}
+                title={QUESTION_SECONDS + " secondes pour répondre"}
+              >
+                <svg viewBox="0 0 40 40" className="w-12 h-12 -rotate-90" aria-hidden="true">
+                  <circle cx="20" cy="20" r="16" fill="none" strokeWidth="4" style={{ stroke: "var(--av-paper-border)" }} />
+                  <circle
+                    cx="20"
+                    cy="20"
+                    r="16"
+                    fill="none"
+                    strokeWidth="4"
+                    strokeLinecap="round"
+                    strokeDasharray="100.5"
+                    strokeDashoffset={100.5 * (1 - secondsLeft / QUESTION_SECONDS)}
+                    style={{ stroke: secondsLeft <= 10 ? "var(--av-gift1)" : "var(--av-accent)" }}
+                  />
+                </svg>
+                <span className="absolute inset-0 flex items-center justify-center text-xs font-bold">{secondsLeft}</span>
+              </span>
+            )}
+          </div>
 
           <div className="mt-4 space-y-2">
             {data.quiz.options.map((option, index) => {
