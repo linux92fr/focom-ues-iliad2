@@ -186,6 +186,7 @@ function App() {
                     <Route path="/recherche" element={<PVSearchPage />} />
                     <Route path="/recherche-pv" element={<PVSearchPage />} />
                     <Route path="/avent" element={<Avent />} />
+                    <Route path="/event" element={<Navigate to="/avent" replace />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                   </Suspense>
