@@ -623,5 +623,30 @@ body:has(.admin-shell) [role="dialog"] {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .avent-float, .avent-glow, .avent-pop, .avent-shake, .avent-sparkle { animation: none; }
+  .avent-float, .avent-glow, .avent-pop, .avent-shake, .avent-sparkle, .avent-snow, .avent-bulb { animation: none; }
+}
+/* ---------- Avent : neige et guirlande ---------- */
+@keyframes snow-fall-avent {
+  0% { transform: translateY(-6vh) translateX(0); }
+  100% { transform: translateY(106vh) translateX(24px); }
+}
+.avent-snow {
+  position: absolute;
+  top: 0;
+  border-radius: 9999px;
+  background: #ffffff;
+  animation: snow-fall-avent linear infinite;
+}
+
+@keyframes bulb-twinkle-avent {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+.avent-bulb {
+  position: absolute;
+  width: 9px;
+  height: 13px;
+  border-radius: 50% 50% 50% 50% / 62% 62% 38% 38%;
+  transform: translateX(-50%);
+  animation: bulb-twinkle-avent 1.8s ease-in-out infinite;
 }

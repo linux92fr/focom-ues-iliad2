@@ -454,6 +454,69 @@ function Countdown() {
   );
 }
 
+const BULB_COLORS = ["#e05252", "#e8c07a", "#63c7b2", "#9dc98b"];
+
+function garlandY(x: number): number {
+  if (x <= 600) {
+    const t = x / 600;
+    return (1 - t) * (1 - t) * 12 + 2 * (1 - t) * t * 82 + t * t * 44;
+  }
+  const t = (x - 600) / 600;
+  return (1 - t) * (1 - t) * 44 + 2 * (1 - t) * t * 82 + t * t * 12;
+}
+
+function Garland() {
+  const bulbs = Array.from({ length: 13 }, (_, i) => 46 + i * 92);
+  return (
+    <div className="pointer-events-none absolute top-0 left-0 right-0 z-10" aria-hidden="true">
+      <svg viewBox="0 0 1200 96" preserveAspectRatio="none" className="w-full h-24 block">
+        <path d="M 0 12 Q 300 82 600 44 Q 900 82 1200 12" fill="none" stroke="#7a5a34" strokeWidth="2" opacity="0.9" />
+      </svg>
+      {bulbs.map((x, i) => {
+        const color = BULB_COLORS[i % BULB_COLORS.length];
+        return (
+          <span
+            key={x}
+            className="avent-bulb"
+            style={{
+              left: (x / 12) + "%",
+              top: (garlandY(x) - 2) + "px",
+              backgroundColor: color,
+              boxShadow: "0 0 10px 2px " + color + "88",
+              animationDelay: (i % 4) * 450 + "ms",
+            }}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+function Snowfall() {
+  const flakes = Array.from({ length: 34 }, (_, i) => i);
+  return (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+      {flakes.map((i) => {
+        const size = 2 + (i % 4);
+        return (
+          <span
+            key={i}
+            className="avent-snow"
+            style={{
+              left: ((i * 137) % 100) + "%",
+              width: size + "px",
+              height: size + "px",
+              opacity: 0.25 + ((i % 5) * 0.13),
+              animationDuration: (7 + (i % 7)) + "s",
+              animationDelay: "-" + (i % 11) + "s",
+            }}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
 export default function Avent() {
   const [played, setPlayed] = useState<PlayedMap>(() => loadProgress());
   const [openDay, setOpenDay] = useState<number | null>(null);
@@ -517,6 +580,12 @@ export default function Avent() {
       <div className="pointer-events-none absolute top-1/2 -right-24 w-80 h-80 rounded-full bg-[#b3402f]/15 blur-3xl" aria-hidden="true" />
       <div className="pointer-events-none absolute bottom-0 left-1/4 w-72 h-72 rounded-full bg-[#8a5a2e]/15 blur-3xl avent-float" style={{ animationDelay: "2.5s" }} aria-hidden="true" />
 
+      {/* Guirlande lumineuse */}
+      <Garland />
+
+      {/* Neige */}
+      <Snowfall />
+
       <a href="/" className="absolute top-4 left-4 z-20 text-xs text-[#c9a86a] hover:text-[#e8c07a] transition-colors underline underline-offset-4">
         Retour au site
       </a>
@@ -524,9 +593,7 @@ export default function Avent() {
       <div className="relative max-w-4xl mx-auto px-4 py-12">
         {/* En-tête */}
         <div className="flex flex-col items-center text-center">
-          <div className="w-20 h-20 rounded-full bg-[#f6ead3] shadow-xl shadow-[#d4a24e]/20 flex items-center justify-center p-2">
-            <img src="/embleme-epure_logo2.png" alt="FO COM UES Iliad" className="w-full h-full object-contain" />
-          </div>
+          <img src="/embleme-epure_logo2.png" alt="FO COM UES Iliad" className="w-24 h-24 object-contain drop-shadow-[0_4px_16px_rgba(212,162,78,0.35)]" />
           <h1 className="mt-4 text-3xl md:text-4xl font-extrabold text-[#e8c07a] tracking-tight">
             Calendrier de l'Avent
           </h1>
