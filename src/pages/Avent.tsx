@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 // Calendrier de l'Avent FO COM UES Iliad — décembre 2026
 // Un quiz par jour (code du travail et syndicalisme) + une surprise.
 // Progression enregistrée côté serveur via un identifiant anonyme : aucun compte requis.
+// Pseudo optionnel pour le classement et les lots, modéré côté serveur (bannissement possible).
 // Chaque case se déverrouille le jour venu (heure de Paris) ; les jours
 // passés restent ouverts pour permettre le rattrapage.
 // ---------------------------------------------------------------------------
@@ -589,6 +590,11 @@ export default function Avent() {
   const [played, setPlayed] = useState<PlayedMap>(() => loadProgress());
   const [playerId] = useState<string>(() => loadPlayerId());
   const [serverToday, setServerToday] = useState<number | null>(null);
+  const [savedPseudo, setSavedPseudo] = useState<string | null>(null);
+  const [pseudoInput, setPseudoInput] = useState("");
+  const [pseudoMsg, setPseudoMsg] = useState<string | null>(null);
+  const [banned, setBanned] = useState(false);
+  const [pseudoBusy, setPseudoBusy] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -598,6 +604,11 @@ export default function Avent() {
         const data = res.data;
         if (cancelled || res.error || !data || typeof data.today !== "number") return;
         setServerToday(data.today);
+        if (typeof data.banned === "boolean") setBanned(data.banned);
+        if (typeof data.pseudo === "string" && data.pseudo.length > 0) {
+          setSavedPseudo(data.pseudo);
+          setPseudoInput(data.pseudo);
+        }
         const remote = data.played;
         if (remote && typeof remote === "object" && !Array.isArray(remote)) {
           setPlayed(remote as PlayedMap);
@@ -710,6 +721,11 @@ export default function Avent() {
       .then((res) => {
         const data = res.data;
         if (res.error || !data || data.ok !== true) {
+          if (data && data.error === "banned") {
+            setBanned(true);
+            setPseudoMsg("Vous avez été exclu du jeu.");
+            return;
+          }
           applyLocal();
           return;
         }
@@ -737,6 +753,40 @@ export default function Avent() {
       setPlayed({});
     };
     supabase.rpc("avent_reset", { p_player_id: playerId }).then(wipe).catch(wipe);
+  };
+
+  const savePseudo = () => {
+    const trimmed = pseudoInput.trim();
+    if (trimmed.length < 3 || trimmed.length > 20) {
+      setPseudoMsg("Le pseudo doit contenir entre 3 et 20 caractères (lettres, chiffres, espaces, apostrophes, tirets).");
+      return;
+    }
+    setPseudoBusy(true);
+    setPseudoMsg(null);
+    supabase
+      .rpc("avent_set_pseudo", { p_player_id: playerId, p_pseudo: trimmed })
+      .then((res) => {
+        const data = res.data;
+        if (res.error || !data || data.ok !== true) {
+          const err = data && data.error;
+          if (err === "taken") {
+            setPseudoMsg("Ce pseudo est déjà pris, choisissez-en un autre.");
+          } else if (err === "inappropriate") {
+            setPseudoMsg("Pseudo refusé : tout pseudo injurieux, raciste, discriminatoire ou pornographique entraîne l'exclusion du jeu.");
+          } else if (err === "banned") {
+            setBanned(true);
+            setPseudoMsg("Vous avez été exclu du jeu.");
+          } else {
+            setPseudoMsg("Pseudo invalide : 3 à 20 caractères, lettres, chiffres, espaces, apostrophes et tirets uniquement.");
+          }
+          return;
+        }
+        setSavedPseudo(data.pseudo as string);
+        setPseudoInput(data.pseudo as string);
+        setPseudoMsg("Pseudo enregistré : il servira pour le classement et les lots de fin de parcours.");
+      })
+      .catch(() => setPseudoMsg("Impossible d'enregistrer le pseudo pour le moment, réessayez plus tard."))
+      .finally(() => setPseudoBusy(false));
   };
 
   const handleCaseClick = (day: number) => {
@@ -894,6 +944,53 @@ export default function Avent() {
           )}
         </div>
 
+        {/* Pseudo (optionnel) pour le classement et les lots, modéré côté serveur */}
+        <div className="mt-6 max-w-xl mx-auto bg-[var(--av-card-soft)] border border-[var(--av-card-border)] rounded-2xl p-5">
+          <p className="text-sm font-bold text-[var(--av-accent)] flex items-center gap-2">
+            <Trophy className="w-4 h-4" />
+            Pseudo pour le classement (optionnel)
+          </p>
+          <p className="mt-1 text-xs text-[var(--av-muted2)] leading-relaxed">
+            Choisissez un pseudo pour figurer au classement et participer aux lots de fin de parcours. Pas de prénom obligatoire, pas de compte : votre anonymat est préservé.
+          </p>
+          {banned ? (
+            <p className="mt-3 text-xs font-bold text-red-300 leading-relaxed" role="alert">
+              Vous avez été exclu du jeu.
+            </p>
+          ) : (
+            <div className="mt-3 flex flex-col sm:flex-row gap-2">
+              <input
+                type="text"
+                maxLength={20}
+                value={pseudoInput}
+                onChange={(e) => {
+                  setPseudoInput(e.target.value);
+                  setPseudoMsg(null);
+                }}
+                placeholder="Votre pseudo"
+                aria-label="Votre pseudo pour le classement"
+                className="flex-1 min-w-0 text-sm rounded-xl bg-[var(--av-paper)] text-[var(--av-dark-ink)] placeholder-[var(--av-faint)] px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--av-accent)]"
+              />
+              <button
+                type="button"
+                disabled={pseudoBusy}
+                onClick={savePseudo}
+                className="shrink-0 text-sm font-semibold text-[var(--av-dark-ink)] bg-gradient-to-r from-[var(--av-accent)] to-[var(--av-accent2)] rounded-xl px-4 py-2 hover:brightness-110 transition-all disabled:opacity-50"
+              >
+                {pseudoBusy ? "Enregistrement…" : savedPseudo ? "Modifier" : "Valider"}
+              </button>
+            </div>
+          )}
+          <p className="mt-2 text-[11px] text-[var(--av-faint2)] leading-relaxed">
+            Rappel : 3 à 20 caractères. Les pseudos injurieux, racistes, discriminatoires ou pornographiques entraînent l'exclusion du jeu.
+          </p>
+          {pseudoMsg && (
+            <p className="mt-2 text-xs text-[var(--av-accent)] leading-relaxed" role="status">
+              {pseudoMsg}
+            </p>
+          )}
+        </div>
+
         {/* Grille des cases */}
         <div className="mt-8 grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-2.5">
           {ADVENT_DAYS.map((day, index) => {
@@ -971,7 +1068,7 @@ export default function Avent() {
 
         {/* Pied de page */}
         <p className="mt-8 text-center text-[11px] text-[var(--av-faint)]">
-          Progression enregistrée côté serveur (joueur anonyme) — aucun compte requis. Le jour 24 vaut double.
+          Progression enregistrée côté serveur (joueur anonyme) — aucun compte requis. Le jour 24 vaut double. En fin de parcours, les meilleurs scores seront récompensés ; les ex-aequo seront départagés par tirage au sort.
         </p>
         <div className="mt-2 text-center">
           <button
