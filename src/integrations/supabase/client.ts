@@ -45,14 +45,40 @@ if (!SUPABASE_KEY) {
 // session concurrents peuvent se marcher dessus et laisser une requête (ex: publication
 // d'article) bloquée indéfiniment en attente d'une session qui ne se résout jamais.
 // Ce mutex maison évite ce problème sans dépendre de l'API navigator.locks.
-function createAuthMutex() {
+const AUTH_LOCK_WATCHDOG_MS = 10_000;
+
+// Watchdog : si une opération entrée dans la file ne rend jamais la main (fetch de
+// refreshSession perdu après une mise en veille, réseau coupé, onglet en
+// arrière-plan), on avance la file après AUTH_LOCK_WATCHDOG_MS. Sans cela, TOUTES
+// les opérations suivantes (chaque requête Supabase appelle getSession, donc passe
+// par le verrou) restent bloquées pendant toute la vie de l'onglet : spinners
+// d'authentification infinis, site figé, seul un refresh du navigateur répare.
+// L'appelant d'origine reçoit toujours le résultat réel de son opération ; seule
+// la file d'attente est libérée après le délai.
+function createAuthMutex(watchdogMs = AUTH_LOCK_WATCHDOG_MS) {
   let queue: Promise<unknown> = Promise.resolve();
   return function withLock<R>(fn: () => Promise<R>): Promise<R> {
     const result = queue.then(fn, fn);
-    queue = result.then(
+    const settled = result.then(
       () => undefined,
       () => undefined,
     );
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    queue = Promise.race([
+      settled,
+      new Promise<void>((resolve) => {
+        timer = setTimeout(() => {
+          console.warn(
+            "[FO COM auth] Opération d'authentification bloquée depuis plus de " +
+              Math.round(watchdogMs / 1000) +
+              " s : la file d'attente est libérée pour ne pas figer le site.",
+          );
+          resolve();
+        }, watchdogMs);
+      }),
+    ]).finally(() => {
+      if (timer !== undefined) clearTimeout(timer);
+    });
     return result;
   };
 }

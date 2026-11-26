@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ExternalLink, HeartPulse, Phone, ShieldCheck, X } from "lucide-react";
 
 const STORAGE_KEY = "focom-octobre-rose-2026-seen";
@@ -6,6 +6,16 @@ const STORAGE_KEY = "focom-octobre-rose-2026-seen";
 export default function OctobreRosePopup() {
   const [open, setOpen] = useState(false);
   const dialogRef = useRef<HTMLDialogElement>(null);
+
+  // Sécurité démontage : un <dialog> modal retiré du DOM sans close() peut laisser
+  // la page entière inert (plus rien de cliquable, seul un refresh répare). Le
+  // nettoyage d'un useLayoutEffect s'exécute avant la suppression du nœud.
+  useLayoutEffect(() => {
+    const dialog = dialogRef.current;
+    return () => {
+      if (dialog?.open) dialog.close();
+    };
+  }, []);
 
   useEffect(() => {
     try {

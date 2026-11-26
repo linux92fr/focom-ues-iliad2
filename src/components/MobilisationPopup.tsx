@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ArrowRight, CalendarDays, Euro, FileText, Users, X } from "lucide-react";
 
 const STORAGE_KEY = "focom-mobilisation-5-novembre-2026-seen";
@@ -7,6 +7,16 @@ const GUIDE_URL = "https://greve.focomues-iliad.fr/";
 export default function MobilisationPopup() {
   const [open, setOpen] = useState(false);
   const dialogRef = useRef<HTMLDialogElement>(null);
+
+  // Sécurité démontage : un <dialog> modal retiré du DOM sans close() peut laisser
+  // la page entière inert (plus rien de cliquable, seul un refresh répare). Le
+  // nettoyage d'un useLayoutEffect s'exécute avant la suppression du nœud.
+  useLayoutEffect(() => {
+    const dialog = dialogRef.current;
+    return () => {
+      if (dialog?.open) dialog.close();
+    };
+  }, []);
 
   useEffect(() => {
     try {

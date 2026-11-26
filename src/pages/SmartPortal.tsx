@@ -7,6 +7,26 @@ import { Bot, Loader2, LogIn, LogOut, ShieldCheck, Fingerprint, KeyRound, Trash2
 type ViewState = "checking" | "signed-out" | "denied" | "allowed";
 type Passkey = { id: string; friendly_name?: string; created_at: string; last_used_at?: string };
 
+const AUTH_CHECK_TIMEOUT_MS = 10_000;
+
+// Comme dans AdminAuthContext/SupabaseAuthContext : aucun appel d'authentification
+// ni de rôle ne doit pouvoir laisser le spinner "Vérification de votre accès…"
+// tourner à l'infini si le verrou Supabase est bloqué.
+const withAuthTimeout = async <T,>(
+  promise: Promise<T>,
+  timeoutMs = AUTH_CHECK_TIMEOUT_MS,
+): Promise<T> => {
+  let timer: ReturnType<typeof window.setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = window.setTimeout(() => reject(new Error("Délai d'authentification dépassé")), timeoutMs);
+  });
+  try {
+    return await Promise.race([promise, timeout]);
+  } finally {
+    if (timer) window.clearTimeout(timer);
+  }
+};
+
 export default function SmartPortal() {
   const navigate = useNavigate();
   const [state, setState] = useState<ViewState>("checking");
@@ -21,30 +41,44 @@ export default function SmartPortal() {
   const [passkeyMessage, setPasskeyMessage] = useState("");
 
   const verifyAccess = async (userId: string) => {
-    const { data, error: roleError } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId);
-    if (roleError) {
-      setError("Impossible de vérifier les autorisations. Réessayez plus tard.");
+    try {
+      const { data, error: roleError } = await withAuthTimeout(
+        supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", userId)
+          .then((result) => result),
+      );
+      if (roleError) {
+        setError("Impossible de vérifier les autorisations. Réessayez plus tard.");
+        setState("denied");
+        return;
+      }
+      if ((data ?? []).some((item) => item.role === "utilisateur_ia")) {
+        setState("allowed");
+      } else {
+        setState("denied");
+        setError("Ce compte n'a pas le rôle « Utilisateur IA ». Contactez un administrateur.");
+      }
+    } catch {
+      setError("La vérification de l'accès prend trop de temps. Rechargez la page puis réessayez.");
       setState("denied");
-      return;
-    }
-    if ((data ?? []).some((item) => item.role === "utilisateur_ia")) {
-      setState("allowed");
-    } else {
-      setState("denied");
-      setError("Ce compte n'a pas le rôle « Utilisateur IA ». Contactez un administrateur.");
     }
   };
 
   useEffect(() => {
     let active = true;
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    // Filet de sécurité : on ne reste jamais bloqué sur l'état "checking".
+    const failSafe = window.setTimeout(() => {
+      if (active) setState("signed-out");
+    }, AUTH_CHECK_TIMEOUT_MS);
+    withAuthTimeout(supabase.auth.getSession()).then(async ({ data: { session } }) => {
       if (!active) return;
       if (session?.user) await verifyAccess(session.user.id);
       else setState("signed-out");
-    });
+    }).catch(() => {
+      if (active) setState("signed-out");
+    }).finally(() => window.clearTimeout(failSafe));
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (!active) return;
       if (event === "SIGNED_OUT" || !session?.user) {
@@ -53,7 +87,7 @@ export default function SmartPortal() {
         void verifyAccess(session.user.id);
       }
     });
-    return () => { active = false; subscription.unsubscribe(); };
+    return () => { active = false; window.clearTimeout(failSafe); subscription.unsubscribe(); };
   }, []);
 
   const signInWithPasskey = async () => {
@@ -112,14 +146,20 @@ export default function SmartPortal() {
   const login = async (event: FormEvent) => {
     event.preventDefault();
     setBusy(true); setError("");
-    const { data, error: loginError } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
-    if (loginError || !data.user) {
-      setError("Connexion impossible. Vérifiez votre adresse e-mail et votre mot de passe.");
+    try {
+      const { data, error: loginError } = await withAuthTimeout(
+        supabase.auth.signInWithPassword({ email: email.trim(), password }).then((result) => result),
+      );
+      if (loginError || !data.user) {
+        setError("Connexion impossible. Vérifiez votre adresse e-mail et votre mot de passe.");
+        return;
+      }
+      await verifyAccess(data.user.id);
+    } catch {
+      setError("La connexion prend trop de temps. Vérifiez votre réseau puis réessayez.");
+    } finally {
       setBusy(false);
-      return;
     }
-    await verifyAccess(data.user.id);
-    setBusy(false);
   };
 
   const requestPasswordReset = async () => {

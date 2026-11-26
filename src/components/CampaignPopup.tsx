@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ArrowRight, Mail, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { NewsletterSubscriptionForm } from "@/components/NewsletterSubscriptionForm";
@@ -48,6 +48,25 @@ export default function CampaignPopup() {
   const authenticatedRef = useRef(false);
   const dialogRef = useRef<HTMLDialogElement>(null);
 
+  // Referme toujours le <dialog> natif AVANT que son nœud ne disparaisse du DOM :
+  // un dialog modal retiré sans close() peut laisser toute la page inert (visible
+  // mais plus cliquable, la souris bouge, seul un refresh répare) selon les
+  // navigateurs, car l'état modal n'est pas toujours nettoyé au retrait du nœud.
+  const closeDialogNode = useCallback(() => {
+    const dialog = dialogRef.current;
+    if (dialog?.open) dialog.close();
+  }, []);
+
+  // Le nettoyage d'un useLayoutEffect s'exécute avant que React ne retire le nœud
+  // du DOM (contrairement au useEffect de démontage, trop tardif) : il couvre le
+  // cas d'un démontage pendant que la popup est encore ouverte.
+  useLayoutEffect(() => {
+    const dialog = dialogRef.current;
+    return () => {
+      if (dialog?.open) dialog.close();
+    };
+  }, [candidate?.id]);
+
   // Load the third-party chat only after an explicit contact/help interaction.
   useEffect(() => {
     const onContactIntent = (event: MouseEvent) => {
@@ -77,6 +96,7 @@ export default function CampaignPopup() {
 
     if (error) {
       console.error("Chargement des campagnes popup impossible :", error);
+      closeDialogNode();
       setCandidate(null);
       return;
     }
@@ -104,8 +124,10 @@ export default function CampaignPopup() {
       position: "center",
       newsletter_enabled: true,
     };
-    setCandidate(eligible ?? (wasAlreadySeen(fallbackPopup) ? null : fallbackPopup));
-  }, []);
+    const nextCandidate = eligible ?? (wasAlreadySeen(fallbackPopup) ? null : fallbackPopup);
+    if (!nextCandidate) closeDialogNode();
+    setCandidate(nextCandidate);
+  }, [closeDialogNode]);
 
   const close = useCallback(() => {
     if (candidate) rememberSeen(candidate);
