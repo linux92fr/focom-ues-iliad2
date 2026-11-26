@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { X, Lock, Sparkles, Flame, Trophy } from "lucide-react";
+import { X, Lock, Sparkles, Flame, Trophy, Mail } from "lucide-react";
 
 // ---------------------------------------------------------------------------
 // Calendrier de l'Avent FO COM UES Iliad — décembre 2026
@@ -319,6 +319,7 @@ const ADVENT_DAYS: AdventDay[] = [
 
 const STORAGE_KEY = "avent_focom_2026";
 const ADVENT_DEADLINE = new Date("2026-12-01T00:00:00+01:00").getTime();
+const AVENT_FUNCTION_URL = (import.meta.env.VITE_SUPABASE_URL ?? "") + "/functions/v1/avent-reminder";
 
 type PlayedMap = Record<string, boolean>;
 
@@ -521,6 +522,63 @@ export default function Avent() {
   const [played, setPlayed] = useState<PlayedMap>(() => loadProgress());
   const [openDay, setOpenDay] = useState<number | null>(null);
   const [shakeDay, setShakeDay] = useState<number | null>(null);
+  const [reminderEmail, setReminderEmail] = useState("");
+  const [reminderConsent, setReminderConsent] = useState(false);
+  const [reminderSubmitting, setReminderSubmitting] = useState(false);
+  const [reminderDone, setReminderDone] = useState(false);
+  const [reminderError, setReminderError] = useState<string | null>(null);
+  const [unsubscribeMessage, setUnsubscribeMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("desinscription");
+    if (!token) return;
+    window.history.replaceState(null, "", window.location.pathname);
+    fetch(AVENT_FUNCTION_URL + "/unsubscribe", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token }),
+    })
+      .then(() =>
+        setUnsubscribeMessage(
+          "Vous êtes bien désinscrit : vous ne recevrez plus les rappels du calendrier."
+        )
+      )
+      .catch(() =>
+        setUnsubscribeMessage(
+          "La désinscription n’a pas pu être confirmée. Réessayez depuis le lien présent dans l’email."
+        )
+      );
+  }, []);
+
+  const subscribeReminder = async () => {
+    const email = reminderEmail.trim().toLowerCase();
+    if (!reminderConsent) {
+      setReminderError("Cochez la case de consentement pour continuer.");
+      return;
+    }
+    setReminderSubmitting(true);
+    setReminderError(null);
+    try {
+      const resp = await fetch(AVENT_FUNCTION_URL + "/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = await resp.json();
+      if (!resp.ok || !data || !data.success) {
+        throw new Error((data && data.error) || "Inscription impossible pour le moment.");
+      }
+      setReminderDone(true);
+      setReminderEmail("");
+    } catch (err) {
+      setReminderError(
+        err instanceof Error ? err.message : "Inscription impossible pour le moment."
+      );
+    } finally {
+      setReminderSubmitting(false);
+    }
+  };
   const [, forceTick] = useState(0);
 
   useEffect(() => {
@@ -644,6 +702,73 @@ export default function Avent() {
               </div>
             );
           })}
+        </div>
+
+        {/* Rappel quotidien par email (consentement RGPD explicite) */}
+        <div className="mt-6 max-w-xl mx-auto bg-[#3a2a1e]/70 border border-[#57402c] rounded-2xl p-5">
+          <p className="text-sm font-bold text-[#e8c07a] flex items-center gap-2">
+            <Mail className="w-4 h-4" />
+            Rappel quotidien par email
+          </p>
+          <p className="mt-1 text-xs text-[#c9b28a] leading-relaxed">
+            Recevez un email chaque matin du 1er au 24 décembre pour ouvrir la case du jour en avance.
+          </p>
+          {unsubscribeMessage ? (
+            <p className="mt-3 text-xs text-[#e8c07a] leading-relaxed" role="status">
+              {unsubscribeMessage}
+            </p>
+          ) : reminderDone ? (
+            <p className="mt-3 text-xs text-emerald-300 leading-relaxed" role="status">
+              C’est noté ! Le premier rappel arrivera le 1er décembre. À très vite !
+            </p>
+          ) : (
+            <form
+              className="mt-3 space-y-2.5"
+              onSubmit={(e) => {
+                e.preventDefault();
+                subscribeReminder();
+              }}
+            >
+              <div className="flex flex-col sm:flex-row gap-2">
+                <input
+                  type="email"
+                  required
+                  value={reminderEmail}
+                  onChange={(e) => setReminderEmail(e.target.value)}
+                  placeholder="votre@email.fr"
+                  aria-label="Votre adresse email"
+                  className="flex-1 min-w-0 text-sm rounded-xl bg-[#f6ead3] text-[#3a2a1e] placeholder-[#a98a5c] px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#e8c07a]"
+                />
+                <button
+                  type="submit"
+                  disabled={reminderSubmitting || !reminderConsent}
+                  className="shrink-0 text-sm font-semibold text-[#3a2a1e] bg-gradient-to-r from-[#e8c07a] to-[#d4a24e] rounded-xl px-4 py-2 hover:brightness-110 transition-all disabled:opacity-50"
+                >
+                  {reminderSubmitting ? "Enregistrement…" : "Me le rappeler"}
+                </button>
+              </div>
+              <label className="flex items-start gap-2 text-[11px] text-[#c9b28a] leading-relaxed cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={reminderConsent}
+                  onChange={(e) => setReminderConsent(e.target.checked)}
+                  className="mt-0.5 accent-[#e8c07a]"
+                />
+                <span>
+                  J’accepte de recevoir chaque matin du 1er au 24 décembre un email de rappel du calendrier de l’Avent de la FO COM UES Iliad. Désinscription en un clic à tout moment (lien dans chaque email).{" "}
+                  <a href="/rgpd" target="_blank" rel="noreferrer" className="underline text-[#e8c07a] hover:text-[#f6ead3]">
+                    Politique de confidentialité
+                  </a>
+                  .
+                </span>
+              </label>
+              {reminderError && (
+                <p className="text-[11px] text-red-300" role="alert">
+                  {reminderError}
+                </p>
+              )}
+            </form>
+          )}
         </div>
 
         {/* Grille des cases */}
