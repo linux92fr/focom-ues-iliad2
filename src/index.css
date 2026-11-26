@@ -567,3 +567,19 @@ body:has(.admin-shell) [role="dialog"] {
   border-radius: 1.5rem;
   box-shadow: 0 30px 90px -30px rgb(15 23 42 / 55%);
 }
+
+/* Animation d'apparition des résultats de recherche */
+@keyframes fade-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-slide-in {
+  animation: fade-slide-in 0.35s ease-out both;
+}

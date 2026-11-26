@@ -58,10 +58,12 @@ function TypeChips({
   value,
   onChange,
   onPick,
+  counts,
 }: {
   value: string;
   onChange: (v: string) => void;
   onPick?: (v: string) => void;
+  counts?: Record<string, number>;
 }) {
   return (
     <div className="flex flex-wrap items-center gap-1.5">
@@ -81,6 +83,9 @@ function TypeChips({
           }
         >
           {t}
+          {counts && (counts[t] ?? 0) > 0 ? (
+            <span className="ml-1 opacity-60">{counts[t]}</span>
+          ) : null}
         </button>
       ))}
     </div>
@@ -172,7 +177,7 @@ function highlight(text: string, query: string): React.ReactNode {
   const parts = text.split(regex);
   return parts.map((part, i) =>
     exactRegex.test(part) ? (
-      <mark key={i} className="bg-yellow-200 text-inherit rounded-sm px-0.5 font-medium">
+      <mark key={i} className="bg-red-100 text-red-900 rounded-sm px-0.5 font-semibold">
         {part}
       </mark>
     ) : (
@@ -194,6 +199,7 @@ export function PVSearchPage() {
   const [codeInput, setCodeInput] = useState("");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [docCount, setDocCount] = useState<number | null>(null);
+  const [searchDuration, setSearchDuration] = useState<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -290,6 +296,9 @@ export function PVSearchPage() {
       return;
     }
 
+    setSearchDuration(null);
+    const searchStart = performance.now();
+
     setIsSearching(true);
     setSearched(false);
 
@@ -360,12 +369,19 @@ export function PVSearchPage() {
     setSubmitted(term);
     setIsSearching(false);
     setSearched(true);
+    setSearchDuration(Math.round((performance.now() - searchStart) / 100) / 10);
   };
 
   const grouped = results.reduce((acc: Record<string, SearchResult[]>, r) => {
     (acc[r.filename] ??= []).push(r);
     return acc;
   }, {});
+
+  const typeCounts: Record<string, number> = { Tous: results.length };
+  for (const r of results) {
+    const t = docTypeOf(r.filename);
+    typeCounts[t] = (typeCounts[t] ?? 0) + 1;
+  }
 
   const hasPvResults = results.length > 0;
   const showResults = !!submitted && (searched || isSearching);
@@ -571,6 +587,7 @@ export function PVSearchPage() {
           <TypeChips
             value={typeFilter}
             onChange={setTypeFilter}
+            counts={typeCounts}
             onPick={(t) => {
               if (submitted) handleSearch(submitted, t);
             }}
@@ -595,6 +612,7 @@ export function PVSearchPage() {
                   <strong className="text-slate-700">{results.length}</strong> passage{results.length > 1 ? "s" : ""} dans{" "}
                   <strong className="text-slate-700">{Object.keys(grouped).length}</strong> document{Object.keys(grouped).length > 1 ? "s" : ""} pour « {submitted} »
                   {typeFilter !== "Tous" ? ` · type ${typeFilter}` : ""}
+                  {searchDuration !== null ? " · " + searchDuration.toFixed(1).replace(".", ",") + " s" : ""}
                 </p>
                 {!isAuthenticated && !accessCode && (
                   <button
@@ -606,7 +624,7 @@ export function PVSearchPage() {
                   </button>
                 )}
               </div>
-              {Object.entries(grouped).map(([filename, fileResults]) => {
+              {Object.entries(grouped).map(([filename, fileResults], fileIndex) => {
                 const docLabel = filename.replace(/\.pdf$/i, "").replace(/[_/-]/g, " ");
                 const docType = docTypeOf(filename);
                 const isOpen = expanded.has(filename);
@@ -615,8 +633,8 @@ export function PVSearchPage() {
                 return (
                   <article
                     key={filename}
-                    className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow"
-                    style={{ borderLeft: "4px solid " + (TYPE_ACCENT[docType] ?? TYPE_ACCENT.Autre) }}
+                    className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow fade-slide-in"
+                    style={{ borderLeft: "4px solid " + (TYPE_ACCENT[docType] ?? TYPE_ACCENT.Autre), animationDelay: fileIndex * 60 + "ms" }}
                   >
                     {/* En-tête document */}
                     <div className="flex items-center justify-between gap-2 px-4 py-2.5 bg-slate-50/80 border-b border-slate-200">
