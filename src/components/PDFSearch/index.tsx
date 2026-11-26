@@ -172,6 +172,8 @@ export function PVSearchPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [typeFilter, setTypeFilter] = useState("Tous");
+  const [accessCode, setAccessCode] = useState(() => localStorage.getItem("pv_access_code") ?? "");
+  const [codeInput, setCodeInput] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -185,11 +187,39 @@ export function PVSearchPage() {
   }, []);
 
   const downloadFile = async (filename: string) => {
-    const { data, error } = await supabase.storage
-      .from("pv-documents")
-      .createSignedUrl(filename, 60);
-    if (error || !data) return;
-    window.open(data.signedUrl, "_blank");
+    if (isAuthenticated) {
+      const { data, error } = await supabase.storage
+        .from("pv-documents")
+        .createSignedUrl(filename, 60);
+      if (error || !data) return;
+      window.open(data.signedUrl, "_blank");
+      return;
+    }
+    try {
+      const resp = await fetch(`${EDGE_FUNCTION_URL}/download`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-access-code": accessCode },
+        body: JSON.stringify({ filename }),
+      });
+      const data = await resp.json();
+      if (!resp.ok || !data?.url) throw new Error(data?.error ?? "Téléchargement indisponible");
+      window.open(data.url, "_blank");
+    } catch {
+      // lien signé indisponible : réessayer plus tard
+    }
+  };
+
+  const openAccess = (code: string) => {
+    const trimmed = code.trim();
+    if (!trimmed) return;
+    localStorage.setItem("pv_access_code", trimmed);
+    setAccessCode(trimmed);
+    setCodeInput("");
+  };
+
+  const closeAccess = () => {
+    localStorage.removeItem("pv_access_code");
+    setAccessCode("");
   };
 
   const handleSearch = async (q?: string, type?: string) => {
@@ -197,7 +227,7 @@ export function PVSearchPage() {
     if (!term) return;
     const activeType = (type ?? typeFilter) === "Tous" ? null : (type ?? typeFilter);
 
-    if (!isAuthenticated) {
+    if (!isAuthenticated && !accessCode) {
       setAuthModalOpen(true);
       return;
     }
@@ -209,7 +239,7 @@ export function PVSearchPage() {
       const authHeader = await getAuthHeader();
       const resp = await fetch(`${EDGE_FUNCTION_URL}/search`, {
         method: "POST",
-        headers: { ...authHeader, "Content-Type": "application/json" },
+        headers: { ...authHeader, "Content-Type": "application/json", ...(!isAuthenticated ? { "x-access-code": accessCode } : {}) },
         body: JSON.stringify({ query: term, match_count: 15, type: activeType }),
       });
       const data = await resp.json();
@@ -348,6 +378,42 @@ export function PVSearchPage() {
           <div className="mt-5">
             <TypeChips value={typeFilter} onChange={setTypeFilter} />
           </div>
+
+          {/* Accès sans compte : code partagé */}
+          {!isAuthenticated && (
+            <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
+              {accessCode ? (
+                <span className="text-xs text-slate-500">
+                  Accès ouvert avec un code partagé.
+                  <button
+                    onClick={closeAccess}
+                    className="ml-2 underline text-slate-400 hover:text-slate-600"
+                  >
+                    Fermer l'accès
+                  </button>
+                </span>
+              ) : (
+                <>
+                  <input
+                    type="password"
+                    value={codeInput}
+                    onChange={(e) => setCodeInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") openAccess(codeInput);
+                    }}
+                    placeholder="Code d'accès partagé"
+                    className="w-48 px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-300"
+                  />
+                  <button
+                    onClick={() => openAccess(codeInput)}
+                    className="px-3 py-1.5 text-sm bg-slate-800 text-white rounded-lg hover:bg-slate-700 transition-colors"
+                  >
+                    Ouvrir l'accès
+                  </button>
+                </>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Guide pratique */}
@@ -373,6 +439,7 @@ export function PVSearchPage() {
                   <li>• Plusieurs mots = l'association exacte est prioritaire, puis les mots sont recherchés ensemble</li>
                   <li>• Les petites fautes de frappe sont tolérées si aucun résultat exact n'est trouvé</li>
                   <li>• Filtrez par type (CSE, CSSCT, NAO, Accord) pour cibler un genre de document</li>
+                  <li>• Sans compte : ouvrez l'accès avec le code partagé fourni par la FO COM</li>
                 </ul>
               </div>
               <div>
@@ -456,7 +523,7 @@ export function PVSearchPage() {
                   {results.length} résultat{results.length > 1 ? "s" : ""} pour « {submitted} »
                   {typeFilter !== "Tous" ? ` · type ${typeFilter}` : ""}
                 </p>
-                {!isAuthenticated && (
+                {!isAuthenticated && !accessCode && (
                   <button
                     onClick={() => setAuthModalOpen(true)}
                     className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-800 hover:underline"
@@ -483,7 +550,7 @@ export function PVSearchPage() {
                           {docLabel}
                         </span>
                       </div>
-                      {isAuthenticated ? (
+                      {isAuthenticated || accessCode ? (
                         <button
                           onClick={() => downloadFile(filename)}
                           className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 hover:underline shrink-0"
@@ -505,7 +572,7 @@ export function PVSearchPage() {
                     <div className="divide-y divide-slate-100">
                       {fileResults.slice(0, 3).map((result, i) => {
                         const snippet = extractSnippet(result.content, submitted);
-                        const displayText = isAuthenticated ? snippet : maskProperNouns(snippet);
+                        const displayText = isAuthenticated || accessCode ? snippet : maskProperNouns(snippet);
                         return (
                           <div key={i} className="px-4 py-3">
                             <p className="text-sm text-slate-700 leading-relaxed">
