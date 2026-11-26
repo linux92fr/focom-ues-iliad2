@@ -82,6 +82,7 @@ const PVSearchPage = lazy(() =>
 const AdminPVDepot = lazy(() => import("./pages/admin/AdminPVDepot"));
 const AdminCampaigns = lazy(() => import("./pages/admin/AdminCampaigns"));
 const FormationPortal = lazy(() => import("./formation/FormationPortal"));
+const Avent = lazy(() => import("./pages/Avent"));
 
 const queryClient = new QueryClient();
 
@@ -184,6 +185,7 @@ function App() {
                     <Route path={`/${ADMIN_BASE}/pv`} element={<AdminPVDepot />} />
                     <Route path="/recherche" element={<PVSearchPage />} />
                     <Route path="/recherche-pv" element={<PVSearchPage />} />
+                    <Route path="/avent" element={<Avent />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                   </Suspense>
