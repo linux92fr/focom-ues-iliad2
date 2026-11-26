@@ -7,6 +7,10 @@
 -- 5. Fonction pv_search(p_query, p_match_count, p_type) : classe les résultats
 --    (expression exacte > pertinence plein texte > rapprochement flou),
 --    ignore les accents et tolère les fautes de frappe.
+--
+-- NB : toutes les références au dictionnaire unaccent sont qualifiées
+-- (public.unaccent) car le runner de migrations Supabase utilise un
+-- search_path restreint.
 
 create extension if not exists unaccent;
 create extension if not exists pg_trgm;
@@ -18,13 +22,14 @@ language sql
 immutable
 strict
 as $$
-  select unaccent('unaccent'::regdictionary, p_text);
+  select public.unaccent('public.unaccent'::regdictionary, p_text);
 $$;
 
 -- Configuration française sans accents
 do $do$
 begin
-  if not exists (select 1 from pg_ts_config where cfgname = 'french_unaccent') then
+  if not exists (select 1 from pg_ts_config c join pg_namespace n on c.cfgnamespace = n.oid
+                 where c.cfgname = 'french_unaccent' and n.nspname = 'public') then
     create text search configuration public.french_unaccent (copy = french);
   end if;
 end
@@ -32,7 +37,7 @@ $do$;
 
 alter text search configuration public.french_unaccent
   alter mapping for hword, hword_part, word
-  with unaccent, french_stem;
+  with public.unaccent, french_stem;
 
 -- Index plein texte sans accents
 create index if not exists pv_documents_fts_unaccent
@@ -126,5 +131,5 @@ as $$
   from ranked r
   cross join q
   order by r.similarity desc, r.chunk_index asc, r.filename asc
-  limit q.v_count;
+  limit (select v_count from q);
 $$;
