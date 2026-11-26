@@ -357,6 +357,7 @@ const AVENT_THEMES: AventTheme[] = [
       "--av-halo2": "rgba(179,64,47,0.15)",
       "--av-halo3": "rgba(138,90,46,0.15)",
       "--av-thread": "rgba(212,162,78,0.6)",
+      "--av-veil": "rgba(36,24,18,0.5)",
       "--av-logo-glow": "rgba(212,162,78,0.35)",
       "--av-paper": "#f6ead3",
       "--av-paper2": "#fbf3e0",
@@ -404,6 +405,7 @@ const AVENT_THEMES: AventTheme[] = [
       "--av-halo2": "rgba(79,140,190,0.15)",
       "--av-halo3": "rgba(58,110,160,0.15)",
       "--av-thread": "rgba(151,205,235,0.6)",
+      "--av-veil": "rgba(20,48,74,0.42)",
       "--av-logo-glow": "rgba(151,205,235,0.35)",
       "--av-paper": "#eff7fc",
       "--av-paper2": "#f9fcfe",
@@ -451,6 +453,7 @@ const AVENT_THEMES: AventTheme[] = [
       "--av-halo2": "rgba(179,64,47,0.15)",
       "--av-halo3": "rgba(74,120,60,0.15)",
       "--av-thread": "rgba(212,162,78,0.6)",
+      "--av-veil": "rgba(18,48,31,0.5)",
       "--av-logo-glow": "rgba(212,162,78,0.35)",
       "--av-paper": "#f7f4e8",
       "--av-paper2": "#fdfbf2",
@@ -498,6 +501,7 @@ const AVENT_THEMES: AventTheme[] = [
       "--av-halo2": "rgba(139,63,191,0.15)",
       "--av-halo3": "rgba(110,70,180,0.15)",
       "--av-thread": "rgba(159,125,238,0.6)",
+      "--av-veil": "rgba(13,9,38,0.65)",
       "--av-logo-glow": "rgba(205,180,245,0.35)",
       "--av-paper": "#f5f0fe",
       "--av-paper2": "#fcf9ff",
@@ -857,7 +861,11 @@ export default function Avent() {
   const openData = openDay !== null ? ADVENT_DAYS[openDay - 1] : null;
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-b from-[var(--av-bg1)] to-[var(--av-bg2)] text-[var(--av-ink)] overflow-hidden" style={theme.vars as unknown as React.CSSProperties}>
+    <div className="relative min-h-screen bg-gradient-to-b from-[var(--av-bg1)] to-[var(--av-bg2)] text-[var(--av-ink)] overflow-hidden isolate" style={theme.vars as unknown as React.CSSProperties}>
+
+        {/* Decor hivernal de fond : scene du jour, voile teinte par le theme */}
+        <img src="/avent-fond.svg" alt="" aria-hidden="true" className="absolute inset-0 -z-10 h-full w-full object-cover" />
+        <div className="absolute inset-0 -z-10 bg-[var(--av-veil)]" />
       {/* Halos chauds */}
       <div className="pointer-events-none absolute -top-32 -left-24 w-96 h-96 rounded-full bg-[var(--av-halo1)] blur-3xl avent-float" aria-hidden="true" />
       <div className="pointer-events-none absolute top-1/2 -right-24 w-80 h-80 rounded-full bg-[var(--av-halo2)] blur-3xl" aria-hidden="true" />
