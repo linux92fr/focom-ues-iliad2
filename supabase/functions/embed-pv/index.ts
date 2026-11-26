@@ -154,6 +154,21 @@ Deno.serve(async (req) => {
       return json({ valid });
     }
 
+    // Mise à jour du code d'accès partagé (réservée aux gestionnaires).
+    if (url.pathname.endsWith("/set-code")) {
+      const setUser = await getCaller(req.headers.get("Authorization") ?? "");
+      if (!setUser || !(await isElevated(setUser.id))) return json({ error: "Accès réservé aux gestionnaires" }, 403);
+      const setBody = await req.json();
+      const code = typeof setBody?.code === "string" ? setBody.code.trim() : "";
+      if (code.length < 4 || code.length > 200) return json({ error: "Le code doit contenir entre 4 et 200 caractères" }, 400);
+      const codeHash = await sha256Hex(code);
+      const { error: upsertError } = await supabase
+        .from("pv_access")
+        .upsert({ id: 1, code_hash: codeHash, updated_at: new Date().toISOString() });
+      if (upsertError) throw upsertError;
+      return json({ success: true });
+    }
+
     if (url.pathname.endsWith("/search")) {
       const searchUser = await getCaller(req.headers.get("Authorization") ?? "");
       if (!searchUser && !(await isValidAccessCode(req.headers.get("x-access-code")))) {

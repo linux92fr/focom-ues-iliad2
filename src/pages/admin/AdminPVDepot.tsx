@@ -22,6 +22,7 @@ import {
   Folder,
   ChevronRight,
   ShieldCheck,
+  KeyRound,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -129,6 +130,8 @@ function AdminPVDepotContent() {
   const [currentFolder, setCurrentFolder] = useState<string | null>(null);
   const [cleaningOrphans, setCleaningOrphans] = useState(false);
   const [purgingDuplicates, setPurgingDuplicates] = useState(false);
+  const [accessCodeDraft, setAccessCodeDraft] = useState("");
+  const [savingAccessCode, setSavingAccessCode] = useState(false);
 
   React.useEffect(() => {
     loadFiles();
@@ -464,6 +467,34 @@ function AdminPVDepotContent() {
     }
   };
 
+  // Mise à jour du code d'accès partagé à la recherche (sans compte).
+  // Le code est vérifié et haché côté serveur : il ne transite jamais en
+  // clair dans la base et n'est jamais relu par l'interface.
+  const updateAccessCode = async () => {
+    const code = accessCodeDraft.trim();
+    if (code.length < 4) {
+      toast.error("Le code doit contenir au moins 4 caractères.");
+      return;
+    }
+    setSavingAccessCode(true);
+    try {
+      const authHeader = await getAuthHeader();
+      const resp = await fetch(`${EDGE_FUNCTION_URL}/set-code`, {
+        method: "POST",
+        headers: { ...authHeader, "Content-Type": "application/json" },
+        body: JSON.stringify({ code }),
+      });
+      const result = await resp.json();
+      if (!resp.ok) throw new Error(result.error ?? "Erreur serveur");
+      setAccessCodeDraft("");
+      toast.success("Code d'accès mis à jour — actif immédiatement pour les nouvelles recherches.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erreur lors de la mise à jour du code");
+    } finally {
+      setSavingAccessCode(false);
+    }
+  };
+
   const deleteFile = async (filePath: string) => {
     if (!confirm(`Supprimer ce fichier et ses données d'indexation ?`)) return;
     await supabase.storage.from("pv-documents").remove([filePath]);
@@ -590,6 +621,40 @@ function AdminPVDepotContent() {
           ))}
         </div>
       )}
+
+      {/* Code d'accès partagé à la recherche */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <KeyRound className="w-4 h-4" />
+            Code d'accès partagé (recherche sans compte)
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-xs text-slate-500 mb-3">
+            Code commun à diffuser aux collègues pour utiliser la recherche sans compte.
+            La modification est immédiate ; les navigateurs ayant mémorisé l'ancien code
+            devront saisir le nouveau.
+          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              type="text"
+              autoComplete="new-password"
+              value={accessCodeDraft}
+              onChange={(e) => setAccessCodeDraft(e.target.value)}
+              placeholder="Nouveau code (4 caractères minimum)"
+              className="flex-1 min-w-[12rem] max-w-xs text-sm border border-slate-300 rounded px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-300"
+            />
+            <Button
+              onClick={updateAccessCode}
+              disabled={savingAccessCode || accessCodeDraft.trim().length < 4}
+            >
+              {savingAccessCode ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+              Mettre à jour le code
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Liste des fichiers groupés */}
       <Card>
