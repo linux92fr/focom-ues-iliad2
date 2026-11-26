@@ -606,8 +606,8 @@ body:has(.admin-shell) [role="dialog"] {
 .avent-shake { animation: shake-soft-avent 0.4s ease-in-out; }
 
 @keyframes glow-pulse-avent {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(212, 162, 78, 0.55); }
-  50% { box-shadow: 0 0 0 12px rgba(212, 162, 78, 0); }
+  0%, 100% { box-shadow: 0 0 0 0 var(--av-glow, rgba(212, 162, 78, 0.55)); }
+  50% { box-shadow: 0 0 0 12px var(--av-glow-fade, rgba(212, 162, 78, 0)); }
 }
 .avent-glow { animation: glow-pulse-avent 1.8s ease-out infinite; }
 
@@ -617,7 +617,7 @@ body:has(.admin-shell) [role="dialog"] {
 }
 .avent-sparkle {
   position: absolute;
-  color: #b3402f;
+  color: var(--av-sparkle, #b3402f);
   font-size: 14px;
   animation: sparkle-avent 900ms ease-out forwards;
 }

@@ -321,6 +321,217 @@ const STORAGE_KEY = "avent_focom_2026";
 const ADVENT_DEADLINE = new Date("2026-12-01T00:00:00+01:00").getTime();
 const AVENT_FUNCTION_URL = (import.meta.env.VITE_SUPABASE_URL ?? "") + "/functions/v1/avent-reminder";
 
+// ---------------------------------------------------------------------------
+// Thèmes visuels : chaque thème définit des variables CSS (--av-*) injectées
+// sur la racine de la page, ce qui relook toute l'interface sans duplication.
+// ---------------------------------------------------------------------------
+
+interface AventTheme {
+  id: string;
+  label: string;
+  emoji: string;
+  vars: Record<string, string>;
+}
+
+const AVENT_THEMES: AventTheme[] = [
+  {
+    id: "cosy",
+    label: "Cosy",
+    emoji: "\ud83c\udf84",
+    vars: {
+      "--av-bg1": "#241812",
+      "--av-bg2": "#160f09",
+      "--av-ink": "#f6ead3",
+      "--av-card": "#3a2a1e",
+      "--av-card-soft": "rgba(58,42,30,0.7)",
+      "--av-card-border": "#57402c",
+      "--av-accent": "#e8c07a",
+      "--av-accent2": "#d4a24e",
+      "--av-accent-border": "rgba(212,162,78,0.4)",
+      "--av-muted": "#c9a86a",
+      "--av-muted2": "#c9b28a",
+      "--av-subtitle": "#d9c19a",
+      "--av-faint": "#a98a5c",
+      "--av-faint2": "#8a6a3a",
+      "--av-halo1": "rgba(212,162,78,0.15)",
+      "--av-halo2": "rgba(179,64,47,0.15)",
+      "--av-halo3": "rgba(138,90,46,0.15)",
+      "--av-logo-glow": "rgba(212,162,78,0.35)",
+      "--av-paper": "#f6ead3",
+      "--av-paper2": "#fbf3e0",
+      "--av-paper-border": "#d9c19a",
+      "--av-paper-border-soft": "#e6d6b8",
+      "--av-paper-muted": "#8a6a3a",
+      "--av-dark-ink": "#3a2a1e",
+      "--av-gift1": "#b3402f",
+      "--av-gift1-deep": "#7f261c",
+      "--av-gift1-ink": "#f6ead3",
+      "--av-gift2": "#e9d5b0",
+      "--av-gift2-deep": "#d3b98a",
+      "--av-gift2-ink": "#7f261c",
+      "--av-ribbon1": "rgba(232,192,122,0.9)",
+      "--av-ribbon2": "rgba(179,64,47,0.8)",
+      "--av-lock": "rgba(26,17,11,0.75)",
+      "--av-lock-icon": "rgba(212,162,78,0.7)",
+      "--av-overlay": "rgba(18,12,7,0.85)",
+      "--av-close-hover": "rgba(246,234,211,0.2)",
+      "--av-glow": "rgba(212,162,78,0.55)",
+      "--av-glow-fade": "rgba(212,162,78,0)",
+      "--av-sparkle": "#b3402f",
+    },
+  },
+  {
+    id: "neige",
+    label: "Neige",
+    emoji: "\u2744\ufe0f",
+    vars: {
+      "--av-bg1": "#14304a",
+      "--av-bg2": "#0a1826",
+      "--av-ink": "#eef7ff",
+      "--av-card": "#1b3a55",
+      "--av-card-soft": "rgba(27,58,85,0.7)",
+      "--av-card-border": "#40617f",
+      "--av-accent": "#a9dcf7",
+      "--av-accent2": "#6fb6dd",
+      "--av-accent-border": "rgba(111,182,221,0.4)",
+      "--av-muted": "#9dc0d8",
+      "--av-muted2": "#b8cfe0",
+      "--av-subtitle": "#cfe3f0",
+      "--av-faint": "#7fa3bd",
+      "--av-faint2": "#6b93af",
+      "--av-halo1": "rgba(111,182,221,0.15)",
+      "--av-halo2": "rgba(79,140,190,0.15)",
+      "--av-halo3": "rgba(58,110,160,0.15)",
+      "--av-logo-glow": "rgba(151,205,235,0.35)",
+      "--av-paper": "#eff7fc",
+      "--av-paper2": "#f9fcfe",
+      "--av-paper-border": "#cfe0ec",
+      "--av-paper-border-soft": "#e2edf5",
+      "--av-paper-muted": "#7189a0",
+      "--av-dark-ink": "#17293a",
+      "--av-gift1": "#3f7fae",
+      "--av-gift1-deep": "#27506f",
+      "--av-gift1-ink": "#eef7ff",
+      "--av-gift2": "#dbe9f4",
+      "--av-gift2-deep": "#b7d2e6",
+      "--av-gift2-ink": "#27506f",
+      "--av-ribbon1": "rgba(238,247,255,0.9)",
+      "--av-ribbon2": "rgba(63,127,174,0.8)",
+      "--av-lock": "rgba(10,24,38,0.75)",
+      "--av-lock-icon": "rgba(111,182,221,0.7)",
+      "--av-overlay": "rgba(8,18,30,0.85)",
+      "--av-close-hover": "rgba(238,247,255,0.2)",
+      "--av-glow": "rgba(151,205,235,0.55)",
+      "--av-glow-fade": "rgba(151,205,235,0)",
+      "--av-sparkle": "#3f7fae",
+    },
+  },
+  {
+    id: "sapin",
+    label: "Sapin",
+    emoji: "\ud83c\udf32",
+    vars: {
+      "--av-bg1": "#12301f",
+      "--av-bg2": "#0a1d12",
+      "--av-ink": "#f2f7ec",
+      "--av-card": "#1b4029",
+      "--av-card-soft": "rgba(27,64,41,0.7)",
+      "--av-card-border": "#3e6b4d",
+      "--av-accent": "#e8c07a",
+      "--av-accent2": "#d4a24e",
+      "--av-accent-border": "rgba(212,162,78,0.4)",
+      "--av-muted": "#b7cda0",
+      "--av-muted2": "#c3d4b0",
+      "--av-subtitle": "#d3e0c4",
+      "--av-faint": "#94ab84",
+      "--av-faint2": "#7c9468",
+      "--av-halo1": "rgba(212,162,78,0.15)",
+      "--av-halo2": "rgba(179,64,47,0.15)",
+      "--av-halo3": "rgba(74,120,60,0.15)",
+      "--av-logo-glow": "rgba(212,162,78,0.35)",
+      "--av-paper": "#f7f4e8",
+      "--av-paper2": "#fdfbf2",
+      "--av-paper-border": "#ddd6bc",
+      "--av-paper-border-soft": "#e8e2cc",
+      "--av-paper-muted": "#8a8264",
+      "--av-dark-ink": "#2b3a24",
+      "--av-gift1": "#b3402f",
+      "--av-gift1-deep": "#7f261c",
+      "--av-gift1-ink": "#f6ead3",
+      "--av-gift2": "#e9d5b0",
+      "--av-gift2-deep": "#d3b98a",
+      "--av-gift2-ink": "#7f261c",
+      "--av-ribbon1": "rgba(232,192,122,0.9)",
+      "--av-ribbon2": "rgba(179,64,47,0.8)",
+      "--av-lock": "rgba(14,26,16,0.75)",
+      "--av-lock-icon": "rgba(212,162,78,0.7)",
+      "--av-overlay": "rgba(10,20,13,0.85)",
+      "--av-close-hover": "rgba(247,244,232,0.2)",
+      "--av-glow": "rgba(212,162,78,0.55)",
+      "--av-glow-fade": "rgba(212,162,78,0)",
+      "--av-sparkle": "#2e7d4f",
+    },
+  },
+  {
+    id: "nuit",
+    label: "Nuit",
+    emoji: "\ud83c\udf19",
+    vars: {
+      "--av-bg1": "#1d1244",
+      "--av-bg2": "#0d0926",
+      "--av-ink": "#f1ebff",
+      "--av-card": "#2b2058",
+      "--av-card-soft": "rgba(43,32,88,0.7)",
+      "--av-card-border": "#4a3d8a",
+      "--av-accent": "#cdb4f5",
+      "--av-accent2": "#9f7dee",
+      "--av-accent-border": "rgba(159,125,238,0.4)",
+      "--av-muted": "#a898d4",
+      "--av-muted2": "#bcb0e2",
+      "--av-subtitle": "#d4c8f0",
+      "--av-faint": "#8d7dbd",
+      "--av-faint2": "#76659f",
+      "--av-halo1": "rgba(159,125,238,0.15)",
+      "--av-halo2": "rgba(139,63,191,0.15)",
+      "--av-halo3": "rgba(110,70,180,0.15)",
+      "--av-logo-glow": "rgba(205,180,245,0.35)",
+      "--av-paper": "#f5f0fe",
+      "--av-paper2": "#fcf9ff",
+      "--av-paper-border": "#d8c9f0",
+      "--av-paper-border-soft": "#e5dbf5",
+      "--av-paper-muted": "#7d6ba0",
+      "--av-dark-ink": "#2a1d4d",
+      "--av-gift1": "#a34fd1",
+      "--av-gift1-deep": "#6b2fa0",
+      "--av-gift1-ink": "#f5edff",
+      "--av-gift2": "#e6d7f8",
+      "--av-gift2-deep": "#c6a9e8",
+      "--av-gift2-ink": "#6b2fa0",
+      "--av-ribbon1": "rgba(240,229,255,0.9)",
+      "--av-ribbon2": "rgba(163,79,209,0.8)",
+      "--av-lock": "rgba(16,10,34,0.75)",
+      "--av-lock-icon": "rgba(159,125,238,0.7)",
+      "--av-overlay": "rgba(13,9,38,0.85)",
+      "--av-close-hover": "rgba(245,240,254,0.2)",
+      "--av-glow": "rgba(205,180,245,0.55)",
+      "--av-glow-fade": "rgba(205,180,245,0)",
+      "--av-sparkle": "#8b3fbf",
+    },
+  },
+];
+
+const THEME_STORAGE_KEY = "avent_theme_2026";
+
+function loadThemeId(): string {
+  try {
+    const id = localStorage.getItem(THEME_STORAGE_KEY);
+    if (id && AVENT_THEMES.some((t) => t.id === id)) return id;
+  } catch {
+    // stockage indisponible : thème Cosy par défaut
+  }
+  return "cosy";
+}
+
 type PlayedMap = Record<string, boolean>;
 
 function loadProgress(): PlayedMap {
@@ -439,10 +650,10 @@ function Countdown() {
   const seconds = total % 60;
   const cell = (value: number, label: string) => (
     <div className="flex flex-col items-center">
-      <span className="w-16 h-16 rounded-xl bg-[#3a2a1e] border border-[#d4a24e]/40 flex items-center justify-center text-2xl font-bold text-[#e8c07a] shadow-lg">
+      <span className="w-16 h-16 rounded-xl bg-[var(--av-card)] border border-[var(--av-accent-border)] flex items-center justify-center text-2xl font-bold text-[var(--av-accent)] shadow-lg">
         {value}
       </span>
-      <span className="mt-1 text-[10px] uppercase tracking-widest text-[#c9a86a]">{label}</span>
+      <span className="mt-1 text-[10px] uppercase tracking-widest text-[var(--av-muted)]">{label}</span>
     </div>
   );
   return (
@@ -528,6 +739,7 @@ export default function Avent() {
   const [reminderDone, setReminderDone] = useState(false);
   const [reminderError, setReminderError] = useState<string | null>(null);
   const [unsubscribeMessage, setUnsubscribeMessage] = useState<string | null>(null);
+  const [themeId, setThemeId] = useState<string>(() => loadThemeId());
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -595,6 +807,15 @@ export default function Avent() {
   const bestRun = bestRunOf(played);
   const playedCount = Object.keys(played).length;
   const beforeStart = unlocked === 0;
+  const theme = AVENT_THEMES.find((t) => t.id === themeId) ?? AVENT_THEMES[0];
+  const selectTheme = (id: string) => {
+    setThemeId(id);
+    try {
+      localStorage.setItem(THEME_STORAGE_KEY, id);
+    } catch {
+      // préférence conservée en mémoire seulement
+    }
+  };
 
   const onResult = (day: number, correct: boolean) => {
     setPlayed((prev) => {
@@ -632,11 +853,11 @@ export default function Avent() {
   const openData = openDay !== null ? ADVENT_DAYS[openDay - 1] : null;
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-b from-[#241812] to-[#160f09] text-[#f6ead3] overflow-hidden">
+    <div className="relative min-h-screen bg-gradient-to-b from-[var(--av-bg1)] to-[var(--av-bg2)] text-[var(--av-ink)] overflow-hidden" style={theme.vars as unknown as React.CSSProperties}>
       {/* Halos chauds */}
-      <div className="pointer-events-none absolute -top-32 -left-24 w-96 h-96 rounded-full bg-[#d4a24e]/15 blur-3xl avent-float" aria-hidden="true" />
-      <div className="pointer-events-none absolute top-1/2 -right-24 w-80 h-80 rounded-full bg-[#b3402f]/15 blur-3xl" aria-hidden="true" />
-      <div className="pointer-events-none absolute bottom-0 left-1/4 w-72 h-72 rounded-full bg-[#8a5a2e]/15 blur-3xl avent-float" style={{ animationDelay: "2.5s" }} aria-hidden="true" />
+      <div className="pointer-events-none absolute -top-32 -left-24 w-96 h-96 rounded-full bg-[var(--av-halo1)] blur-3xl avent-float" aria-hidden="true" />
+      <div className="pointer-events-none absolute top-1/2 -right-24 w-80 h-80 rounded-full bg-[var(--av-halo2)] blur-3xl" aria-hidden="true" />
+      <div className="pointer-events-none absolute bottom-0 left-1/4 w-72 h-72 rounded-full bg-[var(--av-halo3)] blur-3xl avent-float" style={{ animationDelay: "2.5s" }} aria-hidden="true" />
 
       {/* Guirlande lumineuse */}
       <Garland />
@@ -644,22 +865,43 @@ export default function Avent() {
       {/* Neige */}
       <Snowfall />
 
-      <a href="/" className="absolute top-4 left-4 z-20 text-xs text-[#c9a86a] hover:text-[#e8c07a] transition-colors underline underline-offset-4">
+      <a href="/" className="absolute top-4 left-4 z-20 text-xs text-[var(--av-muted)] hover:text-[var(--av-accent)] transition-colors underline underline-offset-4">
         Retour au site
       </a>
 
       <div className="relative max-w-4xl mx-auto px-4 py-12">
         {/* En-tête */}
         <div className="flex flex-col items-center text-center">
-          <img src="/embleme-epure_logo2.png" alt="FO COM UES Iliad" className="w-24 h-24 object-contain drop-shadow-[0_4px_16px_rgba(212,162,78,0.35)]" />
-          <h1 className="mt-4 text-3xl md:text-4xl font-extrabold text-[#e8c07a] tracking-tight">
+          <img src="/embleme-avent.svg" alt="FO COM UES Iliad" className="w-24 h-24 object-contain" style={{ filter: "drop-shadow(0 4px 16px var(--av-logo-glow))" }} />
+          <h1 className="mt-4 text-3xl md:text-4xl font-extrabold text-[var(--av-accent)] tracking-tight">
             Calendrier de l'Avent
           </h1>
-          <p className="mt-2 text-sm md:text-base text-[#d9c19a] max-w-xl">
+          <p className="mt-2 text-sm md:text-base text-[var(--av-subtitle)] max-w-xl">
             {beforeStart
               ? "Un quiz par jour sur le code du travail et le syndicalisme, à partir du 1er décembre. Revenez ouvrir la première case !"
               : "Un quiz par jour sur le code du travail et le syndicalisme, avec sa surprise. Les cases passées restent ouvertes : rattrapez les jours manqués !"}
           </p>
+        </div>
+
+        {/* Sélecteur de thème */}
+        <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
+          {AVENT_THEMES.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => selectTheme(t.id)}
+              aria-pressed={t.id === theme.id}
+              title={"Thème " + t.label}
+              className={
+                "inline-flex items-center gap-1.5 text-[11px] font-semibold rounded-full px-3 py-1.5 border transition-all " +
+                (t.id === theme.id
+                  ? "bg-[var(--av-card)] border-[var(--av-accent)] text-[var(--av-accent)]"
+                  : "bg-[var(--av-card-soft)] border-[var(--av-card-border)] text-[var(--av-muted2)] hover:text-[var(--av-ink)] hover:border-[var(--av-accent)]")
+              }
+            >
+              <span aria-hidden="true">{t.emoji}</span>
+              {t.label}
+            </button>
+          ))}
         </div>
 
         {/* Compte à rebours ou statistiques */}
@@ -669,15 +911,15 @@ export default function Avent() {
           </div>
         ) : (
           <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
-            <span className="inline-flex items-center gap-1.5 text-xs bg-[#3a2a1e] border border-[#57402c] rounded-full px-3 py-1.5 text-[#e8c07a]">
+            <span className="inline-flex items-center gap-1.5 text-xs bg-[var(--av-card)] border border-[var(--av-card-border)] rounded-full px-3 py-1.5 text-[var(--av-accent)]">
               <Trophy className="w-3.5 h-3.5" />
               {score} points
             </span>
-            <span className="inline-flex items-center gap-1.5 text-xs bg-[#3a2a1e] border border-[#57402c] rounded-full px-3 py-1.5 text-[#e8c07a]">
+            <span className="inline-flex items-center gap-1.5 text-xs bg-[var(--av-card)] border border-[var(--av-card-border)] rounded-full px-3 py-1.5 text-[var(--av-accent)]">
               <Flame className="w-3.5 h-3.5" />
               Meilleure série : {bestRun}
             </span>
-            <span className="inline-flex items-center gap-1.5 text-xs bg-[#3a2a1e] border border-[#57402c] rounded-full px-3 py-1.5 text-[#e8c07a]">
+            <span className="inline-flex items-center gap-1.5 text-xs bg-[var(--av-card)] border border-[var(--av-card-border)] rounded-full px-3 py-1.5 text-[var(--av-accent)]">
               {playedCount} / 24 jours joués
             </span>
           </div>
@@ -694,8 +936,8 @@ export default function Avent() {
                 className={
                   "w-9 h-9 rounded-full flex items-center justify-center text-base border transition-all " +
                   (earned
-                    ? "bg-[#e8c07a] border-[#d4a24e] shadow-md shadow-[#d4a24e]/30 scale-100"
-                    : "bg-[#3a2a1e] border-[#57402c] opacity-50 grayscale")
+                    ? "bg-[var(--av-accent)] border-[var(--av-accent2)] shadow-md scale-100"
+                    : "bg-[var(--av-card)] border-[var(--av-card-border)] opacity-50 grayscale")
                 }
               >
                 {badge.icon}
@@ -705,16 +947,16 @@ export default function Avent() {
         </div>
 
         {/* Rappel quotidien par email (consentement RGPD explicite) */}
-        <div className="mt-6 max-w-xl mx-auto bg-[#3a2a1e]/70 border border-[#57402c] rounded-2xl p-5">
-          <p className="text-sm font-bold text-[#e8c07a] flex items-center gap-2">
+        <div className="mt-6 max-w-xl mx-auto bg-[var(--av-card-soft)] border border-[var(--av-card-border)] rounded-2xl p-5">
+          <p className="text-sm font-bold text-[var(--av-accent)] flex items-center gap-2">
             <Mail className="w-4 h-4" />
             Rappel quotidien par email
           </p>
-          <p className="mt-1 text-xs text-[#c9b28a] leading-relaxed">
+          <p className="mt-1 text-xs text-[var(--av-muted2)] leading-relaxed">
             Recevez un email chaque matin du 1er au 24 décembre pour ouvrir la case du jour en avance.
           </p>
           {unsubscribeMessage ? (
-            <p className="mt-3 text-xs text-[#e8c07a] leading-relaxed" role="status">
+            <p className="mt-3 text-xs text-[var(--av-accent)] leading-relaxed" role="status">
               {unsubscribeMessage}
             </p>
           ) : reminderDone ? (
@@ -737,26 +979,26 @@ export default function Avent() {
                   onChange={(e) => setReminderEmail(e.target.value)}
                   placeholder="votre@email.fr"
                   aria-label="Votre adresse email"
-                  className="flex-1 min-w-0 text-sm rounded-xl bg-[#f6ead3] text-[#3a2a1e] placeholder-[#a98a5c] px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#e8c07a]"
+                  className="flex-1 min-w-0 text-sm rounded-xl bg-[var(--av-paper)] text-[var(--av-dark-ink)] placeholder-[var(--av-faint)] px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--av-accent)]"
                 />
                 <button
                   type="submit"
                   disabled={reminderSubmitting || !reminderConsent}
-                  className="shrink-0 text-sm font-semibold text-[#3a2a1e] bg-gradient-to-r from-[#e8c07a] to-[#d4a24e] rounded-xl px-4 py-2 hover:brightness-110 transition-all disabled:opacity-50"
+                  className="shrink-0 text-sm font-semibold text-[var(--av-dark-ink)] bg-gradient-to-r from-[var(--av-accent)] to-[var(--av-accent2)] rounded-xl px-4 py-2 hover:brightness-110 transition-all disabled:opacity-50"
                 >
                   {reminderSubmitting ? "Enregistrement…" : "Me le rappeler"}
                 </button>
               </div>
-              <label className="flex items-start gap-2 text-[11px] text-[#c9b28a] leading-relaxed cursor-pointer">
+              <label className="flex items-start gap-2 text-[11px] text-[var(--av-muted2)] leading-relaxed cursor-pointer">
                 <input
                   type="checkbox"
                   checked={reminderConsent}
                   onChange={(e) => setReminderConsent(e.target.checked)}
-                  className="mt-0.5 accent-[#e8c07a]"
+                  className="mt-0.5 accent-[var(--av-accent)]"
                 />
                 <span>
                   J’accepte de recevoir chaque matin du 1er au 24 décembre un email de rappel du calendrier de l’Avent de la FO COM UES Iliad. Désinscription en un clic à tout moment (lien dans chaque email).{" "}
-                  <a href="/rgpd" target="_blank" rel="noreferrer" className="underline text-[#e8c07a] hover:text-[#f6ead3]">
+                  <a href="/rgpd" target="_blank" rel="noreferrer" className="underline text-[var(--av-accent)] hover:text-[var(--av-ink)]">
                     Politique de confidentialité
                   </a>
                   .
@@ -789,7 +1031,7 @@ export default function Avent() {
                   "relative aspect-square rounded-xl overflow-hidden select-none transition-transform duration-150 " +
                   (isLocked ? "cursor-not-allowed" : "cursor-pointer hover:scale-105 active:scale-95") +
                   (shakeDay === dayNumber ? " avent-shake" : "") +
-                  (isToday ? " avent-glow ring-2 ring-[#e8c07a]" : "")
+                  (isToday ? " avent-glow ring-2 ring-[var(--av-accent)]" : "")
                 }
               >
                 {/* Papier cadeau */}
@@ -797,16 +1039,16 @@ export default function Avent() {
                   className={
                     "absolute inset-0 " +
                     (isRed
-                      ? "bg-gradient-to-br from-[#b3402f] to-[#7f261c]"
-                      : "bg-gradient-to-br from-[#e9d5b0] to-[#d3b98a]")
+                      ? "bg-gradient-to-br from-[var(--av-gift1)] to-[var(--av-gift1-deep)]"
+                      : "bg-gradient-to-br from-[var(--av-gift2)] to-[var(--av-gift2-deep)]")
                   }
                 />
-                <span className={"absolute left-1/2 top-0 bottom-0 w-2 -translate-x-1/2 " + (isRed ? "bg-[#e8c07a]/90" : "bg-[#b3402f]/80")} />
-                <span className={"absolute top-1/2 left-0 right-0 h-2 -translate-y-1/2 " + (isRed ? "bg-[#e8c07a]/90" : "bg-[#b3402f]/80")} />
+                <span className={"absolute left-1/2 top-0 bottom-0 w-2 -translate-x-1/2 " + (isRed ? "bg-[var(--av-ribbon1)]" : "bg-[var(--av-ribbon2)]")} />
+                <span className={"absolute top-1/2 left-0 right-0 h-2 -translate-y-1/2 " + (isRed ? "bg-[var(--av-ribbon1)]" : "bg-[var(--av-ribbon2)]")} />
                 <span
                   className={
                     "relative text-lg font-extrabold drop-shadow " +
-                    (isRed ? "text-[#f6ead3]" : "text-[#7f261c]")
+                    (isRed ? "text-[var(--av-gift1-ink)]" : "text-[var(--av-gift2-ink)]")
                   }
                 >
                   {dayNumber}
@@ -817,7 +1059,7 @@ export default function Avent() {
                   <span
                     className={
                       "absolute top-1 right-1 w-4 h-4 rounded-full text-[9px] font-bold flex items-center justify-center " +
-                      (isCorrect ? "bg-emerald-500 text-white" : "bg-[#57402c] text-[#e8c07a]")
+                      (isCorrect ? "bg-emerald-500 text-white" : "bg-[var(--av-card-border)] text-[var(--av-accent)]")
                     }
                   >
                     {"\u2713"}
@@ -826,8 +1068,8 @@ export default function Avent() {
 
                 {/* Verrou */}
                 {isLocked && (
-                  <span className="absolute inset-0 bg-[#1a110b]/75 flex items-center justify-center">
-                    <Lock className="w-4 h-4 text-[#d4a24e]/70" />
+                  <span className="absolute inset-0 bg-[var(--av-lock)] flex items-center justify-center">
+                    <Lock className="w-4 h-4 text-[var(--av-lock-icon)]" />
                   </span>
                 )}
               </button>
@@ -836,13 +1078,13 @@ export default function Avent() {
         </div>
 
         {/* Pied de page */}
-        <p className="mt-8 text-center text-[11px] text-[#a98a5c]">
+        <p className="mt-8 text-center text-[11px] text-[var(--av-faint)]">
           Progression enregistrée dans votre navigateur — aucun compte requis. Le jour 24 vaut double.
         </p>
         <div className="mt-2 text-center">
           <button
             onClick={resetProgress}
-            className="text-[11px] text-[#8a6a3a] hover:text-[#b3402f] underline underline-offset-4 transition-colors"
+            className="text-[11px] text-[var(--av-faint2)] hover:text-[var(--av-gift1)] underline underline-offset-4 transition-colors"
           >
             Réinitialiser ma progression
           </button>
@@ -891,12 +1133,12 @@ function DayModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Case du jour">
-      <button className="absolute inset-0 bg-[#120c07]/85 backdrop-blur-sm" onClick={onClose} aria-label="Fermer" />
-      <div className="relative avent-pop w-full max-w-lg bg-[#f6ead3] text-[#3a2a1e] rounded-2xl border-2 border-[#d4a24e] shadow-2xl max-h-[88vh] overflow-y-auto">
+      <button className="absolute inset-0 bg-[var(--av-overlay)] backdrop-blur-sm" onClick={onClose} aria-label="Fermer" />
+      <div className="relative avent-pop w-full max-w-lg bg-[var(--av-paper)] text-[var(--av-dark-ink)] rounded-2xl border-2 border-[var(--av-accent2)] shadow-2xl max-h-[88vh] overflow-y-auto">
         {/* Barre du jour */}
-        <div className="flex items-center justify-between px-5 py-3 bg-gradient-to-r from-[#7f261c] to-[#b3402f] text-[#f6ead3] sticky top-0 z-10">
+        <div className="flex items-center justify-between px-5 py-3 bg-gradient-to-r from-[var(--av-gift1-deep)] to-[var(--av-gift1)] text-[var(--av-gift1-ink)] sticky top-0 z-10">
           <span className="text-sm font-bold tracking-wide uppercase">Jour {day} décembre</span>
-          <button onClick={onClose} className="p-1 rounded-full hover:bg-[#f6ead3]/20 transition-colors" aria-label="Fermer">
+          <button onClick={onClose} className="p-1 rounded-full hover:bg-[var(--av-close-hover)] transition-colors" aria-label="Fermer">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -905,7 +1147,7 @@ function DayModal({
           {correct && answered && <SparkleBurst />}
 
           {alreadyPlayed && (
-            <p className="mb-3 text-[11px] text-[#8a6a3a] bg-[#fbf3e0] border border-[#d9c19a] rounded-lg px-3 py-2">
+            <p className="mb-3 text-[11px] text-[var(--av-paper-muted)] bg-[var(--av-paper2)] border border-[var(--av-paper-border)] rounded-lg px-3 py-2">
               Case déjà jouée — rejouer ne modifie pas votre score.
             </p>
           )}
@@ -918,13 +1160,13 @@ function DayModal({
               const isPicked = index === picked;
               let cls = "w-full text-left text-sm border rounded-xl px-4 py-2.5 transition-colors ";
               if (!answered) {
-                cls += "border-[#d9c19a] bg-white hover:border-[#d4a24e] hover:bg-[#fbf3e0] cursor-pointer";
+                cls += "border-[var(--av-paper-border)] bg-white hover:border-[var(--av-accent2)] hover:bg-[var(--av-paper2)] cursor-pointer";
               } else if (isRight) {
                 cls += "border-emerald-500 bg-emerald-50 text-emerald-900 font-semibold";
               } else if (isPicked) {
                 cls += "border-red-400 bg-red-50 text-red-900";
               } else {
-                cls += "border-[#e6d6b8] bg-white opacity-60";
+                cls += "border-[var(--av-paper-border-soft)] bg-white opacity-60";
               }
               return (
                 <button key={index} onClick={() => handlePick(index)} disabled={answered} className={cls}>
@@ -951,8 +1193,8 @@ function DayModal({
           )}
 
           {answered && (
-            <div className="mt-3 rounded-xl bg-[#fbf3e0] border border-[#d9c19a] px-4 py-3">
-              <p className="text-[10px] uppercase tracking-widest text-[#8a6a3a] font-bold flex items-center gap-1.5">
+            <div className="mt-3 rounded-xl bg-[var(--av-paper2)] border border-[var(--av-paper-border)] px-4 py-3">
+              <p className="text-[10px] uppercase tracking-widest text-[var(--av-paper-muted)] font-bold flex items-center gap-1.5">
                 <Sparkles className="w-3 h-3" />
                 {data.surprise.kind} du jour
               </p>
@@ -963,7 +1205,7 @@ function DayModal({
           {answered && (
             <button
               onClick={onClose}
-              className="mt-4 w-full py-2.5 rounded-xl bg-gradient-to-r from-[#b3402f] to-[#7f261c] text-[#f6ead3] text-sm font-bold hover:brightness-110 transition-all"
+              className="mt-4 w-full py-2.5 rounded-xl bg-gradient-to-r from-[var(--av-gift1)] to-[var(--av-gift1-deep)] text-[var(--av-gift1-ink)] text-sm font-bold hover:brightness-110 transition-all"
             >
               {correct ? "Merci FO COM !" : "Retenter ma chance demain !"}
             </button>
