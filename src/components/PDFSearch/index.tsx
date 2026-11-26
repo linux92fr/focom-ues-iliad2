@@ -118,15 +118,63 @@ function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+const BOOLEAN_OPERATORS = new Set(["and", "et", "or", "ou", "not", "sauf"]);
+
+function hasBooleanSyntax(query: string): boolean {
+  return /("|\(|(^|\s)[-!]\S)/.test(query) || /\b(AND|OR|NOT|ET|OU|SAUF)\b/i.test(query);
+}
+
+// Nettoie les bords d'un terme (ponctuation, parenthèses, opérateurs)
+function stripTermEdges(word: string): string {
+  return word.replace(/^[^\p{L}\p{N}]+/u, "").replace(/[^\p{L}\p{N}]+$/u, "");
+}
+
+// Termes positifs d'une requête : ignore les opérateurs booléens, les
+// parenthèses et les termes niés (-mot, SAUF mot) pour le surlignage.
+function getSearchTerms(query: string): string[] {
+  const terms: string[] = [];
+  const re = /"([^"]*)"|(\S+)/g;
+  let m: RegExpExecArray | null;
+  let negate = false;
+  while ((m = re.exec(query)) !== null) {
+    if (m[1] !== undefined) {
+      if (!negate) {
+        for (const word of m[1].split(/\s+/)) {
+          const cleaned = stripTermEdges(word);
+          if (cleaned) terms.push(cleaned);
+        }
+      }
+      negate = false;
+      continue;
+    }
+    let raw = m[2];
+    if (raw.startsWith("-") || raw.startsWith("!")) {
+      negate = true;
+      raw = raw.slice(1);
+    }
+    const lower = raw.toLowerCase();
+    if (BOOLEAN_OPERATORS.has(stripTermEdges(lower)) || raw === "(" || raw === ")" || !raw) {
+      if (lower === "not" || lower === "sauf") negate = true;
+      continue;
+    }
+    if (!negate) {
+      const cleaned = stripTermEdges(raw);
+      if (cleaned) terms.push(cleaned);
+    }
+    negate = false;
+  }
+  return terms;
+}
+
 function getSearchWords(query: string): string[] {
   return query.split(/\s+/).map((word) => word.trim()).filter(Boolean);
 }
 
 function getSearchPatterns(query: string): string[] {
   const normalized = query.replace(/\s+/g, " ").trim();
-  const words = getSearchWords(normalized);
+  const words = getSearchTerms(normalized);
   return [
-    ...(words.length > 1 ? [normalized] : []),
+    ...(!hasBooleanSyntax(normalized) && words.length > 1 ? [normalized] : []),
     ...words,
   ]
     .filter(Boolean)
@@ -490,7 +538,7 @@ export function PVSearchPage() {
 
           {/* Exemples de recherches */}
           <div className="flex flex-wrap justify-center gap-2 mt-4">
-            {["NAO salaires", "CSSCT sécurité", "télétravail", "élections CSE", "accord intéressement"].map((ex) => (
+            {["NAO salaires", "CSSCT sécurité", "télétravail", "élections CSE", "accord intéressement", "CSE ET salaires", "accord SAUF télétravail"].map((ex) => (
               <button
                 key={ex}
                 onClick={() => {
@@ -568,6 +616,11 @@ export function PVSearchPage() {
                 <p className="font-medium text-slate-700 mb-1">Recherche par mots-clés</p>
                 <p>Tapez un ou plusieurs mots présents dans les PV. Le moteur cherche l'expression complète quand plusieurs mots sont saisis, puis complète avec les documents contenant ces termes.</p>
                 <p className="mt-1 text-slate-500 italic">Exemple : <span className="bg-slate-100 px-1 rounded">télétravail accord</span></p>
+              </div>
+              <div>
+                <p className="font-medium text-slate-700 mb-1">Recherche booléenne</p>
+                <p>Combinez les mots-clés avec des opérateurs : <span className="bg-slate-100 px-1 rounded">ET</span> exige les deux termes, <span className="bg-slate-100 px-1 rounded">OU</span> accepte l'un des deux, <span className="bg-slate-100 px-1 rounded">SAUF</span> ou <span className="bg-slate-100 px-1 rounded">-mot</span> exclut un terme. Les guillemets cherchent une expression, les parenthèses regroupent. Les équivalents anglais AND, OR et NOT fonctionnent aussi.</p>
+                <p className="mt-1 text-slate-500 italic">Exemple : <span className="bg-slate-100 px-1 rounded">salaires ET (prime OU intéressement) SAUF télétravail</span></p>
               </div>
               <div>
                 <p className="font-medium text-slate-700 mb-1">Astuces</p>
