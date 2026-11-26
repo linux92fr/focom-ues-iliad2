@@ -147,6 +147,13 @@ Deno.serve(async (req) => {
   const url = new URL(req.url);
 
   try {
+    // Vérification d'un code d'accès partagé (ne renvoie que sa validité,
+    // sans jamais exposer le hash ni les documents).
+    if (url.pathname.endsWith("/check-code")) {
+      const valid = await isValidAccessCode(req.headers.get("x-access-code"));
+      return json({ valid });
+    }
+
     if (url.pathname.endsWith("/search")) {
       const searchUser = await getCaller(req.headers.get("Authorization") ?? "");
       if (!searchUser && !(await isValidAccessCode(req.headers.get("x-access-code")))) {

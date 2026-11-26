@@ -200,6 +200,9 @@ export function PVSearchPage() {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [docCount, setDocCount] = useState<number | null>(null);
   const [searchDuration, setSearchDuration] = useState<number | null>(null);
+  const [checkingCode, setCheckingCode] = useState(false);
+  const [accessMessage, setAccessMessage] = useState<string | null>(null);
+  const [searchError, setSearchError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -273,17 +276,38 @@ export function PVSearchPage() {
     }
   };
 
-  const openAccess = (code: string) => {
+  // Ouvre l'accès après vérification du code côté serveur : un code
+  // incorrect est signalé immédiatement au lieu de mémoriser un accès
+  // fantôme qui échouerait silencieusement à chaque recherche.
+  const openAccess = async (code: string) => {
     const trimmed = code.trim();
-    if (!trimmed) return;
-    localStorage.setItem("pv_access_code", trimmed);
-    setAccessCode(trimmed);
-    setCodeInput("");
+    if (!trimmed || checkingCode) return;
+    setCheckingCode(true);
+    setAccessMessage(null);
+    try {
+      const resp = await fetch(`${EDGE_FUNCTION_URL}/check-code`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-access-code": trimmed },
+      });
+      const data = await resp.json();
+      if (resp.ok && data?.valid) {
+        localStorage.setItem("pv_access_code", trimmed);
+        setAccessCode(trimmed);
+        setCodeInput("");
+      } else {
+        setAccessMessage("Code incorrect. Vérifiez la saisie (code fourni par la FO COM, distinct de votre mot de passe).");
+      }
+    } catch {
+      setAccessMessage("Vérification impossible pour l'instant. Réessayez dans un instant.");
+    } finally {
+      setCheckingCode(false);
+    }
   };
 
   const closeAccess = () => {
     localStorage.removeItem("pv_access_code");
     setAccessCode("");
+    setAccessMessage(null);
   };
 
   const handleSearch = async (q?: string, type?: string) => {
@@ -296,6 +320,7 @@ export function PVSearchPage() {
       return;
     }
 
+    setSearchError(null);
     setSearchDuration(null);
     const searchStart = performance.now();
 
@@ -314,56 +339,68 @@ export function PVSearchPage() {
       setResults(data.results ?? []);
       setExpanded(new Set());
     } catch {
-      const words = getSearchWords(term);
-      const fallbackResults = new Map<string, SearchResult>();
+      if (!isAuthenticated) {
+        // Sans session, le repli direct ne renvoie rien (RLS) : on affiche une
+        // erreur explicite au lieu d'un « aucun résultat » trompeur, et on
+        // efface le code mémorisé pour forcer une saisie correcte.
+        localStorage.removeItem("pv_access_code");
+        setAccessCode("");
+        setSearchError(
+          "Code d'accès refusé : le code mémorisé a été effacé. Revenez à l'accueil, saisissez à nouveau le code partagé fourni par la FO COM, puis relancez la recherche."
+        );
+        setResults([]);
+      } else {
+        const words = getSearchWords(term);
+        const fallbackResults = new Map<string, SearchResult>();
 
-      if (words.length > 1) {
-        let phraseQuery = supabase
+        if (words.length > 1) {
+          let phraseQuery = supabase
+            .from("pv_documents")
+            .select("filename, original_filename, content, chunk_index")
+            .ilike("content", `%${term}%`);
+          if (activeType) phraseQuery = phraseQuery.like("filename", `${activeType}/%`);
+          const { data: phraseData } = await phraseQuery.limit(15);
+
+          for (const row of phraseData ?? []) {
+            const key = `${row.filename ?? ""}:${row.chunk_index ?? 0}`;
+            fallbackResults.set(key, {
+              filename: row.filename ?? "",
+              original_filename: row.original_filename ?? row.filename ?? "",
+              content: row.content ?? "",
+              chunk_index: row.chunk_index ?? 0,
+              similarity: 1.2,
+            });
+          }
+        }
+
+        let keywordQuery = supabase
           .from("pv_documents")
-          .select("filename, original_filename, content, chunk_index")
-          .ilike("content", `%${term}%`);
-        if (activeType) phraseQuery = phraseQuery.like("filename", `${activeType}/%`);
-        const { data: phraseData } = await phraseQuery.limit(15);
+          .select("filename, original_filename, content, chunk_index");
 
-        for (const row of phraseData ?? []) {
+        for (const word of words) {
+          keywordQuery = keywordQuery.ilike("content", `%${word}%`);
+        }
+        if (activeType) {
+          keywordQuery = keywordQuery.like("filename", `${activeType}/%`);
+        }
+
+        const { data: keywordData } = await keywordQuery.limit(15);
+        for (const row of keywordData ?? []) {
           const key = `${row.filename ?? ""}:${row.chunk_index ?? 0}`;
-          fallbackResults.set(key, {
-            filename: row.filename ?? "",
-            original_filename: row.original_filename ?? row.filename ?? "",
-            content: row.content ?? "",
-            chunk_index: row.chunk_index ?? 0,
-            similarity: 1.2,
-          });
+          if (!fallbackResults.has(key)) {
+            fallbackResults.set(key, {
+              filename: row.filename ?? "",
+              original_filename: row.original_filename ?? row.filename ?? "",
+              content: row.content ?? "",
+              chunk_index: row.chunk_index ?? 0,
+              similarity: 0.5,
+            });
+          }
         }
-      }
 
-      let keywordQuery = supabase
-        .from("pv_documents")
-        .select("filename, original_filename, content, chunk_index");
-
-      for (const word of words) {
-        keywordQuery = keywordQuery.ilike("content", `%${word}%`);
+        setResults(Array.from(fallbackResults.values()).slice(0, 15));
+        setExpanded(new Set());
       }
-      if (activeType) {
-        keywordQuery = keywordQuery.like("filename", `${activeType}/%`);
-      }
-
-      const { data: keywordData } = await keywordQuery.limit(15);
-      for (const row of keywordData ?? []) {
-        const key = `${row.filename ?? ""}:${row.chunk_index ?? 0}`;
-        if (!fallbackResults.has(key)) {
-          fallbackResults.set(key, {
-            filename: row.filename ?? "",
-            original_filename: row.original_filename ?? row.filename ?? "",
-            content: row.content ?? "",
-            chunk_index: row.chunk_index ?? 0,
-            similarity: 0.5,
-          });
-        }
-      }
-
-      setResults(Array.from(fallbackResults.values()).slice(0, 15));
-    setExpanded(new Set());
     }
 
     setSubmitted(term);
@@ -490,6 +527,7 @@ export function PVSearchPage() {
                 <>
                   <input
                     type="password"
+                    autoComplete="new-password"
                     value={codeInput}
                     onChange={(e) => setCodeInput(e.target.value)}
                     onKeyDown={(e) => {
@@ -500,10 +538,16 @@ export function PVSearchPage() {
                   />
                   <button
                     onClick={() => openAccess(codeInput)}
-                    className="px-3.5 py-1.5 text-sm text-white bg-[#13233a] rounded-full hover:bg-[#1a2f4d] transition-colors shadow-sm"
+                    disabled={checkingCode}
+                    className="px-3.5 py-1.5 text-sm text-white bg-[#13233a] rounded-full hover:bg-[#1a2f4d] transition-colors shadow-sm disabled:opacity-60"
                   >
-                    Ouvrir l'accès
+                    {checkingCode ? "Vérification…" : "Ouvrir l'accès"}
                   </button>
+                  {accessMessage && (
+                    <p className="w-full text-center text-xs text-red-700" role="alert">
+                      {accessMessage}
+                    </p>
+                  )}
                 </>
               )}
             </div>
@@ -605,7 +649,17 @@ export function PVSearchPage() {
             </h2>
           </div>
 
-          {hasPvResults ? (
+          {searchError ? (
+            <div className="bg-red-50 border border-red-200 text-red-800 rounded-2xl px-5 py-4 text-sm leading-relaxed flex items-start gap-3 fade-slide-in">
+              <Lock className="w-4 h-4 mt-0.5 shrink-0" />
+              <div>
+                {searchError}
+                <a href="/recherche" className="block mt-2 underline text-red-700 hover:text-red-900">
+                  Revenir à l'accueil pour saisir le code
+                </a>
+              </div>
+            </div>
+          ) : hasPvResults ? (
             <div className={"space-y-5 transition-opacity " + (isSearching ? "opacity-50 pointer-events-none" : "")}>
               <div className="flex flex-wrap items-center justify-between gap-2 -mt-2">
                 <p className="text-xs text-slate-500">
