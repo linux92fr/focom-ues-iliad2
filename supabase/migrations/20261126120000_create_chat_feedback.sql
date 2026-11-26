@@ -1,6 +1,6 @@
 -- Table des evaluations (pouce leve / baisse) des reponses de l'assistant juridique.
 -- Complète chat_sessions : une ligne par message évalué d'une session de chatbot.
--- Corrige le 404 REST : ChatbotJuridique.tsx interrogeait/chatfet upsert sur une
+-- Corrige le 404 REST : ChatbotJuridique.tsx fait select puis upsert sur une
 -- table qui n'avait jamais été créée (aucune migration ne l'instanciait).
 
 create table if not exists public.chat_feedback (
