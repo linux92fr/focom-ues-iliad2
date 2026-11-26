@@ -60,14 +60,51 @@ function extractTextFromPdfBytes(bytes: Uint8Array): string {
   return parts.join(" ").replace(/\s+/g, " ").trim();
 }
 
+// Découpe le texte en tranches alignées sur les paragraphes :
+// plus de coupures au milieu d'un mot, avec un léger recouvrement
+// pour préserver le contexte entre deux tranches.
 function chunkText(text: string): string[] {
+  const MAX_LEN = 1000;
+  const OVERLAP = 120;
   const chunks: string[] = [];
-  const CHUNK_SIZE = 1000;
-  const OVERLAP = 100;
-  for (let i = 0; i < text.length && chunks.length < 200; i += CHUNK_SIZE - OVERLAP) {
-    const chunk = text.substring(i, i + CHUNK_SIZE).trim();
-    if (chunk.length > 50) chunks.push(chunk);
+  const pushChunk = (chunk: string) => {
+    const trimmed = chunk.trim();
+    if (trimmed.length > 50 && chunks.length < 200) chunks.push(trimmed);
+  };
+
+  const blocks = text
+    .replace(/\r\n?/g, "\n")
+    .split(/\n+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  let current = "";
+  for (const block of blocks) {
+    const pieces: string[] = [];
+    if (block.length <= MAX_LEN) {
+      pieces.push(block);
+    } else {
+      let rest = block;
+      while (rest.length > MAX_LEN) {
+        const cut = rest.lastIndexOf(" ", MAX_LEN);
+        const at = cut > 200 ? cut : MAX_LEN;
+        pieces.push(rest.slice(0, at).trim());
+        rest = rest.slice(at).trim();
+      }
+      if (rest) pieces.push(rest);
+    }
+    for (const piece of pieces) {
+      if (!current) {
+        current = piece;
+      } else if (current.length + piece.length + 1 <= MAX_LEN) {
+        current += "\n" + piece;
+      } else {
+        pushChunk(current);
+        current = current.slice(-OVERLAP) + "\n" + piece;
+      }
+    }
   }
+  pushChunk(current);
   return chunks;
 }
 
@@ -96,16 +133,30 @@ Deno.serve(async (req) => {
       const normalizedQuery = normalizeSearchQuery(typeof body?.query === "string" ? body.query : "");
       const rawCount = Number(body?.match_count);
       const matchCount = Number.isFinite(rawCount) ? Math.min(20, Math.max(1, Math.floor(rawCount))) : 10;
+      const docType = typeof body?.type === "string" && /^[A-Za-z]+$/.test(body.type) ? body.type : null;
       if (!normalizedQuery) return json({ error: "Paramètre 'query' manquant" }, 400);
 
+      // Nouveau moteur : RPC pv_search (classement par pertinence, accents
+      // ignorés, tolérance aux fautes de frappe, filtre par type de document).
+      const { data: rpcData, error: rpcError } = await supabase.rpc("pv_search", {
+        p_query: normalizedQuery,
+        p_match_count: matchCount,
+        p_type: docType,
+      });
+      if (!rpcError) return json({ results: rpcData ?? [] });
+
+      console.warn("pv_search indisponible, bascule sur l'ancien moteur :", rpcError.message);
+
+      // -- Repli sur l'ancien moteur (expression exacte + plein texte) --
       const resultsByChunk = new Map<string, { filename: string | null; original_filename: string | null; content: string | null; chunk_index: number | null; similarity: number }>();
 
       if (hasWordAssociation(normalizedQuery)) {
-        const { data: phraseData, error: phraseError } = await supabase
+        let phraseQuery = supabase
           .from("pv_documents")
           .select("filename, original_filename, content, chunk_index, metadata")
-          .ilike("content", "%" + normalizedQuery + "%")
-          .limit(matchCount);
+          .ilike("content", "%" + normalizedQuery + "%");
+        if (docType) phraseQuery = phraseQuery.like("filename", docType + "/%");
+        const { data: phraseData, error: phraseError } = await phraseQuery.limit(matchCount);
         if (phraseError) throw phraseError;
         for (const row of phraseData ?? []) {
           const key = (row.filename ?? "") + ":" + (row.chunk_index ?? "");
@@ -113,11 +164,12 @@ Deno.serve(async (req) => {
         }
       }
 
-      const { data, error } = await supabase
+      let ftsQuery = supabase
         .from("pv_documents")
         .select("filename, original_filename, content, chunk_index, metadata")
-        .textSearch("content", normalizedQuery, { type: "plain", config: "french" })
-        .limit(matchCount);
+        .textSearch("content", normalizedQuery, { type: "plain", config: "french" });
+      if (docType) ftsQuery = ftsQuery.like("filename", docType + "/%");
+      const { data, error } = await ftsQuery.limit(matchCount);
       if (error) throw error;
 
       for (const row of data ?? []) {
