@@ -48,7 +48,13 @@ const AuthModal = ({ open, onOpenChange }: AuthModalProps) => {
     setGoogleLoading(true);
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: window.location.origin },
+      options: {
+        redirectTo: window.location.origin,
+        // Force Google à afficher le sélecteur de compte à chaque connexion,
+        // sinon la session Google du navigateur est réutilisée en silence et
+        // impossible de se connecter avec un autre compte.
+        queryParams: { prompt: "select_account" },
+      },
     });
     if (error) {
       toast({
