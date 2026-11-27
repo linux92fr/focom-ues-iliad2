@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 // Progression enregistrée côté serveur via un identifiant anonyme : aucun compte requis.
 // Pseudo obligatoire pour jouer et figurer au classement, modéré côté serveur (bannissement possible).
 // Un pseudo unique par joueur : les essais répétés depuis plusieurs terminaux ne peuvent plus être anonymes.
+// Code de reprise lié au pseudo : reprise de la progression sur un autre appareil (code stocké haché côté serveur).
 // Classement honorifique en direct + diplôme numérique en fin de parcours : aucun lot matériel.
 // Compte à rebours de 45 secondes par question ; à zéro, la case se referme sans rien enregistrer.
 // Chaque case se déverrouille le jour venu (heure de Paris) ; les jours
@@ -604,6 +605,12 @@ export default function Avent() {
   const [pseudoBusy, setPseudoBusy] = useState(false);
   const [stateLoaded, setStateLoaded] = useState(false);
   const pseudoCardRef = React.useRef<HTMLDivElement | null>(null);
+  const [recoveryCode, setRecoveryCode] = useState<string | null>(null);
+  const [loginOpen, setLoginOpen] = useState(false);
+  const [loginPseudo, setLoginPseudo] = useState("");
+  const [loginCode, setLoginCode] = useState("");
+  const [loginBusy, setLoginBusy] = useState(false);
+  const [loginMsg, setLoginMsg] = useState<string | null>(null);
   const [leaders, setLeaders] = useState<LeaderRow[] | null>(null);
   const [myRank, setMyRank] = useState<MyRank | null>(null);
 
@@ -831,11 +838,47 @@ export default function Avent() {
         }
         setSavedPseudo(data.pseudo as string);
         setPseudoInput(data.pseudo as string);
+        if (typeof data.code === "string" && data.code.length > 0) {
+          setRecoveryCode(data.code);
+        }
         setPseudoMsg("Pseudo enregistré : vous pouvez jouer, il servira pour le classement des meilleurs.");
         refreshLeader();
       })
       .catch(() => setPseudoMsg("Impossible d'enregistrer le pseudo pour le moment, réessayez plus tard."))
       .finally(() => setPseudoBusy(false));
+  };
+
+  const loginWithCode = () => {
+    const pseudo = loginPseudo.trim();
+    const code = loginCode.trim();
+    if (pseudo.length < 3 || code.length < 8) {
+      setLoginMsg("Renseignez votre pseudo et votre code de reprise (8 caractères).");
+      return;
+    }
+    setLoginBusy(true);
+    setLoginMsg(null);
+    supabase
+      .rpc("avent_login", { p_pseudo: pseudo, p_code: code })
+      .then((res) => {
+        const data = res.data;
+        if (res.error || !data || data.ok !== true) {
+          const err = data && data.error;
+          if (err === "banned") {
+            setLoginMsg("Vous avez été exclu du jeu.");
+          } else {
+            setLoginMsg("Pseudo ou code de reprise incorrect.");
+          }
+          return;
+        }
+        try {
+          localStorage.setItem(PLAYER_ID_KEY, String(data.player_id));
+        } catch {
+          // stockage indisponible : reprise impossible sur cet appareil
+        }
+        window.location.reload();
+      })
+      .catch(() => setLoginMsg("Impossible de vérifier le code pour le moment, réessayez plus tard."))
+      .finally(() => setLoginBusy(false));
   };
 
   const handleCaseClick = (day: number) => {
@@ -1011,7 +1054,7 @@ export default function Avent() {
             Votre pseudo (obligatoire pour jouer)
           </p>
           <p className="mt-1 text-xs text-[var(--av-muted2)] leading-relaxed">
-            Obligatoire pour jouer et figurer au classement : un seul pseudo par joueur, unique sur tout le site. Pas de prénom obligatoire, pas de compte : votre anonymat est préservé.
+            Obligatoire pour jouer et figurer au classement : un seul pseudo par joueur, unique sur tout le site. Pas de prénom obligatoire, pas de compte : votre anonymat est préservé. Un code de reprise vous sera affiché pour retrouver votre progression sur un autre appareil.
           </p>
           {banned ? (
             <p className="mt-3 text-xs font-bold text-red-300 leading-relaxed" role="alert">
@@ -1039,6 +1082,80 @@ export default function Avent() {
               >
                 {pseudoBusy ? "Enregistrement…" : savedPseudo ? "Modifier" : "Valider"}
               </button>
+            </div>
+          )}
+          {recoveryCode && !banned && (
+            <div className="mt-3 bg-[var(--av-paper)] border-2 border-dashed border-[var(--av-accent2)] rounded-xl p-3 text-center">
+              <p className="text-xs font-bold text-[var(--av-paper-muted)]">
+                Votre code de reprise, à conserver précieusement :
+              </p>
+              <p className="mt-1 text-xl font-extrabold tracking-[0.2em] text-[var(--av-dark-ink)] select-all">
+                {recoveryCode}
+              </p>
+              <p className="mt-1 text-[11px] text-[var(--av-paper-muted)] leading-relaxed">
+                Avec ce code et votre pseudo, vous pourrez retrouver votre progression sur un autre appareil. Il n'est affiché qu'ici : notez-le ou photographiez-le.
+              </p>
+            </div>
+          )}
+          {!savedPseudo && !banned && stateLoaded && (
+            <div className="mt-4 border-t border-[var(--av-card-border)] pt-3">
+              <p className="text-xs text-[var(--av-muted2)] leading-relaxed">
+                Déjà inscrit sur un autre appareil ?
+              </p>
+              {!loginOpen ? (
+                <button
+                  type="button"
+                  onClick={() => setLoginOpen(true)}
+                  className="mt-2 text-xs font-semibold text-[var(--av-accent)] underline underline-offset-4 hover:text-[var(--av-ink)] transition-colors"
+                >
+                  Reprendre ma progression avec mon code
+                </button>
+              ) : (
+                <div className="mt-2 space-y-2">
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <input
+                      type="text"
+                      maxLength={20}
+                      value={loginPseudo}
+                      onChange={(e) => {
+                        setLoginPseudo(e.target.value);
+                        setLoginMsg(null);
+                      }}
+                      placeholder="Votre pseudo"
+                      aria-label="Votre pseudo pour la reprise"
+                      className="flex-1 min-w-0 text-sm rounded-xl bg-[var(--av-paper)] text-[var(--av-dark-ink)] placeholder-[var(--av-faint)] px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--av-accent)]"
+                    />
+                    <input
+                      type="text"
+                      maxLength={12}
+                      value={loginCode}
+                      onChange={(e) => {
+                        setLoginCode(e.target.value);
+                        setLoginMsg(null);
+                      }}
+                      placeholder="Code (XXXX-XXXX)"
+                      aria-label="Votre code de reprise"
+                      className="flex-1 min-w-0 text-sm rounded-xl bg-[var(--av-paper)] text-[var(--av-dark-ink)] placeholder-[var(--av-faint)] px-3 py-2 uppercase tracking-wider focus:outline-none focus:ring-2 focus:ring-[var(--av-accent)]"
+                    />
+                    <button
+                      type="button"
+                      disabled={loginBusy}
+                      onClick={loginWithCode}
+                      className="shrink-0 text-sm font-semibold text-[var(--av-dark-ink)] bg-gradient-to-r from-[var(--av-accent)] to-[var(--av-accent2)] rounded-xl px-4 py-2 hover:brightness-110 transition-all disabled:opacity-50"
+                    >
+                      {loginBusy ? "Vérification…" : "Reprendre"}
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-[var(--av-faint2)] leading-relaxed">
+                    Le code vous a été affiché lors de l'enregistrement de votre pseudo.
+                  </p>
+                  {loginMsg && (
+                    <p className="text-xs text-[var(--av-accent)] leading-relaxed" role="status">
+                      {loginMsg}
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           )}
           {myRank && myRank.completed && !banned && (
