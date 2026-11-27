@@ -1,4 +1,5 @@
-import { Facebook, Twitter, Linkedin, Youtube, Phone, Mail, MapPin } from "lucide-react";
+import { Phone, Mail, MapPin } from "lucide-react";
+import { FacebookIcon, TwitterIcon, LinkedinIcon, YoutubeIcon } from "@/components/icons";
 import logoFocom from "@/assets/logo-focom.png";
 
 const Footer = () => {
@@ -22,10 +23,10 @@ const Footer = () => {
   };
 
   const socialLinks = [
-    { icon: Facebook, href: "#", label: "Facebook" },
-    { icon: Twitter, href: "#", label: "Twitter" },
-    { icon: Linkedin, href: "#", label: "LinkedIn" },
-    { icon: Youtube, href: "#", label: "YouTube" },
+    { icon: FacebookIcon, href: "#", label: "Facebook" },
+    { icon: TwitterIcon, href: "#", label: "Twitter" },
+    { icon: LinkedinIcon, href: "#", label: "LinkedIn" },
+    { icon: YoutubeIcon, href: "#", label: "YouTube" },
   ];
 
   return (

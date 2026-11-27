@@ -13,7 +13,8 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Mail, Lock, User, Wand2, Eye, EyeOff, Fingerprint, Facebook } from "lucide-react";
+import { Loader2, Mail, Lock, User, Wand2, Eye, EyeOff, Fingerprint } from "lucide-react";
+import { FacebookIcon } from "@/components/icons";
 import { generateStrongPassword, getPasswordError } from "@/lib/password";
 import { startAuthentication, browserSupportsWebAuthn } from "@simplewebauthn/browser";
 
@@ -332,7 +333,7 @@ const AuthModal = ({ open, onOpenChange }: AuthModalProps) => {
               disabled={facebookLoading}
               onClick={handleFacebookLogin}
             >
-              {facebookLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Facebook className="h-4 w-4 text-[#1877F2]" />}
+              {facebookLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FacebookIcon className="h-4 w-4 text-[#1877F2]" />}
               Continuer avec Facebook
             </Button>
           </TabsContent>
@@ -442,7 +443,7 @@ const AuthModal = ({ open, onOpenChange }: AuthModalProps) => {
               disabled={facebookLoading}
               onClick={handleFacebookLogin}
             >
-              {facebookLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Facebook className="h-4 w-4 text-[#1877F2]" />}
+              {facebookLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FacebookIcon className="h-4 w-4 text-[#1877F2]" />}
               Continuer avec Facebook
             </Button>
           </TabsContent>
