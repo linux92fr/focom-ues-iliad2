@@ -21,7 +21,7 @@ const sections = [
   { id: "donnees", number: "03", label: "Données supprimées", icon: Trash2 },
   { id: "conservation", number: "04", label: "Données conservées", icon: Lock },
   { id: "delais", number: "05", label: "Délais", icon: Clock },
-  { id: "facebook", number: "06", label: "Compte Facebook", icon: UserCheck },
+  { id: "google", number: "06", label: "Compte Google", icon: UserCheck },
   { id: "modifications", number: "07", label: "Modifications", icon: RefreshCw },
 ];
 
@@ -68,7 +68,7 @@ export default function SuppressionDonnees() {
           <div className="space-y-5">
             <LegalSection id="introduction" number="01" title="Introduction" icon={FileText}>
               <p>
-                Vous disposez d'un droit à l'effacement de vos données personnelles (article 17 du RGPD). Cette page vous indique comment demander la suppression de votre compte adhérent et des données associées, que votre compte ait été créé par e-mail ou via la connexion Facebook.
+                Vous disposez d'un droit à l'effacement de vos données personnelles (article 17 du RGPD). Cette page vous indique comment demander la suppression de votre compte adhérent et des données associées, que votre compte ait été créé par e-mail ou via la connexion Google.
               </p>
             </LegalSection>
 
@@ -95,7 +95,7 @@ export default function SuppressionDonnees() {
               <p>Lors de la suppression de votre compte, les données suivantes sont effacées :</p>
               <div className="grid gap-3 sm:grid-cols-2">
                 {[
-                  ["Compte et authentification", "Identifiants de connexion, mot de passe (chiffré), méthode d'authentification (e-mail ou Facebook), identité de connexion."],
+                  ["Compte et authentification", "Identifiants de connexion, mot de passe (chiffré), méthode d'authentification (e-mail ou Google), identité de connexion."],
                   ["Profil", "Nom, prénom, adresse e-mail, photo de profil, statut, numéro de téléphone."],
                   ["Contenus associés", "Messages et demandes envoyés via le site, pièces jointes, inscriptions aux formations, réactions et commentaires."],
                   ["Préférences et abonnements", "Inscription à la newsletter, préférences de notifications."],
@@ -120,25 +120,25 @@ export default function SuppressionDonnees() {
               </p>
             </LegalSection>
 
-            <LegalSection id="facebook" number="06" title="Vous vous êtes connecté avec Facebook ?" icon={UserCheck}>
+            <LegalSection id="facebook" number="06" title="Vous vous êtes connecté avec Google ?" icon={UserCheck}>
               <p>
                 Deux actions distinctes existent, selon ce que vous souhaitez :
               </p>
               <ul className="space-y-2">
                 <li className="flex gap-3 rounded-2xl bg-slate-50 px-4 py-3 text-xs">
                   <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-teal-600" />
-                  {"Retirer l'autorisation Facebook : dans vos paramètres Facebook (paramètres > applications et sites web), retirez « FOCOM UES ILIAD ». Cela coupe l'accès à vos informations Facebook, sans supprimer votre compte sur notre site."}
+                  {"Retirer l'accès Google : sur myaccount.google.com (Sécurité > Applications tierces disposant de l'accès au compte), retirez « FOCOM UES ILIAD ». Cela coupe l'accès à vos informations Google, sans supprimer votre compte sur notre site."}
                 </li>
                 <li className="flex gap-3 rounded-2xl bg-slate-50 px-4 py-3 text-xs">
                   <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-teal-600" />
-                  {"Effacer votre compte et vos données sur notre site : suivez la procédure décrite ci-dessus par e-mail. Nous supprimons alors votre compte, vos données et le lien avec votre identité Facebook."}
+                  {"Effacer votre compte et vos données sur notre site : suivez la procédure décrite ci-dessus par e-mail. Nous supprimons alors votre compte, vos données et le lien avec votre identité Google."}
                 </li>
               </ul>
             </LegalSection>
 
             <LegalSection id="modifications" number="07" title="Modifications de cette page" icon={RefreshCw}>
               <p>
-                Cette page peut être mise à jour pour rester conforme aux exigences de Meta (Facebook Login) et à la réglementation. La date de dernière mise à jour figure en haut de page.
+                Cette page peut être mise à jour pour rester conforme aux exigences de Google et à la réglementation. La date de dernière mise à jour figure en haut de page.
               </p>
             </LegalSection>
           </div>

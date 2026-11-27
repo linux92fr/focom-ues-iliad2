@@ -14,7 +14,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Mail, Lock, User, Wand2, Eye, EyeOff, Fingerprint } from "lucide-react";
-import { FacebookIcon } from "@/components/icons";
+import { GoogleIcon } from "@/components/icons";
 import { generateStrongPassword, getPasswordError } from "@/lib/password";
 import { startAuthentication, browserSupportsWebAuthn } from "@simplewebauthn/browser";
 
@@ -40,23 +40,23 @@ const AuthModal = ({ open, onOpenChange }: AuthModalProps) => {
   const [showSignupPassword, setShowSignupPassword] = useState(false);
   const [passkeyLoading, setPasskeyLoading] = useState(false);
   const [loginMethod, setLoginMethod] = useState<"password" | "passkey">("password");
-  const [facebookLoading, setFacebookLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
-  // Connexion OAuth Facebook : le navigateur est redirigé vers Facebook puis
+  // Connexion OAuth Google : le navigateur est redirigé vers Google puis
   // revient sur le site avec la session (gérée par onAuthStateChange dans useAuth).
-  const handleFacebookLogin = async () => {
-    setFacebookLoading(true);
+  const handleGoogleLogin = async () => {
+    setGoogleLoading(true);
     const { error } = await supabase.auth.signInWithOAuth({
-      provider: "facebook",
+      provider: "google",
       options: { redirectTo: window.location.origin },
     });
     if (error) {
       toast({
-        title: "Connexion Facebook impossible",
+        title: "Connexion Google impossible",
         description: error.message,
         variant: "destructive",
       });
-      setFacebookLoading(false);
+      setGoogleLoading(false);
     }
   };
 
@@ -330,11 +330,11 @@ const AuthModal = ({ open, onOpenChange }: AuthModalProps) => {
               type="button"
               variant="outline"
               className="w-full gap-2"
-              disabled={facebookLoading}
-              onClick={handleFacebookLogin}
+              disabled={googleLoading}
+              onClick={handleGoogleLogin}
             >
-              {facebookLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FacebookIcon className="h-4 w-4 text-[#1877F2]" />}
-              Continuer avec Facebook
+              {googleLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <GoogleIcon className="h-4 w-4" />}
+              Continuer avec Google
             </Button>
           </TabsContent>
 
@@ -440,11 +440,11 @@ const AuthModal = ({ open, onOpenChange }: AuthModalProps) => {
               type="button"
               variant="outline"
               className="w-full gap-2"
-              disabled={facebookLoading}
-              onClick={handleFacebookLogin}
+              disabled={googleLoading}
+              onClick={handleGoogleLogin}
             >
-              {facebookLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FacebookIcon className="h-4 w-4 text-[#1877F2]" />}
-              Continuer avec Facebook
+              {googleLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <GoogleIcon className="h-4 w-4" />}
+              Continuer avec Google
             </Button>
           </TabsContent>
         </Tabs>
