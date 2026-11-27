@@ -120,27 +120,29 @@ async function fetchIndexedMap(): Promise<Record<string, number>> {
   return map;
 }
 
-// Fichiers posés à la racine du bucket dont une copie identique existe dans les
-// dossiers typés. Vérifié le 26/11/2026 par nom normalisé (suffixes de hachage
-// ignorés), empreinte du texte indexé et similarité trigram (> 0,9 uniquement).
-const ROOT_DUPLICATES: { path: string; twin: string }[] = [
-  { path: "2021_03_11_Accord_temps_de_travail_1d07703add.pdf", twin: "Accord/2021_03_11_Accord_temps_de_travail_1d07703add.pdf" },
-  { path: "2022_9_02_accord_dialogue_social_UES_Iliad_80e633537c.pdf", twin: "Accord/2022_9_02_accord_dialogue_social_UES_Iliad.pdf" },
-  { path: "20220802_Avenant_accord_temps_de_travail_8085fd3e87.pdf", twin: "Accord/20220802_Avenant_accord_temps_de_travail_8085fd3e87.pdf" },
-  { path: "20230408_UES_Iliad_Proces_verbal_de_desaccord_NAO_b415d26cb5.pdf", twin: "Accord/20230408_UES_Iliad_Proces_verbal_de_desaccord_NAO_b415d26cb5.pdf" },
-  { path: "20230911_UES_Iliad_Accord_temps_de_travail_avenant_2_681a3683b9.pdf", twin: "Accord/20230911_UES_Iliad_Accord_temps_de_travail_avenant_2_681a3683b9.pdf" },
-  { path: "2024_06_26_Accord_NAO_UES_ILIAD_5dffd9c1eb.pdf", twin: "Accord/2024_06_26_Accord_NAO_UES_ILIAD.pdf" },
-  { path: "2023_UES_Iliad_Accord_Handicap_c25feb352a.pdf", twin: "Accord/Accord_Handicap_2023_UES_ILIAD.pdf" },
-  { path: "2022_UES_Iliad_Accord_NAO_b938269135.pdf", twin: "Accord/2022_Accord_NAO_UES_ILIAD.pdf" },
-  { path: "Accord_GPEC_a26d310717.pdf", twin: "Accord/Accord_GPEC.pdf" },
-  { path: "Accord_Groupe_Iliad_-_Egalite_professionnelle_et_qualite_de_vie_au_travail.pdf", twin: "Accord/Accord_Groupe_Iliad_-_Egalite_professionnelle_et_qualite_de_vie_au_travail.pdf" },
-  { path: "Accord_Regime_des_Inventions_de_Salaries_2017_12_19_5cf94d8a30.pdf", twin: "Accord/Accord_Regime_des_Inventions_de_Salaries_2017_12_19.pdf" },
-  { path: "Charte_Teletravail_Formulaire_Adhesion_0353d1e75f.pdf", twin: "Accord/Charte_Teletravail_Formulaire_Adhesion_0353d1e75f.pdf" },
-  { path: "Charte_teletravail_0a6b0cd370.pdf", twin: "Accord/CHARTE_SUR_LE_TELETRAVAIL_UESILIAD.pdf" },
-  { path: "VF_signee_28_05_2025_Projet_Accord_NAO_UES_ILIAD_2025_31464150d3_3aecdb8036.pdf", twin: "Accord/VF_signee_28_05_2025_Projet_Accord_NAO_UES_ILIAD_20253.pdf" },
-  { path: "PV_REUNION_ORDINIARE_CSE_DU_24_FEVRIER_2022.pdf", twin: "CSE/2022/2022_02_24_Proces_Verbal_CSE_Iliad_316073f819.pdf" },
-];
+// Clé canonique de nom de fichier : minuscules, sans accents, sans extension,
+// sans suffixe de hachage (ex. "_1d07703add") ni séparateurs. Sert à détecter
+// dynamiquement les doublons entre la racine et les dossiers typés.
+function canonPath(name: string): string {
+  return stripAccents(name.toLowerCase())
+    .replace(/\.pdf$/, "")
+    .replace(/_[0-9a-f]{6,}$/, "")
+    .replace(/[^a-z0-9]/g, "");
+}
 
+// Détecte les fichiers posés à la racine du bucket dont une copie identique
+// existe dans les dossiers typés, par comparaison de noms canoniques.
+function findRootDuplicates(files: StoredFile[]): { path: string; twin: string }[] {
+  const folders = files.filter((f) => f.path.includes("/"));
+  const byCanon = new Map<string, string>();
+  for (const f of folders) {
+    const k = canonPath(f.name);
+    if (!byCanon.has(k)) byCanon.set(k, f.path);
+  }
+  return files
+    .filter((f) => !f.path.includes("/") && byCanon.has(canonPath(f.name)))
+    .map((f) => ({ path: f.path, twin: byCanon.get(canonPath(f.name))! }));
+}
 function AdminPVDepotContent() {
   const [files, setFiles] = useState<StoredFile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -551,12 +553,11 @@ function AdminPVDepotContent() {
         return;
       }
 
-      // 4. Supprime par batch
-      let deleted = 0;
-      for (const orphan of orphans) {
-        await supabase.from("pv_documents").delete().eq("filename", orphan);
-        deleted++;
-      }
+      // 4. Supprime par batch, en parallèle
+      const results = await Promise.allSettled(
+        orphans.map((orphan) => supabase.from("pv_documents").delete().eq("filename", orphan))
+      );
+      const deleted = results.filter((r) => r.status === "fulfilled").length;
 
       toast.success(`${deleted} entrée(s) orpheline(s) supprimée(s) de l'index.`);
       await loadFiles();
@@ -568,18 +569,34 @@ function AdminPVDepotContent() {
   };
 
   const purgeRootDuplicates = async () => {
-    if (!confirm(`Supprimer les ${ROOT_DUPLICATES.length} doublons de la racine ?\n\nUne copie identique existe déjà dans les dossiers typés (Accord/, CSE/...). Fichiers et index seront supprimés.`)) return;
+    if (rootDuplicates.length === 0) {
+      toast.info("Aucun doublon racine détecté — rien à purger.");
+      return;
+    }
+    if (
+      !confirm(
+        `Supprimer les ${rootDuplicates.length} doublon(s) de la racine ?\n\n` +
+          rootDuplicates.map((d) => `• ${d.path} (doublon de ${d.twin})`).join("\n") +
+          `\n\nUne copie identique existe déjà dans les dossiers typés (Accord/, CSE/...). Fichiers et index seront supprimés.`
+      )
+    )
+      return;
     setPurgingDuplicates(true);
-    let deleted = 0;
     try {
-      const paths = ROOT_DUPLICATES.map((d) => d.path);
+      const paths = rootDuplicates.map((d) => d.path);
       const { error: removeError } = await supabase.storage.from("pv-documents").remove(paths);
       if (removeError) throw removeError;
-      for (const path of paths) {
-        await supabase.from("pv_documents").delete().eq("filename", path);
-        deleted++;
+      // Suppression des entrées d'index en parallèle (au lieu d'une boucle await séquentielle).
+      const results = await Promise.allSettled(
+        paths.map((path) => supabase.from("pv_documents").delete().eq("filename", path))
+      );
+      const failed = results.filter((r) => r.status === "rejected").length;
+      const count = rootDuplicates.length;
+      if (failed > 0) {
+        toast.error(`${count - failed} doublon(s) supprimé(s), ${failed} suppression(s) d'index en échec — rechargez puis réessayez.`);
+      } else {
+        toast.success(`${count} doublon(s) racine supprimé(s) — fichiers et index nettoyés.`);
       }
-      toast.success(`${deleted} doublon(s) racine supprimé(s) — fichiers et index nettoyés.`);
       await loadFiles();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erreur pendant la purge des doublons");
@@ -646,6 +663,9 @@ function AdminPVDepotContent() {
   }
 
   const nonIndexed = files.filter((f) => !f.indexed);
+
+  // Doublons racine recalculés à chaque chargement (plus de liste figée en dur).
+  const rootDuplicates = findRootDuplicates(files);
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
@@ -802,12 +822,12 @@ function AdminPVDepotContent() {
               variant="outline"
               size="sm"
               onClick={purgeRootDuplicates}
-              disabled={purgingDuplicates || loading}
+              disabled={purgingDuplicates || loading || rootDuplicates.length === 0}
               className="text-xs text-red-700 border-red-300 hover:bg-red-50"
-              title="Supprime les fichiers de la racine du bucket dont une copie identique existe déjà dans les dossiers typés (analyse du 26/11/2026)"
+              title="Supprime les fichiers de la racine du bucket dont une copie identique existe déjà dans les dossiers typés (détection automatique par nom normalisé)"
             >
               {purgingDuplicates ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Trash2 className="w-3 h-3 mr-1" />}
-              {`Purger les doublons racine (${ROOT_DUPLICATES.length})`}
+              {`Purger les doublons racine (${rootDuplicates.length})`}
             </Button>
             <Button
               variant="outline"
