@@ -16,7 +16,8 @@ const Footer = () => {
     ],
     "Légal": [
       { label: "Mentions légales", href: "/mentions-legales" },
-      { label: "Confidentialité", href: "/mentions-legales" },
+      { label: "Confidentialité", href: "/rgpd" },
+      { label: "Suppression des données", href: "/suppression-donnees" },
     ],
   };
 
@@ -105,8 +106,8 @@ const Footer = () => {
             © {new Date().getFullYear()} FOCOM UES ILIAD Actu Espace. Tous droits réservés.
           </p>
           <div className="flex justify-center gap-4 mt-2 text-xs text-accent-foreground/40">
-            <a href="#" className="hover:text-accent-foreground transition-colors">Mentions légales</a>
-            <a href="#" className="hover:text-accent-foreground transition-colors">Politique de confidentialité</a>
+            <a href="/mentions-legales" className="hover:text-accent-foreground transition-colors">Mentions légales</a>
+            <a href="/rgpd" className="hover:text-accent-foreground transition-colors">Politique de confidentialité</a>
             <a href="#" className="hover:text-accent-foreground transition-colors">CGU</a>
           </div>
         </div>

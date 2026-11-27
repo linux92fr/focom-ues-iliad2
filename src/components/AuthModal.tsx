@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Mail, Lock, User, Wand2, Eye, EyeOff, Fingerprint } from "lucide-react";
+import { Loader2, Mail, Lock, User, Wand2, Eye, EyeOff, Fingerprint, Facebook } from "lucide-react";
 import { generateStrongPassword, getPasswordError } from "@/lib/password";
 import { startAuthentication, browserSupportsWebAuthn } from "@simplewebauthn/browser";
 
@@ -39,6 +39,25 @@ const AuthModal = ({ open, onOpenChange }: AuthModalProps) => {
   const [showSignupPassword, setShowSignupPassword] = useState(false);
   const [passkeyLoading, setPasskeyLoading] = useState(false);
   const [loginMethod, setLoginMethod] = useState<"password" | "passkey">("password");
+  const [facebookLoading, setFacebookLoading] = useState(false);
+
+  // Connexion OAuth Facebook : le navigateur est redirigé vers Facebook puis
+  // revient sur le site avec la session (gérée par onAuthStateChange dans useAuth).
+  const handleFacebookLogin = async () => {
+    setFacebookLoading(true);
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "facebook",
+      options: { redirectTo: window.location.origin },
+    });
+    if (error) {
+      toast({
+        title: "Connexion Facebook impossible",
+        description: error.message,
+        variant: "destructive",
+      });
+      setFacebookLoading(false);
+    }
+  };
 
   const handlePasskeyLogin = async () => {
     const email = loginEmail.trim();
@@ -298,6 +317,24 @@ const AuthModal = ({ open, onOpenChange }: AuthModalProps) => {
                 )
               )}
             </form>
+                        <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-slate-200" />
+              </div>
+              <div className="relative flex justify-center text-xs">
+                <span className="bg-white px-2 text-muted-foreground">ou</span>
+              </div>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full gap-2"
+              disabled={facebookLoading}
+              onClick={handleFacebookLogin}
+            >
+              {facebookLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Facebook className="h-4 w-4 text-[#1877F2]" />}
+              Continuer avec Facebook
+            </Button>
           </TabsContent>
 
           <TabsContent value="signup" className="space-y-4 pt-4">
@@ -390,6 +427,24 @@ const AuthModal = ({ open, onOpenChange }: AuthModalProps) => {
                 )}
               </Button>
             </form>
+                        <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-slate-200" />
+              </div>
+              <div className="relative flex justify-center text-xs">
+                <span className="bg-white px-2 text-muted-foreground">ou</span>
+              </div>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full gap-2"
+              disabled={facebookLoading}
+              onClick={handleFacebookLogin}
+            >
+              {facebookLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Facebook className="h-4 w-4 text-[#1877F2]" />}
+              Continuer avec Facebook
+            </Button>
           </TabsContent>
         </Tabs>
       </DialogContent>
