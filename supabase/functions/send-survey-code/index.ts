@@ -82,6 +82,7 @@ serve(async (req) => {
         subject: `Code de vérification sondage FO COM - ${survey.title}`,
         html: `
           <div style="font-family:Arial,sans-serif;line-height:1.6;color:#0f172a;max-width:640px;margin:0 auto;padding:24px;">
+            <div style="text-align:center;margin-bottom:18px;"><img src="https://focomues-iliad.fr/logo-focom.png" width="84" height="84" alt="FO COM UES ILIAD" style="width:84px;height:84px;border-radius:12px;" /></div>
             <h2 style="color:#dc2626;margin:0 0 16px;">Code de vérification FO COM UES ILIAD</h2>
             <p>Bonjour,</p>
             <p>Voici votre code de sécurité pour participer au sondage :</p>

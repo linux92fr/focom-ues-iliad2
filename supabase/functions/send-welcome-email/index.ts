@@ -59,6 +59,7 @@ Deno.serve(async (req) => {
       <table width="600" align="center" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);max-width:100%;">
         <tr>
           <td style="background:#dc2626;padding:32px 40px;text-align:center;">
+            <div style="margin-bottom:14px;"><img src="https://focomues-iliad.fr/logo-focom.png" width="80" height="80" alt="FO COM UES ILIAD" style="display:inline-block;width:80px;height:80px;background:#ffffff;border-radius:12px;padding:6px;" /></div>
             <h1 style="color:#ffffff;margin:0;font-size:22px;font-weight:700;letter-spacing:0.5px;">FOCOM UES ILIAD</h1>
             <p style="color:rgba(255,255,255,0.85);margin:6px 0 0;font-size:13px;">Fédération des Organisations de Communication</p>
           </td>

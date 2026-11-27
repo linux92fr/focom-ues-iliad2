@@ -474,6 +474,7 @@ Deno.serve(async (req) => {
       const memberEmailHtml = escapeHtml(memberEmail);
       const contactHtml = `
         <div style="font-family:Arial,sans-serif;line-height:1.6;color:#0f172a;max-width:640px;margin:0 auto;padding:24px;">
+          <div style="text-align:center;margin-bottom:18px;"><img src="https://focomues-iliad.fr/logo-focom.png" width="84" height="84" alt="FO COM UES ILIAD" style="width:84px;height:84px;border-radius:12px;" /></div>
           <h2 style="color:#dc2626;margin:0 0 16px;">Nouveau bulletin d'adhésion</h2>
           <p><strong>${memberName}</strong> vous a transmis son bulletin d'adhésion.</p>
           <p><strong>Adresse de réponse :</strong> ${memberEmailHtml}</p>
@@ -494,6 +495,7 @@ Deno.serve(async (req) => {
       if (sendMemberCopy) {
         const copyHtml = `
           <div style="font-family:Arial,sans-serif;line-height:1.6;color:#0f172a;max-width:640px;margin:0 auto;padding:24px;">
+            <div style="text-align:center;margin-bottom:18px;"><img src="https://focomues-iliad.fr/logo-focom.png" width="84" height="84" alt="FO COM UES ILIAD" style="width:84px;height:84px;border-radius:12px;" /></div>
             <h2 style="color:#dc2626;margin:0 0 16px;">Votre bulletin d'adhésion</h2>
             <p>Bonjour ${memberName},</p>
             <p>Voici une copie de votre bulletin d'adhésion, transmis à FO COM UES ILIAD.</p>

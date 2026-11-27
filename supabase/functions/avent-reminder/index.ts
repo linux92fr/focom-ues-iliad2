@@ -53,6 +53,7 @@ function wrapAventHtml(bodyHtml: string, unsubUrl: string): string {
       <table width="600" align="center" cellpadding="0" cellspacing="0" style="background:#f6ead3;border-radius:12px;overflow:hidden;max-width:600px;width:100%;">
         <tr>
           <td style="background:#b3402f;padding:24px 40px;text-align:center;">
+            <div style="margin-bottom:12px;"><img src="https://focomues-iliad.fr/logo-focom.png" width="76" height="76" alt="FO COM UES ILIAD" style="display:inline-block;width:76px;height:76px;background:#ffffff;border-radius:12px;padding:6px;" /></div>
             <h1 style="color:#f6ead3;margin:0;font-size:20px;font-weight:700;">🎄 Calendrier de l'Avent FO COM</h1>
           </td>
         </tr>

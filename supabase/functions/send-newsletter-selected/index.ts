@@ -31,7 +31,7 @@ function wrapHtml(bodyHtml: string, unsubUrl: string, siteUrl: string): string {
               <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
                 <tr>
                   <td style="vertical-align:middle;">
-                    <div style="display:inline-block;background:#ffffff;color:#c62828;font-weight:900;font-size:22px;line-height:1;border-radius:16px;padding:13px 16px;letter-spacing:-0.5px;">FO</div>
+                    <img src="https://focomues-iliad.fr/logo-focom.png" width="64" height="64" alt="FO COM UES ILIAD" style="display:inline-block;vertical-align:middle;width:64px;height:64px;background:#ffffff;border-radius:16px;padding:4px;" />
                     <div style="display:inline-block;vertical-align:middle;margin-left:12px;">
                       <p style="margin:0;color:#ffffff;font-size:20px;font-weight:900;letter-spacing:-0.3px;">FO COM UES ILIAD</p>
                       <p style="margin:5px 0 0;color:rgba(255,255,255,0.86);font-size:13px;font-weight:600;">Informer · Défendre · Agir</p>

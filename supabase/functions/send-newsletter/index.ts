@@ -23,6 +23,7 @@ function wrapHtml(bodyHtml: string, unsubUrl: string, siteUrl: string): string {
       <table width="600" align="center" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);max-width:100%;">
         <tr>
           <td style="background:#dc2626;padding:24px 40px;text-align:center;">
+            <div style="margin-bottom:12px;"><img src="https://focomues-iliad.fr/logo-focom.png" width="76" height="76" alt="FO COM UES ILIAD" style="display:inline-block;width:76px;height:76px;background:#ffffff;border-radius:12px;padding:6px;" /></div>
             <h1 style="color:#ffffff;margin:0;font-size:20px;font-weight:700;">FO COM UES ILIAD</h1>
           </td>
         </tr>

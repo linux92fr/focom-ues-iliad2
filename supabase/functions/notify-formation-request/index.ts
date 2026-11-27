@@ -65,7 +65,7 @@ Deno.serve(async (req: Request) => {
     const subject = "[FO COM UES ILIAD] Nouvelle demande de formation";
     const html = `<!doctype html><html lang="fr"><meta charset="utf-8"><body style="font-family:Arial,sans-serif;color:#1e293b;line-height:1.6">
       <div style="max-width:620px;margin:24px auto;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">
-      <div style="background:#dc2626;color:white;padding:22px"><h2 style="margin:0">Nouvelle préinscription formation</h2><p style="margin:6px 0 0">FO COM UES ILIAD · Portail Formation 2027</p></div>
+      <div style="background:#dc2626;color:white;padding:22px"><div style="margin-bottom:10px;"><img src="https://focomues-iliad.fr/logo-focom.png" width="64" height="64" alt="FO COM UES ILIAD" style="display:inline-block;width:64px;height:64px;background:#ffffff;border-radius:12px;padding:5px;" /></div><h2 style="margin:0">Nouvelle préinscription formation</h2><p style="margin:6px 0 0">FO COM UES ILIAD · Portail Formation 2027</p></div>
       <div style="padding:24px"><p>Une nouvelle demande vient d'être enregistrée.</p>
       <p><b>Participant :</b> ${esc(row.first_name)} ${esc(row.last_name)}<br>
       <b>E-mail :</b> ${esc(row.email)}<br><b>Entreprise :</b> ${esc(row.company)}<br>
