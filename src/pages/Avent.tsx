@@ -6,7 +6,8 @@ import { supabase } from "@/integrations/supabase/client";
 // Calendrier de l'Avent FO COM UES Iliad — décembre 2026
 // Un quiz par jour (code du travail et syndicalisme) + une surprise.
 // Progression enregistrée côté serveur via un identifiant anonyme : aucun compte requis.
-// Pseudo optionnel pour le classement, modéré côté serveur (bannissement possible).
+// Pseudo obligatoire pour jouer et figurer au classement, modéré côté serveur (bannissement possible).
+// Un pseudo unique par joueur : les essais répétés depuis plusieurs terminaux ne peuvent plus être anonymes.
 // Classement honorifique en direct + diplôme numérique en fin de parcours : aucun lot matériel.
 // Compte à rebours de 45 secondes par question ; à zéro, la case se referme sans rien enregistrer.
 // Chaque case se déverrouille le jour venu (heure de Paris) ; les jours
@@ -601,6 +602,8 @@ export default function Avent() {
   const [pseudoMsg, setPseudoMsg] = useState<string | null>(null);
   const [banned, setBanned] = useState(false);
   const [pseudoBusy, setPseudoBusy] = useState(false);
+  const [stateLoaded, setStateLoaded] = useState(false);
+  const pseudoCardRef = React.useRef<HTMLDivElement | null>(null);
   const [leaders, setLeaders] = useState<LeaderRow[] | null>(null);
   const [myRank, setMyRank] = useState<MyRank | null>(null);
 
@@ -609,8 +612,10 @@ export default function Avent() {
     supabase
       .rpc("avent_state", { p_player_id: playerId })
       .then((res) => {
+        if (cancelled) return;
+        setStateLoaded(true);
         const data = res.data;
-        if (cancelled || res.error || !data || typeof data.today !== "number") return;
+        if (res.error || !data || typeof data.today !== "number") return;
         setServerToday(data.today);
         if (typeof data.banned === "boolean") setBanned(data.banned);
         if (typeof data.pseudo === "string" && data.pseudo.length > 0) {
@@ -628,6 +633,7 @@ export default function Avent() {
         }
       })
       .catch(() => {
+        if (!cancelled) setStateLoaded(true);
         // hors ligne : repli sur l horloge locale du navigateur
       });
     return () => {
@@ -759,6 +765,13 @@ export default function Avent() {
             setPseudoMsg("Vous avez été exclu du jeu.");
             return;
           }
+          if (data && data.error === "pseudo_required") {
+            // Refus serveur : pas de pseudo enregistré, rien n'est sauvegardé localement.
+            setSavedPseudo(null);
+            setPseudoMsg("Choisissez d'abord votre pseudo ci-dessous : il est obligatoire pour jouer.");
+            pseudoCardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+            return;
+          }
           applyLocal();
           return;
         }
@@ -818,7 +831,7 @@ export default function Avent() {
         }
         setSavedPseudo(data.pseudo as string);
         setPseudoInput(data.pseudo as string);
-        setPseudoMsg("Pseudo enregistré : il servira pour le classement des meilleurs.");
+        setPseudoMsg("Pseudo enregistré : vous pouvez jouer, il servira pour le classement des meilleurs.");
         refreshLeader();
       })
       .catch(() => setPseudoMsg("Impossible d'enregistrer le pseudo pour le moment, réessayez plus tard."))
@@ -829,6 +842,17 @@ export default function Avent() {
     if (day > unlocked) {
       setShakeDay(day);
       setTimeout(() => setShakeDay(null), 450);
+      return;
+    }
+    // Pseudo obligatoire : impossible de jouer sans être identifié pour le classement.
+    if (stateLoaded && !savedPseudo && !banned) {
+      setShakeDay(day);
+      setTimeout(() => setShakeDay(null), 450);
+      setPseudoMsg("Choisissez d'abord votre pseudo ci-dessous : il est obligatoire pour jouer.");
+      pseudoCardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      (pseudoCardRef.current?.querySelector("input") as HTMLInputElement | null)?.focus({
+        preventScroll: true,
+      });
       return;
     }
     setOpenDay(day);
@@ -980,14 +1004,14 @@ export default function Avent() {
           )}
         </div>
 
-        {/* Pseudo (optionnel) pour le classement, modéré côté serveur */}
-        <div className="mt-6 max-w-xl mx-auto bg-[var(--av-card-soft)] border border-[var(--av-card-border)] rounded-2xl p-5">
+        {/* Pseudo obligatoire pour jouer et figurer au classement, modéré côté serveur */}
+        <div ref={pseudoCardRef} className="mt-6 max-w-xl mx-auto bg-[var(--av-card-soft)] border border-[var(--av-card-border)] rounded-2xl p-5 scroll-mt-6">
           <p className="text-sm font-bold text-[var(--av-accent)] flex items-center gap-2">
             <Trophy className="w-4 h-4" />
-            Pseudo pour le classement (optionnel)
+            Votre pseudo (obligatoire pour jouer)
           </p>
           <p className="mt-1 text-xs text-[var(--av-muted2)] leading-relaxed">
-            Choisissez un pseudo pour figurer au classement des meilleurs. Pas de prénom obligatoire, pas de compte : votre anonymat est préservé.
+            Obligatoire pour jouer et figurer au classement : un seul pseudo par joueur, unique sur tout le site. Pas de prénom obligatoire, pas de compte : votre anonymat est préservé.
           </p>
           {banned ? (
             <p className="mt-3 text-xs font-bold text-red-300 leading-relaxed" role="alert">
