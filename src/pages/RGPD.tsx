@@ -120,7 +120,7 @@ export default function RGPD() {
                 <div className="rounded-2xl border border-slate-200 p-4">
                   <p className="font-extrabold text-slate-900">Compte adhérent</p>
                   <p className="mt-2 text-xs leading-relaxed">
-                    Adresse e-mail, mot de passe chiffré, profil, carte adhérent, notifications et données nécessaires à l’espace personnel.
+                    Adresse e-mail, mot de passe chiffré, profil, carte adhérent, notifications et données nécessaires à l’espace personnel. Si vous utilisez la connexion avec Facebook, votre nom, votre adresse e-mail et votre photo de profil sont importés depuis votre compte Meta.
                   </p>
                 </div>
                 <div className="rounded-2xl border border-slate-200 p-4">
@@ -179,7 +179,8 @@ export default function RGPD() {
                 {[
                   "aux représentants FO COM habilités ;",
                   "aux administrateurs autorisés du site ;",
-                  "aux prestataires techniques strictement nécessaires, notamment Supabase et Resend pour l’envoi des courriels.",
+                  "aux prestataires techniques strictement nécessaires, notamment Supabase et Resend pour l’envoi des courriels ;",
+                  "à Meta (Facebook), uniquement lorsque vous choisissez la connexion Facebook, pour authentifier votre session.",
                 ].map((item) => (
                   <li key={item} className="flex gap-3 rounded-2xl bg-slate-50 px-4 py-3 text-xs">
                     <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-teal-600" />
