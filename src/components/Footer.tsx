@@ -17,6 +17,7 @@ const Footer = () => {
     "Légal": [
       { label: "Mentions légales", href: "/mentions-legales" },
       { label: "Confidentialité", href: "/rgpd" },
+      { label: "Suppression des données", href: "/suppression-donnees" },
     ],
   };
 

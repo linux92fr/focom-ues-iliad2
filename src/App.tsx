@@ -21,6 +21,7 @@ const FAQ = lazy(() => import("./pages/FAQ"));
 const Contact = lazy(() => import("./pages/Contact"));
 const MentionsLegales = lazy(() => import("./pages/MentionsLegales"));
 const RGPD = lazy(() => import("./pages/RGPD"));
+const SuppressionDonnees = lazy(() => import("./pages/SuppressionDonnees"));
 const Actualites = lazy(() => import("./pages/Actualites"));
 const ActualiteDetail = lazy(() => import("./pages/ActualiteDetail"));
 const NouvelArticle = lazy(() => import("./pages/NouvelArticle"));
@@ -123,6 +124,7 @@ function App() {
                       <Route path="/contact" element={<Contact />} />
                       <Route path="/mentions-legales" element={<MentionsLegales />} />
                       <Route path="/rgpd" element={<RGPD />} />
+                      <Route path="/suppression-donnees" element={<SuppressionDonnees />} />
                       <Route path="/actualites" element={<Actualites />} />
                       <Route path="/actualites/:slug" element={<ActualiteDetail />} />
                       <Route path="/publications" element={<Publications />} />
