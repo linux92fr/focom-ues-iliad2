@@ -6,8 +6,8 @@ import { supabase } from "@/integrations/supabase/client";
 // Calendrier de l'Avent FO COM UES Iliad — décembre 2026
 // Un quiz par jour (code du travail et syndicalisme) + une surprise.
 // Progression enregistrée côté serveur via un identifiant anonyme : aucun compte requis.
-// Pseudo optionnel pour le classement et les lots, modéré côté serveur (bannissement possible).
-// Email de contact optionnel (remise des lots uniquement) : finalité unique, aucun autre envoi.
+// Pseudo optionnel pour le classement, modéré côté serveur (bannissement possible).
+// Classement honorifique en direct + diplôme numérique en fin de parcours : aucun lot matériel.
 // Compte à rebours de 45 secondes par question ; à zéro, la case se referme sans rien enregistrer.
 // Chaque case se déverrouille le jour venu (heure de Paris) ; les jours
 // passés restent ouverts pour permettre le rattrapage.
@@ -393,6 +393,10 @@ const AVENT_VARS: Record<string, string> = {
 
 type PlayedMap = Record<string, boolean>;
 
+// Classement honorifique (aucun lot matériel, uniquement reconnaissance)
+type LeaderRow = { rank: number; pseudo: string; score: number; days: number };
+type MyRank = { rank: number; total: number; score: number; days: number; completed: boolean; pseudo: string | null };
+
 function loadProgress(): PlayedMap {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -597,10 +601,8 @@ export default function Avent() {
   const [pseudoMsg, setPseudoMsg] = useState<string | null>(null);
   const [banned, setBanned] = useState(false);
   const [pseudoBusy, setPseudoBusy] = useState(false);
-  const [contactEmail, setContactEmail] = useState("");
-  const [contactSaved, setContactSaved] = useState<string | null>(null);
-  const [contactMsg, setContactMsg] = useState<string | null>(null);
-  const [contactBusy, setContactBusy] = useState(false);
+  const [leaders, setLeaders] = useState<LeaderRow[] | null>(null);
+  const [myRank, setMyRank] = useState<MyRank | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -614,10 +616,6 @@ export default function Avent() {
         if (typeof data.pseudo === "string" && data.pseudo.length > 0) {
           setSavedPseudo(data.pseudo);
           setPseudoInput(data.pseudo);
-        }
-        if (typeof data.contact === "string" && data.contact.length > 0) {
-          setContactSaved(data.contact);
-          setContactEmail(data.contact);
         }
         const remote = data.played;
         if (remote && typeof remote === "object" && !Array.isArray(remote)) {
@@ -636,6 +634,31 @@ export default function Avent() {
       cancelled = true;
     };
   }, [playerId]);
+
+  // Classement honorifique : chargé au démarrage, puis rafraîchi après chaque partie.
+  const refreshLeader = () => {
+    supabase
+      .rpc("avent_leaderboard", { p_limit: 10 })
+      .then((res) => {
+        if (!res.error && Array.isArray(res.data)) setLeaders(res.data as LeaderRow[]);
+      })
+      .catch(() => {
+        // classement indisponible : la carte reste masquée
+      });
+    supabase
+      .rpc("avent_my_rank", { p_player_id: playerId })
+      .then((res) => {
+        if (!res.error && res.data && typeof res.data === "object") setMyRank(res.data as MyRank);
+      })
+      .catch(() => {
+        // rang indisponible
+      });
+  };
+
+  useEffect(() => {
+    refreshLeader();
+  }, [playerId]);
+
   const [openDay, setOpenDay] = useState<number | null>(null);
   const [shakeDay, setShakeDay] = useState<number | null>(null);
   const [reminderEmail, setReminderEmail] = useState("");
@@ -748,6 +771,7 @@ export default function Avent() {
           }
           return next;
         });
+        refreshLeader();
       })
       .catch(applyLocal);
   };
@@ -761,6 +785,7 @@ export default function Avent() {
         // rien à faire
       }
       setPlayed({});
+      refreshLeader();
     };
     supabase.rpc("avent_reset", { p_player_id: playerId }).then(wipe).catch(wipe);
   };
@@ -793,43 +818,11 @@ export default function Avent() {
         }
         setSavedPseudo(data.pseudo as string);
         setPseudoInput(data.pseudo as string);
-        setPseudoMsg("Pseudo enregistré : il servira pour le classement et les lots de fin de parcours.");
+        setPseudoMsg("Pseudo enregistré : il servira pour le classement des meilleurs.");
+        refreshLeader();
       })
       .catch(() => setPseudoMsg("Impossible d'enregistrer le pseudo pour le moment, réessayez plus tard."))
       .finally(() => setPseudoBusy(false));
-  };
-
-  const saveContact = () => {
-    const trimmed = contactEmail.trim();
-    setContactBusy(true);
-    setContactMsg(null);
-    supabase
-      .rpc("avent_set_contact", { p_player_id: playerId, p_email: trimmed })
-      .then((res) => {
-        const data = res.data;
-        if (res.error || !data || data.ok !== true) {
-          const err = data && data.error;
-          if (err === "banned") {
-            setBanned(true);
-            setContactMsg("Vous avez été exclu du jeu.");
-          } else if (err === "no_pseudo") {
-            setContactMsg("Choisissez d'abord un pseudo.");
-          } else {
-            setContactMsg("Adresse email invalide.");
-          }
-          return;
-        }
-        if (data.email === null) {
-          setContactSaved(null);
-          setContactMsg("Email de contact retiré.");
-        } else {
-          setContactSaved(data.email as string);
-          setContactEmail(data.email as string);
-          setContactMsg("Email enregistré : il servira uniquement à vous remettre votre lot si vous gagnez.");
-        }
-      })
-      .catch(() => setContactMsg("Impossible d'enregistrer l'email pour le moment, réessayez plus tard."))
-      .finally(() => setContactBusy(false));
   };
 
   const handleCaseClick = (day: number) => {
@@ -987,14 +980,14 @@ export default function Avent() {
           )}
         </div>
 
-        {/* Pseudo (optionnel) pour le classement et les lots, modéré côté serveur */}
+        {/* Pseudo (optionnel) pour le classement, modéré côté serveur */}
         <div className="mt-6 max-w-xl mx-auto bg-[var(--av-card-soft)] border border-[var(--av-card-border)] rounded-2xl p-5">
           <p className="text-sm font-bold text-[var(--av-accent)] flex items-center gap-2">
             <Trophy className="w-4 h-4" />
             Pseudo pour le classement (optionnel)
           </p>
           <p className="mt-1 text-xs text-[var(--av-muted2)] leading-relaxed">
-            Choisissez un pseudo pour figurer au classement et participer aux lots de fin de parcours. Pas de prénom obligatoire, pas de compte : votre anonymat est préservé.
+            Choisissez un pseudo pour figurer au classement des meilleurs. Pas de prénom obligatoire, pas de compte : votre anonymat est préservé.
           </p>
           {banned ? (
             <p className="mt-3 text-xs font-bold text-red-300 leading-relaxed" role="alert">
@@ -1024,37 +1017,28 @@ export default function Avent() {
               </button>
             </div>
           )}
-          {savedPseudo && !banned && (
-            <div className="mt-3">
-              <p className="text-[11px] text-[var(--av-muted2)] leading-relaxed">
-                Email de contact (optionnel) : si vous figurez parmi les gagnants, il servira uniquement à vous remettre votre lot. Aucun autre envoi, adresse supprimée après la remise des lots.
+          {myRank && myRank.completed && !banned && (
+            <div className="mt-4 bg-[var(--av-paper)] border border-[var(--av-card-border)] rounded-xl p-4 text-center">
+              <p className="text-2xl">🏅</p>
+              <p className="mt-1 text-sm font-bold text-[var(--av-accent)]">
+                Parcours complet terminé !
               </p>
-              <div className="mt-2 flex flex-col sm:flex-row gap-2">
-                <input
-                  type="email"
-                  value={contactEmail}
-                  onChange={(e) => {
-                    setContactEmail(e.target.value);
-                    setContactMsg(null);
-                  }}
-                  placeholder="votre@email.fr"
-                  aria-label="Email de contact pour les lots"
-                  className="flex-1 min-w-0 text-sm rounded-xl bg-[var(--av-paper)] text-[var(--av-dark-ink)] placeholder-[var(--av-faint)] px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--av-accent)]"
-                />
-                <button
-                  type="button"
-                  disabled={contactBusy}
-                  onClick={saveContact}
-                  className="shrink-0 text-sm font-semibold text-[var(--av-dark-ink)] bg-gradient-to-r from-[var(--av-accent)] to-[var(--av-accent2)] rounded-xl px-4 py-2 hover:brightness-110 transition-all disabled:opacity-50"
-                >
-                  {contactBusy ? "Enregistrement…" : contactSaved ? "Modifier" : "Enregistrer"}
-                </button>
-              </div>
-              {contactMsg && (
-                <p className="mt-2 text-xs text-[var(--av-accent)] leading-relaxed" role="status">
-                  {contactMsg}
-                </p>
-              )}
+              <p className="mt-1 text-xs text-[var(--av-muted2)] leading-relaxed">
+                {savedPseudo
+                  ? myRank.rank === 1
+                    ? savedPseudo + ", champion du calendrier avec " + myRank.score + " points !"
+                    : myRank.rank <= 3
+                      ? savedPseudo + ", sur le podium (" + myRank.rank + "e) avec " + myRank.score + " points !"
+                      : savedPseudo + ", " + myRank.rank + "e sur " + myRank.total + " joueurs, " + myRank.score + " points."
+                  : "Choisissez un pseudo ci-dessus pour apparaître au classement et garder la trace de votre exploit."}
+              </p>
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="mt-3 text-sm font-semibold text-[var(--av-dark-ink)] bg-gradient-to-r from-[var(--av-accent)] to-[var(--av-accent2)] rounded-xl px-4 py-2 hover:brightness-110 transition-all"
+              >
+                🖨️ Imprimer mon diplôme
+              </button>
             </div>
           )}
           <p className="mt-2 text-[11px] text-[var(--av-faint2)] leading-relaxed">
@@ -1066,6 +1050,49 @@ export default function Avent() {
             </p>
           )}
         </div>
+
+        {/* Classement honorifique des meilleurs joueurs (mis à jour en direct) */}
+        {leaders !== null && leaders.length > 0 && (
+          <div className="mt-6 max-w-xl mx-auto bg-[var(--av-card-soft)] border border-[var(--av-card-border)] rounded-2xl p-5">
+            <p className="text-sm font-bold text-[var(--av-accent)] flex items-center gap-2">
+              <Trophy className="w-4 h-4" />
+              Classement des meilleurs
+            </p>
+            <ol className="mt-3 space-y-1.5">
+              {leaders.map((row) => (
+                <li
+                  key={row.rank}
+                  className={
+                    "flex items-center justify-between gap-2 rounded-xl px-3 py-1.5 text-sm " +
+                    (myRank && row.pseudo === myRank.pseudo
+                      ? "bg-[var(--av-accent)]/15 border border-[var(--av-accent)]/40"
+                      : "bg-[var(--av-card)]")
+                  }
+                >
+                  <span className="flex items-center gap-2 min-w-0">
+                    <span className="w-6 text-center shrink-0">
+                      {row.rank === 1 ? "🥇" : row.rank === 2 ? "🥈" : row.rank === 3 ? "🥉" : row.rank + "."}
+                    </span>
+                    <span className="truncate text-[var(--av-ink)]">{row.pseudo}</span>
+                  </span>
+                  <span className="shrink-0 text-xs text-[var(--av-muted2)]">
+                    {row.score} pts · {row.days} j
+                  </span>
+                </li>
+              ))}
+            </ol>
+            {myRank && !myRank.completed && (
+              <p className="mt-3 text-[11px] text-[var(--av-faint2)] leading-relaxed">
+                Votre score : {myRank.score} points ({myRank.rank}
+                {myRank.rank === 1 ? "er" : "e"} sur {myRank.total}
+                {myRank.rank <= 10 ? ", vous êtes dans le haut du tableau !" : ""})
+              </p>
+            )}
+            <p className="mt-2 text-[11px] text-[var(--av-faint2)] leading-relaxed">
+              Classement purement honorifique : bravo à tous les participants, aucun lot ni récompense matérielle.
+            </p>
+          </div>
+        )}
 
         {/* Grille des cases */}
         <div className="mt-8 grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-2.5">
@@ -1144,7 +1171,7 @@ export default function Avent() {
 
         {/* Pied de page */}
         <p className="mt-8 text-center text-[11px] text-[var(--av-faint)]">
-          Progression enregistrée côté serveur (joueur anonyme) — aucun compte requis. Le jour 24 vaut double. En fin de parcours, les meilleurs scores seront récompensés ; les ex-aequo seront départagés par tirage au sort.
+          Progression enregistrée côté serveur (joueur anonyme, aucun compte requis). Le jour 24 vaut double. Classement purement honorifique : les meilleurs scores sont affichés en direct et un diplôme numérique peut être imprimé en fin de parcours. Aucun lot ni envoi, aucune donnée personnelle collectée.
         </p>
         <div className="mt-2 text-center">
           <button
